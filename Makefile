@@ -2,7 +2,7 @@
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows docker-build docker-up docker-down installer \
-        backup
+        portable-windows backup
 
 # `go -C backend run ...` runs the binary with CWD = backend/, so we point
 # JUSTMART_CONFIG at the repo-root config from there. Using `export` (a Make
@@ -74,6 +74,13 @@ docker-down:
 # Requires PowerShell + Inno Setup (ISCC) on PATH; see packaging/windows/.
 installer: dist-windows
 	powershell -ExecutionPolicy Bypass -File packaging/windows/build-windows.ps1
+
+# --- Portable Windows distribution (SQLite, no installer) --------------------
+# Builds dist/justmart-portable-<ver>/ + .zip: justmart.exe + a SQLite config.yaml
+# + launcher + README. Unzip-and-run, no Postgres, no Inno Setup. The script
+# builds the exe itself; pass -SkipExeBuild to reuse an existing dist/justmart.exe.
+portable-windows:
+	powershell -ExecutionPolicy Bypass -File packaging/windows/build-portable.ps1
 
 # End-to-end / integration tests (in-process httptest server + real dev Postgres).
 # Test binaries run with CWD = backend/e2e/, so the JUSTMART_CONFIG path needs

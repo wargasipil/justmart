@@ -1,0 +1,35 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - paragraph [ref=e11]: Justmart
+      - generic [ref=e12]:
+        - link "Dashboard" [ref=e13] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e14]:
+            - img [ref=e15]
+            - paragraph [ref=e20]: Dashboard
+        - link "POS" [ref=e21] [cursor=pointer]:
+          - /url: /pos
+          - generic [ref=e22]:
+            - img [ref=e23]
+            - paragraph [ref=e27]: POS
+        - link "Customers" [ref=e28] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - paragraph [ref=e33]: Customers
+      - button "toggle sidebar" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+    - generic [ref=e39]:
+      - banner [ref=e40]:
+        - generic [ref=e42]:
+          - button "language" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]:
+              - img [ref=e45]
+              - paragraph [ref=e49]: ID
+          - button "toggle theme" [ref=e50] [cursor=pointer]:
+            - img [ref=e51]
+      - main [ref=e53]
+  - region "Notifications, top-end (alt+T)"

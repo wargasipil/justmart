@@ -1,0 +1,141 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e30]:
+    - complementary [ref=e31]:
+      - generic [ref=e32]:
+        - img [ref=e34]
+        - paragraph [ref=e38]: Justmart
+      - generic [ref=e39]:
+        - link "Dashboard" [ref=e40] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e41]:
+            - img [ref=e42]
+            - paragraph [ref=e47]: Dashboard
+        - link "Analytics" [ref=e48] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e49]:
+            - img [ref=e50]
+            - paragraph [ref=e52]: Analytics
+        - link "POS" [ref=e53] [cursor=pointer]:
+          - /url: /pos
+          - generic [ref=e54]:
+            - img [ref=e55]
+            - paragraph [ref=e59]: POS
+        - link "Products" [ref=e60] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e61]:
+            - img [ref=e62]
+            - paragraph [ref=e66]: Products
+        - button "Inventory" [ref=e68] [cursor=pointer]:
+          - img [ref=e69]
+          - paragraph [ref=e73]: Inventory
+          - img [ref=e75]
+        - link "Customers" [ref=e77] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e78]:
+            - img [ref=e79]
+            - paragraph [ref=e82]: Customers
+        - link "Order history" [ref=e83] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e84]:
+            - img [ref=e85]
+            - paragraph [ref=e88]: Order history
+        - link "Warehouses" [ref=e89] [cursor=pointer]:
+          - /url: /warehouses
+          - generic [ref=e90]:
+            - img [ref=e91]
+            - paragraph [ref=e94]: Warehouses
+        - link "Users" [ref=e95] [cursor=pointer]:
+          - /url: /users
+          - generic [ref=e96]:
+            - img [ref=e97]
+            - paragraph [ref=e102]: Users
+        - link "Settings" [ref=e103] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e104]:
+            - img [ref=e105]
+            - paragraph [ref=e108]: Settings
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - paragraph [ref=e111]: Owner
+          - paragraph [ref=e112]: owner@justmart.local
+        - button "Sign out" [ref=e113] [cursor=pointer]:
+          - img [ref=e114]
+          - paragraph [ref=e117]: Sign out
+        - button "toggle sidebar" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+    - generic [ref=e122]:
+      - banner [ref=e123]:
+        - generic [ref=e125]:
+          - generic [ref=e126]:
+            - img [ref=e127]
+            - paragraph [ref=e130]: MAIN · Gudang Utama
+          - button "Notifications" [ref=e131] [cursor=pointer]:
+            - img [ref=e132]
+          - button "language" [ref=e135] [cursor=pointer]:
+            - generic [ref=e136]:
+              - img [ref=e137]
+              - paragraph [ref=e141]: ID
+          - button "toggle theme" [ref=e142] [cursor=pointer]:
+            - img [ref=e143]
+          - button "user menu" [ref=e145] [cursor=pointer]:
+            - generic [ref=e146]: O
+      - main [ref=e147]:
+        - generic [ref=e148]:
+          - generic [ref=e151]:
+            - heading "Welcome, Owner" [level=2] [ref=e152]
+            - paragraph [ref=e153]: Signed in as owner@justmart.local (Owner)
+          - generic [ref=e154]:
+            - heading "Business health · today" [level=2] [ref=e155]
+            - generic [ref=e156]:
+              - link "Revenue today IDR 0" [ref=e157] [cursor=pointer]:
+                - /url: /orders
+                - generic [ref=e159]:
+                  - paragraph [ref=e160]: Revenue today
+                  - paragraph [ref=e161]: IDR 0
+              - link "Profit today IDR 0" [ref=e162] [cursor=pointer]:
+                - /url: /analytics/daily
+                - generic [ref=e164]:
+                  - paragraph [ref=e165]: Profit today
+                  - paragraph [ref=e166]: IDR 0
+              - link "Sales today 0" [ref=e167] [cursor=pointer]:
+                - /url: /orders
+                - generic [ref=e169]:
+                  - paragraph [ref=e170]: Sales today
+                  - paragraph [ref=e171]: "0"
+              - link "Items sold today 0" [ref=e172] [cursor=pointer]:
+                - /url: /orders
+                - generic [ref=e174]:
+                  - paragraph [ref=e175]: Items sold today
+                  - paragraph [ref=e176]: "0"
+              - link "Avg basket IDR 0" [ref=e177] [cursor=pointer]:
+                - /url: /orders
+                - generic [ref=e179]:
+                  - paragraph [ref=e180]: Avg basket
+                  - paragraph [ref=e181]: IDR 0
+              - link "Low stock 0" [ref=e182] [cursor=pointer]:
+                - /url: /products
+                - generic [ref=e184]:
+                  - paragraph [ref=e185]: Low stock
+                  - paragraph [ref=e186]: "0"
+              - link "Expiring in 30 days 0" [ref=e187] [cursor=pointer]:
+                - /url: /inventory/batches
+                - generic [ref=e189]:
+                  - paragraph [ref=e190]: Expiring in 30 days
+                  - paragraph [ref=e191]: "0"
+            - generic [ref=e192]:
+              - heading "Last 7 days · revenue" [level=2] [ref=e193]
+              - img [ref=e197]:
+                - generic [ref=e202]:
+                  - generic [ref=e204]: 2026-05-28
+                  - generic [ref=e206]: 2026-05-29
+                  - generic [ref=e208]: 2026-05-30
+                  - generic [ref=e210]: 2026-05-31
+                  - generic [ref=e212]: 2026-06-01
+                  - generic [ref=e214]: 2026-06-03
+                - generic [ref=e216]:
+                  - generic [ref=e218]: IDR 0
+                  - generic [ref=e220]: IDR 1
+                  - generic [ref=e222]: IDR 2
+                  - generic [ref=e224]: IDR 3
+                  - generic [ref=e226]: IDR 4
+  - region "Notifications, top-end (alt+T)"

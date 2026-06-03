@@ -5,6 +5,12 @@ Justmart on a Windows PC: the app server, a **bundled PostgreSQL**, both
 registered as auto-start Windows Services, plus a desktop/Start-menu shortcut.
 No prerequisites for the pharmacist.
 
+> **Lighter alternative — portable (SQLite, no installer):** `make portable-windows`
+> (script: [build-portable.ps1](build-portable.ps1)) produces an unzip-and-run
+> `dist\justmart-portable-<ver>\` folder + zip backed by SQLite — no PostgreSQL, no
+> Windows services, no Inno Setup. Best for a single-PC shop. See the "Portable
+> (SQLite, no installer)" section in [DEPLOYMENT.md](../../DEPLOYMENT.md).
+
 ## What's in the box
 | Piece | How it runs |
 |---|---|

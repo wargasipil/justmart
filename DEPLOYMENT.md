@@ -92,6 +92,14 @@ local production smoke test.
 ## Database engine (Postgres vs SQLite)
 - The same binary runs on either engine, selected by `database.driver` in `config.yaml` (or `JUSTMART_DB_DRIVER`): **`postgres`** (default — the Docker / multi-user deploy documented here) or **`sqlite`** (a turnkey, zero-dependency flavor — no Postgres, no Docker; set `database.path`, e.g. `./justmart.db`, or `JUSTMART_DB_PATH`). SQLite uses a pure-Go driver, auto-migrates the same schema on boot, and is correct under concurrency via a single-writer connection. Pick SQLite for a single-PC shop that doesn't want to run Postgres; pick Postgres for anything multi-user or networked.
 
+### Portable (SQLite, no installer)
+The lightest Windows flavor: a folder you unzip and run — no install, no Postgres, no services.
+- **Build**: `make portable-windows` (or `powershell -ExecutionPolicy Bypass -File packaging/windows/build-portable.ps1 [-Port 8080] [-SkipExeBuild]`). Produces `dist/justmart-portable-<ver>/` + a `.zip`. The script builds `justmart.exe` itself unless `-SkipExeBuild` is passed (reuses an existing `dist/justmart.exe`), and bakes a random per-build `jwt_secret` into the shipped `config.yaml`.
+- **Contents**: `justmart.exe` (SPA + migrations embedded), `config.yaml` (SQLite, `host: 127.0.0.1`), `Start Justmart.bat` (launches the exe + opens the browser), `README.txt`. Nothing else — no `pgsql/`, no `winsw/`.
+- **End user**: unzip anywhere, double-click `Start Justmart.bat` (or `justmart.exe`), browse `http://localhost:<port>`, log in with the `bootstrap.owner_email`/`owner_password` from `config.yaml`. On first run the exe creates `justmart.db` (+ `-wal`/`-shm`) and `backups/` next to itself.
+- **Data / move / restore**: everything lives in the folder. Move the install = stop it and copy the folder. Back up = stop it and copy `justmart.db` (or use OWNER → Settings → Backups, which `VACUUM INTO`s a snapshot under `backups/`). Restore = stop it, replace `justmart.db` (remove stale `-wal`/`-shm`), start again.
+- **Change port / owner password**: edit `config.yaml` and restart (the owner password is re-applied on every boot, so `config.yaml` is the source of truth for that account). For LAN access set `host: 0.0.0.0` and allow the exe through Windows Firewall.
+
 ## Backups
 - **Layout (one folder per backup)** — every backup is its own per-timestamp directory under `backup.directory` (Docker: `/var/lib/justmart/backups` mounted as the `justmart-backups` named volume; Windows: `C:\ProgramData\Justmart\backups\`; dev: `./backups`):
   ```
