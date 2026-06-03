@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package purchasing_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1";
+
+enum POStatus {
+  PO_STATUS_UNSPECIFIED = 0;
+  PO_STATUS_DRAFT = 1;
+  PO_STATUS_SENT = 2;
+  PO_STATUS_PARTIALLY_RECEIVED = 3;
+  PO_STATUS_RECEIVED = 4;
+  PO_STATUS_CLOSED = 5;
+  PO_STATUS_VOIDED = 6;
+}
+
+message PurchaseOrder {
+  string id = 1;
+  string po_no = 2;
+  string supplier_id = 3;
+  POStatus status = 4;
+  string invoice_date = 5;         // YYYY-MM-DD or empty — supplier faktur date
+  string note = 6;
+  int64 ordered_total = 7;         // FINAL total = subtotal − cart_discount + ppn_amount
+  int64 paid_amount = 8;
+  int64 outstanding = 9;           // ordered_total - paid_amount (computed)
+  string created_by = 10;
+  string branch_id = 11;
+  int64 created_at = 12;
+  int64 sent_at = 13;
+  int64 closed_at = 14;
+  repeated PurchaseOrderItem items = 15;
+  int64 received_at = 16;          // most recent receipt date (0 if none)
+  string invoice_no = 17;          // supplier faktur (PO-level; receipts may carry their own)
+  string warehouse_id = 18;        // stamped at create time via resolveWarehouse
+  string warehouse_name = 19;      // denormalized for display
+  string due_at = 20;              // YYYY-MM-DD or empty — payment due (jatuh tempo)
+  int64 subtotal = 21;             // sum of item subtotals (PPN-exclusive)
+  int64 cart_discount = 22;        // cart-level discount
+  bool ppn_enabled = 23;           // whether PPN is applied
+  int64 ppn_amount = 24;           // round((subtotal − cart_discount) × ppn_rate%) when enabled, else 0
+  int32 ppn_rate = 25;             // PPN rate as a percent (default 11; ignored when ppn_enabled=false)
+}
+
+message PurchaseOrderItem {
+  string id = 1;
+  string purchase_order_id = 2;
+  string product_id = 3;
+  int32 ordered_qty = 4;
+  int32 received_qty = 5;
+  int64 unit_cost_price = 6;
+  int64 subtotal = 7;             // ordered_qty * unit_cost_price
+  string product_name = 8;       // denormalized for list display
+  string product_sku = 9;        // denormalized for list display
+  // ordered_qty / received_qty are in BASE units; these describe the purchasable
+  // unit the line was ordered in (for display / entry). unit_factor = base per 1.
+  string product_unit_id = 10;
+  string unit_name = 11;
+  int64 unit_factor = 12;
+}
+
+message PurchaseOrderItemInput {
+  string product_id = 1;
+  int32 ordered_qty = 2;          // qty in the chosen purchasable unit (empty unit_id => base)
+  int64 unit_cost_price = 3;      // per BASE unit (frontend derives from line total)
+  string product_unit_id = 4;    // purchasable unit; empty => base unit
+}
+
+service PurchaseOrderService {
+  rpc ListPurchaseOrders(ListPurchaseOrdersRequest) returns (ListPurchaseOrdersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc GetPurchaseOrder(GetPurchaseOrderRequest) returns (GetPurchaseOrderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc CreatePurchaseOrder(CreatePurchaseOrderRequest) returns (CreatePurchaseOrderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdatePurchaseOrder(UpdatePurchaseOrderRequest) returns (UpdatePurchaseOrderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SendPurchaseOrder(SendPurchaseOrderRequest) returns (SendPurchaseOrderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc VoidPurchaseOrder(VoidPurchaseOrderRequest) returns (VoidPurchaseOrderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListPurchaseOrdersRequest {
+  POStatus status = 1;
+  string supplier_id = 2;
+  bool only_outstanding = 3;   // outstanding > 0 AND status != VOIDED
+  int32 limit = 4;
+  string query = 5;            // ILIKE po_no / supplier name / supplier code / product name
+  int64 from_unix = 6;         // date-range lower bound (0 = unbounded)
+  int64 to_unix = 7;           // date-range upper bound (exclusive; 0 = unbounded)
+  string date_field = 8;       // which date the range filters: "created" | "received"
+  int32 offset = 9;
+}
+message ListPurchaseOrdersResponse {
+  repeated PurchaseOrder orders = 1;
+  int32 total = 2;
+}
+
+message GetPurchaseOrderRequest { string id = 1; }
+message GetPurchaseOrderResponse { PurchaseOrder order = 1; }
+
+message CreatePurchaseOrderRequest {
+  string supplier_id = 1;
+  string invoice_date = 2;          // YYYY-MM-DD or empty — supplier faktur date
+  string note = 3;
+  repeated PurchaseOrderItemInput items = 4;
+  string invoice_no = 5;            // supplier faktur number
+  string due_at = 6;                // YYYY-MM-DD or empty — payment due (jatuh tempo)
+  int64 cart_discount = 7;
+  bool ppn_enabled = 8;
+  int32 ppn_rate = 9;             // percent (default 11 when 0; ignored when ppn_enabled=false)
+}
+message CreatePurchaseOrderResponse { PurchaseOrder order = 1; }
+
+message UpdatePurchaseOrderRequest {
+  string id = 1;
+  string invoice_date = 2;
+  string note = 3;
+  // Full replace of lines (only allowed while DRAFT).
+  repeated PurchaseOrderItemInput items = 4;
+  string invoice_no = 5;
+  string due_at = 6;
+  int64 cart_discount = 7;
+  bool ppn_enabled = 8;
+  int32 ppn_rate = 9;
+}
+message UpdatePurchaseOrderResponse { PurchaseOrder order = 1; }
+
+message SendPurchaseOrderRequest { string id = 1; }
+message SendPurchaseOrderResponse { PurchaseOrder order = 1; }
+
+message VoidPurchaseOrderRequest { string id = 1; }
+message VoidPurchaseOrderResponse { PurchaseOrder order = 1; }

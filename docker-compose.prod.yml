@@ -1,0 +1,53 @@
+# Production stack: the self-contained Justmart image + PostgreSQL.
+# Usage:
+#   1. Copy .env.example -> .env and set the secrets (at minimum JUSTMART_JWT_SECRET).
+#   2. docker compose -f docker-compose.prod.yml up -d --build
+#   3. Browse http://<host>:8080 and log in as the bootstrap owner.
+#
+# The app auto-migrates on boot and waits for Postgres to be healthy first.
+# Data persists in the named volume `justmart-pgdata` across down/up.
+services:
+  postgres:
+    image: postgres:18          # pinned (dev compose uses :latest; never in prod)
+    container_name: justmart-postgres-prod   # distinct from the dev compose container
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: justmart
+      POSTGRES_USER: justmart
+      POSTGRES_PASSWORD: ${JUSTMART_DB_PASSWORD:-justmart}
+    volumes:
+      - justmart-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U justmart -d justmart"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No host port published — only the app needs to reach the DB.
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: justmart:latest
+    container_name: justmart-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      JUSTMART_DB_HOST: postgres
+      JUSTMART_DB_PASSWORD: ${JUSTMART_DB_PASSWORD:-justmart}
+      JUSTMART_JWT_SECRET: ${JUSTMART_JWT_SECRET:?set JUSTMART_JWT_SECRET in .env}
+      JUSTMART_OWNER_EMAIL: ${JUSTMART_OWNER_EMAIL:-owner@justmart.local}
+      JUSTMART_OWNER_PASSWORD: ${JUSTMART_OWNER_PASSWORD:-change-me-on-first-login}
+      TZ: ${JUSTMART_TZ:-Asia/Jakarta}
+    ports:
+      - "8080:8080"
+    volumes:
+      # BackupService writes here (config.docker.yaml -> backup.directory).
+      # Named volume so backup_<ts>/ dirs survive container restarts.
+      - justmart-backups:/var/lib/justmart/backups
+
+volumes:
+  justmart-pgdata:
+  justmart-backups:

@@ -1,0 +1,32 @@
+<!--
+  WinSW service definition for the Justmart application server.
+  setup.ps1 renders the @@TOKENS@@ at install time and copies this next to
+  the WinSW executable (renamed justmart-server.exe), then runs `install`.
+  WinSW reads the XML whose basename matches its own exe name.
+
+  %BASE% = the folder containing justmart-server.exe (...\Justmart\winsw).
+  The PostgreSQL service (justmart-postgres) is registered separately via
+  `pg_ctl register`; <depend> makes Windows start it before the app.
+-->
+<service>
+  <id>justmart-server</id>
+  <name>Justmart Server</name>
+  <description>Justmart retail management server (web UI + API on one port).</description>
+
+  <executable>%BASE%\..\justmart.exe</executable>
+  <workingdirectory>%BASE%\..</workingdirectory>
+
+  <!-- Point the binary at the generated config in ProgramData. -->
+  <env name="JUSTMART_CONFIG" value="@@CONFIG@@"/>
+  <env name="TZ" value="@@TZ@@"/>
+
+  <startmode>Automatic</startmode>
+  <depend>justmart-postgres</depend>
+  <onfailure action="restart" delay="5 sec"/>
+
+  <log mode="roll-by-size">
+    <logpath>@@LOGDIR@@</logpath>
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>5</keepFiles>
+  </log>
+</service>

@@ -1,0 +1,43 @@
+# Baked into the Docker image as /app/config.yaml. Non-secret defaults live
+# here; secrets are supplied at runtime via environment variables (see
+# docker-compose.prod.yml and the env overrides in internal/config):
+#   JUSTMART_JWT_SECRET, JUSTMART_DB_PASSWORD, JUSTMART_OWNER_EMAIL, JUSTMART_OWNER_PASSWORD
+server:
+  host: 0.0.0.0      # reachable from the host / LAN (container network)
+  port: 8080
+
+database:
+  host: postgres     # docker-compose service name
+  port: 5432
+  user: justmart
+  password: justmart  # override with JUSTMART_DB_PASSWORD
+  name: justmart
+  sslmode: disable
+  auto_migrate: true
+
+auth:
+  jwt_secret: change-me-via-JUSTMART_JWT_SECRET   # override with JUSTMART_JWT_SECRET
+  access_token_ttl: 1h
+  refresh_token_ttl: 720h
+
+bootstrap:
+  owner_email: owner@justmart.local               # override with JUSTMART_OWNER_EMAIL
+  owner_password: change-me-on-first-login        # override with JUSTMART_OWNER_PASSWORD
+
+printer:
+  enabled: false
+  address: 192.168.1.100:9100
+  width: 32
+  timeout: 5s
+  open_drawer: false
+  header:
+    - "JUSTMART"
+  footer:
+    - "Thank you!"
+
+# Mounted as a named volume in docker-compose.prod.yml so backups persist
+# across container restarts. Override with JUSTMART_BACKUP_DIR.
+# pg_tools_dir is unused in Docker — pg_dump is on PATH via postgresql-client
+# (Dockerfile installs it), so the auto-download branch never triggers.
+backup:
+  directory: /var/lib/justmart/backups

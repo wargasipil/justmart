@@ -1,0 +1,120 @@
+syntax = "proto3";
+
+package user_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/user_iface/v1;userifacev1";
+
+message User {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  auth_iface.v1.Role role = 4;
+  bool active = 5;
+  int64 created_at = 6;
+}
+
+service UserService {
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // ResolveUsers returns minimal display refs for a set of ids (batch
+  // lookup-by-IDs for name resolution; used by analytics).
+  rpc ResolveUsers(ResolveUsersRequest) returns (ResolveUsersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // Server-side fuzzy search for the warehouse-detail "Add user" picker.
+  // OWNER-only because this is an admin path.
+  rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc UpdateUserRole(UpdateUserRoleRequest) returns (UpdateUserRoleResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc SetUserActive(SetUserActiveRequest) returns (SetUserActiveResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+
+  // Owner mints a one-shot reset token that the user can redeem to set a new
+  // password without knowing the old one. The raw token is returned to the
+  // owner (display in UI), who hands it to the user out-of-band. No SMTP wired.
+  rpc IssuePasswordResetToken(IssuePasswordResetTokenRequest)
+      returns (IssuePasswordResetTokenResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc RedeemPasswordResetToken(RedeemPasswordResetTokenRequest)
+      returns (RedeemPasswordResetTokenResponse) {
+    option (auth_iface.v1.public) = true;
+  }
+}
+
+message ListUsersRequest {}
+message ListUsersResponse {
+  repeated User users = 1;
+}
+
+// Minimal display ref for resolve-by-IDs name lookups.
+message UserRef {
+  string id    = 1;
+  string name  = 2;
+  string email = 3;
+}
+message ResolveUsersRequest  { repeated string ids = 1; }
+message ResolveUsersResponse { repeated UserRef users = 1; }
+
+message SearchUsersRequest  { string query = 1; int32 limit = 2; }
+message SearchUsersResponse { repeated UserRef users = 1; }
+
+message CreateUserRequest {
+  string email = 1;
+  string name = 2;
+  string password = 3;
+  auth_iface.v1.Role role = 4;
+}
+message CreateUserResponse {
+  User user = 1;
+}
+
+message UpdateUserRoleRequest {
+  string user_id = 1;
+  auth_iface.v1.Role role = 2;
+}
+message UpdateUserRoleResponse {
+  User user = 1;
+}
+
+message SetUserActiveRequest {
+  string user_id = 1;
+  bool active = 2;
+}
+message SetUserActiveResponse {
+  User user = 1;
+}
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+message ChangePasswordResponse {}
+
+message IssuePasswordResetTokenRequest {
+  string user_id = 1;
+}
+message IssuePasswordResetTokenResponse {
+  string token = 1;          // raw token — show once, hand off OOB
+  int64  expires_at = 2;     // unix sec
+}
+
+message RedeemPasswordResetTokenRequest {
+  string token = 1;
+  string new_password = 2;
+}
+message RedeemPasswordResetTokenResponse {}

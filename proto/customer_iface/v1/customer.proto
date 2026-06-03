@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package customer_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/customer_iface/v1;customerifacev1";
+
+message Customer {
+  reserved 4, 8;  // removed: bpjs_no, npwp
+
+  string id = 1;
+  string name = 2;
+  string phone = 3;
+  string notes = 5;
+  bool active = 6;
+  int64 created_at = 7;
+  string address = 9;
+}
+
+service CustomerService {
+  rpc ListCustomers(ListCustomersRequest) returns (ListCustomersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  rpc GetCustomer(GetCustomerRequest) returns (GetCustomerResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  rpc SearchCustomers(SearchCustomersRequest) returns (SearchCustomersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  // ResolveCustomers returns minimal display refs for a set of ids (batch
+  // lookup-by-IDs for name resolution; never a full-list preload).
+  rpc ResolveCustomers(ResolveCustomersRequest) returns (ResolveCustomersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  rpc CreateCustomer(CreateCustomerRequest) returns (CreateCustomerResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  rpc UpdateCustomer(UpdateCustomerRequest) returns (UpdateCustomerResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ArchiveCustomer(ArchiveCustomerRequest) returns (ArchiveCustomerResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListCustomersRequest {
+  bool include_inactive = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string query = 4;          // optional ILIKE name / phone
+}
+message ListCustomersResponse {
+  repeated Customer customers = 1;
+  int32 total = 2;
+}
+
+message GetCustomerRequest { string id = 1; }
+message GetCustomerResponse { Customer customer = 1; }
+
+message SearchCustomersRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+message SearchCustomersResponse {
+  repeated Customer customers = 1;
+}
+
+// Minimal display ref for resolve-by-IDs name lookups.
+message CustomerRef {
+  string id = 1;
+  string name = 2;
+}
+message ResolveCustomersRequest { repeated string ids = 1; }
+message ResolveCustomersResponse { repeated CustomerRef customers = 1; }
+
+message CreateCustomerRequest {
+  reserved 3, 5;  // removed: bpjs_no, npwp
+
+  string name = 1;
+  string phone = 2;
+  string notes = 4;
+  string address = 6;
+}
+message CreateCustomerResponse { Customer customer = 1; }
+
+message UpdateCustomerRequest {
+  reserved 4, 6;  // removed: bpjs_no, npwp
+
+  string id = 1;
+  string name = 2;
+  string phone = 3;
+  string notes = 5;
+  string address = 7;
+}
+message UpdateCustomerResponse { Customer customer = 1; }
+
+message ArchiveCustomerRequest { string id = 1; }
+message ArchiveCustomerResponse { Customer customer = 1; }

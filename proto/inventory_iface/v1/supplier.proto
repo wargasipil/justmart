@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package inventory_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+message Supplier {
+  string id = 1;
+  string name = 2;
+  string contact_email = 3;
+  string phone = 4;
+  bool active = 5;
+  int64 created_at = 6;
+  string code = 7;            // unique business code, e.g. "SUP-0001"
+}
+
+service SupplierService {
+  rpc ListSuppliers(ListSuppliersRequest) returns (ListSuppliersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc GetSupplier(GetSupplierRequest) returns (GetSupplierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc CreateSupplier(CreateSupplierRequest) returns (CreateSupplierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdateSupplier(UpdateSupplierRequest) returns (UpdateSupplierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ArchiveSupplier(ArchiveSupplierRequest) returns (ArchiveSupplierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SearchSuppliers(SearchSuppliersRequest) returns (SearchSuppliersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // ResolveSuppliers returns minimal display refs for a set of ids (batch
+  // lookup-by-IDs for name resolution; never a full-list preload).
+  rpc ResolveSuppliers(ResolveSuppliersRequest) returns (ResolveSuppliersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListSuppliersRequest {
+  bool include_inactive = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string query = 4;          // optional ILIKE name / code
+}
+message ListSuppliersResponse {
+  repeated Supplier suppliers = 1;
+  int32 total = 2;
+}
+
+message GetSupplierRequest { string id = 1; }
+message GetSupplierResponse { Supplier supplier = 1; }
+
+message CreateSupplierRequest {
+  string name = 1;
+  string contact_email = 2;
+  string phone = 3;
+  string code = 4;
+}
+message CreateSupplierResponse { Supplier supplier = 1; }
+
+message UpdateSupplierRequest {
+  string id = 1;
+  string name = 2;
+  string contact_email = 3;
+  string phone = 4;
+  string code = 5;
+}
+message UpdateSupplierResponse { Supplier supplier = 1; }
+
+message ArchiveSupplierRequest { string id = 1; }
+message ArchiveSupplierResponse { Supplier supplier = 1; }
+
+message SearchSuppliersRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+message SearchSuppliersResponse {
+  repeated Supplier suppliers = 1;
+}
+
+// Minimal display ref for resolve-by-IDs name lookups.
+message SupplierRef {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+}
+message ResolveSuppliersRequest { repeated string ids = 1; }
+message ResolveSuppliersResponse { repeated SupplierRef suppliers = 1; }

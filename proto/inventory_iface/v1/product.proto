@@ -1,0 +1,208 @@
+syntax = "proto3";
+
+package inventory_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+message Product {
+  reserved 4;
+  reserved "manufacturer";
+  string id = 1;
+  string sku = 2;
+  string name = 3;
+  string unit = 5;
+  int64 unit_price = 6;
+  bool prescription_required = 7;
+  bool active = 8;
+  int64 created_at = 9;
+  int64 ready_stock = 10;     // on-hand in the active warehouse (list enrich)
+  int64 on_order_stock = 11;  // incoming on open POs (list enrich)
+  string last_restock_date = 12;      // YYYY-MM-DD of most recent batch receive (GetProduct only)
+  string last_restock_supplier = 13;  // supplier of that batch (GetProduct only)
+  int64 total_stock = 14;             // global on-hand across all warehouses (GetProduct only)
+  int64 stock_valuation = 15;         // global value at cost = Σ qty × cost_price (GetProduct only)
+  repeated ProductUnit units = 16;   // units of measure (base + larger packs)
+  int64 reference_cost = 17;          // latest batch cost_price, per base unit (GetProduct only; 0 if none)
+  string last_stocktake_date = 18;    // YYYY-MM-DD of most recent COMPLETED stocktake touching this product in the active warehouse (GetProduct only; empty if none)
+  int64 last_stocktake_variance = 19; // signed sum(counted_qty − expected_qty) for this product's lines in that session, BASE units (GetProduct only)
+}
+
+// A unit of measure for a product. Stock is stored in the base unit (factor 1);
+// larger units convert via `factor` (base units per 1 of this unit).
+message ProductUnit {
+  string id = 1;
+  string product_id = 2;
+  string name = 3;
+  int64 factor = 4;          // base units per 1 of this unit (base = 1)
+  bool is_base = 5;
+  int64 sell_price = 6;      // independent, minor currency
+  bool sellable = 7;
+  bool purchasable = 8;      // Phase 2
+  int32 sort_order = 9;
+  bool active = 10;
+}
+
+message ProductUnitInput {
+  string id = 1;             // empty = create new
+  string name = 2;
+  int64 factor = 3;
+  bool is_base = 4;
+  int64 sell_price = 5;
+  bool sellable = 6;
+  bool purchasable = 7;
+  int32 sort_order = 8;
+  bool active = 9;
+}
+
+message ProductPrice {
+  string id = 1;
+  string product_id = 2;
+  int64 unit_price = 3;
+  int64 effective_from = 4;
+  int64 effective_to = 5;
+  string changed_by = 6;
+}
+
+// Per-unit sell-price history (one open row per unit; effective_to 0 = current).
+message ProductUnitPrice {
+  string id = 1;
+  string product_unit_id = 2;
+  string unit_name = 3;          // denormalized for display
+  int64 unit_sell_price = 4;
+  int64 effective_from = 5;
+  int64 effective_to = 6;        // 0 = open/current
+  string changed_by = 7;
+}
+
+service ProductService {
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ArchiveProduct(ArchiveProductRequest) returns (ArchiveProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ListProductPrices(ListProductPricesRequest) returns (ListProductPricesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ListProductUnitPrices(ListProductUnitPricesRequest) returns (ListProductUnitPricesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  // ResolveProducts returns minimal display refs for a set of ids (batch
+  // lookup-by-IDs for name resolution; never a full-list preload).
+  rpc ResolveProducts(ResolveProductsRequest) returns (ResolveProductsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+  }
+  // ListLowStock returns active products whose ready_stock in the caller's
+  // active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
+  // Drives the TopBar bell.
+  rpc ListLowStock(ListLowStockRequest) returns (ListLowStockResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListProductsRequest {
+  bool include_inactive = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string query = 4;          // optional ILIKE name / sku
+  string opname_before = 5;  // YYYY-MM-DD. When set, include only products whose latest
+                             // COMPLETED opname in the active warehouse is < this date OR
+                             // who have never been counted there (overdue / never-counted).
+}
+message ListProductsResponse {
+  repeated Product products = 1;
+  int32 total = 2;
+}
+
+message GetProductRequest { string id = 1; }
+message GetProductResponse { Product product = 1; }
+
+message CreateProductRequest {
+  reserved 3;
+  reserved "manufacturer";
+  string sku = 1;
+  string name = 2;
+  string unit = 4;            // base unit name (also used if `units` is empty)
+  int64 unit_price = 5;       // base unit sell price
+  bool prescription_required = 6;
+  repeated ProductUnitInput units = 7;  // optional; if empty, a base unit is created from unit/unit_price
+}
+message CreateProductResponse { Product product = 1; }
+
+message UpdateProductRequest {
+  reserved 3;
+  reserved "manufacturer";
+  string id = 1;
+  string name = 2;
+  string unit = 4;
+  int64 unit_price = 5;
+  bool prescription_required = 6;
+  repeated ProductUnitInput units = 7;  // upsert the full unit set (exactly one is_base, base factor 1)
+}
+message UpdateProductResponse { Product product = 1; }
+
+message ArchiveProductRequest { string id = 1; }
+message ArchiveProductResponse { Product product = 1; }
+
+message ListProductPricesRequest { string product_id = 1; }
+message ListProductPricesResponse {
+  repeated ProductPrice prices = 1;
+}
+
+message ListProductUnitPricesRequest { string product_id = 1; }
+message ListProductUnitPricesResponse {
+  repeated ProductUnitPrice prices = 1;
+}
+
+message SearchProductsRequest {
+  string query = 1;
+  int32 limit = 2;
+  bool include_inactive = 3;
+}
+message SearchProductsResponse {
+  repeated Product products = 1;
+}
+
+// Minimal display ref for resolve-by-IDs name lookups.
+message ProductRef {
+  string id = 1;
+  string name = 2;
+  string sku = 3;
+}
+message ResolveProductsRequest { repeated string ids = 1; }
+message ResolveProductsResponse { repeated ProductRef products = 1; }
+
+message ListLowStockRequest {}
+message ListLowStockResponse {
+  repeated Product products = 1;     // ready_stock set (active warehouse)
+  int32 threshold = 2;                 // the current low_stock_threshold setting
+  int32 total = 3;                     // count of matching products (bell badge)
+}
