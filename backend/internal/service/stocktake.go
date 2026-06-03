@@ -521,8 +521,8 @@ func (s *Stocktakes) GetStocktake(
 		ProductID   string `gorm:"column:product_id"`
 		ProductName string `gorm:"column:product_name"`
 		ProductSku  string `gorm:"column:product_sku"`
-		BatchNumber  string `gorm:"column:batch_number"`
-		ExpiryDate   string `gorm:"column:expiry_date"`
+		BatchNumber string `gorm:"column:batch_number"`
+		ExpiryDate  string `gorm:"column:expiry_date"`
 	}
 	var rows []lineRow
 	err = s.db.WithContext(ctx).
@@ -532,7 +532,7 @@ func (s *Stocktakes) GetStocktake(
 		        m.name AS product_name,
 		        m.sku AS product_sku,
 		        b.batch_number AS batch_number,
-		        TO_CHAR(b.expiry_date, 'YYYY-MM-DD') AS expiry_date`).
+		        `+dayKeyExpr(s.db, "b.expiry_date")+` AS expiry_date`).
 		Joins("JOIN batches AS b ON b.id = l.batch_id").
 		Joins("JOIN products AS m ON m.id = b.product_id").
 		Where("l.session_id = ?", session.ID).
@@ -558,7 +558,7 @@ func lockDraftSession(tx *gorm.DB, id string) (*model.StocktakeSession, error) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("session_id required"))
 	}
 	var sess model.StocktakeSession
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&sess).Error
+	err := rowLock(tx).Where("id = ?", id).First(&sess).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("stocktake not found"))
 	}
@@ -578,8 +578,8 @@ func (s *Stocktakes) loadLine(ctx context.Context, id string) (*stocktakeifacev1
 		ProductID   string `gorm:"column:product_id"`
 		ProductName string `gorm:"column:product_name"`
 		ProductSku  string `gorm:"column:product_sku"`
-		BatchNumber  string `gorm:"column:batch_number"`
-		ExpiryDate   string `gorm:"column:expiry_date"`
+		BatchNumber string `gorm:"column:batch_number"`
+		ExpiryDate  string `gorm:"column:expiry_date"`
 	}
 	var r lineRow
 	err := s.db.WithContext(ctx).
@@ -589,7 +589,7 @@ func (s *Stocktakes) loadLine(ctx context.Context, id string) (*stocktakeifacev1
 		        m.name AS product_name,
 		        m.sku AS product_sku,
 		        b.batch_number AS batch_number,
-		        TO_CHAR(b.expiry_date, 'YYYY-MM-DD') AS expiry_date`).
+		        `+dayKeyExpr(s.db, "b.expiry_date")+` AS expiry_date`).
 		Joins("JOIN batches AS b ON b.id = l.batch_id").
 		Joins("JOIN products AS m ON m.id = b.product_id").
 		Where("l.id = ?", id).
@@ -668,9 +668,9 @@ func lineRowToProto(
 		Id:              l.ID,
 		SessionId:       l.SessionID,
 		BatchId:         l.BatchID,
-		ProductId:      productID,
-		ProductName:    productName,
-		ProductSku:     productSku,
+		ProductId:       productID,
+		ProductName:     productName,
+		ProductSku:      productSku,
 		BatchNumber:     batchNumber,
 		ExpiryDate:      expiryDate,
 		ExpectedQty:     l.ExpectedQty,

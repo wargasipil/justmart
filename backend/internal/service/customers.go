@@ -31,7 +31,7 @@ func (c *Customers) ListCustomers(
 		}
 		if query != "" {
 			pattern := "%" + query + "%"
-			q = q.Where("name ILIKE ? OR phone ILIKE ?", pattern, pattern)
+			q = q.Where("name "+likeOp(q)+" ? OR phone "+likeOp(q)+" ?", pattern, pattern)
 		}
 		return q
 	}
@@ -78,7 +78,7 @@ func (c *Customers) SearchCustomers(
 	q := c.db.WithContext(ctx).Where("active = ?", true).Order("name").Limit(limit)
 	if query != "" {
 		pattern := "%" + query + "%"
-		q = q.Where("name ILIKE ? OR phone ILIKE ?", pattern, pattern)
+		q = q.Where("name "+likeOp(q)+" ? OR phone "+likeOp(q)+" ?", pattern, pattern)
 	}
 
 	var rows []model.Customer

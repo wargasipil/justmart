@@ -138,7 +138,7 @@ func (p *PurchaseReceipts) CreateReceipt(
 			// Create the batch row carrying supplier + cost + expiry.
 			supplierID := po.SupplierID
 			batch := model.Batch{
-				ProductID:  poItem.ProductID,
+				ProductID:   poItem.ProductID,
 				SupplierID:  &supplierID,
 				BatchNumber: strings.TrimSpace(line.BatchNumber),
 				ExpiryDate:  expiry,
@@ -170,13 +170,13 @@ func (p *PurchaseReceipts) CreateReceipt(
 			rcvItem := model.PurchaseReceiptItem{
 				PurchaseReceiptID:   receipt.ID,
 				PurchaseOrderItemID: poItem.ID,
-				ProductID:          poItem.ProductID,
+				ProductID:           poItem.ProductID,
 				Qty:                 baseQty,
 				UnitCostPrice:       unitCost,
 				BatchNumber:         strings.TrimSpace(line.BatchNumber),
 				ExpiryDate:          expiry,
 				BatchID:             &batchID,
-				ProductUnitID:      &unitRef,
+				ProductUnitID:       &unitRef,
 				UnitName:            unit.Name,
 				UnitFactor:          unit.Factor,
 			}
@@ -282,7 +282,7 @@ func receiptItemToProto(it *model.PurchaseReceiptItem) *purchasingifacev1.Purcha
 		Id:                  it.ID,
 		PurchaseReceiptId:   it.PurchaseReceiptID,
 		PurchaseOrderItemId: it.PurchaseOrderItemID,
-		ProductId:          it.ProductID,
+		ProductId:           it.ProductID,
 		Qty:                 it.Qty,
 		UnitCostPrice:       it.UnitCostPrice,
 		BatchNumber:         it.BatchNumber,

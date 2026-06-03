@@ -50,7 +50,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("get sql.DB for migrate: %v", err)
 		}
-		if err := dbmigrate.Run(sqlDB); err != nil {
+		if err := dbmigrate.Run(sqlDB, cfg.Database.DriverName()); err != nil {
 			log.Fatalf("auto-migrate: %v", err)
 		}
 		slog.Info("migrations applied")

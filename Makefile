@@ -1,4 +1,4 @@
-.PHONY: up down reset-devel-data generate tidy run test-e2e test-browser test-all \
+.PHONY: up down reset-devel-data generate tidy run test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows docker-build docker-up docker-down installer \
@@ -81,6 +81,18 @@ installer: dist-windows
 # `-count=1` disables Go's test-result caching.
 test-e2e: export JUSTMART_CONFIG := ../../config.yaml
 test-e2e:
+	$(GO_BACKEND) test ./e2e/... -v -count=1
+
+# Same integration suite, but against a fresh on-disk SQLite database (the
+# turnkey engine). Reuses config.yaml for the bootstrap owner/auth; env vars
+# override just the DB. The file lives under dist/ (gitignored) and is wiped
+# each run so auto-migrate re-seeds the consolidated sqlite/00001_init.sql.
+test-e2e-sqlite: export JUSTMART_CONFIG := ../../config.yaml
+test-e2e-sqlite: export JUSTMART_DB_DRIVER := sqlite
+test-e2e-sqlite: export JUSTMART_DB_PATH := $(CURDIR)/dist/justmart_test.sqlite
+test-e2e-sqlite:
+	@mkdir -p dist
+	rm -f "$(CURDIR)/dist/justmart_test.sqlite" "$(CURDIR)/dist/justmart_test.sqlite-wal" "$(CURDIR)/dist/justmart_test.sqlite-shm"
 	$(GO_BACKEND) test ./e2e/... -v -count=1
 
 migrate-up:

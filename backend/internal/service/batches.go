@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	"github.com/justmart/backend/internal/auth"
@@ -60,7 +59,7 @@ func (b *Batches) ListBatches(
 			sub := b.db.Table("batches AS b2").
 				Select("b2.id").
 				Joins("JOIN products m ON m.id = b2.product_id").
-				Where("b2.batch_number ILIKE ? OR m.name ILIKE ? OR m.sku ILIKE ?", pattern, pattern, pattern)
+				Where("b2.batch_number "+likeOp(b.db)+" ? OR m.name "+likeOp(b.db)+" ? OR m.sku "+likeOp(b.db)+" ?", pattern, pattern, pattern)
 			q = q.Where("b.id IN (?)", sub)
 		}
 		if req.Msg.FromUnix > 0 || req.Msg.ToUnix > 0 {
@@ -191,7 +190,7 @@ func (b *Batches) CreateBatch(
 	}
 
 	batch := model.Batch{
-		ProductID:  req.Msg.ProductId,
+		ProductID:   req.Msg.ProductId,
 		BatchNumber: strings.TrimSpace(req.Msg.BatchNumber),
 		ExpiryDate:  expiry,
 		CostPrice:   req.Msg.CostPrice,
@@ -308,7 +307,7 @@ func (b *Batches) SearchBatches(
 	}
 	if query != "" {
 		pattern := "%" + query + "%"
-		q = q.Where("b.batch_number ILIKE ? OR m.name ILIKE ? OR m.sku ILIKE ?", pattern, pattern, pattern)
+		q = q.Where("b.batch_number "+likeOp(q)+" ? OR m.name "+likeOp(q)+" ? OR m.sku "+likeOp(q)+" ?", pattern, pattern, pattern)
 	}
 	var rows []model.Batch
 	if err := q.Find(&rows).Error; err != nil {
@@ -336,8 +335,8 @@ func (b *Batches) ResolveBatches(
 		return connect.NewResponse(&inventoryifacev1.ResolveBatchesResponse{}), nil
 	}
 	type row struct {
-		ID           string `gorm:"column:id"`
-		BatchNumber  string `gorm:"column:batch_number"`
+		ID          string `gorm:"column:id"`
+		BatchNumber string `gorm:"column:batch_number"`
 		ProductID   string `gorm:"column:product_id"`
 		ProductName string `gorm:"column:product_name"`
 	}
@@ -353,8 +352,8 @@ func (b *Batches) ResolveBatches(
 	out := make([]*inventoryifacev1.BatchRef, 0, len(rows))
 	for _, r := range rows {
 		out = append(out, &inventoryifacev1.BatchRef{
-			Id:           r.ID,
-			BatchNumber:  r.BatchNumber,
+			Id:          r.ID,
+			BatchNumber: r.BatchNumber,
 			ProductId:   r.ProductID,
 			ProductName: r.ProductName,
 		})
@@ -405,7 +404,7 @@ func lockBatchesByID(tx *gorm.DB, ids []string) error {
 		return nil
 	}
 	var dump []model.Batch
-	return tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+	return rowLock(tx).
 		Where("id IN ?", ids).
 		Order("id").
 		Find(&dump).Error
@@ -419,7 +418,7 @@ func lockBatchesByProduct(tx *gorm.DB, productIDs []string) error {
 		return nil
 	}
 	var dump []model.Batch
-	return tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+	return rowLock(tx).
 		Where("product_id IN ?", productIDs).
 		Order("id").
 		Find(&dump).Error
@@ -446,7 +445,7 @@ func batchQtyInWarehouse(ctx context.Context, db *gorm.DB, batchID, warehouseID 
 func batchToProto(b *model.Batch, qty int64) *inventoryifacev1.Batch {
 	out := &inventoryifacev1.Batch{
 		Id:              b.ID,
-		ProductId:      b.ProductID,
+		ProductId:       b.ProductID,
 		BatchNumber:     b.BatchNumber,
 		ExpiryDate:      b.ExpiryDate.Format(dateLayout),
 		CostPrice:       b.CostPrice,

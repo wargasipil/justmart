@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	purchasingifacev1 "github.com/justmart/backend/gen/purchasing_iface/v1"
 	"github.com/justmart/backend/internal/auth"
@@ -17,13 +16,13 @@ import (
 )
 
 const (
-	poStatusDraft              = "DRAFT"
-	poStatusSent               = "SENT"
-	poStatusPartiallyReceived  = "PARTIALLY_RECEIVED"
-	poStatusReceived           = "RECEIVED"
-	poStatusClosed             = "CLOSED"
-	poStatusVoided             = "VOIDED"
-	defaultPPNRate             = 11 // Indonesia's standard PPN rate as of 2026
+	poStatusDraft             = "DRAFT"
+	poStatusSent              = "SENT"
+	poStatusPartiallyReceived = "PARTIALLY_RECEIVED"
+	poStatusReceived          = "RECEIVED"
+	poStatusClosed            = "CLOSED"
+	poStatusVoided            = "VOIDED"
+	defaultPPNRate            = 11 // Indonesia's standard PPN rate as of 2026
 )
 
 // computePOTotals computes PPN-exclusive purchase totals.
@@ -93,7 +92,7 @@ func (p *PurchaseOrders) ListPurchaseOrders(
 				Joins("JOIN suppliers s ON s.id = po.supplier_id").
 				Joins("LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id").
 				Joins("LEFT JOIN products m ON m.id = poi.product_id").
-				Where("po.po_no ILIKE ? OR s.name ILIKE ? OR s.code ILIKE ? OR m.name ILIKE ?",
+				Where("po.po_no "+likeOp(p.db)+" ? OR s.name "+likeOp(p.db)+" ? OR s.code "+likeOp(p.db)+" ? OR m.name "+likeOp(p.db)+" ?",
 					pattern, pattern, pattern, pattern)
 			q = q.Where("id IN (?)", sub)
 		}
@@ -199,11 +198,12 @@ func (p *PurchaseOrders) enrichList(ctx context.Context, orders []*purchasingifa
 	}
 	var rcvs []rcvRow
 	if err := p.db.WithContext(ctx).
-		Raw(`SELECT DISTINCT ON (purchase_order_id)
-		        purchase_order_id, received_at, invoice_no
-		     FROM purchase_receipts
-		     WHERE purchase_order_id IN ?
-		     ORDER BY purchase_order_id, received_at DESC, created_at DESC`, poIDs).
+		Raw(`SELECT purchase_order_id, received_at, invoice_no FROM (
+		        SELECT purchase_order_id, received_at, invoice_no,
+		               ROW_NUMBER() OVER (PARTITION BY purchase_order_id ORDER BY received_at DESC, created_at DESC) AS rn
+		        FROM purchase_receipts
+		        WHERE purchase_order_id IN ?
+		     ) t WHERE rn = 1`, poIDs).
 		Scan(&rcvs).Error; err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
@@ -327,12 +327,12 @@ func (p *PurchaseOrders) CreatePurchaseOrder(
 			baseQty := in.OrderedQty * int32(unit.Factor) // ordered_qty stored in BASE units
 			it := model.PurchaseOrderItem{
 				ProductID:     in.ProductId,
-				OrderedQty:     baseQty,
-				UnitCostPrice:  in.UnitCostPrice, // per base unit
-				Subtotal:       int64(baseQty) * in.UnitCostPrice,
+				OrderedQty:    baseQty,
+				UnitCostPrice: in.UnitCostPrice, // per base unit
+				Subtotal:      int64(baseQty) * in.UnitCostPrice,
 				ProductUnitID: &unit.ID,
-				UnitName:       unit.Name,
-				UnitFactor:     unit.Factor,
+				UnitName:      unit.Name,
+				UnitFactor:    unit.Factor,
 			}
 			items = append(items, it)
 		}
@@ -386,9 +386,9 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 				fmt.Errorf("only DRAFT POs are editable; this one is %s", po.Status))
 		}
 		updates := map[string]any{
-			"note":         strings.TrimSpace(req.Msg.Note),
-			"invoice_no":   strings.TrimSpace(req.Msg.InvoiceNo),
-			"ppn_enabled":  req.Msg.PpnEnabled,
+			"note":        strings.TrimSpace(req.Msg.Note),
+			"invoice_no":  strings.TrimSpace(req.Msg.InvoiceNo),
+			"ppn_enabled": req.Msg.PpnEnabled,
 		}
 		if e, err := parseDateMaybe(req.Msg.InvoiceDate); err != nil {
 			return connect.NewError(connect.CodeInvalidArgument, err)
@@ -423,11 +423,11 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 				baseQty := in.OrderedQty * int32(unit.Factor) // ordered_qty stored in BASE units
 				it := model.PurchaseOrderItem{
 					PurchaseOrderID: po.ID,
-					ProductID:      in.ProductId,
+					ProductID:       in.ProductId,
 					OrderedQty:      baseQty,
 					UnitCostPrice:   in.UnitCostPrice, // per base unit
 					Subtotal:        int64(baseQty) * in.UnitCostPrice,
-					ProductUnitID:  &unit.ID,
+					ProductUnitID:   &unit.ID,
 					UnitName:        unit.Name,
 					UnitFactor:      unit.Factor,
 				}
@@ -525,7 +525,7 @@ func (p *PurchaseOrders) lockByID(tx *gorm.DB, id string) (*model.PurchaseOrder,
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id required"))
 	}
 	var po model.PurchaseOrder
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&po).Error
+	err := rowLock(tx).Where("id = ?", id).First(&po).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("purchase order not found"))
 	}
@@ -576,7 +576,6 @@ func assignPONo(tx *gorm.DB, now time.Time) (string, error) {
 	}
 	if err := tx.Model(&model.POCounter{}).
 		Where("year = ?", year).
-		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Update("last_seq", gorm.Expr("last_seq + 1")).Error; err != nil {
 		return "", err
 	}
@@ -600,7 +599,6 @@ func assignReceiptNo(tx *gorm.DB, now time.Time) (string, error) {
 	}
 	if err := tx.Model(&model.RcvCounter{}).
 		Where("year = ?", year).
-		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Update("last_seq", gorm.Expr("last_seq + 1")).Error; err != nil {
 		return "", err
 	}
@@ -736,7 +734,7 @@ func poItemToProto(it *model.PurchaseOrderItem) *purchasingifacev1.PurchaseOrder
 	out := &purchasingifacev1.PurchaseOrderItem{
 		Id:              it.ID,
 		PurchaseOrderId: it.PurchaseOrderID,
-		ProductId:      it.ProductID,
+		ProductId:       it.ProductID,
 		OrderedQty:      it.OrderedQty,
 		ReceivedQty:     it.ReceivedQty,
 		UnitCostPrice:   it.UnitCostPrice,

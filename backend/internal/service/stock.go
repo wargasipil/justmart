@@ -55,7 +55,7 @@ func (s *Stock) ListMovements(
 				s.db.Table("batches b").
 					Select("b.id").
 					Joins("JOIN products m ON m.id = b.product_id").
-					Where("b.batch_number ILIKE ? OR m.name ILIKE ? OR m.sku ILIKE ?", pattern, pattern, pattern))
+					Where("b.batch_number "+likeOp(s.db)+" ? OR m.name "+likeOp(s.db)+" ? OR m.sku "+likeOp(s.db)+" ?", pattern, pattern, pattern))
 		}
 		if req.Msg.FromUnix > 0 {
 			q = q.Where("created_at >= ?", time.Unix(req.Msg.FromUnix, 0))
@@ -171,10 +171,7 @@ func (s *Stock) GetStockLevels(
 	// lives in the JOIN so batches with no stock there still appear (qty 0).
 	q := s.db.WithContext(ctx).
 		Table("batches b").
-		Select(`b.id AS batch_id,
-		        b.product_id,
-		        TO_CHAR(b.expiry_date, 'YYYY-MM-DD') AS expiry_date,
-		        COALESCE(SUM(m.qty), 0) AS current_quantity`).
+		Select("b.id AS batch_id, b.product_id, "+dayKeyExpr(s.db, "b.expiry_date")+" AS expiry_date, COALESCE(SUM(m.qty), 0) AS current_quantity").
 		Joins("LEFT JOIN stock_movements m ON m.batch_id = b.id AND m.warehouse_id = ?", warehouseID).
 		Group("b.id").
 		Order("b.expiry_date ASC")
@@ -185,7 +182,7 @@ func (s *Stock) GetStockLevels(
 
 	type row struct {
 		BatchID         string `gorm:"column:batch_id"`
-		ProductID      string `gorm:"column:product_id"`
+		ProductID       string `gorm:"column:product_id"`
 		ExpiryDate      string `gorm:"column:expiry_date"`
 		CurrentQuantity int64  `gorm:"column:current_quantity"`
 	}
@@ -198,7 +195,7 @@ func (s *Stock) GetStockLevels(
 	for _, r := range rows {
 		out = append(out, &inventoryifacev1.StockLevel{
 			BatchId:         r.BatchID,
-			ProductId:      r.ProductID,
+			ProductId:       r.ProductID,
 			ExpiryDate:      r.ExpiryDate,
 			CurrentQuantity: r.CurrentQuantity,
 		})

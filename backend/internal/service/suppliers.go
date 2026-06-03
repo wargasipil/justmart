@@ -31,7 +31,7 @@ func (s *Suppliers) ListSuppliers(
 		}
 		if query != "" {
 			pattern := "%" + query + "%"
-			q = q.Where("name ILIKE ? OR code ILIKE ?", pattern, pattern)
+			q = q.Where("name "+likeOp(q)+" ? OR code "+likeOp(q)+" ?", pattern, pattern)
 		}
 		return q
 	}
@@ -122,7 +122,8 @@ func (s *Suppliers) SearchSuppliers(
 	q := s.db.WithContext(ctx).Where("active = ?", true).Order("name").Limit(limit)
 	if query != "" {
 		pattern := "%" + query + "%"
-		q = q.Where("name ILIKE ? OR code ILIKE ? OR contact_email ILIKE ? OR phone ILIKE ?",
+		op := likeOp(q)
+		q = q.Where("name "+op+" ? OR code "+op+" ? OR contact_email "+op+" ? OR phone "+op+" ?",
 			pattern, pattern, pattern, pattern)
 	}
 	var rows []model.Supplier

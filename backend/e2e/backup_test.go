@@ -29,12 +29,19 @@ import (
 // installed isn't blocked. The Dockerfile installs postgresql-client, the
 // Windows installer bundles pg_dump.exe.
 func TestBackupService(t *testing.T) {
-	if _, err := exec.LookPath("pg_dump"); err != nil {
-		t.Skipf("pg_dump not on PATH (%v) — skipping; install postgresql-client to run", err)
-	}
-
 	env := SetupEnv(t)
 	ctx := context.Background()
+	// SQLite backups use VACUUM INTO (no external tooling); only the Postgres
+	// path needs pg_dump on PATH, so skip just that case when it's missing.
+	if !env.Cfg.Database.IsSQLite() {
+		if _, err := exec.LookPath("pg_dump"); err != nil {
+			t.Skipf("pg_dump not on PATH (%v) — skipping; install postgresql-client to run", err)
+		}
+	}
+	dumpFile := "database.sql.gz"
+	if env.Cfg.Database.IsSQLite() {
+		dumpFile = "database.sqlite"
+	}
 
 	// 1. Fresh env → ListBackups returns empty.
 	ls0, err := env.Backups.ListBackups(ctx, authReq(env, t, &backupifacev1.ListBackupsRequest{}))
@@ -49,7 +56,7 @@ func TestBackupService(t *testing.T) {
 	require.Greater(t, c1.Msg.Backup.SizeBytes, int64(0))
 
 	dir1 := filepath.Join(env.BackupDir, c1.Msg.Backup.Name)
-	dumpPath := filepath.Join(dir1, "database.sql.gz")
+	dumpPath := filepath.Join(dir1, dumpFile)
 	dumpInfo, err := os.Stat(dumpPath)
 	require.NoError(t, err, "database.sql.gz must exist after Create")
 	require.Greater(t, dumpInfo.Size(), int64(0))

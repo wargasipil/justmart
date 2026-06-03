@@ -1,7 +1,7 @@
 import { Box, Button, Heading, Stack } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { Pill } from "lucide-react";
+import { Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -40,8 +40,8 @@ export default function Login() {
     <Box maxW="sm" mx="auto" mt={20} p={6} bg="bg.subtle" borderWidth="1px" borderRadius="lg" shadow="sm">
       <Stack gap={5}>
         <Stack gap={2} align="center">
-          <Box color="blue.solid">
-            <Pill size={32} />
+          <Box colorPalette="blue" color="colorPalette.solid">
+            <Store size={32} />
           </Box>
           <Heading size="lg">{t("auth.signInTitle")}</Heading>
         </Stack>

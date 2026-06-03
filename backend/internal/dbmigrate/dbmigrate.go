@@ -12,11 +12,19 @@ import (
 	"github.com/justmart/backend/migrations"
 )
 
-// Run applies all pending migrations embedded in the binary. Idempotent: a
-// fully-migrated DB is a no-op.
-func Run(sqlDB *sql.DB) error {
-	goose.SetBaseFS(migrations.FS)
-	if err := goose.SetDialect("postgres"); err != nil {
+// gooseDialect maps a config driver name to the goose dialect string.
+func gooseDialect(driver string) string {
+	if driver == "sqlite" {
+		return "sqlite3"
+	}
+	return "postgres"
+}
+
+// Run applies all pending migrations embedded in the binary for the given
+// driver ("postgres" or "sqlite"). Idempotent: a fully-migrated DB is a no-op.
+func Run(sqlDB *sql.DB, driver string) error {
+	goose.SetBaseFS(migrations.FS(driver))
+	if err := goose.SetDialect(gooseDialect(driver)); err != nil {
 		return fmt.Errorf("goose dialect: %w", err)
 	}
 	// "." is the root of the embedded FS (migrations live at the top level).

@@ -75,8 +75,9 @@ func NewBackupsWithDir(db *gorm.DB, cfg *config.Config, directory string) *Backu
 var backupNameRe = regexp.MustCompile(`^backup_\d{4}-\d{2}-\d{2}_\d{6}$`)
 
 const (
-	dumpFileName     = "database.sql.gz"
-	manifestFileName = "manifest.txt"
+	dumpFileName       = "database.sql.gz" // Postgres: pg_dump --compress=6 output
+	sqliteDumpFileName = "database.sqlite" // SQLite: VACUUM INTO snapshot
+	manifestFileName   = "manifest.txt"
 )
 
 // CreateBackup runs pg_dump (compressed) into a fresh backup_<ts>/ directory.
@@ -90,9 +91,20 @@ func (s *Backups) CreateBackup(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	// Find a free per-second directory name. The name has 1-second resolution, so
+	// two backups in the same second would collide — bump the timestamp until the
+	// dir doesn't exist (matters for the fast SQLite path: VACUUM INTO refuses to
+	// overwrite an existing file).
 	now := time.Now()
-	name := "backup_" + now.Format("2006-01-02_150405")
-	dir := filepath.Join(s.directory, name)
+	var name, dir string
+	for {
+		name = "backup_" + now.Format("2006-01-02_150405")
+		dir = filepath.Join(s.directory, name)
+		if _, statErr := os.Stat(dir); os.IsNotExist(statErr) {
+			break
+		}
+		now = now.Add(time.Second)
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("mkdir backup: %w", err))
 	}
@@ -104,35 +116,44 @@ func (s *Backups) CreateBackup(
 		}
 	}()
 
-	// Resolve pg_dump: PATH → bundled-next-to-justmart-binary → cached download →
-	// (Windows + autoFetch) auto-download EDB binaries → friendly error.
-	pgDumpPath, err := resolvePgDump(ctx, s.pgToolsDir, s.autoFetchPgDump)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
-	}
-
-	dumpPath := filepath.Join(dir, dumpFileName)
-	db := s.cfg.Database
-	cmd := exec.CommandContext(ctx, pgDumpPath,
-		"--host="+db.Host,
-		"--port="+strconv.Itoa(db.Port),
-		"--username="+db.User,
-		"--dbname="+db.Name,
-		"--no-password",
-		"--clean",
-		"--if-exists",
-		"--compress=6",
-		"--file="+dumpPath,
-	)
-	cmd.Env = append(os.Environ(), "PGPASSWORD="+db.Password)
-	stderr := &strings.Builder{}
-	cmd.Stderr = stderr
-	if err := cmd.Run(); err != nil {
-		msg := strings.TrimSpace(stderr.String())
-		if msg == "" {
-			msg = err.Error()
+	// Produce the dump. SQLite: a consistent online snapshot via VACUUM INTO a
+	// fresh .sqlite file (no external tooling). Postgres: pg_dump (.sql.gz).
+	var dumpPath string
+	if isSQLite(s.db) {
+		dumpPath = filepath.Join(dir, sqliteDumpFileName)
+		if err := s.db.WithContext(ctx).Exec("VACUUM INTO ?", dumpPath).Error; err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("sqlite backup: %w", err))
 		}
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pg_dump: %s", msg))
+	} else {
+		// Resolve pg_dump: PATH → bundled-next-to-justmart-binary → cached download →
+		// (Windows + autoFetch) auto-download EDB binaries → friendly error.
+		pgDumpPath, err := resolvePgDump(ctx, s.pgToolsDir, s.autoFetchPgDump)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		dumpPath = filepath.Join(dir, dumpFileName)
+		db := s.cfg.Database
+		cmd := exec.CommandContext(ctx, pgDumpPath,
+			"--host="+db.Host,
+			"--port="+strconv.Itoa(db.Port),
+			"--username="+db.User,
+			"--dbname="+db.Name,
+			"--no-password",
+			"--clean",
+			"--if-exists",
+			"--compress=6",
+			"--file="+dumpPath,
+		)
+		cmd.Env = append(os.Environ(), "PGPASSWORD="+db.Password)
+		stderr := &strings.Builder{}
+		cmd.Stderr = stderr
+		if err := cmd.Run(); err != nil {
+			msg := strings.TrimSpace(stderr.String())
+			if msg == "" {
+				msg = err.Error()
+			}
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("pg_dump: %s", msg))
+		}
 	}
 
 	info, err := os.Stat(dumpPath)
@@ -186,9 +207,12 @@ func (s *Backups) ListBackups(
 			continue
 		}
 		dir := filepath.Join(s.directory, e.Name())
-		info, err := os.Stat(filepath.Join(dir, dumpFileName))
+		// The dump file is engine-specific (.sql.gz for Postgres, .sqlite for
+		// SQLite); stat whichever is present so size is right for both.
 		var size int64
-		if err == nil {
+		if info, serr := os.Stat(filepath.Join(dir, dumpFileName)); serr == nil {
+			size = info.Size()
+		} else if info, serr := os.Stat(filepath.Join(dir, sqliteDumpFileName)); serr == nil {
 			size = info.Size()
 		}
 		// Parse the timestamp out of the name; fall back to dir mtime so a
@@ -262,7 +286,11 @@ func (s *Backups) readSchemaVersion(ctx context.Context) int32 {
 
 func (s *Backups) readDBVersion(ctx context.Context) string {
 	var v string
-	if err := s.db.WithContext(ctx).Raw(`SELECT version()`).Scan(&v).Error; err != nil {
+	q := `SELECT version()`
+	if isSQLite(s.db) {
+		q = `SELECT sqlite_version()`
+	}
+	if err := s.db.WithContext(ctx).Raw(q).Scan(&v).Error; err != nil {
 		return ""
 	}
 	return v

@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	"github.com/justmart/backend/internal/auth"
@@ -52,7 +51,7 @@ func (m *Products) ListProducts(
 		}
 		if query != "" {
 			pattern := "%" + query + "%"
-			q = q.Where("name ILIKE ? OR sku ILIKE ?", pattern, pattern)
+			q = q.Where("name "+likeOp(q)+" ? OR sku "+likeOp(q)+" ?", pattern, pattern)
 		}
 		if opnameBefore != "" {
 			// "Last opname < before OR never counted" = "no completed opname
@@ -64,7 +63,7 @@ func (m *Products) ListProducts(
 				JOIN batches b ON b.id = sl.batch_id
 				WHERE ss.warehouse_id = ?
 				  AND ss.status = 'COMPLETED'
-				  AND ss.completed_at >= ?::date
+				  AND ss.completed_at >= ?
 				  AND sl.counted_qty IS NOT NULL
 				  AND b.product_id = products.id
 			)`, warehouseID, opnameBefore)
@@ -96,7 +95,7 @@ func (m *Products) ListProducts(
 	}
 	return connect.NewResponse(&inventoryifacev1.ListProductsResponse{
 		Products: out,
-		Total:     int32(total),
+		Total:    int32(total),
 	}), nil
 }
 
@@ -122,7 +121,7 @@ func (m *Products) enrichStock(
 	// Ready: SUM(stock_movements.qty) per product in the active warehouse.
 	type readyRow struct {
 		ProductID string `gorm:"column:product_id"`
-		Qty        int64  `gorm:"column:qty"`
+		Qty       int64  `gorm:"column:qty"`
 	}
 	var readyRows []readyRow
 	if err := m.db.WithContext(ctx).
@@ -141,7 +140,7 @@ func (m *Products) enrichStock(
 	// On-order: SUM(ordered_qty - received_qty) per product on open POs.
 	type orderRow struct {
 		ProductID string `gorm:"column:product_id"`
-		Qty        int64  `gorm:"column:qty"`
+		Qty       int64  `gorm:"column:qty"`
 	}
 	var orderRows []orderRow
 	if err := m.db.WithContext(ctx).
@@ -186,14 +185,17 @@ func (m *Products) enrichLastStocktake(
 	if err != nil {
 		return err
 	}
+	// Format the date in SQL (dayKeyExpr) and scan a string: SQLite returns a
+	// bare datetime aggregate as a string GORM can't scan into time.Time, and
+	// the proto wants a 'YYYY-MM-DD' string anyway.
 	type opnameRow struct {
-		ProductID  string    `gorm:"column:product_id"`
-		CompletedAt time.Time `gorm:"column:completed_at"`
+		ProductID   string `gorm:"column:product_id"`
+		CompletedAt string `gorm:"column:completed_at"`
 	}
 	var rows []opnameRow
 	if err := m.db.WithContext(ctx).
 		Table("stocktake_sessions AS ss").
-		Select("b.product_id AS product_id, MAX(ss.completed_at) AS completed_at").
+		Select("b.product_id AS product_id, "+dayKeyExpr(m.db, "MAX(ss.completed_at)")+" AS completed_at").
 		Joins("JOIN stocktake_lines sl ON sl.session_id = ss.id").
 		Joins("JOIN batches b ON b.id = sl.batch_id").
 		Where("ss.warehouse_id = ? AND ss.status = ? AND sl.counted_qty IS NOT NULL AND b.product_id IN ?",
@@ -202,13 +204,13 @@ func (m *Products) enrichLastStocktake(
 		Scan(&rows).Error; err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
-	byID := make(map[string]time.Time, len(rows))
+	byID := make(map[string]string, len(rows))
 	for _, r := range rows {
 		byID[r.ProductID] = r.CompletedAt
 	}
 	for _, md := range meds {
-		if t, ok := byID[md.Id]; ok && !t.IsZero() {
-			md.LastStocktakeDate = t.Format(dateLayout)
+		if d, ok := byID[md.Id]; ok && d != "" {
+			md.LastStocktakeDate = d
 		}
 	}
 	return nil
@@ -356,7 +358,7 @@ func (m *Products) CreateProduct(
 			return fmt.Errorf("create product: %w", err)
 		}
 		price := model.ProductPrice{
-			ProductID:    med.ID,
+			ProductID:     med.ID,
 			UnitPrice:     med.UnitPrice,
 			EffectiveFrom: time.Now(),
 			ChangedBy:     caller.UserID,
@@ -414,7 +416,7 @@ func (m *Products) UpdateProduct(
 		// close-open-row + insert-new-open-row price-version sequence (here and in
 		// syncProductUnits/recordUnitPrice) can collide on the *_open_idx partial
 		// unique index and fail spuriously.
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		if err := rowLock(tx).
 			Where("id = ?", med.ID).First(&model.Product{}).Error; err != nil {
 			return err
 		}
@@ -440,7 +442,7 @@ func (m *Products) UpdateProduct(
 			}
 			// Insert the new open row.
 			newPrice := model.ProductPrice{
-				ProductID:    med.ID,
+				ProductID:     med.ID,
 				UnitPrice:     req.Msg.UnitPrice,
 				EffectiveFrom: now,
 				ChangedBy:     caller.UserID,
@@ -508,7 +510,7 @@ func (m *Products) SearchProducts(
 	}
 	if query != "" {
 		pattern := "%" + query + "%"
-		q = q.Where("name ILIKE ? OR sku ILIKE ?", pattern, pattern)
+		q = q.Where("name "+likeOp(q)+" ? OR sku "+likeOp(q)+" ?", pattern, pattern)
 	}
 	var rows []model.Product
 	if err := q.Find(&rows).Error; err != nil {
@@ -586,13 +588,13 @@ func (m *Products) ListProductUnitPrices(
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("product_id required"))
 	}
 	type row struct {
-		ID             string     `gorm:"column:id"`
+		ID            string     `gorm:"column:id"`
 		ProductUnitID string     `gorm:"column:product_unit_id"`
-		UnitName       string     `gorm:"column:unit_name"`
-		UnitSellPrice  int64      `gorm:"column:unit_sell_price"`
-		EffectiveFrom  time.Time  `gorm:"column:effective_from"`
-		EffectiveTo    *time.Time `gorm:"column:effective_to"`
-		ChangedBy      *string    `gorm:"column:changed_by"`
+		UnitName      string     `gorm:"column:unit_name"`
+		UnitSellPrice int64      `gorm:"column:unit_sell_price"`
+		EffectiveFrom time.Time  `gorm:"column:effective_from"`
+		EffectiveTo   *time.Time `gorm:"column:effective_to"`
+		ChangedBy     *string    `gorm:"column:changed_by"`
 	}
 	var rows []row
 	err := m.db.WithContext(ctx).
@@ -609,11 +611,11 @@ func (m *Products) ListProductUnitPrices(
 	out := make([]*inventoryifacev1.ProductUnitPrice, 0, len(rows))
 	for _, r := range rows {
 		p := &inventoryifacev1.ProductUnitPrice{
-			Id:             r.ID,
+			Id:            r.ID,
 			ProductUnitId: r.ProductUnitID,
-			UnitName:       r.UnitName,
-			UnitSellPrice:  r.UnitSellPrice,
-			EffectiveFrom:  r.EffectiveFrom.Unix(),
+			UnitName:      r.UnitName,
+			UnitSellPrice: r.UnitSellPrice,
+			EffectiveFrom: r.EffectiveFrom.Unix(),
 		}
 		if r.EffectiveTo != nil {
 			p.EffectiveTo = r.EffectiveTo.Unix()
@@ -677,7 +679,7 @@ func (m *Products) ListLowStock(
 		return nil, err
 	}
 	return connect.NewResponse(&inventoryifacev1.ListLowStockResponse{
-		Products: out,
+		Products:  out,
 		Threshold: threshold,
 		Total:     int32(len(out)),
 	}), nil
@@ -714,7 +716,7 @@ func productToProto(m *model.Product) *inventoryifacev1.Product {
 func productUnitToProto(u *model.ProductUnit) *inventoryifacev1.ProductUnit {
 	return &inventoryifacev1.ProductUnit{
 		Id:          u.ID,
-		ProductId:  u.ProductID,
+		ProductId:   u.ProductID,
 		Name:        u.Name,
 		Factor:      u.Factor,
 		IsBase:      u.IsBase,
@@ -849,8 +851,8 @@ func recordUnitPrice(tx *gorm.DB, unitID string, newPrice int64, changedBy strin
 	}
 	row := model.ProductUnitPrice{
 		ProductUnitID: unitID,
-		UnitSellPrice:  newPrice,
-		EffectiveFrom:  now,
+		UnitSellPrice: newPrice,
+		EffectiveFrom: now,
 	}
 	if changedBy != "" {
 		row.ChangedBy = &changedBy
@@ -861,7 +863,7 @@ func recordUnitPrice(tx *gorm.DB, unitID string, newPrice int64, changedBy strin
 func productPriceToProto(p *model.ProductPrice) *inventoryifacev1.ProductPrice {
 	out := &inventoryifacev1.ProductPrice{
 		Id:            p.ID,
-		ProductId:    p.ProductID,
+		ProductId:     p.ProductID,
 		UnitPrice:     p.UnitPrice,
 		EffectiveFrom: p.EffectiveFrom.Unix(),
 		ChangedBy:     p.ChangedBy,

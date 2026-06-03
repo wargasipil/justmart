@@ -14,10 +14,10 @@ import (
 )
 
 type Auth struct {
-	db       *gorm.DB
-	access   *auth.Issuer
-	refresh  *auth.RefreshIssuer
-	limiter  *auth.LoginLimiter
+	db      *gorm.DB
+	access  *auth.Issuer
+	refresh *auth.RefreshIssuer
+	limiter *auth.LoginLimiter
 }
 
 func NewAuth(

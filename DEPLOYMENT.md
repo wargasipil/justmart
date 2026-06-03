@@ -89,11 +89,15 @@ local production smoke test.
 | Rotate JWT secret | edit `.env`, `up -d` | edit `config.yaml`, `Restart-Service justmart-server` (invalidates sessions) |
 | Reset a password | OWNER → Users → "Issue reset token" → hand token OOB → user redeems at `/reset?token=...` | same |
 
+## Database engine (Postgres vs SQLite)
+- The same binary runs on either engine, selected by `database.driver` in `config.yaml` (or `JUSTMART_DB_DRIVER`): **`postgres`** (default — the Docker / multi-user deploy documented here) or **`sqlite`** (a turnkey, zero-dependency flavor — no Postgres, no Docker; set `database.path`, e.g. `./justmart.db`, or `JUSTMART_DB_PATH`). SQLite uses a pure-Go driver, auto-migrates the same schema on boot, and is correct under concurrency via a single-writer connection. Pick SQLite for a single-PC shop that doesn't want to run Postgres; pick Postgres for anything multi-user or networked.
+
 ## Backups
 - **Layout (one folder per backup)** — every backup is its own per-timestamp directory under `backup.directory` (Docker: `/var/lib/justmart/backups` mounted as the `justmart-backups` named volume; Windows: `C:\ProgramData\Justmart\backups\`; dev: `./backups`):
   ```
   backup_2026-05-26_152400/
-    database.sql.gz   (Docker / `make backup` — gzip; Windows: plain database.sql)
+    database.sql.gz   (Postgres: pg_dump gzip; Windows .bat: plain database.sql)
+    database.sqlite   (SQLite engine: VACUUM INTO snapshot — replaces database.sql.gz)
     manifest.txt      (created_at, schema_version, size_bytes, app/db version)
   ```
   Override the root with the `JUSTMART_BACKUP_DIR` env var or the `backup.directory` config key.
@@ -116,7 +120,13 @@ local production smoke test.
       -f "$env:ProgramData\Justmart\backups\backup_<TS>\database.sql"
     Start-Service justmart-server
     ```
-  The dump is `pg_dump --clean --if-exists`, so it drops existing tables before reloading — the live DB is safe to restore over, but make sure no other clients are writing while it runs.
+  The Postgres dump is `pg_dump --clean --if-exists`, so it drops existing tables before reloading — the live DB is safe to restore over, but make sure no other clients are writing while it runs.
+  - **SQLite**: the dump is a complete copy of the database file. Stop the app, replace the live DB file, restart:
+    ```sh
+    # stop the server first, then:
+    cp backups/backup_<TS>/database.sqlite ./justmart.db   # = your database.path
+    # (remove any stale ./justmart.db-wal / -shm sidecars), then start the server
+    ```
 - **Operational discipline**: keep at least 7 nightlies; ship the latest off-host weekly (rsync / S3 / external drive). Test restore against a fresh DB before you rely on a backup.
 - **Why the Docker image is no longer distroless**: `BackupService` subprocesses `pg_dump`, which doesn't ship in `distroless/static`. The runtime base switched to `debian:bookworm-slim` + `postgresql-client` (~80 MB heavier). The container still runs as a non-root UID (65532).
 - **pg_dump auto-resolution**: every in-app `Create backup` looks for pg_dump in this order — system PATH → bundled next to the justmart binary (`<install>/pgsql/bin/pg_dump.exe`, the Windows installer layout — works even though the installer doesn't put that dir on PATH) → cache at `backup.pg_tools_dir` (default `%LOCALAPPDATA%\justmart\pgtools` on Windows / `~/.cache/justmart/pgtools` on Linux) → on **Windows only**, auto-download the EDB binaries zip (~75 MB) into the cache and reuse it. Linux without `postgresql-client` (and outside Docker) gets a clear "install postgresql-client" error instead of a download — apt is the right answer there. Override the cache root with `JUSTMART_PG_TOOLS_DIR`.

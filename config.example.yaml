@@ -6,6 +6,14 @@ server:
   port: 8080
 
 database:
+  # driver: database engine. "postgres" (default) or "sqlite".
+  #   postgres = multi-user / server deploy (host/port/user/... below).
+  #   sqlite   = turnkey, zero-dependency single-binary deploy (no Postgres or
+  #              Docker). Stock correctness is preserved via a single-writer
+  #              connection; backups use VACUUM INTO instead of pg_dump.
+  driver: postgres
+  # path: SQLite database file (only used when driver: sqlite). Empty => ./justmart.db.
+  # path: ./justmart.db
   host: localhost
   port: 5432
   user: justmart

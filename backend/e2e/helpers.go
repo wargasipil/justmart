@@ -25,6 +25,7 @@ import (
 	"github.com/justmart/backend/internal/auth"
 	"github.com/justmart/backend/internal/config"
 	"github.com/justmart/backend/internal/db"
+	"github.com/justmart/backend/internal/dbmigrate"
 	"github.com/justmart/backend/internal/service"
 )
 
@@ -99,6 +100,14 @@ func SetupEnv(t *testing.T) *Env {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
+	// Bring the schema up to date. The dev Postgres is usually already migrated
+	// (idempotent no-op); a fresh SQLite file (make test-e2e-sqlite) gets its
+	// schema created here so SetupEnv works against either engine.
+	if sqlDB, derr := gormDB.DB(); derr == nil {
+		if merr := dbmigrate.Run(sqlDB, cfg.Database.DriverName()); merr != nil {
+			t.Fatalf("migrate: %v", merr)
+		}
+	}
 	// Close this test's connection pool when the test ends — otherwise each
 	// SetupEnv leaks a pool and the suite accumulates connections until Postgres
 	// max_connections is exhausted (flaky "can't get a connection" failures on
@@ -106,10 +115,14 @@ func SetupEnv(t *testing.T) *Env {
 	// runs after it (t.Cleanup is LIFO: stop serving, then close the DB). Bound
 	// the pool too as cheap insurance against momentary overlap with the dev
 	// backend / make web; tests are sequential + unary, so 10 is ample.
+	// SQLite stays single-writer (set in db.openSQLite) so the no-oversell
+	// concurrency guarantee holds without FOR UPDATE — don't widen its pool.
 	if sqlDB, derr := gormDB.DB(); derr == nil {
-		sqlDB.SetMaxOpenConns(10)
-		sqlDB.SetMaxIdleConns(2)
-		sqlDB.SetConnMaxLifetime(time.Minute)
+		if !cfg.Database.IsSQLite() {
+			sqlDB.SetMaxOpenConns(10)
+			sqlDB.SetMaxIdleConns(2)
+			sqlDB.SetConnMaxLifetime(time.Minute)
+		}
 		t.Cleanup(func() { _ = sqlDB.Close() })
 	}
 

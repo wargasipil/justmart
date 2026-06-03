@@ -16,6 +16,13 @@ type Server struct {
 }
 
 type Database struct {
+	// Driver selects the database engine: "postgres" (default) or "sqlite".
+	// Postgres is the multi-user/server deployment; sqlite is the turnkey,
+	// zero-dependency single-binary flavor (Path below points at the file).
+	Driver string `yaml:"driver"`
+	// Path is the SQLite database file (e.g. "./justmart.db"). Only used when
+	// Driver is "sqlite". Empty defaults to "./justmart.db".
+	Path     string `yaml:"path"`
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
 	User     string `yaml:"user"`
@@ -26,6 +33,26 @@ type Database struct {
 	// value defaults to true (turnkey deploys); set `auto_migrate: false` to
 	// run migrations explicitly via `cmd/migrate`. Read via ShouldAutoMigrate.
 	AutoMigrate *bool `yaml:"auto_migrate"`
+}
+
+// DriverName normalizes the configured engine; empty => "postgres" (back-compat
+// with existing configs that predate the driver selector).
+func (d Database) DriverName() string {
+	if d.Driver == "" {
+		return "postgres"
+	}
+	return d.Driver
+}
+
+// IsSQLite reports whether the configured engine is SQLite.
+func (d Database) IsSQLite() bool { return d.DriverName() == "sqlite" }
+
+// SQLitePath returns the configured file path, defaulting to ./justmart.db.
+func (d Database) SQLitePath() string {
+	if d.Path == "" {
+		return "./justmart.db"
+	}
+	return d.Path
 }
 
 // ShouldAutoMigrate reports whether the server should run migrations on boot.
@@ -87,6 +114,17 @@ func (d Database) DSN() string {
 	)
 }
 
+// SQLiteDSN builds the modernc/glebarez DSN. PRAGMAs are set per-connection via
+// the `_pragma` query params: foreign_keys ON (FK CASCADE relies on it), WAL
+// (concurrent readers + one writer), and a busy_timeout so concurrent write
+// transactions retry instead of erroring with "database is locked".
+func (d Database) SQLiteDSN() string {
+	return fmt.Sprintf(
+		"file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)",
+		d.SQLitePath(),
+	)
+}
+
 func Load(path string) (*Config, error) {
 	if path == "" {
 		path = os.Getenv("JUSTMART_CONFIG")
@@ -116,6 +154,12 @@ func Load(path string) (*Config, error) {
 func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_JWT_SECRET"); v != "" {
 		c.Auth.JWTSecret = v
+	}
+	if v := os.Getenv("JUSTMART_DB_DRIVER"); v != "" {
+		c.Database.Driver = v
+	}
+	if v := os.Getenv("JUSTMART_DB_PATH"); v != "" {
+		c.Database.Path = v
 	}
 	if v := os.Getenv("JUSTMART_DB_HOST"); v != "" {
 		c.Database.Host = v

@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	warehouseifacev1 "github.com/justmart/backend/gen/warehouse_iface/v1"
 	"github.com/justmart/backend/internal/auth"
@@ -161,7 +160,7 @@ func (s *Transfers) ListTransfers(
 		q = q.Where("from_warehouse_id = ? OR to_warehouse_id = ?", wh, wh)
 		if query := strings.TrimSpace(req.Msg.Query); query != "" {
 			pattern := "%" + query + "%"
-			q = q.Where("transfer_no ILIKE ? OR note ILIKE ?", pattern, pattern)
+			q = q.Where("transfer_no "+likeOp(q)+" ? OR note "+likeOp(q)+" ?", pattern, pattern)
 		}
 		if req.Msg.FromUnix > 0 {
 			q = q.Where("created_at >= ?", time.Unix(req.Msg.FromUnix, 0))
@@ -253,12 +252,12 @@ func (s *Transfers) hydrateTransfer(
 	}
 	// Reconstruct lines from the TRANSFER_IN movements (one per batch moved).
 	type lineRow struct {
-		BatchID      string `gorm:"column:batch_id"`
-		Qty          int32  `gorm:"column:qty"`
+		BatchID     string `gorm:"column:batch_id"`
+		Qty         int32  `gorm:"column:qty"`
 		ProductID   string `gorm:"column:product_id"`
 		ProductName string `gorm:"column:product_name"`
-		BatchNumber  string `gorm:"column:batch_number"`
-		ExpiryDate   string `gorm:"column:expiry_date"`
+		BatchNumber string `gorm:"column:batch_number"`
+		ExpiryDate  string `gorm:"column:expiry_date"`
 	}
 	var rows []lineRow
 	err := s.db.WithContext(ctx).
@@ -267,7 +266,7 @@ func (s *Transfers) hydrateTransfer(
 		        b.product_id AS product_id,
 		        med.name AS product_name,
 		        b.batch_number AS batch_number,
-		        TO_CHAR(b.expiry_date, 'YYYY-MM-DD') AS expiry_date`).
+		        `+dayKeyExpr(s.db, "b.expiry_date")+` AS expiry_date`).
 		Joins("JOIN batches AS b ON b.id = m.batch_id").
 		Joins("JOIN products AS med ON med.id = b.product_id").
 		Where("m.transfer_id = ? AND m.type = ?", row.ID, movementTransferIn).
@@ -278,12 +277,12 @@ func (s *Transfers) hydrateTransfer(
 	}
 	for _, r := range rows {
 		out.Lines = append(out.Lines, &warehouseifacev1.StockTransferLine{
-			BatchId:      r.BatchID,
+			BatchId:     r.BatchID,
 			ProductId:   r.ProductID,
 			ProductName: r.ProductName,
-			BatchNumber:  r.BatchNumber,
-			ExpiryDate:   r.ExpiryDate,
-			Qty:          r.Qty,
+			BatchNumber: r.BatchNumber,
+			ExpiryDate:  r.ExpiryDate,
+			Qty:         r.Qty,
 		})
 	}
 	return out, nil
@@ -303,7 +302,6 @@ func assignTransferNo(tx *gorm.DB, now time.Time) (string, error) {
 	}
 	if err := tx.Model(&model.TransferCounter{}).
 		Where("year = ?", year).
-		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Update("last_seq", gorm.Expr("last_seq + 1")).Error; err != nil {
 		return "", err
 	}

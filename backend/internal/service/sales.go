@@ -9,7 +9,6 @@ import (
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	posifacev1 "github.com/justmart/backend/gen/pos_iface/v1"
 	"github.com/justmart/backend/internal/auth"
@@ -150,7 +149,7 @@ func (s *Sales) applySaleFilters(
 			Joins("LEFT JOIN customers c ON c.id = s.customer_id").
 			Joins("LEFT JOIN sale_items si ON si.sale_id = s.id").
 			Joins("LEFT JOIN products m ON m.id = si.product_id").
-			Where("s.sale_no ILIKE ? OR c.name ILIKE ? OR m.name ILIKE ?", pattern, pattern, pattern)
+			Where("s.sale_no "+likeOp(s.db)+" ? OR c.name "+likeOp(s.db)+" ? OR m.name "+likeOp(s.db)+" ?", pattern, pattern, pattern)
 		q = q.Where("id IN (?)", sub)
 	}
 	return q
@@ -315,8 +314,8 @@ func (s *Sales) AddItem(
 			unitID := unit.ID
 			item := model.SaleItem{
 				SaleID:            sale.ID,
-				ProductID:        med.ID,
-				ProductUnitID:    &unitID,
+				ProductID:         med.ID,
+				ProductUnitID:     &unitID,
 				UnitName:          unit.Name,
 				UnitFactor:        unit.Factor,
 				Qty:               req.Msg.Qty,
@@ -615,7 +614,7 @@ func (s *Sales) VoidSale(
 ) (*connect.Response[posifacev1.VoidSaleResponse], error) {
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var sale model.Sale
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		if err := rowLock(tx).
 			Where("id = ?", req.Msg.SaleId).First(&sale).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return connect.NewError(connect.CodeNotFound, errors.New("sale not found"))
@@ -647,7 +646,7 @@ func (s *Sales) DiscardSale(
 ) (*connect.Response[posifacev1.DiscardSaleResponse], error) {
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var sale model.Sale
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		if err := rowLock(tx).
 			Where("id = ?", req.Msg.SaleId).First(&sale).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return connect.NewError(connect.CodeNotFound, errors.New("sale not found"))
@@ -735,7 +734,7 @@ func (s *Sales) GetTodaySnapshot(
 
 	type topRow struct {
 		ProductID string
-		Qty        int64
+		Qty       int64
 	}
 	var top topRow
 	_ = applySaleFilters(
@@ -749,18 +748,18 @@ func (s *Sales) GetTodaySnapshot(
 
 	var lastSaleUnix int64
 	if err := applySaleFilters(s.db.WithContext(ctx).Model(&model.Sale{}), "").
-		Select("COALESCE(EXTRACT(EPOCH FROM MAX(completed_at))::bigint, 0)").
+		Select("COALESCE(" + epochExpr(s.db, "MAX(completed_at)") + ", 0)").
 		Scan(&lastSaleUnix).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&posifacev1.GetTodaySnapshotResponse{
-		Revenue:        revenue,
-		SaleCount:      saleCount,
-		ItemsSold:      itemsSold,
+		Revenue:       revenue,
+		SaleCount:     saleCount,
+		ItemsSold:     itemsSold,
 		TopProductId:  top.ProductID,
 		TopProductQty: top.Qty,
-		LastSaleUnix:   lastSaleUnix,
+		LastSaleUnix:  lastSaleUnix,
 	}), nil
 }
 
@@ -878,7 +877,7 @@ func (s *Sales) draftForUpdate(tx *gorm.DB, id string) (*model.Sale, error) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("sale_id required"))
 	}
 	var sale model.Sale
-	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", id).First(&sale).Error
+	err := rowLock(tx).Where("id = ?", id).First(&sale).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, connect.NewError(connect.CodeNotFound, errors.New("sale not found"))
 	}
@@ -956,7 +955,6 @@ func assignSaleNo(tx *gorm.DB, now time.Time) (string, error) {
 	// calls correct under row-lock.
 	if err := tx.Model(&model.SaleNoCounter{}).
 		Where("year = ?", year).
-		Clauses(clause.Locking{Strength: "UPDATE"}).
 		Update("last_seq", gorm.Expr("last_seq + 1")).Error; err != nil {
 		return "", err
 	}
@@ -1037,7 +1035,7 @@ func saleItemToProto(i *model.SaleItem) *posifacev1.SaleItem {
 	out := &posifacev1.SaleItem{
 		Id:                i.ID,
 		SaleId:            i.SaleID,
-		ProductId:        i.ProductID,
+		ProductId:         i.ProductID,
 		Qty:               i.Qty,
 		UnitPriceSnapshot: i.UnitPriceSnapshot,
 		LineDiscount:      i.LineDiscount,
