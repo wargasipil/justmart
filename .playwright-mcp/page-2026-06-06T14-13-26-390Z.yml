@@ -1,0 +1,197 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - img
+          - paragraph: Justmart
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - paragraph: Dasbor
+          - link:
+            - /url: /analytics
+            - generic:
+              - img
+              - paragraph: Analitik
+          - link:
+            - /url: /pos
+            - generic:
+              - img
+              - paragraph: Kasir
+          - link:
+            - /url: /products
+            - generic:
+              - img
+              - paragraph: Produk
+          - generic:
+            - button:
+              - img
+              - paragraph: Inventaris
+              - img
+          - link:
+            - /url: /customers
+            - generic:
+              - img
+              - paragraph: Pelanggan
+          - link:
+            - /url: /orders
+            - generic:
+              - img
+              - paragraph: Riwayat order
+          - link:
+            - /url: /warehouses
+            - generic:
+              - img
+              - paragraph: Gudang
+          - link:
+            - /url: /users
+            - generic:
+              - img
+              - paragraph: Pengguna
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - paragraph: Pengaturan
+        - generic:
+          - generic:
+            - paragraph: Owner
+            - paragraph: owner@justmart.local
+          - button:
+            - img
+            - paragraph: Keluar
+          - button:
+            - img
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - paragraph: MAIN · Gudang Utama
+              - button:
+                - img
+                - generic: "1"
+              - button:
+                - generic:
+                  - img
+                  - paragraph: ID
+              - button:
+                - img
+              - button:
+                - generic: O
+        - main:
+          - generic:
+            - button:
+              - img
+              - text: Kembali
+            - generic:
+              - generic:
+                - generic:
+                  - link:
+                    - /url: /products
+                    - paragraph: Produk
+                  - img
+                - generic:
+                  - paragraph: Makanan Kucibng tesat
+              - generic:
+                - generic:
+                  - heading [level=2]: Makanan Kucibng tesat
+                - generic:
+                  - generic:
+                    - button:
+                      - img
+                      - text: Ubah
+                    - button [active]:
+                      - img
+                      - text: Pulihkan
+            - generic:
+              - generic:
+                - heading [level=2]: Informasi
+                - generic:
+                  - generic:
+                    - paragraph: SKU
+                    - paragraph: dd
+                  - generic:
+                    - paragraph: Satuan
+                    - paragraph: box
+                  - generic:
+                    - paragraph: Harga satuan (IDR)
+                    - paragraph: Rp 1.000
+                  - generic:
+                    - paragraph: Harga modal terakhir
+                    - paragraph: Rp 750
+                  - generic:
+                    - paragraph: Restok terakhir
+                    - paragraph: 2026-06-06 · saromah
+                  - generic:
+                    - paragraph: Opname terakhir
+                    - paragraph: —
+                  - generic:
+                    - paragraph: Siap
+                    - paragraph: "46"
+                  - generic:
+                    - paragraph: Dipesan
+                    - paragraph: —
+                  - generic:
+                    - paragraph: Valuasi stok
+                    - paragraph: Rp 34.500
+                  - generic:
+                    - paragraph: Aktif
+                    - generic: Tidak aktif
+                - generic:
+                  - paragraph: Satuan
+                  - generic:
+                    - generic:
+                      - paragraph: box
+                      - generic: Satuan dasar
+                      - paragraph: Rp 1.000
+                      - paragraph: · margin 25%
+                    - generic:
+                      - paragraph: sak
+                      - paragraph: ×20
+                      - paragraph: Rp 18.000
+                      - paragraph: · margin 17%
+              - generic:
+                - tablist:
+                  - tab [selected]: Batch
+                  - tab: Riwayat harga
+                  - tab: Mutasi terbaru
+                - tabpanel:
+                  - table:
+                    - rowgroup:
+                      - row:
+                        - columnheader: No. batch
+                        - columnheader: Pemasok
+                        - columnheader: Tanggal kedaluwarsa
+                        - columnheader: Modal
+                        - columnheader: Qty
+                    - rowgroup:
+                      - row:
+                        - cell: asdasdasdas
+                        - cell: 83928783724 · saromah
+                        - cell:
+                          - generic:
+                            - paragraph: 2026-10-13
+                            - generic: 4 bulan lagi
+                        - cell: Rp 750
+                        - cell: "46"
+    - generic:
+      - generic:
+        - img
+      - button:
+        - img
+  - region "Notifications, top-end (alt+T)"
+  - alertdialog [ref=e416]:
+    - generic [ref=e418]:
+      - heading "Pulihkan" [level=2] [ref=e419]
+      - button "Tutup" [ref=e420] [cursor=pointer]:
+        - img [ref=e421]
+    - paragraph [ref=e425]: Pulihkan produk ini?
+    - generic [ref=e427]:
+      - button "Batal" [ref=e428] [cursor=pointer]
+      - button "Pulihkan" [ref=e429] [cursor=pointer]

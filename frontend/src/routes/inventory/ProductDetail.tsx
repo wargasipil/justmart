@@ -12,11 +12,12 @@ import {
   Tabs,
   Text,
 } from "@chakra-ui/react";
-import { Archive, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
 import BackButton from "../../components/BackButton";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import ExpiryBadge from "../../components/ExpiryBadge";
 import PageHeader from "../../components/PageHeader";
 import { MovementType } from "../../gen/inventory_iface/v1/stock_pb";
@@ -29,6 +30,7 @@ import {
   useArchiveProductMutation,
   useProductUnitPricesQuery,
   useProductQuery,
+  useUnarchiveProductMutation,
 } from "../../queries/products";
 import { useSupplierRefs } from "../../queries/refs";
 import { useMovementsQuery } from "../../queries/stock";
@@ -59,9 +61,12 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { id = "" } = useParams();
   const [editing, setEditing] = useState(false);
+  const [pendingArchive, setPendingArchive] = useState(false);
+  const [pendingUnarchive, setPendingUnarchive] = useState(false);
 
   const medQ = useProductQuery(id);
   const archive = useArchiveProductMutation();
+  const unarchive = useUnarchiveProductMutation();
   const unitPricesQ = useProductUnitPricesQuery(id, !!id);
   const batchesQ = useBatchesQuery({ productId: id, onlyInStock: true, pageSize: ALL_LIMIT });
   const batchSupplierRefs = useSupplierRefs(
@@ -96,10 +101,21 @@ export default function ProductDetail() {
   }
 
   const onArchive = async () => {
-    if (!window.confirm(t("inventory.products.confirmArchive"))) return;
     try {
       await archive.mutateAsync({ id: med.id });
       toast.success(t("common.archive") + " ✓");
+      setPendingArchive(false);
+      navigate("/products");
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
+  const onUnarchive = async () => {
+    try {
+      await unarchive.mutateAsync({ id: med.id });
+      toast.success(t("inventory.products.unarchive") + " ✓");
+      setPendingUnarchive(false);
       navigate("/products");
     } catch {
       /* toast handled globally */
@@ -118,10 +134,15 @@ export default function ProductDetail() {
               <Pencil size={14} />
               {t("common.edit")}
             </Button>
-            {med.active && (
-              <Button size="sm" variant="outline" colorPalette="red" onClick={onArchive}>
+            {med.active ? (
+              <Button size="sm" variant="outline" colorPalette="red" onClick={() => setPendingArchive(true)}>
                 <Archive size={14} />
                 {t("common.archive")}
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" colorPalette="green" onClick={() => setPendingUnarchive(true)}>
+                <ArchiveRestore size={14} />
+                {t("inventory.products.unarchive")}
               </Button>
             )}
           </HStack>
@@ -344,6 +365,26 @@ export default function ProductDetail() {
       </Stack>
 
       <EditProductDialog product={editing ? med : null} onClose={() => setEditing(false)} />
+
+      <ConfirmDialog
+        open={pendingArchive}
+        title={t("common.archive")}
+        body={t("inventory.products.confirmArchive")}
+        confirmLabel={t("common.archive")}
+        loading={archive.isPending}
+        onConfirm={onArchive}
+        onCancel={() => setPendingArchive(false)}
+      />
+      <ConfirmDialog
+        open={pendingUnarchive}
+        title={t("inventory.products.unarchive")}
+        body={t("inventory.products.confirmUnarchive")}
+        confirmLabel={t("inventory.products.unarchive")}
+        confirmColorPalette="green"
+        loading={unarchive.isPending}
+        onConfirm={onUnarchive}
+        onCancel={() => setPendingUnarchive(false)}
+      />
     </Box>
   );
 }

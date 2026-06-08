@@ -1,0 +1,181 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e7]
+          - paragraph [ref=e11]: Justmart
+        - generic [ref=e12]:
+          - link "Dasbor" [ref=e13] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e14]:
+              - img [ref=e15]
+              - paragraph [ref=e20]: Dasbor
+          - link "Analitik" [ref=e21] [cursor=pointer]:
+            - /url: /analytics
+            - generic [ref=e22]:
+              - img [ref=e23]
+              - paragraph [ref=e25]: Analitik
+          - link "Kasir" [ref=e26] [cursor=pointer]:
+            - /url: /pos
+            - generic [ref=e27]:
+              - img [ref=e28]
+              - paragraph [ref=e32]: Kasir
+          - link "Produk" [ref=e33] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e34]:
+              - img [ref=e35]
+              - paragraph [ref=e39]: Produk
+          - button "Inventaris" [ref=e41] [cursor=pointer]:
+            - img [ref=e42]
+            - paragraph [ref=e46]: Inventaris
+            - img [ref=e48]
+          - link "Pelanggan" [ref=e50] [cursor=pointer]:
+            - /url: /customers
+            - generic [ref=e51]:
+              - img [ref=e52]
+              - paragraph [ref=e55]: Pelanggan
+          - link "Riwayat order" [ref=e56] [cursor=pointer]:
+            - /url: /orders
+            - generic [ref=e57]:
+              - img [ref=e58]
+              - paragraph [ref=e61]: Riwayat order
+          - link "Gudang" [ref=e62] [cursor=pointer]:
+            - /url: /warehouses
+            - generic [ref=e63]:
+              - img [ref=e64]
+              - paragraph [ref=e67]: Gudang
+          - link "Pengguna" [ref=e68] [cursor=pointer]:
+            - /url: /users
+            - generic [ref=e69]:
+              - img [ref=e70]
+              - paragraph [ref=e75]: Pengguna
+          - link "Pengaturan" [ref=e76] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e77]:
+              - img [ref=e78]
+              - paragraph [ref=e81]: Pengaturan
+        - generic [ref=e82]:
+          - generic [ref=e83]:
+            - paragraph [ref=e84]: Owner
+            - paragraph [ref=e85]: owner@justmart.local
+          - button "Keluar" [ref=e86] [cursor=pointer]:
+            - img [ref=e87]
+            - paragraph [ref=e90]: Keluar
+          - button "toggle sidebar" [ref=e91] [cursor=pointer]:
+            - img [ref=e92]
+      - generic [ref=e95]:
+        - banner [ref=e96]:
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - img [ref=e100]
+              - paragraph [ref=e103]: MAIN · Gudang Utama
+            - button "Notifikasi" [ref=e104] [cursor=pointer]:
+              - img [ref=e105]
+              - generic [ref=e108]: "1"
+            - button "language" [ref=e109] [cursor=pointer]:
+              - generic [ref=e110]:
+                - img [ref=e111]
+                - paragraph [ref=e115]: ID
+            - button "toggle theme" [ref=e116] [cursor=pointer]:
+              - img [ref=e117]
+            - button "user menu" [ref=e119] [cursor=pointer]:
+              - generic [ref=e120]: O
+        - main [ref=e121]:
+          - generic [ref=e316]:
+            - button "Kembali" [ref=e317] [cursor=pointer]:
+              - img [ref=e318]
+              - text: Kembali
+            - generic [ref=e320]:
+              - generic [ref=e321]:
+                - generic [ref=e322]:
+                  - link "Produk" [ref=e323] [cursor=pointer]:
+                    - /url: /products
+                    - paragraph [ref=e324]: Produk
+                  - img [ref=e325]
+                - paragraph [ref=e328]: Makanan Kucibng tesat
+              - generic [ref=e329]:
+                - heading "Makanan Kucibng tesat" [level=2] [ref=e331]
+                - generic [ref=e333]:
+                  - button "Ubah" [ref=e334] [cursor=pointer]:
+                    - img [ref=e335]
+                    - text: Ubah
+                  - button "Pulihkan" [ref=e338] [cursor=pointer]:
+                    - img [ref=e339]
+                    - text: Pulihkan
+            - generic [ref=e344]:
+              - generic [ref=e345]:
+                - heading "Informasi" [level=2] [ref=e346]
+                - generic [ref=e347]:
+                  - generic [ref=e348]:
+                    - paragraph [ref=e349]: SKU
+                    - paragraph [ref=e350]: dd
+                  - generic [ref=e351]:
+                    - paragraph [ref=e352]: Satuan
+                    - paragraph [ref=e353]: box
+                  - generic [ref=e354]:
+                    - paragraph [ref=e355]: Harga satuan (IDR)
+                    - paragraph [ref=e356]: Rp 1.000
+                  - generic [ref=e357]:
+                    - paragraph [ref=e358]: Harga modal terakhir
+                    - paragraph [ref=e359]: Rp 750
+                  - generic [ref=e360]:
+                    - paragraph [ref=e361]: Restok terakhir
+                    - paragraph [ref=e362]: 2026-06-06 · saromah
+                  - generic [ref=e363]:
+                    - paragraph [ref=e364]: Opname terakhir
+                    - paragraph [ref=e365]: —
+                  - generic [ref=e366]:
+                    - paragraph [ref=e367]: Siap
+                    - paragraph [ref=e368]: "46"
+                  - generic [ref=e369]:
+                    - paragraph [ref=e370]: Dipesan
+                    - paragraph [ref=e371]: —
+                  - generic [ref=e372]:
+                    - paragraph [ref=e373]: Valuasi stok
+                    - paragraph [ref=e374]: Rp 34.500
+                  - generic [ref=e375]:
+                    - paragraph [ref=e376]: Aktif
+                    - generic [ref=e377]: Tidak aktif
+                - generic [ref=e378]:
+                  - paragraph [ref=e379]: Satuan
+                  - generic [ref=e380]:
+                    - generic [ref=e381]:
+                      - paragraph [ref=e382]: box
+                      - generic [ref=e383]: Satuan dasar
+                      - paragraph [ref=e384]: Rp 1.000
+                      - paragraph [ref=e385]: · margin 25%
+                    - generic [ref=e386]:
+                      - paragraph [ref=e387]: sak
+                      - paragraph [ref=e388]: ×20
+                      - paragraph [ref=e389]: Rp 18.000
+                      - paragraph [ref=e390]: · margin 17%
+              - generic [ref=e391]:
+                - tablist [ref=e392]:
+                  - tab "Batch" [selected] [ref=e393] [cursor=pointer]
+                  - tab "Riwayat harga" [ref=e394] [cursor=pointer]
+                  - tab "Mutasi terbaru" [ref=e395] [cursor=pointer]
+                - tabpanel "Batch" [ref=e396]:
+                  - table [ref=e397]:
+                    - rowgroup [ref=e398]:
+                      - row "No. batch Pemasok Tanggal kedaluwarsa Modal Qty" [ref=e399]:
+                        - columnheader "No. batch" [ref=e400]
+                        - columnheader "Pemasok" [ref=e401]
+                        - columnheader "Tanggal kedaluwarsa" [ref=e402]
+                        - columnheader "Modal" [ref=e403]
+                        - columnheader "Qty" [ref=e404]
+                    - rowgroup [ref=e405]:
+                      - row "asdasdasdas 83928783724 · saromah 2026-10-13 4 bulan lagi Rp 750 46" [ref=e406]:
+                        - cell "asdasdasdas" [ref=e407]
+                        - cell "83928783724 · saromah" [ref=e408]
+                        - cell "2026-10-13 4 bulan lagi" [ref=e409]:
+                          - generic [ref=e410]:
+                            - paragraph [ref=e411]: 2026-10-13
+                            - generic [ref=e412]: 4 bulan lagi
+                        - cell "Rp 750" [ref=e413]
+                        - cell "46" [ref=e414]
+    - generic [ref=e198]:
+      - img [ref=e200]
+      - button "Open Tanstack query devtools" [ref=e248] [cursor=pointer]:
+        - img [ref=e249]
+  - region "Notifications, top-end (alt+T)"

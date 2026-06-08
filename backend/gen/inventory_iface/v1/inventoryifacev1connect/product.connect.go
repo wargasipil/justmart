@@ -48,6 +48,9 @@ const (
 	// ProductServiceArchiveProductProcedure is the fully-qualified name of the ProductService's
 	// ArchiveProduct RPC.
 	ProductServiceArchiveProductProcedure = "/inventory_iface.v1.ProductService/ArchiveProduct"
+	// ProductServiceUnarchiveProductProcedure is the fully-qualified name of the ProductService's
+	// UnarchiveProduct RPC.
+	ProductServiceUnarchiveProductProcedure = "/inventory_iface.v1.ProductService/UnarchiveProduct"
 	// ProductServiceListProductPricesProcedure is the fully-qualified name of the ProductService's
 	// ListProductPrices RPC.
 	ProductServiceListProductPricesProcedure = "/inventory_iface.v1.ProductService/ListProductPrices"
@@ -72,6 +75,8 @@ type ProductServiceClient interface {
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
 	UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error)
 	ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error)
+	// UnarchiveProduct restores a soft-deleted product (active=false -> true).
+	UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error)
 	ListProductPrices(context.Context, *connect.Request[v1.ListProductPricesRequest]) (*connect.Response[v1.ListProductPricesResponse], error)
 	ListProductUnitPrices(context.Context, *connect.Request[v1.ListProductUnitPricesRequest]) (*connect.Response[v1.ListProductUnitPricesResponse], error)
 	SearchProducts(context.Context, *connect.Request[v1.SearchProductsRequest]) (*connect.Response[v1.SearchProductsResponse], error)
@@ -125,6 +130,12 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(productServiceMethods.ByName("ArchiveProduct")),
 			connect.WithClientOptions(opts...),
 		),
+		unarchiveProduct: connect.NewClient[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse](
+			httpClient,
+			baseURL+ProductServiceUnarchiveProductProcedure,
+			connect.WithSchema(productServiceMethods.ByName("UnarchiveProduct")),
+			connect.WithClientOptions(opts...),
+		),
 		listProductPrices: connect.NewClient[v1.ListProductPricesRequest, v1.ListProductPricesResponse](
 			httpClient,
 			baseURL+ProductServiceListProductPricesProcedure,
@@ -165,6 +176,7 @@ type productServiceClient struct {
 	createProduct         *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
 	updateProduct         *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
 	archiveProduct        *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
+	unarchiveProduct      *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
 	listProductPrices     *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
 	listProductUnitPrices *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
 	searchProducts        *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
@@ -195,6 +207,11 @@ func (c *productServiceClient) UpdateProduct(ctx context.Context, req *connect.R
 // ArchiveProduct calls inventory_iface.v1.ProductService.ArchiveProduct.
 func (c *productServiceClient) ArchiveProduct(ctx context.Context, req *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error) {
 	return c.archiveProduct.CallUnary(ctx, req)
+}
+
+// UnarchiveProduct calls inventory_iface.v1.ProductService.UnarchiveProduct.
+func (c *productServiceClient) UnarchiveProduct(ctx context.Context, req *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error) {
+	return c.unarchiveProduct.CallUnary(ctx, req)
 }
 
 // ListProductPrices calls inventory_iface.v1.ProductService.ListProductPrices.
@@ -229,6 +246,8 @@ type ProductServiceHandler interface {
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
 	UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error)
 	ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error)
+	// UnarchiveProduct restores a soft-deleted product (active=false -> true).
+	UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error)
 	ListProductPrices(context.Context, *connect.Request[v1.ListProductPricesRequest]) (*connect.Response[v1.ListProductPricesResponse], error)
 	ListProductUnitPrices(context.Context, *connect.Request[v1.ListProductUnitPricesRequest]) (*connect.Response[v1.ListProductUnitPricesResponse], error)
 	SearchProducts(context.Context, *connect.Request[v1.SearchProductsRequest]) (*connect.Response[v1.SearchProductsResponse], error)
@@ -278,6 +297,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		connect.WithSchema(productServiceMethods.ByName("ArchiveProduct")),
 		connect.WithHandlerOptions(opts...),
 	)
+	productServiceUnarchiveProductHandler := connect.NewUnaryHandler(
+		ProductServiceUnarchiveProductProcedure,
+		svc.UnarchiveProduct,
+		connect.WithSchema(productServiceMethods.ByName("UnarchiveProduct")),
+		connect.WithHandlerOptions(opts...),
+	)
 	productServiceListProductPricesHandler := connect.NewUnaryHandler(
 		ProductServiceListProductPricesProcedure,
 		svc.ListProductPrices,
@@ -320,6 +345,8 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceUpdateProductHandler.ServeHTTP(w, r)
 		case ProductServiceArchiveProductProcedure:
 			productServiceArchiveProductHandler.ServeHTTP(w, r)
+		case ProductServiceUnarchiveProductProcedure:
+			productServiceUnarchiveProductHandler.ServeHTTP(w, r)
 		case ProductServiceListProductPricesProcedure:
 			productServiceListProductPricesHandler.ServeHTTP(w, r)
 		case ProductServiceListProductUnitPricesProcedure:
@@ -357,6 +384,10 @@ func (UnimplementedProductServiceHandler) UpdateProduct(context.Context, *connec
 
 func (UnimplementedProductServiceHandler) ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ArchiveProduct is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.UnarchiveProduct is not implemented"))
 }
 
 func (UnimplementedProductServiceHandler) ListProductPrices(context.Context, *connect.Request[v1.ListProductPricesRequest]) (*connect.Response[v1.ListProductPricesResponse], error) {

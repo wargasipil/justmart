@@ -445,6 +445,8 @@
     },
     "products": {
       "title": "Products",
+      "tabActive": "Active products",
+      "tabArchived": "Archived products",
       "addTitle": "Add product",
       "editTitle": "Edit product",
       "sku": "SKU",
@@ -467,6 +469,8 @@
       "batchesSection": "Batches",
       "movementsSection": "Recent movements",
       "confirmArchive": "Archive this product?",
+      "unarchive": "Restore",
+      "confirmUnarchive": "Restore this product?",
       "lastRestock": "Last restock",
       "lastStocktake": "Last opname",
       "opnameBefore": "Opname before",

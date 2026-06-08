@@ -99,6 +99,11 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // UnarchiveProduct restores a soft-deleted product (active=false -> true).
+  rpc UnarchiveProduct(UnarchiveProductRequest) returns (UnarchiveProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc ListProductPrices(ListProductPricesRequest) returns (ListProductPricesResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -136,6 +141,7 @@ message ListProductsRequest {
   string opname_before = 5;  // YYYY-MM-DD. When set, include only products whose latest
                              // COMPLETED opname in the active warehouse is < this date OR
                              // who have never been counted there (overdue / never-counted).
+  bool only_archived = 6;    // when true: return ONLY archived (active=false); overrides include_inactive.
 }
 message ListProductsResponse {
   repeated Product products = 1;
@@ -171,6 +177,9 @@ message UpdateProductResponse { Product product = 1; }
 
 message ArchiveProductRequest { string id = 1; }
 message ArchiveProductResponse { Product product = 1; }
+
+message UnarchiveProductRequest { string id = 1; }
+message UnarchiveProductResponse { Product product = 1; }
 
 message ListProductPricesRequest { string product_id = 1; }
 message ListProductPricesResponse {

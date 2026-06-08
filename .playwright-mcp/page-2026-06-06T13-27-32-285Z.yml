@@ -1,0 +1,197 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - img
+          - paragraph: Justmart
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - paragraph: Dasbor
+          - link:
+            - /url: /analytics
+            - generic:
+              - img
+              - paragraph: Analitik
+          - link:
+            - /url: /pos
+            - generic:
+              - img
+              - paragraph: Kasir
+          - link:
+            - /url: /products
+            - generic:
+              - img
+              - paragraph: Produk
+          - generic:
+            - button:
+              - img
+              - paragraph: Inventaris
+              - img
+          - link:
+            - /url: /customers
+            - generic:
+              - img
+              - paragraph: Pelanggan
+          - link:
+            - /url: /orders
+            - generic:
+              - img
+              - paragraph: Riwayat order
+          - link:
+            - /url: /warehouses
+            - generic:
+              - img
+              - paragraph: Gudang
+          - link:
+            - /url: /users
+            - generic:
+              - img
+              - paragraph: Pengguna
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - paragraph: Pengaturan
+        - generic:
+          - generic:
+            - paragraph: Owner
+            - paragraph: owner@justmart.local
+          - button:
+            - img
+            - paragraph: Keluar
+          - button:
+            - img
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - paragraph: MAIN · Gudang Utama
+              - button:
+                - img
+                - generic: "1"
+              - button:
+                - generic:
+                  - img
+                  - paragraph: ID
+              - button:
+                - img
+              - button:
+                - generic: O
+        - main:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Pengguna
+              - generic:
+                - generic:
+                  - heading [level=2]: Pengguna
+                - generic:
+                  - button:
+                    - img
+                    - text: Tambah
+            - table:
+              - rowgroup:
+                - row:
+                  - columnheader: Email
+                  - columnheader: Name
+                  - columnheader: Role
+                  - columnheader: Active
+                  - columnheader
+              - rowgroup:
+                - row:
+                  - cell: owner@justmart.local
+                  - cell: Owner
+                  - cell:
+                    - generic:
+                      - combobox
+                      - generic:
+                        - combobox:
+                          - generic: Pemilik
+                        - generic:
+                          - generic:
+                            - img
+                  - cell:
+                    - generic:
+                      - checkbox [checked]
+                  - cell
+                - row:
+                  - cell: jkashjdska@gmail.com
+                  - cell: kasir
+                  - cell:
+                    - generic:
+                      - combobox
+                      - generic:
+                        - combobox:
+                          - generic: Kasir
+                        - generic:
+                          - generic:
+                            - img
+                  - cell:
+                    - generic:
+                      - checkbox [checked]
+                  - cell:
+                    - button: Ubah kata sandi
+                - row:
+                  - cell: kasir@gmail.com
+                  - cell: kasir1
+                  - cell:
+                    - generic:
+                      - combobox
+                      - generic:
+                        - combobox:
+                          - generic: Kasir
+                        - generic:
+                          - generic:
+                            - img
+                  - cell:
+                    - generic:
+                      - checkbox [checked]
+                  - cell:
+                    - button: Ubah kata sandi
+    - generic:
+      - generic:
+        - img
+      - button:
+        - img
+  - region "Notifications, top-end (alt+T)"
+  - dialog [ref=e290]:
+    - generic [ref=e292]:
+      - heading "Buat pengguna" [level=2] [ref=e293]
+      - button "close" [ref=e294] [cursor=pointer]:
+        - img [ref=e295]
+    - generic [ref=e301]:
+      - group [ref=e302]:
+        - generic [ref=e303]:
+          - text: Email
+          - generic [ref=e304]: "*"
+        - textbox "Email" [active] [ref=e305]
+      - group [ref=e306]:
+        - generic [ref=e307]: Nama
+        - textbox "Nama" [ref=e308]
+      - group [ref=e309]:
+        - generic [ref=e310]:
+          - text: Kata sandi
+          - generic [ref=e311]: "*"
+        - textbox "Kata sandi" [ref=e312]
+        - generic [ref=e313]: Minimal 8 karakter
+      - generic [ref=e314]:
+        - paragraph [ref=e315]: Peran
+        - generic [ref=e316]:
+          - combobox [ref=e317]
+          - generic [ref=e318]:
+            - combobox [ref=e319]:
+              - generic [ref=e320]: Kasir
+            - generic:
+              - generic:
+                - img
+    - generic [ref=e323]:
+      - button "Batal" [ref=e324] [cursor=pointer]
+      - button "Simpan" [ref=e325] [cursor=pointer]

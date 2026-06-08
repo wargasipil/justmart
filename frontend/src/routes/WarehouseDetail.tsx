@@ -2,11 +2,8 @@ import {
   Badge,
   Box,
   Button,
-  Dialog,
   Heading,
   HStack,
-  IconButton,
-  Portal,
   SimpleGrid,
   Spinner,
   Stack,
@@ -14,12 +11,13 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Archive, Pencil, Star, UserMinus, X } from "lucide-react";
+import { Archive, Pencil, Star, UserMinus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import SearchableSelect from "../components/SearchableSelect";
 import WarehouseDrawer from "../components/WarehouseDrawer";
@@ -45,6 +43,8 @@ export default function WarehouseDetail() {
   const { id = "" } = useParams();
   const [editing, setEditing] = useState(false);
   const [revoking, setRevoking] = useState<WarehouseUser | null>(null);
+  const [pendingArchive, setPendingArchive] = useState(false);
+  const [pendingPromote, setPendingPromote] = useState(false);
 
   const whQ = useWarehouseQuery(id);
   const usersQ = useWarehouseUsersQuery(id);
@@ -87,10 +87,10 @@ export default function WarehouseDetail() {
   }
 
   const onArchive = async () => {
-    if (!confirm(t("warehouses.confirmArchive", { name: w.name }))) return;
     try {
       await archive.mutateAsync(w.id);
       toast.success(t("common.archive") + " ✓");
+      setPendingArchive(false);
       navigate("/warehouses");
     } catch {
       /* toast handled globally */
@@ -98,10 +98,10 @@ export default function WarehouseDetail() {
   };
 
   const onPromote = async () => {
-    if (!confirm(t("warehouses.confirmSetDefault", { name: w.name }))) return;
     try {
       await setGlobalDefault.mutateAsync(w.id);
       toast.success(t("warehouses.setAsDefault") + " ✓");
+      setPendingPromote(false);
     } catch {
       /* toast handled globally */
     }
@@ -168,7 +168,7 @@ export default function WarehouseDetail() {
                 size="sm"
                 variant="ghost"
                 colorPalette="blue"
-                onClick={onPromote}
+                onClick={() => setPendingPromote(true)}
                 loading={setGlobalDefault.isPending}
               >
                 <Star size={14} />
@@ -180,7 +180,7 @@ export default function WarehouseDetail() {
                 size="sm"
                 variant="ghost"
                 colorPalette="red"
-                onClick={onArchive}
+                onClick={() => setPendingArchive(true)}
                 loading={archive.isPending}
               >
                 <Archive size={14} />
@@ -310,43 +310,39 @@ export default function WarehouseDetail() {
         onClose={() => setEditing(false)}
       />
 
-      {/* Revoke confirm dialog */}
-      <Dialog.Root open={!!revoking} onOpenChange={(d) => !d.open && setRevoking(null)} size="sm">
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content>
-              <Dialog.Header>
-                <Dialog.Title>{t("warehouses.revokeAccess")}</Dialog.Title>
-                <Dialog.CloseTrigger asChild>
-                  <IconButton aria-label="close" variant="ghost" size="sm">
-                    <X size={16} />
-                  </IconButton>
-                </Dialog.CloseTrigger>
-              </Dialog.Header>
-              <Dialog.Body>
-                <Text>
-                  {t("warehouses.confirmRevoke", { email: revoking?.email ?? "" })}
-                </Text>
-              </Dialog.Body>
-              <Dialog.Footer>
-                <HStack justify="space-between" w="full">
-                  <Button variant="ghost" onClick={() => setRevoking(null)}>
-                    {t("common.cancel")}
-                  </Button>
-                  <Button
-                    colorPalette="red"
-                    onClick={onRevokeConfirmed}
-                    loading={revoke.isPending}
-                  >
-                    {t("warehouses.revokeAccess")}
-                  </Button>
-                </HStack>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
+      {/* Revoke confirm */}
+      <ConfirmDialog
+        open={!!revoking}
+        title={t("warehouses.revokeAccess")}
+        body={t("warehouses.confirmRevoke", { email: revoking?.email ?? "" })}
+        confirmLabel={t("warehouses.revokeAccess")}
+        loading={revoke.isPending}
+        onConfirm={onRevokeConfirmed}
+        onCancel={() => setRevoking(null)}
+      />
+
+      {/* Set-as-default confirm */}
+      <ConfirmDialog
+        open={pendingPromote}
+        title={t("warehouses.setAsDefault")}
+        body={t("warehouses.confirmSetDefault", { name: w.name })}
+        confirmLabel={t("warehouses.setAsDefault")}
+        confirmColorPalette="blue"
+        loading={setGlobalDefault.isPending}
+        onConfirm={onPromote}
+        onCancel={() => setPendingPromote(false)}
+      />
+
+      {/* Archive confirm */}
+      <ConfirmDialog
+        open={pendingArchive}
+        title={t("common.archive")}
+        body={t("warehouses.confirmArchive", { name: w.name })}
+        confirmLabel={t("common.archive")}
+        loading={archive.isPending}
+        onConfirm={onArchive}
+        onCancel={() => setPendingArchive(false)}
+      />
     </Box>
   );
 }

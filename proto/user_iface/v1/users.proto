@@ -21,10 +21,13 @@ service UserService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
   // ResolveUsers returns minimal display refs for a set of ids (batch
-  // lookup-by-IDs for name resolution; used by analytics).
+  // lookup-by-IDs for name resolution). Used by analytics and by the order
+  // history "Created by" column — CASHIER is allowed for the latter (resolves
+  // only ids it already sees in its warehouse's sales).
   rpc ResolveUsers(ResolveUsersRequest) returns (ResolveUsersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
   }
   // Server-side fuzzy search for the warehouse-detail "Add user" picker.
   // OWNER-only because this is an admin path.

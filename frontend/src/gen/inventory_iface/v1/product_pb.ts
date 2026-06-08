@@ -531,6 +531,16 @@ export class ListProductsRequest extends Message<ListProductsRequest> {
    */
   opnameBefore = "";
 
+  /**
+   * COMPLETED opname in the active warehouse is < this date OR
+   * who have never been counted there (overdue / never-counted).
+   *
+   * when true: return ONLY archived (active=false); overrides include_inactive.
+   *
+   * @generated from field: bool only_archived = 6;
+   */
+  onlyArchived = false;
+
   constructor(data?: PartialMessage<ListProductsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -544,6 +554,7 @@ export class ListProductsRequest extends Message<ListProductsRequest> {
     { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 4, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "opname_before", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "only_archived", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductsRequest {
@@ -967,6 +978,80 @@ export class ArchiveProductResponse extends Message<ArchiveProductResponse> {
 
   static equals(a: ArchiveProductResponse | PlainMessage<ArchiveProductResponse> | undefined, b: ArchiveProductResponse | PlainMessage<ArchiveProductResponse> | undefined): boolean {
     return proto3.util.equals(ArchiveProductResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.UnarchiveProductRequest
+ */
+export class UnarchiveProductRequest extends Message<UnarchiveProductRequest> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  constructor(data?: PartialMessage<UnarchiveProductRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.UnarchiveProductRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnarchiveProductRequest {
+    return new UnarchiveProductRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnarchiveProductRequest {
+    return new UnarchiveProductRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnarchiveProductRequest {
+    return new UnarchiveProductRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UnarchiveProductRequest | PlainMessage<UnarchiveProductRequest> | undefined, b: UnarchiveProductRequest | PlainMessage<UnarchiveProductRequest> | undefined): boolean {
+    return proto3.util.equals(UnarchiveProductRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.UnarchiveProductResponse
+ */
+export class UnarchiveProductResponse extends Message<UnarchiveProductResponse> {
+  /**
+   * @generated from field: inventory_iface.v1.Product product = 1;
+   */
+  product?: Product;
+
+  constructor(data?: PartialMessage<UnarchiveProductResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.UnarchiveProductResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product", kind: "message", T: Product },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnarchiveProductResponse {
+    return new UnarchiveProductResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnarchiveProductResponse {
+    return new UnarchiveProductResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnarchiveProductResponse {
+    return new UnarchiveProductResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UnarchiveProductResponse | PlainMessage<UnarchiveProductResponse> | undefined, b: UnarchiveProductResponse | PlainMessage<UnarchiveProductResponse> | undefined): boolean {
+    return proto3.util.equals(UnarchiveProductResponse, a, b);
   }
 }
 

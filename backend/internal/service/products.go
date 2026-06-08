@@ -46,7 +46,9 @@ func (m *Products) ListProducts(
 	}
 
 	applyFilters := func(q *gorm.DB) *gorm.DB {
-		if !req.Msg.IncludeInactive {
+		if req.Msg.OnlyArchived {
+			q = q.Where("active = ?", false)
+		} else if !req.Msg.IncludeInactive {
 			q = q.Where("active = ?", true)
 		}
 		if query != "" {
@@ -493,6 +495,21 @@ func (m *Products) ArchiveProduct(
 	}
 	med.Active = false
 	return connect.NewResponse(&inventoryifacev1.ArchiveProductResponse{Product: productToProto(med)}), nil
+}
+
+func (m *Products) UnarchiveProduct(
+	ctx context.Context,
+	req *connect.Request[inventoryifacev1.UnarchiveProductRequest],
+) (*connect.Response[inventoryifacev1.UnarchiveProductResponse], error) {
+	med, err := m.load(ctx, req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+	if err := m.db.WithContext(ctx).Model(med).Update("active", true).Error; err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	med.Active = true
+	return connect.NewResponse(&inventoryifacev1.UnarchiveProductResponse{Product: productToProto(med)}), nil
 }
 
 func (m *Products) SearchProducts(

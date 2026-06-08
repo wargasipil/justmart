@@ -1,19 +1,18 @@
 import {
   Box,
   Button,
-  Dialog,
   Heading,
   HStack,
   IconButton,
-  Portal,
   Spinner,
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Download, Trash2, X } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import ConfirmDialog from "../../components/ConfirmDialog";
 import { formatUnix } from "../../lib/format";
 import { toast } from "../../lib/toaster";
 import {
@@ -121,53 +120,15 @@ export default function SettingsBackups() {
         </Table.Root>
       )}
 
-      <Dialog.Root
+      <ConfirmDialog
         open={pending !== null}
-        onOpenChange={(d) => {
-          if (!d.open) setPending(null);
-        }}
-        size="sm"
-      >
-        <Portal>
-          <Dialog.Backdrop />
-          <Dialog.Positioner>
-            <Dialog.Content>
-              <Dialog.Header borderBottomWidth="1px">
-                <HStack justify="space-between">
-                  <Heading size="md">{t("settings.backups.confirmTitle")}</Heading>
-                  <IconButton
-                    aria-label="close"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPending(null)}
-                  >
-                    <X size={18} />
-                  </IconButton>
-                </HStack>
-              </Dialog.Header>
-              <Dialog.Body>
-                <Text fontSize="sm">
-                  {t("settings.backups.confirmBody", { name: pending ?? "" })}
-                </Text>
-              </Dialog.Body>
-              <Dialog.Footer borderTopWidth="1px">
-                <HStack justify="flex-end" w="full" gap={2}>
-                  <Button variant="ghost" onClick={() => setPending(null)}>
-                    {t("common.cancel")}
-                  </Button>
-                  <Button
-                    colorPalette="red"
-                    loading={del.isPending}
-                    onClick={onConfirmDelete}
-                  >
-                    {t("common.delete")}
-                  </Button>
-                </HStack>
-              </Dialog.Footer>
-            </Dialog.Content>
-          </Dialog.Positioner>
-        </Portal>
-      </Dialog.Root>
+        title={t("settings.backups.confirmTitle")}
+        body={t("settings.backups.confirmBody", { name: pending ?? "" })}
+        confirmLabel={t("common.delete")}
+        loading={del.isPending}
+        onConfirm={onConfirmDelete}
+        onCancel={() => setPending(null)}
+      />
     </Box>
   );
 }

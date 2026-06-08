@@ -63,7 +63,9 @@ const (
 type UserServiceClient interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
 	// ResolveUsers returns minimal display refs for a set of ids (batch
-	// lookup-by-IDs for name resolution; used by analytics).
+	// lookup-by-IDs for name resolution). Used by analytics and by the order
+	// history "Created by" column — CASHIER is allowed for the latter (resolves
+	// only ids it already sees in its warehouse's sales).
 	ResolveUsers(context.Context, *connect.Request[v1.ResolveUsersRequest]) (*connect.Response[v1.ResolveUsersResponse], error)
 	// Server-side fuzzy search for the warehouse-detail "Add user" picker.
 	// OWNER-only because this is an admin path.
@@ -209,7 +211,9 @@ func (c *userServiceClient) RedeemPasswordResetToken(ctx context.Context, req *c
 type UserServiceHandler interface {
 	ListUsers(context.Context, *connect.Request[v1.ListUsersRequest]) (*connect.Response[v1.ListUsersResponse], error)
 	// ResolveUsers returns minimal display refs for a set of ids (batch
-	// lookup-by-IDs for name resolution; used by analytics).
+	// lookup-by-IDs for name resolution). Used by analytics and by the order
+	// history "Created by" column — CASHIER is allowed for the latter (resolves
+	// only ids it already sees in its warehouse's sales).
 	ResolveUsers(context.Context, *connect.Request[v1.ResolveUsersRequest]) (*connect.Response[v1.ResolveUsersResponse], error)
 	// Server-side fuzzy search for the warehouse-detail "Add user" picker.
 	// OWNER-only because this is an admin path.

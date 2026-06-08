@@ -1,0 +1,126 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e7]
+          - paragraph [ref=e11]: Justmart
+        - generic [ref=e12]:
+          - link "Dasbor" [ref=e13] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e14]:
+              - img [ref=e15]
+              - paragraph [ref=e20]: Dasbor
+          - link "Kasir" [ref=e21] [cursor=pointer]:
+            - /url: /pos
+            - generic [ref=e22]:
+              - img [ref=e23]
+              - paragraph [ref=e27]: Kasir
+          - link "Pelanggan" [ref=e28] [cursor=pointer]:
+            - /url: /customers
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - paragraph [ref=e33]: Pelanggan
+          - link "Riwayat order" [ref=e155] [cursor=pointer]:
+            - /url: /orders
+            - generic [ref=e156]:
+              - img [ref=e157]
+              - paragraph [ref=e160]: Riwayat order
+        - generic [ref=e34]:
+          - generic [ref=e161]:
+            - paragraph [ref=e162]: Kasir Test
+            - paragraph [ref=e163]: kasirtest@justmart.local
+          - button "Keluar" [ref=e164] [cursor=pointer]:
+            - img [ref=e165]
+            - paragraph [ref=e168]: Keluar
+          - button "toggle sidebar" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+      - generic [ref=e39]:
+        - banner [ref=e40]:
+          - generic [ref=e42]:
+            - generic [ref=e169]:
+              - img [ref=e170]
+              - paragraph [ref=e173]: MAIN · Gudang Utama
+            - button "language" [ref=e43] [cursor=pointer]:
+              - generic [ref=e44]:
+                - img [ref=e45]
+                - paragraph [ref=e49]: ID
+            - button "toggle theme" [ref=e50] [cursor=pointer]:
+              - img [ref=e51]
+            - button "user menu" [ref=e174] [cursor=pointer]:
+              - generic [ref=e175]: KT
+        - main [ref=e53]:
+          - generic [ref=e279]:
+            - button "Kembali" [ref=e280] [cursor=pointer]:
+              - img [ref=e281]
+              - text: Kembali
+            - generic [ref=e283]:
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - link "Riwayat order" [ref=e286] [cursor=pointer]:
+                    - /url: /orders
+                    - paragraph [ref=e287]: Riwayat order
+                  - img [ref=e288]
+                - paragraph [ref=e291]: INV-2026-0003
+              - generic [ref=e292]:
+                - heading "INV-2026-0003" [level=2] [ref=e294]
+                - generic [ref=e296]: Selesai
+            - generic [ref=e297]:
+              - generic [ref=e298]:
+                - heading "Informasi" [level=2] [ref=e299]
+                - generic [ref=e300]:
+                  - generic [ref=e301]:
+                    - paragraph [ref=e302]: Tanggal
+                    - paragraph [ref=e303]: 6 Jun 2026, 19.57
+                  - generic [ref=e304]:
+                    - paragraph [ref=e305]: Dibuat oleh
+                    - paragraph [ref=e306]: kasir1
+                  - generic [ref=e307]:
+                    - paragraph [ref=e308]: Pelanggan
+                    - paragraph [ref=e309]: —
+                  - generic [ref=e310]:
+                    - paragraph [ref=e311]: Pembayaran
+                    - paragraph [ref=e312]: Tunai
+                  - generic [ref=e313]:
+                    - paragraph [ref=e314]: Selesai pada
+                    - paragraph [ref=e315]: 6 Jun 2026, 19.58
+              - generic [ref=e316]:
+                - heading "Total" [level=2] [ref=e317]
+                - generic [ref=e318]:
+                  - generic [ref=e319]:
+                    - paragraph [ref=e320]: Subtotal
+                    - paragraph [ref=e321]: Rp 11.000
+                  - generic [ref=e322]:
+                    - paragraph [ref=e323]: Diskon
+                    - paragraph [ref=e324]: Rp 0
+                  - generic [ref=e325]:
+                    - paragraph [ref=e326]: Total
+                    - paragraph [ref=e327]: Rp 11.000
+                  - generic [ref=e328]:
+                    - paragraph [ref=e329]: Dibayar
+                    - paragraph [ref=e330]: Rp 20.000
+                  - generic [ref=e331]:
+                    - paragraph [ref=e332]: Kembalian
+                    - paragraph [ref=e333]: Rp 9.000
+              - generic [ref=e334]:
+                - heading "Item" [level=2] [ref=e335]
+                - table [ref=e337]:
+                  - rowgroup [ref=e338]:
+                    - row "Produk Qty Harga satuan Diskon Total baris" [ref=e339]:
+                      - columnheader "Produk" [ref=e340]
+                      - columnheader "Qty" [ref=e341]
+                      - columnheader "Harga satuan" [ref=e342]
+                      - columnheader "Diskon" [ref=e343]
+                      - columnheader "Total baris" [ref=e344]
+                  - rowgroup [ref=e345]:
+                    - row "Makanan Kucibng tesat 11 box Rp 1.000 Rp 0 Rp 11.000" [ref=e346]:
+                      - cell "Makanan Kucibng tesat" [ref=e347]
+                      - cell "11 box" [ref=e348]
+                      - cell "Rp 1.000" [ref=e349]
+                      - cell "Rp 0" [ref=e350]
+                      - cell "Rp 11.000" [ref=e351]
+    - generic [ref=e56]:
+      - img [ref=e58]
+      - button "Open Tanstack query devtools" [ref=e106] [cursor=pointer]:
+        - img [ref=e107]
+  - region "Notifications, top-end (alt+T)"

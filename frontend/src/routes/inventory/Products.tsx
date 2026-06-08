@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Button, HStack, Input, Spinner, Stack, Table, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Input, Spinner, Stack, Table, Tabs, Text } from "@chakra-ui/react";
 import { Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +25,8 @@ export default function Products() {
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [opnameBefore, setOpnameBefore] = useState("");
+  const [tab, setTab] = useState<"active" | "archived">("active");
+  const onlyArchived = tab === "archived";
 
   // Debounce the search box (250ms) into the query that drives the request.
   useEffect(() => {
@@ -33,9 +35,9 @@ export default function Products() {
   }, [searchInput]);
 
   const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${query}|${opnameBefore}`,
+    `${query}|${opnameBefore}|${tab}`,
   );
-  const productsQ = useProductsQuery({ query, opnameBefore, page, pageSize });
+  const productsQ = useProductsQuery({ query, opnameBefore, onlyArchived, page, pageSize });
   const stockUnitsByBase = usePreferencesStore((s) => s.productStockUnitsByBase);
   const setStockUnitByBase = usePreferencesStore((s) => s.setProductStockUnitByBase);
   const unitsQ = useUnitBasesQuery();
@@ -45,7 +47,7 @@ export default function Products() {
   );
 
   const onExport = async () => {
-    const rows = await fetchProductsForExport({ query, opnameBefore });
+    const rows = await fetchProductsForExport({ query, opnameBefore, onlyArchived });
     downloadCsv(
       `products-${new Date().toISOString().slice(0, 10)}.csv`,
       rows.map((m) => ({
@@ -73,6 +75,17 @@ export default function Products() {
     <Box>
       <PageHeader breadcrumbs={[{ label: t("nav.products") }]} title={t("nav.products")} />
       <Stack gap={4}>
+        <Tabs.Root
+          value={tab}
+          onValueChange={(d) => setTab(d.value as "active" | "archived")}
+          variant="line"
+        >
+          <Tabs.List>
+            <Tabs.Trigger value="active">{t("inventory.products.tabActive")}</Tabs.Trigger>
+            <Tabs.Trigger value="archived">{t("inventory.products.tabArchived")}</Tabs.Trigger>
+          </Tabs.List>
+        </Tabs.Root>
+
         <HStack justify="space-between" wrap="wrap" gap={2}>
           <Box position="relative">
             <Box position="absolute" left={2} top="50%" transform="translateY(-50%)" color="fg.muted">

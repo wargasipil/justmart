@@ -255,6 +255,13 @@ The app ships as **one self-contained binary** that serves the SPA + `/api` on a
 ### ChakraUI-first (HARD RULE)
 **Before writing any custom JSX or hand-rolled UI primitive, search the Chakra v3 component catalog (https://chakra-ui.com) and use the built-in equivalent.** Chakra ships rich components for nearly every common need: `Field` (form fields), `Input`, `Select`/`Combobox`/`NativeSelect`, `Switch`, `Checkbox`, `RadioGroup`, `Slider`, `Editable`, `Tabs`, `Table`, `Card`, `Tag`, `Badge`, `Avatar`, `Accordion`, `Tooltip`, `Popover`, `Menu`, `Drawer`, `Dialog`, `Toast`, `Steps`, `Progress`, `Stat`, `Skeleton`, `Spinner`, `Pagination`, `Pin Input`, `File Upload`, `Number Input`, `Date Picker`, `Tree View`, etc. **Compose Chakra components rather than rebuilding them.** Custom JSX is only acceptable when the requirement is genuinely outside Chakra's catalog. This rule supersedes any urge to hand-roll a UI primitive.
 
+### No native browser dialogs (HARD RULE)
+**Never use the native JavaScript dialogs `window.alert` / `window.confirm` / `window.prompt` (or the bare `alert`/`confirm`/`prompt`).** They render OS chrome that clashes with the Chakra UI. Use Chakra instead:
+- **Confirmations** (archive, delete, set-default, void, etc.) → the shared **`<ConfirmDialog>`** ([components/ConfirmDialog.tsx](frontend/src/components/ConfirmDialog.tsx)) — a Chakra `Dialog.Root` wrapper. Drive it with a `pending` state: the action button sets `pending`, `<ConfirmDialog open={pending != null} onConfirm={...} onCancel={() => setPending(null)} />` runs the mutation on confirm.
+- **Alerts / one-way notices** → `toast` ([lib/toaster.tsx](frontend/src/lib/toaster.tsx)).
+- **Prompts (text input)** → a Chakra `Dialog` with a `Field`/`Input`, never `prompt()`.
+When you touch any component that still calls a native dialog, refactor it to the above. Keep the frontend free of native dialogs.
+
 ### Selects (HARD RULE)
 **Prefer richer Chakra select widgets over `NativeSelect`.** The native `<select>` element renders with OS-default chrome which looks inconsistent against the rest of the Chakra UI. Two reusable wrappers live in `frontend/src/components/`:
 

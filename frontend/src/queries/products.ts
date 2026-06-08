@@ -5,6 +5,7 @@ import { productClient } from "../lib/clients";
 import type {
   ArchiveProductRequest,
   CreateProductRequest,
+  UnarchiveProductRequest,
   UpdateProductRequest,
 } from "../gen/inventory_iface/v1/product_pb";
 
@@ -12,6 +13,7 @@ import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
 
 export type ProductsQueryOpts = {
   includeInactive?: boolean;
+  onlyArchived?: boolean; // when true: only archived (active=false); overrides includeInactive
   query?: string;
   opnameBefore?: string; // YYYY-MM-DD; filter to products counted before this date OR never counted
   page?: number;
@@ -67,16 +69,18 @@ export function useProductQuery(id: string, enabled = true) {
 export function useProductsQuery(opts: ProductsQueryOpts = {}) {
   const {
     includeInactive = false,
+    onlyArchived = false,
     query = "",
     opnameBefore = "",
     page = 0,
     pageSize = DEFAULT_PAGE_SIZE,
   } = opts;
   const q = useQuery({
-    queryKey: productKeys.list({ includeInactive, query, opnameBefore, page, pageSize }),
+    queryKey: productKeys.list({ includeInactive, onlyArchived, query, opnameBefore, page, pageSize }),
     queryFn: async () => {
       const res = await productClient.listProducts({
         includeInactive,
+        onlyArchived,
         query,
         opnameBefore,
         limit: pageSize,
@@ -103,9 +107,10 @@ export async function searchProducts(query: string) {
 // Imperative one-shot fetch of ALL products matching the filter (cap
 // ALL_LIMIT), for CSV export. Not a hook — call from an export handler.
 export async function fetchProductsForExport(opts: ProductsQueryOpts = {}) {
-  const { includeInactive = false, query = "", opnameBefore = "" } = opts;
+  const { includeInactive = false, onlyArchived = false, query = "", opnameBefore = "" } = opts;
   const res = await productClient.listProducts({
     includeInactive,
+    onlyArchived,
     query,
     opnameBefore,
     limit: ALL_LIMIT,
@@ -161,6 +166,15 @@ export function useArchiveProductMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<ArchiveProductRequest>) =>
       productClient.archiveProduct(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+export function useUnarchiveProductMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<UnarchiveProductRequest>) =>
+      productClient.unarchiveProduct(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }

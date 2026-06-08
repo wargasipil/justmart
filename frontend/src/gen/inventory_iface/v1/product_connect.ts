@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
+import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -55,6 +55,17 @@ export const ProductService = {
       name: "ArchiveProduct",
       I: ArchiveProductRequest,
       O: ArchiveProductResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * UnarchiveProduct restores a soft-deleted product (active=false -> true).
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.UnarchiveProduct
+     */
+    unarchiveProduct: {
+      name: "UnarchiveProduct",
+      I: UnarchiveProductRequest,
+      O: UnarchiveProductResponse,
       kind: MethodKind.Unary,
     },
     /**

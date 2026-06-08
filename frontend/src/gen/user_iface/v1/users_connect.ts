@@ -23,7 +23,9 @@ export const UserService = {
     },
     /**
      * ResolveUsers returns minimal display refs for a set of ids (batch
-     * lookup-by-IDs for name resolution; used by analytics).
+     * lookup-by-IDs for name resolution). Used by analytics and by the order
+     * history "Created by" column — CASHIER is allowed for the latter (resolves
+     * only ids it already sees in its warehouse's sales).
      *
      * @generated from rpc user_iface.v1.UserService.ResolveUsers
      */

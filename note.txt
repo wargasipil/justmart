@@ -1,0 +1,19 @@
+tolong cari semua istilah "obat" dan ganti dengan "produk" jika Bahasa inggris buat versi Bahasa inggris dan jika Bahasa indnesia buat Bahasa indonesia 
+
+
+Ketika saya membuka dengan role kasir, saya menemukan error Ketika membuka menu Riwayat order
+Error
+[permission_denied] role "CASHIER" not permitted
+
+
+di menu produk buat menjadi 2 tab produk aktif dan produk di arshipkan
+
+# frontend Ui
+- tolong ini diingat sebagai hard rule, jangan menggunakan alert confirmation dari javascript bawaan, alih alih menggunakan itu, gunakanlah komponen chakra ui sebagai prioritas Utama. cari component yang masih enggunakan itu dan refactor ke chakra ui.
+
+# Product menu
+- tambahkan juga tombol unarchive
+
+tambahkan menu diskn Rp dan % di tampilan pos
+
+di order history di completed berikan voided atau batal penjualan.

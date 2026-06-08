@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
 import WarehouseDrawer from "../components/WarehouseDrawer";
@@ -44,11 +45,13 @@ export default function Warehouses() {
   const { page, setPage, pageSize, setPageSize } = usePageState(`${includeInactive}|${query}`);
   const warehousesQ = useWarehousesQuery({ includeInactive, page, pageSize, query });
 
-  const onSetDefault = async (w: Warehouse) => {
-    if (!confirm(t("warehouses.confirmSetDefault", { name: w.name }))) return;
+  const [pendingDefault, setPendingDefault] = useState<Warehouse | null>(null);
+  const onConfirmSetDefault = async () => {
+    if (!pendingDefault) return;
     try {
-      await setGlobalDefault.mutateAsync(w.id);
+      await setGlobalDefault.mutateAsync(pendingDefault.id);
       toast.success(t("warehouses.setAsDefault") + " ✓");
+      setPendingDefault(null);
     } catch {
       /* toast handled globally */
     }
@@ -128,7 +131,7 @@ export default function Warehouses() {
                         size="xs"
                         variant="ghost"
                         colorPalette="blue"
-                        onClick={() => onSetDefault(w)}
+                        onClick={() => setPendingDefault(w)}
                         loading={setGlobalDefault.isPending}
                       >
                         <Star size={14} />
@@ -178,6 +181,17 @@ export default function Warehouses() {
         open={!!editing}
         warehouse={editing}
         onClose={() => setEditing(null)}
+      />
+
+      <ConfirmDialog
+        open={pendingDefault !== null}
+        title={t("warehouses.setAsDefault")}
+        body={t("warehouses.confirmSetDefault", { name: pendingDefault?.name ?? "" })}
+        confirmLabel={t("warehouses.setAsDefault")}
+        confirmColorPalette="blue"
+        loading={setGlobalDefault.isPending}
+        onConfirm={onConfirmSetDefault}
+        onCancel={() => setPendingDefault(null)}
       />
     </Box>
   );

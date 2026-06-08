@@ -1,0 +1,152 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e5]:
+          - img [ref=e7]
+          - paragraph [ref=e11]: Justmart
+        - generic [ref=e12]:
+          - link "Dasbor" [ref=e13] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e14]:
+              - img [ref=e15]
+              - paragraph [ref=e20]: Dasbor
+          - link "Analitik" [ref=e56] [cursor=pointer]:
+            - /url: /analytics
+            - generic [ref=e57]:
+              - img [ref=e58]
+              - paragraph [ref=e60]: Analitik
+          - link "Kasir" [ref=e21] [cursor=pointer]:
+            - /url: /pos
+            - generic [ref=e22]:
+              - img [ref=e23]
+              - paragraph [ref=e27]: Kasir
+          - link "Produk" [ref=e61] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e62]:
+              - img [ref=e63]
+              - paragraph [ref=e67]: Produk
+          - button "Inventaris" [ref=e69] [cursor=pointer]:
+            - img [ref=e70]
+            - paragraph [ref=e74]: Inventaris
+            - img [ref=e76]
+          - link "Pelanggan" [ref=e28] [cursor=pointer]:
+            - /url: /customers
+            - generic [ref=e29]:
+              - img [ref=e30]
+              - paragraph [ref=e33]: Pelanggan
+          - link "Riwayat order" [ref=e78] [cursor=pointer]:
+            - /url: /orders
+            - generic [ref=e79]:
+              - img [ref=e80]
+              - paragraph [ref=e83]: Riwayat order
+          - link "Gudang" [ref=e84] [cursor=pointer]:
+            - /url: /warehouses
+            - generic [ref=e85]:
+              - img [ref=e86]
+              - paragraph [ref=e89]: Gudang
+          - link "Pengguna" [ref=e90] [cursor=pointer]:
+            - /url: /users
+            - generic [ref=e91]:
+              - img [ref=e92]
+              - paragraph [ref=e97]: Pengguna
+          - link "Pengaturan" [ref=e98] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e99]:
+              - img [ref=e100]
+              - paragraph [ref=e103]: Pengaturan
+        - generic [ref=e34]:
+          - generic [ref=e104]:
+            - paragraph [ref=e105]: Owner
+            - paragraph [ref=e106]: owner@justmart.local
+          - button "Keluar" [ref=e107] [cursor=pointer]:
+            - img [ref=e108]
+            - paragraph [ref=e111]: Keluar
+          - button "toggle sidebar" [ref=e35] [cursor=pointer]:
+            - img [ref=e36]
+      - generic [ref=e39]:
+        - banner [ref=e40]:
+          - generic [ref=e42]:
+            - generic [ref=e112]:
+              - img [ref=e113]
+              - paragraph [ref=e116]: MAIN · Gudang Utama
+            - button "Notifikasi" [ref=e117] [cursor=pointer]:
+              - img [ref=e118]
+              - generic [ref=e121]: "1"
+            - button "language" [ref=e43] [cursor=pointer]:
+              - generic [ref=e44]:
+                - img [ref=e45]
+                - paragraph [ref=e49]: ID
+            - button "toggle theme" [ref=e50] [cursor=pointer]:
+              - img [ref=e51]
+            - button "user menu" [ref=e122] [cursor=pointer]:
+              - generic [ref=e123]: O
+        - main [ref=e53]:
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - paragraph [ref=e128]: Produk
+              - heading "Produk" [level=2] [ref=e131]
+            - generic [ref=e132]:
+              - tablist [ref=e134]:
+                - tab "Produk aktif" [ref=e135] [cursor=pointer]
+                - tab "Produk diarsipkan" [active] [selected] [ref=e136] [cursor=pointer]
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - img [ref=e140]
+                  - textbox "Cari nama atau SKU…" [ref=e143]
+                - generic [ref=e144]:
+                  - paragraph [ref=e145]: Opname sebelum
+                  - generic [ref=e148]:
+                    - textbox "dd/mm/yyyy" [ref=e149]
+                    - button "Buka kalender" [ref=e151] [cursor=pointer]:
+                      - img [ref=e152]
+                  - button "Satuan" [ref=e154] [cursor=pointer]:
+                    - img [ref=e155]
+                    - text: Satuan
+                  - button "Ekspor CSV" [ref=e161] [cursor=pointer]:
+                    - img [ref=e162]
+                    - text: Ekspor CSV
+                  - button "Tambah produk" [ref=e165] [cursor=pointer]:
+                    - img [ref=e166]
+                    - text: Tambah produk
+              - table [ref=e299]:
+                - rowgroup [ref=e300]:
+                  - row "SKU Nama Satuan Harga satuan (IDR) Siap Dipesan Opname terakhir" [ref=e301]:
+                    - columnheader "SKU" [ref=e302]
+                    - columnheader "Nama" [ref=e303]
+                    - columnheader "Satuan" [ref=e304]
+                    - columnheader "Harga satuan (IDR)" [ref=e305]
+                    - columnheader "Siap" [ref=e306]
+                    - columnheader "Dipesan" [ref=e307]
+                    - columnheader "Opname terakhir" [ref=e308]
+                - rowgroup [ref=e309]:
+                  - row "dd Makanan Kucibng tesat box Rp 1.000 46 box — —" [ref=e310] [cursor=pointer]:
+                    - cell "dd" [ref=e311]
+                    - cell "Makanan Kucibng tesat" [ref=e312]
+                    - cell "box" [ref=e313]
+                    - cell "Rp 1.000" [ref=e314]
+                    - cell "46 box" [ref=e315]
+                    - cell "—" [ref=e316]
+                    - cell "—" [ref=e317]
+              - generic [ref=e186]:
+                - paragraph [ref=e187]: Menampilkan 1–1 dari 1
+                - generic [ref=e188]:
+                  - generic [ref=e189]:
+                    - combobox [ref=e190]
+                    - generic [ref=e191]:
+                      - combobox [ref=e192]:
+                        - generic [ref=e193]: 25 / halaman
+                      - generic:
+                        - generic:
+                          - img
+                  - button "Sebelumnya" [disabled] [ref=e194]:
+                    - img [ref=e195]
+                    - text: Sebelumnya
+                  - button "Berikutnya" [disabled] [ref=e197]:
+                    - text: Berikutnya
+                    - img [ref=e198]
+    - generic [ref=e200]:
+      - img [ref=e202]
+      - button "Open Tanstack query devtools" [ref=e250] [cursor=pointer]:
+        - img [ref=e251]
+  - region "Notifications, top-end (alt+T)"
