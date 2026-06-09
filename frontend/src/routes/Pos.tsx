@@ -26,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 
 import EnumSelect from "../components/EnumSelect";
 import MoneyInput from "../components/MoneyInput";
+import NumberInput from "../components/NumberInput";
 import WarehouseSelect from "../components/WarehouseSelect";
 import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
@@ -570,13 +571,11 @@ export default function Pos() {
                     >
                       <Minus size={14} />
                     </IconButton>
-                    <Input
+                    <NumberInput
                       size="sm"
-                      type="number"
+                      width="48px"
                       value={it.qty}
-                      onChange={(e) => onChangeQty(it.id, parseInt(e.target.value, 10) || 0)}
-                      w="48px"
-                      textAlign="center"
+                      onChange={(raw) => onChangeQty(it.id, Number(raw || 0))}
                     />
                     <IconButton
                       aria-label="increase quantity"

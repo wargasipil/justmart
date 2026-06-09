@@ -12,7 +12,7 @@ import (
 
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	posifacev1 "github.com/justmart/backend/gen/pos_iface/v1"
-	"github.com/justmart/backend/internal/service"
+	"github.com/justmart/backend/internal/service/sale"
 )
 
 // seedDiscardProduct creates a product with a stocked batch in the warehouse,
@@ -125,7 +125,7 @@ func TestSweepStaleDrafts(t *testing.T) {
 		"UPDATE sales SET updated_at = ? WHERE id = ?",
 		time.Now().Add(-48*time.Hour), completedID).Error)
 
-	deleted, err := service.SweepStaleDrafts(ctx, env.DB, 24*time.Hour)
+	deleted, err := sale.SweepStaleDrafts(ctx, env.DB, 24*time.Hour)
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, deleted, int64(1))
 

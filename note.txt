@@ -1,3 +1,12 @@
+lets refactor ./backend/internal/service.
+current pattern is ./backend/internal/service/[servicename].go
+change to this 
+- ./backend/internal/service/[servicename]/service.go  -> its for newservice function
+- each rpc have separate file like this pattern ./backend/internal/service/[servicename]/[rpc_name].go
+
+
+
+
 tolong cari semua istilah "obat" dan ganti dengan "produk" jika Bahasa inggris buat versi Bahasa inggris dan jika Bahasa indnesia buat Bahasa indonesia 
 
 
@@ -17,3 +26,9 @@ di menu produk buat menjadi 2 tab produk aktif dan produk di arshipkan
 tambahkan menu diskn Rp dan % di tampilan pos
 
 di order history di completed berikan voided atau batal penjualan.
+
+
+
+
+
+

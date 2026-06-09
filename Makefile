@@ -1,4 +1,4 @@
-.PHONY: up down reset-devel-data generate tidy run test-e2e test-e2e-sqlite test-browser test-all \
+.PHONY: up down reset-devel-data generate tidy run test-unit test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows docker-build docker-up docker-down installer \
@@ -82,6 +82,14 @@ installer: dist-windows
 portable-windows:
 	powershell -ExecutionPolicy Bypass -File packaging/windows/build-portable.ps1
 
+# Co-located handler unit tests: each internal/service/<domain>/<rpc>_test.go
+# calls its handler method directly (no HTTP) against a fresh, migrated, throwaway
+# SQLite DB (one temp file per test, see internal/service/servicetest). Self-
+# contained: no dev Postgres, no config.yaml, no server. `-count=1` skips the
+# test cache. Safe to run in parallel (each test has its own DB file).
+test-unit:
+	$(GO_BACKEND) test ./internal/service/... -count=1
+
 # End-to-end / integration tests (in-process httptest server + real dev Postgres).
 # Test binaries run with CWD = backend/e2e/, so the JUSTMART_CONFIG path needs
 # two `..` to reach the repo-root config.yaml.
@@ -129,8 +137,10 @@ web:
 test-browser:
 	cd frontend && npx playwright test
 
-# Convenience: run both Go integration tests and browser E2E tests.
-test-all: test-e2e test-browser
+# Convenience: run the co-located unit suite, the Go integration tests, and the
+# browser E2E tests back-to-back. test-unit runs first — it's the fastest and
+# needs no live DB, so it fails fast on the cheapest tests.
+test-all: test-unit test-e2e test-browser
 
 # --- Backups -----------------------------------------------------------------
 # Snapshot the running Postgres into backups/backup_<timestamp>/.

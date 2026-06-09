@@ -9,6 +9,7 @@ import { z } from "zod";
 import EntityDialog from "../../components/EntityDialog";
 import FormField from "../../components/FormField";
 import MoneyInput from "../../components/MoneyInput";
+import NumberInput from "../../components/NumberInput";
 import type { Product, ProductUnitInput } from "../../gen/inventory_iface/v1/product_pb";
 import { formatMoney } from "../../lib/format";
 import { marginPct, priceFromMarkup } from "../../lib/pricing";
@@ -178,14 +179,12 @@ function ProductForm({
                   value={u.name}
                   onChange={(e) => setUnits(units.map((x, idx) => (idx === i ? { ...x, name: e.target.value } : x)))}
                 />
-                <Input
+                <NumberInput
                   size="sm"
                   width="90px"
-                  type="number"
-                  inputMode="numeric"
                   placeholder="100"
                   value={u.factor}
-                  onChange={(e) => setUnits(units.map((x, idx) => (idx === i ? { ...x, factor: e.target.value } : x)))}
+                  onChange={(raw) => setUnits(units.map((x, idx) => (idx === i ? { ...x, factor: raw } : x)))}
                 />
                 <MoneyInput
                   size="sm"

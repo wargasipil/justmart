@@ -32,7 +32,24 @@ import (
 	"github.com/justmart/backend/internal/config"
 	"github.com/justmart/backend/internal/db"
 	"github.com/justmart/backend/internal/dbmigrate"
-	"github.com/justmart/backend/internal/service"
+	"github.com/justmart/backend/internal/service/analytics"
+	authsvc "github.com/justmart/backend/internal/service/auth"
+	"github.com/justmart/backend/internal/service/backup"
+	"github.com/justmart/backend/internal/service/batch"
+	"github.com/justmart/backend/internal/service/branch"
+	"github.com/justmart/backend/internal/service/customer"
+	"github.com/justmart/backend/internal/service/health"
+	"github.com/justmart/backend/internal/service/product"
+	"github.com/justmart/backend/internal/service/purchasing"
+	"github.com/justmart/backend/internal/service/sale"
+	"github.com/justmart/backend/internal/service/settings"
+	"github.com/justmart/backend/internal/service/stock"
+	"github.com/justmart/backend/internal/service/stocktake"
+	"github.com/justmart/backend/internal/service/supplier"
+	"github.com/justmart/backend/internal/service/transfer"
+	"github.com/justmart/backend/internal/service/unit"
+	"github.com/justmart/backend/internal/service/user"
+	"github.com/justmart/backend/internal/service/warehouse"
 	"github.com/justmart/backend/internal/web"
 )
 
@@ -73,26 +90,26 @@ func main() {
 	)
 
 	loginLimiter := auth.NewLoginLimiter(5, 60*time.Second)
-	userSvc := service.NewUsers(gormDB)
-	authSvc := service.NewAuth(gormDB, issuer, refreshIssuer, loginLimiter)
-	healthSvc := service.NewHealth(gormDB)
-	supplierSvc := service.NewSuppliers(gormDB)
-	productSvc := service.NewProducts(gormDB)
-	batchSvc := service.NewBatches(gormDB)
-	stockSvc := service.NewStock(gormDB)
-	customerSvc := service.NewCustomers(gormDB)
-	saleSvc := service.NewSales(gormDB, cfg.Printer)
-	analyticsSvc := service.NewAnalytics(gormDB)
-	purchaseOrdersSvc := service.NewPurchaseOrders(gormDB)
-	purchaseReceiptsSvc := service.NewPurchaseReceipts(gormDB)
-	purchasePaymentsSvc := service.NewPurchasePayments(gormDB)
-	branchesSvc := service.NewBranches(gormDB)
-	stocktakesSvc := service.NewStocktakes(gormDB)
-	warehousesSvc := service.NewWarehouses(gormDB)
-	transfersSvc := service.NewTransfers(gormDB)
-	settingsSvc := service.NewSettings(gormDB)
-	unitsSvc := service.NewUnits(gormDB)
-	backupSvc := service.NewBackups(gormDB, cfg)
+	userSvc := user.NewUserService(gormDB)
+	authSvc := authsvc.NewAuthService(gormDB, issuer, refreshIssuer, loginLimiter)
+	healthSvc := health.NewHealthService(gormDB)
+	supplierSvc := supplier.NewSupplierService(gormDB)
+	productSvc := product.NewProductService(gormDB)
+	batchSvc := batch.NewBatchService(gormDB)
+	stockSvc := stock.NewStockService(gormDB)
+	customerSvc := customer.NewCustomerService(gormDB)
+	saleSvc := sale.NewSaleService(gormDB, cfg.Printer)
+	analyticsSvc := analytics.NewAnalyticsService(gormDB)
+	purchaseOrdersSvc := purchasing.NewPurchaseOrderService(gormDB)
+	purchaseReceiptsSvc := purchasing.NewPurchaseReceiptService(gormDB)
+	purchasePaymentsSvc := purchasing.NewPurchasePaymentService(gormDB)
+	branchesSvc := branch.NewBranchService(gormDB)
+	stocktakesSvc := stocktake.NewStocktakeService(gormDB)
+	warehousesSvc := warehouse.NewWarehouseService(gormDB)
+	transfersSvc := transfer.NewTransferService(gormDB)
+	settingsSvc := settings.NewSettingsService(gormDB)
+	unitsSvc := unit.NewUnitService(gormDB)
+	backupSvc := backup.NewBackupService(gormDB, cfg)
 
 	if err := userSvc.EnsureBootstrapOwner(context.Background(), cfg.Bootstrap); err != nil {
 		log.Fatalf("bootstrap: %v", err) // intentionally fatal — server can't start
@@ -100,7 +117,7 @@ func main() {
 
 	// Background sweeper: hard-delete abandoned DRAFT carts the POS client missed
 	// (crashes, lost sessions). In-process, single-node — like the rate limiter.
-	service.StartDraftSweeper(gormDB)
+	sale.StartDraftSweeper(gormDB)
 
 	// Connect RPC handlers live on apiMux and are mounted under /api so the
 	// embedded SPA can share the same origin (frontend transport baseUrl="/api").

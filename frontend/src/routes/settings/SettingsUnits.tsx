@@ -14,6 +14,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import NumberInput from "../../components/NumberInput";
 import { toast } from "../../lib/toaster";
 import {
   useArchiveUnitBaseMutation,
@@ -175,16 +176,15 @@ export default function SettingsUnits() {
                       }))
                     }
                   />
-                  <Input
+                  <NumberInput
                     size="sm"
                     width="100px"
-                    type="number"
                     placeholder={t("settings.units.factor")}
                     value={draft.factor}
-                    onChange={(e) =>
+                    onChange={(raw) =>
                       setNewDeriv((cur) => ({
                         ...cur,
-                        [b.id]: { ...draft, factor: e.target.value },
+                        [b.id]: { ...draft, factor: raw },
                       }))
                     }
                   />

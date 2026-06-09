@@ -18,6 +18,7 @@ import EntityDrawer from "../../components/EntityDrawer";
 import EnumSelect from "../../components/EnumSelect";
 import Pagination from "../../components/Pagination";
 import ExportButton from "../../components/ExportButton";
+import NumberInput from "../../components/NumberInput";
 import SearchableSelect from "../../components/SearchableSelect";
 import WarehouseSelect from "../../components/WarehouseSelect";
 import { searchBatches } from "../../queries/batches";
@@ -276,14 +277,12 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
                   placeholder={t("transfers.pickBatch")}
                 />
               </Box>
-              <Input
-                type="number"
-                min={1}
+              <NumberInput
                 width="90px"
                 value={line.qty}
                 placeholder={t("transfers.qty")}
-                onChange={(e) =>
-                  setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, qty: e.target.value } : l)))
+                onChange={(raw) =>
+                  setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, qty: raw } : l)))
                 }
               />
               <IconButton

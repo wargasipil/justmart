@@ -13,6 +13,12 @@ data/
 *.test
 *.out
 
+# Local SQLite dev database (database.driver: sqlite) + its WAL/SHM sidecars.
+# The file is the developer's local data; never commit it.
+/backend/justmart.db
+/backend/justmart.db-shm
+/backend/justmart.db-wal
+
 # Node / frontend
 node_modules/
 .vite/

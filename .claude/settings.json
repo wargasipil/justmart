@@ -228,7 +228,17 @@
       "Bash(taskkill //F //PID 21468 //T)",
       "Bash(taskkill //F //PID 1476 //T)",
       "Bash(taskkill //F //PID 13880 //T)",
-      "Bash(taskkill //F //PID 8884 //T)"
+      "Bash(taskkill //F //PID 8884 //T)",
+      "Bash(sed '1s/^package service$/package backup/' internal/service/pgdump.go)",
+      "Bash(sed '1s/^package service$/package backup/' internal/service/pgdump_test.go)",
+      "Bash(make test-e2e-sqlite *)",
+      "Bash(make test-unit *)",
+      "Bash(echo \"VET_EXIT=$?\")",
+      "Bash(make web-install *)",
+      "Bash(npm --prefix frontend run build)",
+      "Bash(make portable-windows *)",
+      "Bash(taskkill //F //T //PID 16412)",
+      "Bash(git rm *)"
     ],
     "additionalDirectories": [
       "\\tmp"

@@ -235,6 +235,18 @@ The app ships as **one self-contained binary** that serves the SPA + `/api` on a
 - **Adding a new test**: drop a `<feature>_test.go` file in `backend/e2e/`, call `e2e.SetupEnv(t)`, use the typed Connect clients on `env.Auth` / `env.Users` (extend `Env` for new services as they're tested).
 - **What's covered today**: login (happy path, invalid credentials, public-when-authenticated). Refresh, Logout, role-guard enforcement, POS, inventory — **not yet tested**.
 
+### Co-located handler unit tests (Go) — HARD RULE
+**Every ConnectRPC handler at `backend/internal/service/<domain>/<rpc>.go` MUST have a co-located unit test `backend/internal/service/<domain>/<rpc>_test.go` in the same directory** (e.g. `auth/login.go` → `auth/login_test.go`). **A new RPC ships with its test in the same change — no exceptions.** These complement (don't replace) the over-the-wire `e2e/` suite: they're fast, need no live DB/server, and pin each handler in isolation.
+- **Run with `make test-unit`** (`go test ./internal/service/... -count=1`). Wired into `make test-all` ahead of `test-e2e`. Self-contained — no `JUSTMART_CONFIG`, no dev Postgres, no httptest server.
+- **Call the handler method directly** (NOT over HTTP): `svc.Login(ctx, connect.NewRequest(&pb.LoginRequest{...}))`. Assert at least the **happy path** + **one error/precondition path** where one exists. Assert codes with `connect.CodeOf(err)`, never string-match messages. Assertion lib: `github.com/stretchr/testify/require` (same as e2e).
+- **Package style**: default to **black-box `package <domain>_test`** (handlers + constructors are exported). Use white-box `package <domain>` only to reach an unexported helper/const. A directory may legally hold both.
+- **Shared fixtures = [internal/service/servicetest](backend/internal/service/servicetest/servicetest.go)** (imports only `auth`/`config`/`db`/`dbmigrate`/`model`/`service/user` → no import cycle from any domain test):
+  - `servicetest.New(t) → (*gorm.DB, *config.Config)` — fresh **throwaway SQLite** (one temp file per test) opened via `db.Open` + migrated via `dbmigrate.Run`. `NewDB(t,cfg)` / `NewConfig(t)` are the split forms.
+  - `servicetest.EnsureOwner(t, db, cfg) → ownerID` — seeds the bootstrap owner (bcrypt) + grants the default-warehouse membership; returns the real `users.id`.
+  - `servicetest.OwnerCtx(ctx, userID)` / `CtxAs(ctx, role, userID)` / `CtxInWarehouse(ctx, role, userID, whID)` — wrap `auth.WithPrincipal` to inject the caller principal.
+- **Gotchas**: (1) **never bypass `db.Open` for SQLite** — its create-callback fills UUID PKs (Postgres uses `gen_random_uuid()`); a raw gorm open breaks every insert, so always use `servicetest.NewDB`. (2) **FK-on-caller** RPCs (e.g. `StartSale` writes `cashier_user_id → users.id`) need a real id from `EnsureOwner` passed to `OwnerCtx` — a random uuid violates the FK. (3) `resolveWarehouse` falls back to the **migration-seeded `MAIN`** warehouse, so an OWNER works with no `WarehouseID` set; only use `CtxInWarehouse` for multi-warehouse behavior. (4) **Services with extra deps**: `sale.NewSaleService(db, cfg.Printer)` (Enabled:false → print no-ops), `auth.NewAuthService(db, issuer, refresh, limiter)` (use a generous `NewLoginLimiter(1000, 0)` so `-count=N` never trips), `backup.NewBackupServiceWithDir(db, cfg, t.TempDir())`. (5) `t.Parallel()` is safe — each test owns its own temp SQLite file. (6) In `package auth_test` mind the alias clash: `authsvc "…/service/auth"` vs `coreauth "…/internal/auth"`.
+- **Examples to copy**: [auth/login_test.go](backend/internal/service/auth/login_test.go) (unauth), [customer/create_customer_test.go](backend/internal/service/customer/create_customer_test.go) (simple), [sale/start_sale_test.go](backend/internal/service/sale/start_sale_test.go) (authed + warehouse).
+
 ### Browser E2E (Playwright)
 - Tests live in `frontend/tests/e2e/`. Run with `make test-browser` from the repo root (requires `make run` + `make web` already running in other terminals). Headless Chromium against the dev backend + dev DB.
 - **Config**: [frontend/playwright.config.ts](frontend/playwright.config.ts). Single worker, retains traces/screenshots/video on failure, HTML reporter at `frontend/playwright-report/`.
@@ -248,7 +260,7 @@ The app ships as **one self-contained binary** that serves the SPA + `/api` on a
 - **Interactive debugging**: `cd frontend && npx playwright test --ui` opens the time-travel debugger. `npx playwright show-report` opens the last HTML report.
 
 ### Convenience
-- `make test-all` runs both suites back-to-back.
+- `make test-all` runs all three suites back-to-back: `test-unit` (co-located Go unit tests) → `test-e2e` (Go integration) → `test-browser` (Playwright).
 
 ## Frontend conventions
 

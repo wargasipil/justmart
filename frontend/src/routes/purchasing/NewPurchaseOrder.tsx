@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import DatePickerField from "../../components/DatePicker";
 import EnumSelect from "../../components/EnumSelect";
 import MoneyInput from "../../components/MoneyInput";
+import NumberInput from "../../components/NumberInput";
 import SearchableSelect from "../../components/SearchableSelect";
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { formatMoney } from "../../lib/format";
@@ -239,12 +240,11 @@ export default function NewPurchaseOrder() {
                     )}
                   </Table.Cell>
                   <Table.Cell>
-                    <Input
+                    <NumberInput
                       size="sm"
-                      type="number"
+                      width="80px"
                       value={l.orderedQty}
-                      onChange={(e) => updateLine(idx, { orderedQty: parseInt(e.target.value, 10) || 0 })}
-                      w="80px"
+                      onChange={(raw) => updateLine(idx, { orderedQty: Number(raw || 0) })}
                     />
                   </Table.Cell>
                   <Table.Cell>

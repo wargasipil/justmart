@@ -26,7 +26,22 @@ import (
 	"github.com/justmart/backend/internal/config"
 	"github.com/justmart/backend/internal/db"
 	"github.com/justmart/backend/internal/dbmigrate"
-	"github.com/justmart/backend/internal/service"
+	"github.com/justmart/backend/internal/service/analytics"
+	authsvc "github.com/justmart/backend/internal/service/auth"
+	"github.com/justmart/backend/internal/service/backup"
+	"github.com/justmart/backend/internal/service/batch"
+	"github.com/justmart/backend/internal/service/customer"
+	"github.com/justmart/backend/internal/service/product"
+	"github.com/justmart/backend/internal/service/purchasing"
+	"github.com/justmart/backend/internal/service/sale"
+	"github.com/justmart/backend/internal/service/settings"
+	"github.com/justmart/backend/internal/service/stock"
+	"github.com/justmart/backend/internal/service/stocktake"
+	"github.com/justmart/backend/internal/service/supplier"
+	"github.com/justmart/backend/internal/service/transfer"
+	"github.com/justmart/backend/internal/service/unit"
+	"github.com/justmart/backend/internal/service/user"
+	"github.com/justmart/backend/internal/service/warehouse"
 )
 
 // TestUser holds the credentials of a user known to the test environment.
@@ -140,26 +155,26 @@ func SetupEnv(t *testing.T) *Env {
 
 	// Tests use a generous limiter so concurrent test runs don't trip it.
 	loginLimiter := auth.NewLoginLimiter(1000, time.Second)
-	authSvc := service.NewAuth(gormDB, issuer, refreshIssuer, loginLimiter)
-	userSvc := service.NewUsers(gormDB)
-	customerSvc := service.NewCustomers(gormDB)
-	supplierSvc := service.NewSuppliers(gormDB)
-	productSvc := service.NewProducts(gormDB)
-	batchSvc := service.NewBatches(gormDB)
-	stockSvc := service.NewStock(gormDB)
-	saleSvc := service.NewSales(gormDB, cfg.Printer)
-	stocktakeSvc := service.NewStocktakes(gormDB)
-	warehouseSvc := service.NewWarehouses(gormDB)
-	transferSvc := service.NewTransfers(gormDB)
-	poSvc := service.NewPurchaseOrders(gormDB)
-	receiptSvc := service.NewPurchaseReceipts(gormDB)
-	settingsSvc := service.NewSettings(gormDB)
-	unitsSvc := service.NewUnits(gormDB)
+	authSvc := authsvc.NewAuthService(gormDB, issuer, refreshIssuer, loginLimiter)
+	userSvc := user.NewUserService(gormDB)
+	customerSvc := customer.NewCustomerService(gormDB)
+	supplierSvc := supplier.NewSupplierService(gormDB)
+	productSvc := product.NewProductService(gormDB)
+	batchSvc := batch.NewBatchService(gormDB)
+	stockSvc := stock.NewStockService(gormDB)
+	saleSvc := sale.NewSaleService(gormDB, cfg.Printer)
+	stocktakeSvc := stocktake.NewStocktakeService(gormDB)
+	warehouseSvc := warehouse.NewWarehouseService(gormDB)
+	transferSvc := transfer.NewTransferService(gormDB)
+	poSvc := purchasing.NewPurchaseOrderService(gormDB)
+	receiptSvc := purchasing.NewPurchaseReceiptService(gormDB)
+	settingsSvc := settings.NewSettingsService(gormDB)
+	unitsSvc := unit.NewUnitService(gormDB)
 	// Wire BackupService against a per-test temp dir so backup_<ts>/ never
 	// pollutes the real ./backups; the test can read files under backupDir.
 	backupDir := t.TempDir()
-	backupSvc := service.NewBackupsWithDir(gormDB, cfg, backupDir)
-	analyticsSvc := service.NewAnalytics(gormDB)
+	backupSvc := backup.NewBackupServiceWithDir(gormDB, cfg, backupDir)
+	analyticsSvc := analytics.NewAnalyticsService(gormDB)
 
 	if cfg.Bootstrap.OwnerEmail == "" {
 		t.Fatalf("config.bootstrap.owner_email is empty; set it in config.yaml so tests have a known user")

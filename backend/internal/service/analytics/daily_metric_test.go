@@ -1,0 +1,93 @@
+package analytics_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+
+	analyticsifacev1 "github.com/justmart/backend/gen/analytics_iface/v1"
+	analyticssvc "github.com/justmart/backend/internal/service/analytics"
+	"github.com/justmart/backend/internal/service/servicetest"
+)
+
+// TestDailyMetric_EmptyRange is the happy path: an OWNER over a 30-day range with
+// no sales seeded gets a fully-formed (but zero-valued) response. The day buckets
+// are enumerated from the range, and each requested metric block is present with
+// a zero entry per bucket.
+func TestDailyMetric_EmptyRange(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ctx := servicetest.OwnerCtx(context.Background(), servicetest.EnsureOwner(t, gormDB, cfg))
+	svc := analyticssvc.NewAnalyticsService(gormDB)
+
+	now := time.Now()
+	resp, err := svc.DailyMetric(ctx, connect.NewRequest(&analyticsifacev1.DailyMetricRequest{
+		MetricTypes: []analyticsifacev1.MetricType{
+			analyticsifacev1.MetricType_METRIC_TYPE_ORDER,
+			analyticsifacev1.MetricType_METRIC_TYPE_STOCK,
+		},
+		Granularity: analyticsifacev1.Granularity_GRANULARITY_DAY,
+		Filter: &analyticsifacev1.Filter{
+			FromUnix: now.AddDate(0, 0, -7).Unix(),
+			ToUnix:   now.Unix(),
+		},
+	}))
+	require.NoError(t, err)
+
+	// 7-day range -> at least 7 day buckets enumerated.
+	require.NotEmpty(t, resp.Msg.Days)
+	require.GreaterOrEqual(t, len(resp.Msg.Days), 7)
+
+	// Both metric blocks present (requested) and every day key has an entry.
+	require.NotNil(t, resp.Msg.Order)
+	require.NotNil(t, resp.Msg.Stock)
+	for _, day := range resp.Msg.Days {
+		o, ok := resp.Msg.Order.Data[day]
+		require.True(t, ok, "order block missing day %s", day)
+		// No sales -> all order metrics are zero.
+		require.Equal(t, int64(0), o.Terjual)
+		require.Equal(t, int64(0), o.Hpp)
+		require.Equal(t, int64(0), o.Profit)
+
+		s, ok := resp.Msg.Stock.Data[day]
+		require.True(t, ok, "stock block missing day %s", day)
+		// No stock movements -> ready is zero; no open POs -> ongoing zero.
+		require.Equal(t, int64(0), s.Ready)
+		require.Equal(t, int64(0), s.Ongoing)
+	}
+}
+
+// TestDailyMetric_EmptyMetricTypes asserts the validation precondition: an empty
+// metric_types list is rejected with InvalidArgument (before any auth/DB work).
+func TestDailyMetric_EmptyMetricTypes(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ctx := servicetest.OwnerCtx(context.Background(), servicetest.EnsureOwner(t, gormDB, cfg))
+	svc := analyticssvc.NewAnalyticsService(gormDB)
+
+	_, err := svc.DailyMetric(ctx, connect.NewRequest(&analyticsifacev1.DailyMetricRequest{
+		MetricTypes: nil, // empty -> InvalidArgument
+		Granularity: analyticsifacev1.Granularity_GRANULARITY_DAY,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// TestDailyMetric_Unauthenticated asserts that, with a valid request but no
+// principal in context, the handler returns Unauthenticated (validation passes,
+// then MustPrincipal fails).
+func TestDailyMetric_Unauthenticated(t *testing.T) {
+	t.Parallel()
+	gormDB := servicetest.NewDB(t, servicetest.NewConfig(t))
+	svc := analyticssvc.NewAnalyticsService(gormDB)
+
+	_, err := svc.DailyMetric(context.Background(), connect.NewRequest(&analyticsifacev1.DailyMetricRequest{
+		MetricTypes: []analyticsifacev1.MetricType{analyticsifacev1.MetricType_METRIC_TYPE_ORDER},
+		Granularity: analyticsifacev1.Granularity_GRANULARITY_DAY,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}

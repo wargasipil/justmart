@@ -12,6 +12,7 @@ import type { InputHTMLAttributes } from "react";
 
 import DatePickerField from "./DatePicker";
 import MoneyInput from "./MoneyInput";
+import NumberInput from "./NumberInput";
 
 type Props<TForm extends FieldValues> = {
   control: Control<TForm>;
@@ -28,6 +29,9 @@ type Props<TForm extends FieldValues> = {
   // When true, render the thousands-grouped MoneyInput (integer money; emits a
   // raw digit string, so the field's zod schema should be z.coerce.bigint/number).
   money?: boolean;
+  // When true, render the digits-only NumberInput (integer/quantity; empty at zero;
+  // emits a raw digit string, so the field's zod schema should be z.coerce.bigint/number).
+  number?: boolean;
 };
 
 export default function FormField<TForm extends FieldValues>(props: Props<TForm>) {
@@ -43,6 +47,7 @@ export default function FormField<TForm extends FieldValues>(props: Props<TForm>
     autoFocus,
     passwordToggle,
     money,
+    number,
   } = props;
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
@@ -66,6 +71,14 @@ export default function FormField<TForm extends FieldValues>(props: Props<TForm>
             />
           ) : money ? (
             <MoneyInput
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              placeholder={placeholder}
+              autoFocus={autoFocus}
+            />
+          ) : number ? (
+            <NumberInput
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}

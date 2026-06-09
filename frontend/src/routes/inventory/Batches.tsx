@@ -322,8 +322,7 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             control={form.control}
             name="initialQuantity"
             label={t("inventory.batches.initialQty")}
-            type="number"
-            inputMode="numeric"
+            number
             required
           />
         </Stack>

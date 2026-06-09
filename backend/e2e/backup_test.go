@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	backupifacev1 "github.com/justmart/backend/gen/backup_iface/v1"
-	"github.com/justmart/backend/internal/service"
+	"github.com/justmart/backend/internal/service/backup"
 )
 
 // TestBackupService proves the per-timestamp directory layout end-to-end:
@@ -199,7 +199,7 @@ func TestBackup_CleanupOnPgDumpFailure(t *testing.T) {
 	badCfg.Database.Password = "definitely-wrong-" + strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	tempDir := t.TempDir()
-	s := service.NewBackupsWithDir(env.DB, &badCfg, tempDir)
+	s := backup.NewBackupServiceWithDir(env.DB, &badCfg, tempDir)
 
 	_, err := s.CreateBackup(ctx, connect.NewRequest(&backupifacev1.CreateBackupRequest{}))
 	require.Error(t, err, "CreateBackup must fail when pg_dump can't authenticate")

@@ -46,17 +46,24 @@ if ($SkipExeBuild -and (Test-Path $exe)) {
   Write-Host "Reusing existing $exe (-SkipExeBuild)."
 } else {
   Write-Host "Building frontend + Windows binary..."
+  # NOTE: $ErrorActionPreference="Stop" only catches cmdlet errors, NOT native-exe
+  # exit codes. Check $LASTEXITCODE after each tool so a failed build can never be
+  # silently packaged as if it succeeded.
   Push-Location (Join-Path $root "frontend")
   npm ci
+  if ($LASTEXITCODE -ne 0) { Pop-Location; throw "npm ci failed (exit $LASTEXITCODE). If this is an EPERM unlink on a rollup *.node file, stop any running 'make web' / Vite dev server first -- it locks node_modules on Windows." }
   npm run build
+  if ($LASTEXITCODE -ne 0) { Pop-Location; throw "npm run build failed (exit $LASTEXITCODE)." }
   Pop-Location
   Remove-Item -Recurse -Force (Join-Path $embedDir "assets") -ErrorAction SilentlyContinue
   Copy-Item -Recurse -Force (Join-Path $root "frontend\dist\*") $embedDir
   Push-Location (Join-Path $root "backend")
   $env:GOOS = "windows"; $env:GOARCH = "amd64"; $env:CGO_ENABLED = "0"
   go build -ldflags "-s -w" -o $exe ./cmd/server
+  $goExit = $LASTEXITCODE
   Remove-Item Env:\GOOS, Env:\GOARCH, Env:\CGO_ENABLED
   Pop-Location
+  if ($goExit -ne 0) { throw "go build failed (exit $goExit)." }
 }
 if (-not (Test-Path $exe)) { throw "justmart.exe not found at $exe" }
 

@@ -23,6 +23,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import BackButton from "../../components/BackButton";
 import DatePickerField from "../../components/DatePicker";
 import MoneyInput from "../../components/MoneyInput";
+import NumberInput from "../../components/NumberInput";
 import {
   POStatus,
   type PurchaseOrder,
@@ -348,7 +349,6 @@ function ReceiveDialog({
   const today = new Date().toISOString().slice(0, 10);
   const [receivedAt, setReceivedAt] = useState(today);
   const [note, setNote] = useState("");
-  const [invoiceNo, setInvoiceNo] = useState("");
 
   type LineDraft = {
     purchaseOrderItemId: string;
@@ -396,7 +396,6 @@ function ReceiveDialog({
         purchaseOrderId: po.id,
         receivedAt,
         note,
-        invoiceNo,
         lines: lines
           .filter((l) => l.qty > 0)
           .map((l) => ({
@@ -441,12 +440,6 @@ function ReceiveDialog({
                     </Text>
                     <DatePickerField value={receivedAt} onChange={setReceivedAt} />
                   </Box>
-                  <Box flex="1">
-                    <Text fontSize="xs" color="fg.muted">
-                      {t("purchasing.invoiceNo")}
-                    </Text>
-                    <Input value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} />
-                  </Box>
                   <Box flex="2">
                     <Text fontSize="xs" color="fg.muted">
                       {t("purchasing.note")}
@@ -478,14 +471,13 @@ function ReceiveDialog({
                           </Table.Cell>
                           <Table.Cell>
                             <HStack gap={1}>
-                              <Input
+                              <NumberInput
                                 size="sm"
-                                type="number"
+                                width="70px"
                                 value={l.qty}
-                                onChange={(e) =>
-                                  updateLine(idx, { qty: parseInt(e.target.value, 10) || 0 })
+                                onChange={(raw) =>
+                                  updateLine(idx, { qty: Number(raw || 0) })
                                 }
-                                w="70px"
                                 max={l.remaining}
                               />
                               {l.unitFactor > 1 && (
