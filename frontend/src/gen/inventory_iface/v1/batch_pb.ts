@@ -5,6 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { ProductUnit } from "./product_pb.js";
 
 /**
  * @generated from message inventory_iface.v1.Batch
@@ -68,6 +69,23 @@ export class Batch extends Message<Batch> {
    */
   poNo = "";
 
+  /**
+   * Owning product's name. Populated as display-only enrichment in
+   * SearchBatches so pickers can show a human-readable medicine label.
+   *
+   * @generated from field: string product_name = 12;
+   */
+  productName = "";
+
+  /**
+   * Owning product's active units of measure (base first). Populated as
+   * enrichment in SearchBatches so a picker can offer per-line unit entry
+   * (e.g. transfer "2 box"). Stock/qty stay in base units.
+   *
+   * @generated from field: repeated inventory_iface.v1.ProductUnit units = 13;
+   */
+  units: ProductUnit[] = [];
+
   constructor(data?: PartialMessage<Batch>) {
     super();
     proto3.util.initPartial(data, this);
@@ -87,6 +105,8 @@ export class Batch extends Message<Batch> {
     { no: 9, name: "created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 10, name: "purchase_order_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "po_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 12, name: "product_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "units", kind: "message", T: ProductUnit, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Batch {
@@ -553,6 +573,20 @@ export class SearchBatchesRequest extends Message<SearchBatchesRequest> {
    */
   productId = "";
 
+  /**
+   * optional: scope current_quantity to this warehouse (empty = active warehouse)
+   *
+   * @generated from field: string warehouse_id = 4;
+   */
+  warehouseId = "";
+
+  /**
+   * when true, only return batches with stock in the scoped warehouse
+   *
+   * @generated from field: bool only_in_stock = 5;
+   */
+  onlyInStock = false;
+
   constructor(data?: PartialMessage<SearchBatchesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -564,6 +598,8 @@ export class SearchBatchesRequest extends Message<SearchBatchesRequest> {
     { no: 1, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 3, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "warehouse_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "only_in_stock", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SearchBatchesRequest {

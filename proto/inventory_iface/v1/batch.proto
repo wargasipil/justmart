@@ -3,6 +3,7 @@ syntax = "proto3";
 package inventory_iface.v1;
 
 import "auth_iface/v1/policy.proto";
+import "inventory_iface/v1/product.proto";
 
 option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
 
@@ -20,6 +21,13 @@ message Batch {
   // CreateBatch path). Populated as display-only enrichment in ListBatches.
   string purchase_order_id = 10;
   string po_no = 11;
+  // Owning product's name. Populated as display-only enrichment in
+  // SearchBatches so pickers can show a human-readable medicine label.
+  string product_name = 12;
+  // Owning product's active units of measure (base first). Populated as
+  // enrichment in SearchBatches so a picker can offer per-line unit entry
+  // (e.g. transfer "2 box"). Stock/qty stay in base units.
+  repeated ProductUnit units = 13;
 }
 
 service BatchService {
@@ -98,7 +106,9 @@ message UpdateBatchResponse { Batch batch = 1; }
 message SearchBatchesRequest {
   string query = 1;
   int32 limit = 2;
-  string product_id = 3;   // optional scope: search within a single product's batches
+  string product_id = 3;     // optional scope: search within a single product's batches
+  string warehouse_id = 4;   // optional: scope current_quantity to this warehouse (empty = active warehouse)
+  bool only_in_stock = 5;    // when true, only return batches with stock in the scoped warehouse
 }
 message SearchBatchesResponse {
   repeated Batch batches = 1;

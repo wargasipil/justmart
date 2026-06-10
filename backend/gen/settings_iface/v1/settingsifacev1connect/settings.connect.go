@@ -39,12 +39,16 @@ const (
 	// SettingsServiceUpdateSettingsProcedure is the fully-qualified name of the SettingsService's
 	// UpdateSettings RPC.
 	SettingsServiceUpdateSettingsProcedure = "/settings_iface.v1.SettingsService/UpdateSettings"
+	// SettingsServiceGetBussinessSettingsProcedure is the fully-qualified name of the SettingsService's
+	// GetBussinessSettings RPC.
+	SettingsServiceGetBussinessSettingsProcedure = "/settings_iface.v1.SettingsService/GetBussinessSettings"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
 type SettingsServiceClient interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
 	UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error)
+	GetBussinessSettings(context.Context, *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -70,13 +74,20 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("UpdateSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		getBussinessSettings: connect.NewClient[v1.GetBussinessSettingsRequest, v1.GetBussinessSettingsResponse](
+			httpClient,
+			baseURL+SettingsServiceGetBussinessSettingsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetBussinessSettings")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // settingsServiceClient implements SettingsServiceClient.
 type settingsServiceClient struct {
-	getSettings    *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
-	updateSettings *connect.Client[v1.UpdateSettingsRequest, v1.UpdateSettingsResponse]
+	getSettings          *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
+	updateSettings       *connect.Client[v1.UpdateSettingsRequest, v1.UpdateSettingsResponse]
+	getBussinessSettings *connect.Client[v1.GetBussinessSettingsRequest, v1.GetBussinessSettingsResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -89,10 +100,16 @@ func (c *settingsServiceClient) UpdateSettings(ctx context.Context, req *connect
 	return c.updateSettings.CallUnary(ctx, req)
 }
 
+// GetBussinessSettings calls settings_iface.v1.SettingsService.GetBussinessSettings.
+func (c *settingsServiceClient) GetBussinessSettings(ctx context.Context, req *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error) {
+	return c.getBussinessSettings.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
 	UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error)
+	GetBussinessSettings(context.Context, *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -114,12 +131,20 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("UpdateSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetBussinessSettingsHandler := connect.NewUnaryHandler(
+		SettingsServiceGetBussinessSettingsProcedure,
+		svc.GetBussinessSettings,
+		connect.WithSchema(settingsServiceMethods.ByName("GetBussinessSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
 			settingsServiceGetSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceUpdateSettingsProcedure:
 			settingsServiceUpdateSettingsHandler.ServeHTTP(w, r)
+		case SettingsServiceGetBussinessSettingsProcedure:
+			settingsServiceGetBussinessSettingsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +160,8 @@ func (UnimplementedSettingsServiceHandler) GetSettings(context.Context, *connect
 
 func (UnimplementedSettingsServiceHandler) UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.UpdateSettings is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetBussinessSettings(context.Context, *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetBussinessSettings is not implemented"))
 }

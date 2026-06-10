@@ -7,6 +7,32 @@ import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialM
 import { Message, proto3 } from "@bufbuild/protobuf";
 
 /**
+ * @generated from enum settings_iface.v1.BussinessType
+ */
+export enum BussinessType {
+  /**
+   * @generated from enum value: BUSSINESS_TYPE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: BUSSINESS_TYPE_PHARMACY_SHOP = 1;
+   */
+  PHARMACY_SHOP = 1,
+
+  /**
+   * @generated from enum value: BUSSINESS_TYPE_RETAIL = 2;
+   */
+  RETAIL = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(BussinessType)
+proto3.util.setEnumType(BussinessType, "settings_iface.v1.BussinessType", [
+  { no: 0, name: "BUSSINESS_TYPE_UNSPECIFIED" },
+  { no: 1, name: "BUSSINESS_TYPE_PHARMACY_SHOP" },
+  { no: 2, name: "BUSSINESS_TYPE_RETAIL" },
+]);
+
+/**
  * App-wide settings (one row in app_settings per key). Today only the
  * low-stock threshold is wired; the table + proto are open for future keys.
  *
@@ -46,6 +72,74 @@ export class Settings extends Message<Settings> {
 
   static equals(a: Settings | PlainMessage<Settings> | undefined, b: Settings | PlainMessage<Settings> | undefined): boolean {
     return proto3.util.equals(Settings, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetBussinessSettingsRequest
+ */
+export class GetBussinessSettingsRequest extends Message<GetBussinessSettingsRequest> {
+  /**
+   * @generated from field: settings_iface.v1.BussinessType type = 1;
+   */
+  type = BussinessType.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetBussinessSettingsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetBussinessSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBussinessSettingsRequest {
+    return new GetBussinessSettingsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBussinessSettingsRequest {
+    return new GetBussinessSettingsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBussinessSettingsRequest {
+    return new GetBussinessSettingsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetBussinessSettingsRequest | PlainMessage<GetBussinessSettingsRequest> | undefined, b: GetBussinessSettingsRequest | PlainMessage<GetBussinessSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(GetBussinessSettingsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetBussinessSettingsResponse
+ */
+export class GetBussinessSettingsResponse extends Message<GetBussinessSettingsResponse> {
+  constructor(data?: PartialMessage<GetBussinessSettingsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetBussinessSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBussinessSettingsResponse {
+    return new GetBussinessSettingsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBussinessSettingsResponse {
+    return new GetBussinessSettingsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBussinessSettingsResponse {
+    return new GetBussinessSettingsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetBussinessSettingsResponse | PlainMessage<GetBussinessSettingsResponse> | undefined, b: GetBussinessSettingsResponse | PlainMessage<GetBussinessSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(GetBussinessSettingsResponse, a, b);
   }
 }
 

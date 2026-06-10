@@ -656,7 +656,13 @@
     "selectWarehouse": "Select warehouse",
     "items": "Items",
     "pickBatch": "Pick a batch",
+    "product": "Product",
+    "available": "available",
+    "addBatch": "Add batch",
+    "expShort": "exp",
+    "selectFromFirst": "Select the source warehouse first.",
     "qty": "Qty",
+    "unit": "Unit",
     "addLine": "Add item",
     "removeLine": "Remove item",
     "submit": "Transfer"

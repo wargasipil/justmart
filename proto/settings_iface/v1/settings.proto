@@ -22,12 +22,30 @@ service SettingsService {
   rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
   }
+
+  rpc GetBussinessSettings(GetBussinessSettingsRequest) returns (GetBussinessSettingsResponse);
 }
 
+enum BussinessType {
+  BUSSINESS_TYPE_UNSPECIFIED = 0;
+  BUSSINESS_TYPE_PHARMACY_SHOP = 1;
+  BUSSINESS_TYPE_RETAIL = 2;
+}
+
+message GetBussinessSettingsRequest {
+  BussinessType type = 1;
+}
+
+message GetBussinessSettingsResponse {}
+
 message GetSettingsRequest {}
-message GetSettingsResponse { Settings settings = 1; }
+message GetSettingsResponse {
+  Settings settings = 1;
+}
 
 message UpdateSettingsRequest {
   int32 low_stock_threshold = 1;
 }
-message UpdateSettingsResponse { Settings settings = 1; }
+message UpdateSettingsResponse {
+  Settings settings = 1;
+}

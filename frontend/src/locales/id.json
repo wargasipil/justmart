@@ -656,7 +656,13 @@
     "selectWarehouse": "Pilih gudang",
     "items": "Item",
     "pickBatch": "Pilih batch",
+    "product": "Produk",
+    "available": "tersedia",
+    "addBatch": "Tambah batch",
+    "expShort": "exp",
+    "selectFromFirst": "Pilih gudang asal terlebih dahulu.",
     "qty": "Qty",
+    "unit": "Satuan",
     "addLine": "Tambah item",
     "removeLine": "Hapus item",
     "submit": "Transfer"

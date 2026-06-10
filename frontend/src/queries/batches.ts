@@ -81,13 +81,26 @@ export function useExpiringSoonCountQuery(days = 30) {
   return { ...q, count: q.total };
 }
 
-// Imperative search — call directly from <SearchableSelect loadOptions={...}>.
-// Optional productId scopes the search to a single product's batches.
-export async function searchBatches(query: string, productId?: string) {
+export type SearchBatchesOpts = {
+  productId?: string;
+  // Scope current_quantity (and only_in_stock) to a specific warehouse instead
+  // of the caller's active one — e.g. the transfer picker scopes to the chosen
+  // source warehouse.
+  warehouseId?: string;
+  // When true, only batches with stock in the scoped warehouse are returned.
+  onlyInStock?: boolean;
+};
+
+// Imperative search — call directly from <SearchableSelect loadOptions={...}>
+// or <BatchSelect>. `productId` scopes to a single product's batches;
+// `warehouseId`/`onlyInStock` scope the per-batch availability.
+export async function searchBatches(query: string, opts: SearchBatchesOpts = {}) {
   const res = await batchClient.searchBatches({
     query,
     limit: 20,
-    productId: productId ?? "",
+    productId: opts.productId ?? "",
+    warehouseId: opts.warehouseId ?? "",
+    onlyInStock: opts.onlyInStock ?? false,
   });
   return res.batches;
 }

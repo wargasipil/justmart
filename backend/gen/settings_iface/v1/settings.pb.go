@@ -22,6 +22,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type BussinessType int32
+
+const (
+	BussinessType_BUSSINESS_TYPE_UNSPECIFIED   BussinessType = 0
+	BussinessType_BUSSINESS_TYPE_PHARMACY_SHOP BussinessType = 1
+	BussinessType_BUSSINESS_TYPE_RETAIL        BussinessType = 2
+)
+
+// Enum value maps for BussinessType.
+var (
+	BussinessType_name = map[int32]string{
+		0: "BUSSINESS_TYPE_UNSPECIFIED",
+		1: "BUSSINESS_TYPE_PHARMACY_SHOP",
+		2: "BUSSINESS_TYPE_RETAIL",
+	}
+	BussinessType_value = map[string]int32{
+		"BUSSINESS_TYPE_UNSPECIFIED":   0,
+		"BUSSINESS_TYPE_PHARMACY_SHOP": 1,
+		"BUSSINESS_TYPE_RETAIL":        2,
+	}
+)
+
+func (x BussinessType) Enum() *BussinessType {
+	p := new(BussinessType)
+	*p = x
+	return p
+}
+
+func (x BussinessType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BussinessType) Descriptor() protoreflect.EnumDescriptor {
+	return file_settings_iface_v1_settings_proto_enumTypes[0].Descriptor()
+}
+
+func (BussinessType) Type() protoreflect.EnumType {
+	return &file_settings_iface_v1_settings_proto_enumTypes[0]
+}
+
+func (x BussinessType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BussinessType.Descriptor instead.
+func (BussinessType) EnumDescriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{0}
+}
+
 // App-wide settings (one row in app_settings per key). Today only the
 // low-stock threshold is wired; the table + proto are open for future keys.
 type Settings struct {
@@ -70,6 +119,86 @@ func (x *Settings) GetLowStockThreshold() int32 {
 	return 0
 }
 
+type GetBussinessSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          BussinessType          `protobuf:"varint,1,opt,name=type,proto3,enum=settings_iface.v1.BussinessType" json:"type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBussinessSettingsRequest) Reset() {
+	*x = GetBussinessSettingsRequest{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBussinessSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBussinessSettingsRequest) ProtoMessage() {}
+
+func (x *GetBussinessSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBussinessSettingsRequest.ProtoReflect.Descriptor instead.
+func (*GetBussinessSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetBussinessSettingsRequest) GetType() BussinessType {
+	if x != nil {
+		return x.Type
+	}
+	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
+}
+
+type GetBussinessSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBussinessSettingsResponse) Reset() {
+	*x = GetBussinessSettingsResponse{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBussinessSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBussinessSettingsResponse) ProtoMessage() {}
+
+func (x *GetBussinessSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBussinessSettingsResponse.ProtoReflect.Descriptor instead.
+func (*GetBussinessSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{2}
+}
+
 type GetSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -78,7 +207,7 @@ type GetSettingsRequest struct {
 
 func (x *GetSettingsRequest) Reset() {
 	*x = GetSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[1]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -90,7 +219,7 @@ func (x *GetSettingsRequest) String() string {
 func (*GetSettingsRequest) ProtoMessage() {}
 
 func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[1]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -103,7 +232,7 @@ func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{1}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{3}
 }
 
 type GetSettingsResponse struct {
@@ -115,7 +244,7 @@ type GetSettingsResponse struct {
 
 func (x *GetSettingsResponse) Reset() {
 	*x = GetSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[2]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -127,7 +256,7 @@ func (x *GetSettingsResponse) String() string {
 func (*GetSettingsResponse) ProtoMessage() {}
 
 func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[2]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -140,7 +269,7 @@ func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{2}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetSettingsResponse) GetSettings() *Settings {
@@ -159,7 +288,7 @@ type UpdateSettingsRequest struct {
 
 func (x *UpdateSettingsRequest) Reset() {
 	*x = UpdateSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -171,7 +300,7 @@ func (x *UpdateSettingsRequest) String() string {
 func (*UpdateSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -184,7 +313,7 @@ func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{3}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *UpdateSettingsRequest) GetLowStockThreshold() int32 {
@@ -203,7 +332,7 @@ type UpdateSettingsResponse struct {
 
 func (x *UpdateSettingsResponse) Reset() {
 	*x = UpdateSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -215,7 +344,7 @@ func (x *UpdateSettingsResponse) String() string {
 func (*UpdateSettingsResponse) ProtoMessage() {}
 
 func (x *UpdateSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -228,7 +357,7 @@ func (x *UpdateSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{4}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *UpdateSettingsResponse) GetSettings() *Settings {
@@ -244,17 +373,25 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\n" +
 	" settings_iface/v1/settings.proto\x12\x11settings_iface.v1\x1a\x1aauth_iface/v1/policy.proto\":\n" +
 	"\bSettings\x12.\n" +
-	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\"\x14\n" +
+	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\"S\n" +
+	"\x1bGetBussinessSettingsRequest\x124\n" +
+	"\x04type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\"\x1e\n" +
+	"\x1cGetBussinessSettingsResponse\"\x14\n" +
 	"\x12GetSettingsRequest\"N\n" +
 	"\x13GetSettingsResponse\x127\n" +
 	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"G\n" +
 	"\x15UpdateSettingsRequest\x12.\n" +
 	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\"Q\n" +
 	"\x16UpdateSettingsResponse\x127\n" +
-	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings2\xe5\x01\n" +
+	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings*l\n" +
+	"\rBussinessType\x12\x1e\n" +
+	"\x1aBUSSINESS_TYPE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cBUSSINESS_TYPE_PHARMACY_SHOP\x10\x01\x12\x19\n" +
+	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\xde\x02\n" +
 	"\x0fSettingsService\x12d\n" +
 	"\vGetSettings\x12%.settings_iface.v1.GetSettingsRequest\x1a&.settings_iface.v1.GetSettingsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
-	"\x0eUpdateSettings\x12(.settings_iface.v1.UpdateSettingsRequest\x1a).settings_iface.v1.UpdateSettingsResponse\"\x05\x8a\xb5\x18\x01\x01BCZAgithub.com/justmart/backend/gen/settings_iface/v1;settingsifacev1b\x06proto3"
+	"\x0eUpdateSettings\x12(.settings_iface.v1.UpdateSettingsRequest\x1a).settings_iface.v1.UpdateSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12w\n" +
+	"\x14GetBussinessSettings\x12..settings_iface.v1.GetBussinessSettingsRequest\x1a/.settings_iface.v1.GetBussinessSettingsResponseBCZAgithub.com/justmart/backend/gen/settings_iface/v1;settingsifacev1b\x06proto3"
 
 var (
 	file_settings_iface_v1_settings_proto_rawDescOnce sync.Once
@@ -268,26 +405,33 @@ func file_settings_iface_v1_settings_proto_rawDescGZIP() []byte {
 	return file_settings_iface_v1_settings_proto_rawDescData
 }
 
-var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_settings_iface_v1_settings_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_settings_iface_v1_settings_proto_goTypes = []any{
-	(*Settings)(nil),               // 0: settings_iface.v1.Settings
-	(*GetSettingsRequest)(nil),     // 1: settings_iface.v1.GetSettingsRequest
-	(*GetSettingsResponse)(nil),    // 2: settings_iface.v1.GetSettingsResponse
-	(*UpdateSettingsRequest)(nil),  // 3: settings_iface.v1.UpdateSettingsRequest
-	(*UpdateSettingsResponse)(nil), // 4: settings_iface.v1.UpdateSettingsResponse
+	(BussinessType)(0),                   // 0: settings_iface.v1.BussinessType
+	(*Settings)(nil),                     // 1: settings_iface.v1.Settings
+	(*GetBussinessSettingsRequest)(nil),  // 2: settings_iface.v1.GetBussinessSettingsRequest
+	(*GetBussinessSettingsResponse)(nil), // 3: settings_iface.v1.GetBussinessSettingsResponse
+	(*GetSettingsRequest)(nil),           // 4: settings_iface.v1.GetSettingsRequest
+	(*GetSettingsResponse)(nil),          // 5: settings_iface.v1.GetSettingsResponse
+	(*UpdateSettingsRequest)(nil),        // 6: settings_iface.v1.UpdateSettingsRequest
+	(*UpdateSettingsResponse)(nil),       // 7: settings_iface.v1.UpdateSettingsResponse
 }
 var file_settings_iface_v1_settings_proto_depIdxs = []int32{
-	0, // 0: settings_iface.v1.GetSettingsResponse.settings:type_name -> settings_iface.v1.Settings
-	0, // 1: settings_iface.v1.UpdateSettingsResponse.settings:type_name -> settings_iface.v1.Settings
-	1, // 2: settings_iface.v1.SettingsService.GetSettings:input_type -> settings_iface.v1.GetSettingsRequest
-	3, // 3: settings_iface.v1.SettingsService.UpdateSettings:input_type -> settings_iface.v1.UpdateSettingsRequest
-	2, // 4: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
-	4, // 5: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: settings_iface.v1.GetBussinessSettingsRequest.type:type_name -> settings_iface.v1.BussinessType
+	1, // 1: settings_iface.v1.GetSettingsResponse.settings:type_name -> settings_iface.v1.Settings
+	1, // 2: settings_iface.v1.UpdateSettingsResponse.settings:type_name -> settings_iface.v1.Settings
+	4, // 3: settings_iface.v1.SettingsService.GetSettings:input_type -> settings_iface.v1.GetSettingsRequest
+	6, // 4: settings_iface.v1.SettingsService.UpdateSettings:input_type -> settings_iface.v1.UpdateSettingsRequest
+	2, // 5: settings_iface.v1.SettingsService.GetBussinessSettings:input_type -> settings_iface.v1.GetBussinessSettingsRequest
+	5, // 6: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
+	7, // 7: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
+	3, // 8: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_settings_iface_v1_settings_proto_init() }
@@ -300,13 +444,14 @@ func file_settings_iface_v1_settings_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_settings_iface_v1_settings_proto_rawDesc), len(file_settings_iface_v1_settings_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   5,
+			NumEnums:      1,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_settings_iface_v1_settings_proto_goTypes,
 		DependencyIndexes: file_settings_iface_v1_settings_proto_depIdxs,
+		EnumInfos:         file_settings_iface_v1_settings_proto_enumTypes,
 		MessageInfos:      file_settings_iface_v1_settings_proto_msgTypes,
 	}.Build()
 	File_settings_iface_v1_settings_proto = out.File

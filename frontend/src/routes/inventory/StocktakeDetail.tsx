@@ -442,7 +442,7 @@ function AddBatchesDialog({
   };
 
   const loadBatches = useMemo(
-    () => (q: string) => searchBatches(q, productId || undefined),
+    () => (q: string) => searchBatches(q, { productId: productId || undefined }),
     [productId],
   );
 

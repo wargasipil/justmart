@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetSettingsRequest, GetSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetSettingsRequest, GetSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -28,6 +28,15 @@ export const SettingsService = {
       name: "UpdateSettings",
       I: UpdateSettingsRequest,
       O: UpdateSettingsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc settings_iface.v1.SettingsService.GetBussinessSettings
+     */
+    getBussinessSettings: {
+      name: "GetBussinessSettings",
+      I: GetBussinessSettingsRequest,
+      O: GetBussinessSettingsResponse,
       kind: MethodKind.Unary,
     },
   }
