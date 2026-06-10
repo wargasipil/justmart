@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	purchasingifacev1 "github.com/justmart/backend/gen/purchasing_iface/v1"
+	"github.com/justmart/backend/internal/model"
 )
 
 func TestCreateReceipt_HappyPath(t *testing.T) {
@@ -74,6 +75,34 @@ func TestCreateReceipt_InheritsPOInvoiceWhenBlank(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.Equal(t, "FAK-PO-9", resp.Msg.Receipt.InvoiceNo, "blank receipt faktur must inherit the PO's")
+}
+
+// TestCreateReceipt_DiscountedCostFlowsToBatch proves a per-line PO discount
+// lowers inventory cost: with no receipt cost override, the created batch's
+// cost_price is the NET per-base-unit cost (gross − line discount) / qty.
+func TestCreateReceipt_DiscountedCostFlowsToBatch(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR-DISC", "Disc COGS supplier")
+	prodID := e.seedProduct(t, "cr-disc-sku", "Disc COGS product", 1000)
+
+	// 10 × 1000 gross = 10000, 12.5% (1250 bps) → net 8750 → net unit = 875.
+	poResp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000, DiscountType: "PERCENT", DiscountValue: 1250},
+		},
+	}))
+	require.NoError(t, err)
+	po := poResp.Msg.Order
+	e.sendPO(t, po.Id)
+
+	// Receive full, NO cost override → batch must use the NET per-unit cost.
+	_ = e.receiveFull(t, po.Id, po.Items[0].Id, 10, "CR-DISC-B1")
+
+	var batch model.Batch
+	require.NoError(t, e.db.Where("batch_number = ?", "CR-DISC-B1").First(&batch).Error)
+	require.Equal(t, int64(875), batch.CostPrice) // 8750 / 10 — discount reflected in COGS
 }
 
 func TestCreateReceipt_OverReceiveRejected(t *testing.T) {

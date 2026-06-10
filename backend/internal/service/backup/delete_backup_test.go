@@ -19,6 +19,7 @@ import (
 func TestDeleteBackup_RoundTrip(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
+	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, dir)
 

@@ -29,7 +29,10 @@ CREATE INDEX user_warehouses_warehouse_idx ON user_warehouses(warehouse_id);
 CREATE UNIQUE INDEX user_warehouses_default_idx ON user_warehouses(user_id) WHERE is_default;
 
 -- Seed the default warehouse and grant every existing user access to it.
-INSERT INTO warehouses (code, name, is_default) VALUES ('MAIN', 'Gudang Utama', TRUE);
+-- Fixed id (matches the SQLite consolidated init's MAIN warehouse) so the
+-- default warehouse has the same id on both engines — seed data stays consistent
+-- across postgres/sqlite, and tests can rely on it identically.
+INSERT INTO warehouses (id, code, name, is_default) VALUES ('00000000-0000-0000-0000-0000000000a1', 'MAIN', 'Gudang Utama', TRUE);
 INSERT INTO user_warehouses (user_id, warehouse_id, is_default)
 SELECT u.id, w.id, TRUE
 FROM users u, warehouses w

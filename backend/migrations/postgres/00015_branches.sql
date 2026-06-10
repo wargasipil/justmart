@@ -22,7 +22,9 @@ CREATE INDEX user_branches_branch_idx ON user_branches(branch_id);
 CREATE UNIQUE INDEX user_branches_default_idx ON user_branches(user_id) WHERE is_default;
 
 -- Seed the legacy single-shop branch and grant access to every existing user.
-INSERT INTO branches (code, name) VALUES ('MAIN', 'Main pharmacy');
+-- Fixed id (matches the SQLite consolidated init) so the MAIN branch has the
+-- same id on both engines — keeps seed data consistent across postgres/sqlite.
+INSERT INTO branches (id, code, name) VALUES ('00000000-0000-0000-0000-0000000000b1', 'MAIN', 'Main pharmacy');
 INSERT INTO user_branches (user_id, branch_id, is_default)
 SELECT u.id, b.id, TRUE
 FROM users u, branches b

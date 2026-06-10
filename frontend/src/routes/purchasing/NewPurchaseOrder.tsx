@@ -29,12 +29,16 @@ import { searchProducts } from "../../queries/products";
 import { useCreatePurchaseOrderMutation } from "../../queries/purchasing";
 import { searchSuppliers } from "../../queries/suppliers";
 
+type DiscountType = "FIXED" | "PERCENT";
+
 type Line = {
   productId: string;
   productUnitId: string; // chosen purchasable unit ("" => base)
   units: ProductUnit[]; // purchasable + active units of the picked product
   orderedQty: number; // in the chosen unit
-  lineTotal: number; // total cost for the line (Harga modal total); unit cost is derived
+  lineTotal: number; // GROSS total cost for the line (Harga modal total); unit cost is derived
+  discountType: DiscountType;
+  discountValue: number; // FIXED: minor units; PERCENT: human decimal percent (e.g. 12.5)
 };
 
 const factorOf = (l: Line): number => {
@@ -42,10 +46,22 @@ const factorOf = (l: Line): number => {
   return u ? Number(u.factor) : 1;
 };
 const baseQtyOf = (l: Line): number => l.orderedQty * factorOf(l);
-// Cost per BASE unit is derived from the line total / base qty (rounded).
+// GROSS cost per BASE unit — derived from the gross line total / base qty (sent
+// to the backend, which re-derives the net cost from the discount itself).
 const unitCostOf = (l: Line): number => {
   const base = baseQtyOf(l);
   return base > 0 ? Math.round(l.lineTotal / base) : 0;
+};
+// Per-line discount amount (rounded) off the gross line total.
+const lineDiscountAmount = (l: Line): number =>
+  l.discountType === "PERCENT"
+    ? Math.round((l.lineTotal * l.discountValue) / 100)
+    : Math.min(l.discountValue, l.lineTotal);
+const lineNet = (l: Line): number => Math.max(0, l.lineTotal - lineDiscountAmount(l));
+// NET cost per base unit — what flows to the received batch's cost_price.
+const netUnitCostOf = (l: Line): number => {
+  const base = baseQtyOf(l);
+  return base > 0 ? Math.round(lineNet(l) / base) : 0;
 };
 const unitNameOf = (l: Line): string =>
   l.units.find((x) => x.id === l.productUnitId)?.name ?? "";
@@ -56,6 +72,8 @@ const emptyLine = (): Line => ({
   units: [],
   orderedQty: 1,
   lineTotal: 0,
+  discountType: "FIXED",
+  discountValue: 0,
 });
 
 export default function NewPurchaseOrder() {
@@ -73,8 +91,10 @@ export default function NewPurchaseOrder() {
   const [ppnEnabled, setPpnEnabled] = useState(false);
   const [ppnRate, setPpnRate] = useState(11); // percent; current Indonesian default
 
+  // Sum the NET line totals (after per-line discount) so the displayed totals
+  // match what the backend computes from the same discounts.
   const subtotal = useMemo(
-    () => lines.reduce((sum, l) => sum + l.lineTotal, 0),
+    () => lines.reduce((sum, l) => sum + lineNet(l), 0),
     [lines],
   );
   const discountClamped = Math.max(0, Math.min(cartDiscount, subtotal));
@@ -115,7 +135,14 @@ export default function NewPurchaseOrder() {
           productId: l.productId,
           productUnitId: l.productUnitId,
           orderedQty: l.orderedQty,
-          unitCostPrice: BigInt(unitCostOf(l)),
+          unitCostPrice: BigInt(unitCostOf(l)), // GROSS per base unit
+          discountType: l.discountType,
+          // PERCENT: human decimal -> basis points (12.5 -> 1250). FIXED: minor units.
+          discountValue: BigInt(
+            l.discountType === "PERCENT"
+              ? Math.round(l.discountValue * 100)
+              : l.discountValue,
+          ),
         })),
       });
       toast.success(t("common.create") + " ✓");
@@ -203,6 +230,7 @@ export default function NewPurchaseOrder() {
                 <Table.ColumnHeader>{t("purchasing.unit")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.lineTotalInput")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.unitCostDerived")}</Table.ColumnHeader>
                 <Table.ColumnHeader />
               </Table.Row>
@@ -255,8 +283,49 @@ export default function NewPurchaseOrder() {
                       onChange={(raw) => updateLine(idx, { lineTotal: Number(raw || 0) })}
                     />
                   </Table.Cell>
+                  <Table.Cell>
+                    <HStack gap={1}>
+                      <EnumSelect
+                        size="sm"
+                        width="96px"
+                        value={l.discountType}
+                        onChange={(v) =>
+                          updateLine(idx, { discountType: v as DiscountType, discountValue: 0 })
+                        }
+                        items={["FIXED", "PERCENT"] as const}
+                        itemToString={(d) =>
+                          t(d === "FIXED" ? "purchasing.fixed" : "purchasing.percent")
+                        }
+                        itemToValue={(d) => d}
+                      />
+                      {l.discountType === "PERCENT" ? (
+                        <Input
+                          size="sm"
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          max={100}
+                          width="74px"
+                          value={l.discountValue || ""}
+                          onChange={(e) =>
+                            updateLine(idx, {
+                              discountValue: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                            })
+                          }
+                          aria-label={t("purchasing.lineDiscount")}
+                        />
+                      ) : (
+                        <MoneyInput
+                          size="sm"
+                          width="110px"
+                          value={l.discountValue}
+                          onChange={(raw) => updateLine(idx, { discountValue: Number(raw || 0) })}
+                        />
+                      )}
+                    </HStack>
+                  </Table.Cell>
                   <Table.Cell fontFamily="mono" color="fg.muted">
-                    {formatMoney(unitCostOf(l))}
+                    {formatMoney(netUnitCostOf(l))}
                     {factorOf(l) > 1 && (
                       <Text fontSize="xs">
                         /{t("inventory.products.baseUnit").toLowerCase()}

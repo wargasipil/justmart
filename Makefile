@@ -1,4 +1,4 @@
-.PHONY: up down reset-devel-data generate tidy run test-unit test-e2e test-e2e-sqlite test-browser test-all \
+.PHONY: up down reset-devel-data generate tidy run test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows docker-build docker-up docker-down installer \
@@ -90,6 +90,22 @@ portable-windows:
 test-unit:
 	$(GO_BACKEND) test ./internal/service/... -count=1
 
+# The SAME co-located unit suite, run against the dev Postgres (run `make up`
+# first). JUSTMART_TEST_DB_DRIVER=postgres makes servicetest give every test its
+# own throwaway schema on the dev cluster — the test files are identical to the
+# SQLite run. `-p 1 -parallel 4` bounds concurrency so the per-test CREATE/DROP
+# SCHEMA churn (each schema ~40 tables) stays under PG's shared lock table on a
+# default-tuned server. PG creds default to the docker-compose values; override
+# via JUSTMART_DB_{HOST,PORT,USER,PASSWORD,NAME,SSLMODE}.
+test-unit-postgres: export JUSTMART_TEST_DB_DRIVER := postgres
+test-unit-postgres:
+	$(GO_BACKEND) test ./internal/service/... -count=1 -p 1 -parallel 4
+
+# Run the co-located unit suite against BOTH engines back-to-back (SQLite first
+# — fastest, no dependency — so it fails fast on the cheapest engine). This is
+# the HARD-RULE gate: every RPC's unit test must pass on both.
+test-unit-all: test-unit test-unit-postgres
+
 # End-to-end / integration tests (in-process httptest server + real dev Postgres).
 # Test binaries run with CWD = backend/e2e/, so the JUSTMART_CONFIG path needs
 # two `..` to reach the repo-root config.yaml.
@@ -137,10 +153,10 @@ web:
 test-browser:
 	cd frontend && npx playwright test
 
-# Convenience: run the co-located unit suite, the Go integration tests, and the
-# browser E2E tests back-to-back. test-unit runs first — it's the fastest and
-# needs no live DB, so it fails fast on the cheapest tests.
-test-all: test-unit test-e2e test-browser
+# Convenience: co-located unit suite on BOTH engines, then Go integration, then
+# browser E2E. test-unit-all runs first (SQLite then Postgres), failing fast on
+# the cheapest engine.
+test-all: test-unit-all test-e2e test-browser
 
 # --- Backups -----------------------------------------------------------------
 # Snapshot the running Postgres into backups/backup_<timestamp>/.

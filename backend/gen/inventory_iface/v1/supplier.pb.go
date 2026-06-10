@@ -23,16 +23,20 @@ const (
 )
 
 type Supplier struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ContactEmail  string                 `protobuf:"bytes,3,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
-	Phone         string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
-	Active        bool                   `protobuf:"varint,5,opt,name=active,proto3" json:"active,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Code          string                 `protobuf:"bytes,7,opt,name=code,proto3" json:"code,omitempty"` // unique business code, e.g. "SUP-0001"
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ContactEmail      string                 `protobuf:"bytes,3,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
+	Phone             string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	Active            bool                   `protobuf:"varint,5,opt,name=active,proto3" json:"active,omitempty"`
+	CreatedAt         int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Code              string                 `protobuf:"bytes,7,opt,name=code,proto3" json:"code,omitempty"`                                                       // unique business code, e.g. "SUP-0001"
+	Address           string                 `protobuf:"bytes,8,opt,name=address,proto3" json:"address,omitempty"`                                                 // alamat
+	BankName          string                 `protobuf:"bytes,9,opt,name=bank_name,json=bankName,proto3" json:"bank_name,omitempty"`                               // data rekening: bank
+	BankAccountNumber string                 `protobuf:"bytes,10,opt,name=bank_account_number,json=bankAccountNumber,proto3" json:"bank_account_number,omitempty"` // data rekening: no. rekening
+	BankAccountHolder string                 `protobuf:"bytes,11,opt,name=bank_account_holder,json=bankAccountHolder,proto3" json:"bank_account_holder,omitempty"` // data rekening: atas nama
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Supplier) Reset() {
@@ -110,6 +114,34 @@ func (x *Supplier) GetCreatedAt() int64 {
 func (x *Supplier) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *Supplier) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Supplier) GetBankName() string {
+	if x != nil {
+		return x.BankName
+	}
+	return ""
+}
+
+func (x *Supplier) GetBankAccountNumber() string {
+	if x != nil {
+		return x.BankAccountNumber
+	}
+	return ""
+}
+
+func (x *Supplier) GetBankAccountHolder() string {
+	if x != nil {
+		return x.BankAccountHolder
 	}
 	return ""
 }
@@ -323,13 +355,17 @@ func (x *GetSupplierResponse) GetSupplier() *Supplier {
 }
 
 type CreateSupplierRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	ContactEmail  string                 `protobuf:"bytes,2,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
-	Phone         string                 `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone,omitempty"`
-	Code          string                 `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Name              string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	ContactEmail      string                 `protobuf:"bytes,2,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
+	Phone             string                 `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone,omitempty"`
+	Code              string                 `protobuf:"bytes,4,opt,name=code,proto3" json:"code,omitempty"`
+	Address           string                 `protobuf:"bytes,5,opt,name=address,proto3" json:"address,omitempty"`
+	BankName          string                 `protobuf:"bytes,6,opt,name=bank_name,json=bankName,proto3" json:"bank_name,omitempty"`
+	BankAccountNumber string                 `protobuf:"bytes,7,opt,name=bank_account_number,json=bankAccountNumber,proto3" json:"bank_account_number,omitempty"`
+	BankAccountHolder string                 `protobuf:"bytes,8,opt,name=bank_account_holder,json=bankAccountHolder,proto3" json:"bank_account_holder,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CreateSupplierRequest) Reset() {
@@ -390,6 +426,34 @@ func (x *CreateSupplierRequest) GetCode() string {
 	return ""
 }
 
+func (x *CreateSupplierRequest) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *CreateSupplierRequest) GetBankName() string {
+	if x != nil {
+		return x.BankName
+	}
+	return ""
+}
+
+func (x *CreateSupplierRequest) GetBankAccountNumber() string {
+	if x != nil {
+		return x.BankAccountNumber
+	}
+	return ""
+}
+
+func (x *CreateSupplierRequest) GetBankAccountHolder() string {
+	if x != nil {
+		return x.BankAccountHolder
+	}
+	return ""
+}
+
 type CreateSupplierResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Supplier      *Supplier              `protobuf:"bytes,1,opt,name=supplier,proto3" json:"supplier,omitempty"`
@@ -435,14 +499,18 @@ func (x *CreateSupplierResponse) GetSupplier() *Supplier {
 }
 
 type UpdateSupplierRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	ContactEmail  string                 `protobuf:"bytes,3,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
-	Phone         string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
-	Code          string                 `protobuf:"bytes,5,opt,name=code,proto3" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name              string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	ContactEmail      string                 `protobuf:"bytes,3,opt,name=contact_email,json=contactEmail,proto3" json:"contact_email,omitempty"`
+	Phone             string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	Code              string                 `protobuf:"bytes,5,opt,name=code,proto3" json:"code,omitempty"`
+	Address           string                 `protobuf:"bytes,6,opt,name=address,proto3" json:"address,omitempty"`
+	BankName          string                 `protobuf:"bytes,7,opt,name=bank_name,json=bankName,proto3" json:"bank_name,omitempty"`
+	BankAccountNumber string                 `protobuf:"bytes,8,opt,name=bank_account_number,json=bankAccountNumber,proto3" json:"bank_account_number,omitempty"`
+	BankAccountHolder string                 `protobuf:"bytes,9,opt,name=bank_account_holder,json=bankAccountHolder,proto3" json:"bank_account_holder,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateSupplierRequest) Reset() {
@@ -506,6 +574,34 @@ func (x *UpdateSupplierRequest) GetPhone() string {
 func (x *UpdateSupplierRequest) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *UpdateSupplierRequest) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *UpdateSupplierRequest) GetBankName() string {
+	if x != nil {
+		return x.BankName
+	}
+	return ""
+}
+
+func (x *UpdateSupplierRequest) GetBankAccountNumber() string {
+	if x != nil {
+		return x.BankAccountNumber
+	}
+	return ""
+}
+
+func (x *UpdateSupplierRequest) GetBankAccountHolder() string {
+	if x != nil {
+		return x.BankAccountHolder
 	}
 	return ""
 }
@@ -891,7 +987,7 @@ var File_inventory_iface_v1_supplier_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\n" +
-	"!inventory_iface/v1/supplier.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xb4\x01\n" +
+	"!inventory_iface/v1/supplier.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xcb\x02\n" +
 	"\bSupplier\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
@@ -900,7 +996,12 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x06active\x18\x05 \x01(\bR\x06active\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x12\n" +
-	"\x04code\x18\a \x01(\tR\x04code\"\x85\x01\n" +
+	"\x04code\x18\a \x01(\tR\x04code\x12\x18\n" +
+	"\aaddress\x18\b \x01(\tR\aaddress\x12\x1b\n" +
+	"\tbank_name\x18\t \x01(\tR\bbankName\x12.\n" +
+	"\x13bank_account_number\x18\n" +
+	" \x01(\tR\x11bankAccountNumber\x12.\n" +
+	"\x13bank_account_holder\x18\v \x01(\tR\x11bankAccountHolder\"\x85\x01\n" +
 	"\x14ListSuppliersRequest\x12)\n" +
 	"\x10include_inactive\x18\x01 \x01(\bR\x0fincludeInactive\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
@@ -912,20 +1013,28 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x12GetSupplierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"O\n" +
 	"\x13GetSupplierResponse\x128\n" +
-	"\bsupplier\x18\x01 \x01(\v2\x1c.inventory_iface.v1.SupplierR\bsupplier\"z\n" +
+	"\bsupplier\x18\x01 \x01(\v2\x1c.inventory_iface.v1.SupplierR\bsupplier\"\x91\x02\n" +
 	"\x15CreateSupplierRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12#\n" +
 	"\rcontact_email\x18\x02 \x01(\tR\fcontactEmail\x12\x14\n" +
 	"\x05phone\x18\x03 \x01(\tR\x05phone\x12\x12\n" +
-	"\x04code\x18\x04 \x01(\tR\x04code\"R\n" +
+	"\x04code\x18\x04 \x01(\tR\x04code\x12\x18\n" +
+	"\aaddress\x18\x05 \x01(\tR\aaddress\x12\x1b\n" +
+	"\tbank_name\x18\x06 \x01(\tR\bbankName\x12.\n" +
+	"\x13bank_account_number\x18\a \x01(\tR\x11bankAccountNumber\x12.\n" +
+	"\x13bank_account_holder\x18\b \x01(\tR\x11bankAccountHolder\"R\n" +
 	"\x16CreateSupplierResponse\x128\n" +
-	"\bsupplier\x18\x01 \x01(\v2\x1c.inventory_iface.v1.SupplierR\bsupplier\"\x8a\x01\n" +
+	"\bsupplier\x18\x01 \x01(\v2\x1c.inventory_iface.v1.SupplierR\bsupplier\"\xa1\x02\n" +
 	"\x15UpdateSupplierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12#\n" +
 	"\rcontact_email\x18\x03 \x01(\tR\fcontactEmail\x12\x14\n" +
 	"\x05phone\x18\x04 \x01(\tR\x05phone\x12\x12\n" +
-	"\x04code\x18\x05 \x01(\tR\x04code\"R\n" +
+	"\x04code\x18\x05 \x01(\tR\x04code\x12\x18\n" +
+	"\aaddress\x18\x06 \x01(\tR\aaddress\x12\x1b\n" +
+	"\tbank_name\x18\a \x01(\tR\bbankName\x12.\n" +
+	"\x13bank_account_number\x18\b \x01(\tR\x11bankAccountNumber\x12.\n" +
+	"\x13bank_account_holder\x18\t \x01(\tR\x11bankAccountHolder\"R\n" +
 	"\x16UpdateSupplierResponse\x128\n" +
 	"\bsupplier\x18\x01 \x01(\v2\x1c.inventory_iface.v1.SupplierR\bsupplier\"(\n" +
 	"\x16ArchiveSupplierRequest\x12\x0e\n" +

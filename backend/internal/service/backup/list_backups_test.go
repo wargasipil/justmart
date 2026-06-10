@@ -19,6 +19,7 @@ import (
 func TestListBackups_NewestFirst(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
+	requirePGDumpOrSkip(t, cfg)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())
 
 	first, err := svc.CreateBackup(context.Background(), connect.NewRequest(&backupifacev1.CreateBackupRequest{}))
@@ -66,6 +67,7 @@ func TestListBackups_MissingDirIsEmpty(t *testing.T) {
 func TestListBackups_IgnoresForeignEntries(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
+	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, dir)
 

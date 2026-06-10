@@ -20,6 +20,7 @@ import (
 func TestCreateBackup_RoundTrip(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
+	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, dir)
 
@@ -30,12 +31,12 @@ func TestCreateBackup_RoundTrip(t *testing.T) {
 	require.NotNil(t, b)
 	require.Regexp(t, `^backup_\d{4}-\d{2}-\d{2}_\d{6}$`, b.Name)
 	require.Positive(t, b.CreatedAt)
-	require.Positive(t, b.SizeBytes, "the SQLite VACUUM INTO snapshot should be non-empty")
+	require.Positive(t, b.SizeBytes, "the backup snapshot should be non-empty")
 	require.Positive(t, b.SchemaVersion, "schema_version reads the max applied goose migration")
 
-	// On-disk layout: the VACUUM INTO snapshot + the manifest.
+	// On-disk layout: the engine-specific dump + the manifest.
 	backupDir := filepath.Join(dir, b.Name)
-	dump := filepath.Join(backupDir, "database.sqlite")
+	dump := filepath.Join(backupDir, dumpFileName(cfg))
 	info, statErr := os.Stat(dump)
 	require.NoError(t, statErr, "database.sqlite must exist in the backup dir")
 	require.Equal(t, info.Size(), b.SizeBytes)
@@ -51,6 +52,7 @@ func TestCreateBackup_RoundTrip(t *testing.T) {
 func TestCreateBackup_TwoInSameSecond(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
+	requirePGDumpOrSkip(t, cfg)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())
 
 	first, err := svc.CreateBackup(context.Background(), connect.NewRequest(&backupifacev1.CreateBackupRequest{}))

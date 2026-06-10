@@ -70,11 +70,18 @@ func (p *PurchaseOrders) CreatePurchaseOrder(
 				return err
 			}
 			baseQty := in.OrderedQty * int32(unit.Factor) // ordered_qty stored in BASE units
+			gross := int64(baseQty) * in.UnitCostPrice
+			net, discType, err := lineNetSubtotal(gross, in.DiscountType, in.DiscountValue)
+			if err != nil {
+				return err
+			}
 			it := model.PurchaseOrderItem{
 				ProductID:     in.ProductId,
 				OrderedQty:    baseQty,
-				UnitCostPrice: in.UnitCostPrice, // per base unit
-				Subtotal:      int64(baseQty) * in.UnitCostPrice,
+				UnitCostPrice: in.UnitCostPrice, // GROSS per base unit
+				Subtotal:      net,              // NET (after per-line discount)
+				DiscountType:  discType,
+				DiscountValue: in.DiscountValue,
 				ProductUnitID: &unit.ID,
 				UnitName:      unit.Name,
 				UnitFactor:    unit.Factor,

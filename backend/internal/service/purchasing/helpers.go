@@ -15,6 +15,44 @@ import (
 	"github.com/justmart/backend/internal/service/common"
 )
 
+const (
+	discountFixed   = "FIXED"
+	discountPercent = "PERCENT"
+)
+
+// lineNetSubtotal returns the NET extended line amount (gross − line discount)
+// and the normalized discount type. discValue is minor units when FIXED, basis
+// points (percent*100, so 12.5% = 1250) when PERCENT. The discount is clamped to
+// [0, gross] so the net is never negative; PERCENT rounds half-up like PPN.
+func lineNetSubtotal(gross int64, discType string, discValue int64) (net int64, normType string, err error) {
+	if discValue < 0 {
+		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_value must be >= 0"))
+	}
+	normType = discType
+	if normType == "" {
+		normType = discountFixed
+	}
+	var disc int64
+	switch normType {
+	case discountFixed:
+		disc = discValue
+	case discountPercent:
+		if discValue > 10000 { // 100.00%
+			return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("percent discount must be within 0..10000 basis points"))
+		}
+		disc = (gross*discValue + 5000) / 10000 // round half up
+	default:
+		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_type must be FIXED or PERCENT"))
+	}
+	if disc < 0 {
+		disc = 0
+	}
+	if disc > gross {
+		disc = gross
+	}
+	return gross - disc, normType, nil
+}
+
 // computePOTotals computes PPN-exclusive purchase totals.
 func computePOTotals(items []model.PurchaseOrderItem, cartDiscount int64, ppnEnabled bool, ppnRate int32) (subtotal, discount int64, effectiveRate int32, ppn, total int64) {
 	for _, it := range items {

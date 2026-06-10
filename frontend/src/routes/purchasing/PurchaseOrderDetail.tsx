@@ -193,6 +193,7 @@ export default function PurchaseOrderDetail() {
               <Table.ColumnHeader>{t("purchasing.ordered")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("purchasing.received")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("purchasing.unitCost")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("purchasing.lineTotal")}</Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
@@ -206,6 +207,13 @@ export default function PurchaseOrderDetail() {
                   {fmtUnitQty(it.orderedQty, it.unitName, it.unitFactor)}
                 </Table.Cell>
                 <Table.Cell fontFamily="mono">{formatMoney(Number(it.unitCostPrice))}</Table.Cell>
+                <Table.Cell fontFamily="mono" color="fg.muted">
+                  {it.discountValue > 0n
+                    ? it.discountType === "PERCENT"
+                      ? `${Number(it.discountValue) / 100}%`
+                      : `−${formatMoney(Number(it.discountValue))}`
+                    : "—"}
+                </Table.Cell>
                 <Table.Cell fontFamily="mono">{formatMoney(Number(it.subtotal))}</Table.Cell>
               </Table.Row>
             ))}

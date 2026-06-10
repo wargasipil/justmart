@@ -47,6 +47,34 @@ export class Supplier extends Message<Supplier> {
    */
   code = "";
 
+  /**
+   * alamat
+   *
+   * @generated from field: string address = 8;
+   */
+  address = "";
+
+  /**
+   * data rekening: bank
+   *
+   * @generated from field: string bank_name = 9;
+   */
+  bankName = "";
+
+  /**
+   * data rekening: no. rekening
+   *
+   * @generated from field: string bank_account_number = 10;
+   */
+  bankAccountNumber = "";
+
+  /**
+   * data rekening: atas nama
+   *
+   * @generated from field: string bank_account_holder = 11;
+   */
+  bankAccountHolder = "";
+
   constructor(data?: PartialMessage<Supplier>) {
     super();
     proto3.util.initPartial(data, this);
@@ -62,6 +90,10 @@ export class Supplier extends Message<Supplier> {
     { no: 5, name: "active", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 6, name: "created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "bank_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "bank_account_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 11, name: "bank_account_holder", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Supplier {
@@ -279,6 +311,26 @@ export class CreateSupplierRequest extends Message<CreateSupplierRequest> {
    */
   code = "";
 
+  /**
+   * @generated from field: string address = 5;
+   */
+  address = "";
+
+  /**
+   * @generated from field: string bank_name = 6;
+   */
+  bankName = "";
+
+  /**
+   * @generated from field: string bank_account_number = 7;
+   */
+  bankAccountNumber = "";
+
+  /**
+   * @generated from field: string bank_account_holder = 8;
+   */
+  bankAccountHolder = "";
+
   constructor(data?: PartialMessage<CreateSupplierRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -291,6 +343,10 @@ export class CreateSupplierRequest extends Message<CreateSupplierRequest> {
     { no: 2, name: "contact_email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "phone", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "bank_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "bank_account_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "bank_account_holder", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateSupplierRequest {
@@ -376,6 +432,26 @@ export class UpdateSupplierRequest extends Message<UpdateSupplierRequest> {
    */
   code = "";
 
+  /**
+   * @generated from field: string address = 6;
+   */
+  address = "";
+
+  /**
+   * @generated from field: string bank_name = 7;
+   */
+  bankName = "";
+
+  /**
+   * @generated from field: string bank_account_number = 8;
+   */
+  bankAccountNumber = "";
+
+  /**
+   * @generated from field: string bank_account_holder = 9;
+   */
+  bankAccountHolder = "";
+
   constructor(data?: PartialMessage<UpdateSupplierRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -389,6 +465,10 @@ export class UpdateSupplierRequest extends Message<UpdateSupplierRequest> {
     { no: 3, name: "contact_email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "phone", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "address", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "bank_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "bank_account_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "bank_account_holder", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateSupplierRequest {

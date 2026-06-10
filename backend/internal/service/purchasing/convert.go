@@ -63,6 +63,8 @@ func poItemToProto(it *model.PurchaseOrderItem) *purchasingifacev1.PurchaseOrder
 		Subtotal:        it.Subtotal,
 		UnitName:        it.UnitName,
 		UnitFactor:      factor,
+		DiscountType:    it.DiscountType,
+		DiscountValue:   it.DiscountValue,
 	}
 	if it.ProductUnitID != nil {
 		out.ProductUnitId = *it.ProductUnitID

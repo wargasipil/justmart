@@ -29,12 +29,16 @@ func (s *SupplierService) load(ctx context.Context, id string) (*model.Supplier,
 
 func supplierToProto(s *model.Supplier) *inventoryifacev1.Supplier {
 	return &inventoryifacev1.Supplier{
-		Id:           s.ID,
-		Code:         s.Code,
-		Name:         s.Name,
-		ContactEmail: s.ContactEmail,
-		Phone:        s.Phone,
-		Active:       s.Active,
-		CreatedAt:    s.CreatedAt.Unix(),
+		Id:                s.ID,
+		Code:              s.Code,
+		Name:              s.Name,
+		ContactEmail:      s.ContactEmail,
+		Phone:             s.Phone,
+		Address:           s.Address,
+		BankName:          s.BankName,
+		BankAccountNumber: s.BankAccountNumber,
+		BankAccountHolder: s.BankAccountHolder,
+		Active:            s.Active,
+		CreatedAt:         s.CreatedAt.Unix(),
 	}
 }

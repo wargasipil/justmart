@@ -18,11 +18,15 @@ func TestUpdateSupplier_RoundTrip(t *testing.T) {
 	seeded := seedSupplier(t, svc, "UP-1", "Old Name")
 
 	resp, err := svc.UpdateSupplier(context.Background(), connect.NewRequest(&inventoryifacev1.UpdateSupplierRequest{
-		Id:           seeded.Id,
-		Code:         "up-2", // lowercased -> uppercased by handler
-		Name:         "New Name",
-		ContactEmail: "ops@example.com",
-		Phone:        "0800000000",
+		Id:                seeded.Id,
+		Code:              "up-2", // lowercased -> uppercased by handler
+		Name:              "New Name",
+		ContactEmail:      "ops@example.com",
+		Phone:             "0800000000",
+		Address:           "Jl. Baru No. 1",
+		BankName:          "Mandiri",
+		BankAccountNumber: "9876543210",
+		BankAccountHolder: "CV Sumber Sehat",
 	}))
 	require.NoError(t, err)
 	sup := resp.Msg.Supplier
@@ -31,11 +35,17 @@ func TestUpdateSupplier_RoundTrip(t *testing.T) {
 	require.Equal(t, "New Name", sup.Name)
 	require.Equal(t, "ops@example.com", sup.ContactEmail)
 	require.Equal(t, "0800000000", sup.Phone)
+	require.Equal(t, "Jl. Baru No. 1", sup.Address)
+	require.Equal(t, "Mandiri", sup.BankName)
+	require.Equal(t, "9876543210", sup.BankAccountNumber)
+	require.Equal(t, "CV Sumber Sehat", sup.BankAccountHolder)
 
-	// Persisted: a re-Get reflects the update.
+	// Persisted: a re-Get reflects the update (incl. the new fields).
 	got, err := svc.GetSupplier(context.Background(), connect.NewRequest(&inventoryifacev1.GetSupplierRequest{Id: seeded.Id}))
 	require.NoError(t, err)
 	require.Equal(t, "New Name", got.Msg.Supplier.Name)
+	require.Equal(t, "Jl. Baru No. 1", got.Msg.Supplier.Address)
+	require.Equal(t, "9876543210", got.Msg.Supplier.BankAccountNumber)
 }
 
 func TestUpdateSupplier_NotFound(t *testing.T) {

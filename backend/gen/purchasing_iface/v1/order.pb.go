@@ -335,6 +335,10 @@ type PurchaseOrderItem struct {
 	ProductUnitId string `protobuf:"bytes,10,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"`
 	UnitName      string `protobuf:"bytes,11,opt,name=unit_name,json=unitName,proto3" json:"unit_name,omitempty"`
 	UnitFactor    int64  `protobuf:"varint,12,opt,name=unit_factor,json=unitFactor,proto3" json:"unit_factor,omitempty"`
+	// Per-line discount. discount_value is minor units when FIXED, basis points
+	// (percent*100, e.g. 12.5% = 1250) when PERCENT. subtotal is NET (after it).
+	DiscountType  string `protobuf:"bytes,13,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"` // 'FIXED' | 'PERCENT' (empty => FIXED)
+	DiscountValue int64  `protobuf:"varint,14,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -453,12 +457,28 @@ func (x *PurchaseOrderItem) GetUnitFactor() int64 {
 	return 0
 }
 
+func (x *PurchaseOrderItem) GetDiscountType() string {
+	if x != nil {
+		return x.DiscountType
+	}
+	return ""
+}
+
+func (x *PurchaseOrderItem) GetDiscountValue() int64 {
+	if x != nil {
+		return x.DiscountValue
+	}
+	return 0
+}
+
 type PurchaseOrderItemInput struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	OrderedQty    int32                  `protobuf:"varint,2,opt,name=ordered_qty,json=orderedQty,proto3" json:"ordered_qty,omitempty"`            // qty in the chosen purchasable unit (empty unit_id => base)
 	UnitCostPrice int64                  `protobuf:"varint,3,opt,name=unit_cost_price,json=unitCostPrice,proto3" json:"unit_cost_price,omitempty"` // per BASE unit (frontend derives from line total)
 	ProductUnitId string                 `protobuf:"bytes,4,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"`  // purchasable unit; empty => base unit
+	DiscountType  string                 `protobuf:"bytes,5,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"`       // 'FIXED' (default) | 'PERCENT'
+	DiscountValue int64                  `protobuf:"varint,6,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`   // FIXED=minor units; PERCENT=basis points (percent*100)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -519,6 +539,20 @@ func (x *PurchaseOrderItemInput) GetProductUnitId() string {
 		return x.ProductUnitId
 	}
 	return ""
+}
+
+func (x *PurchaseOrderItemInput) GetDiscountType() string {
+	if x != nil {
+		return x.DiscountType
+	}
+	return ""
+}
+
+func (x *PurchaseOrderItemInput) GetDiscountValue() int64 {
+	if x != nil {
+		return x.DiscountValue
+	}
+	return 0
 }
 
 type ListPurchaseOrdersRequest struct {
@@ -1289,7 +1323,7 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"ppnEnabled\x12\x1d\n" +
 	"\n" +
 	"ppn_amount\x18\x18 \x01(\x03R\tppnAmount\x12\x19\n" +
-	"\bppn_rate\x18\x19 \x01(\x05R\appnRate\"\xa0\x03\n" +
+	"\bppn_rate\x18\x19 \x01(\x05R\appnRate\"\xec\x03\n" +
 	"\x11PurchaseOrderItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
 	"\x11purchase_order_id\x18\x02 \x01(\tR\x0fpurchaseOrderId\x12\x1d\n" +
@@ -1307,14 +1341,18 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	" \x01(\tR\rproductUnitId\x12\x1b\n" +
 	"\tunit_name\x18\v \x01(\tR\bunitName\x12\x1f\n" +
 	"\vunit_factor\x18\f \x01(\x03R\n" +
-	"unitFactor\"\xa8\x01\n" +
+	"unitFactor\x12#\n" +
+	"\rdiscount_type\x18\r \x01(\tR\fdiscountType\x12%\n" +
+	"\x0ediscount_value\x18\x0e \x01(\x03R\rdiscountValue\"\xf4\x01\n" +
 	"\x16PurchaseOrderItemInput\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1f\n" +
 	"\vordered_qty\x18\x02 \x01(\x05R\n" +
 	"orderedQty\x12&\n" +
 	"\x0funit_cost_price\x18\x03 \x01(\x03R\runitCostPrice\x12&\n" +
-	"\x0fproduct_unit_id\x18\x04 \x01(\tR\rproductUnitId\"\xb7\x02\n" +
+	"\x0fproduct_unit_id\x18\x04 \x01(\tR\rproductUnitId\x12#\n" +
+	"\rdiscount_type\x18\x05 \x01(\tR\fdiscountType\x12%\n" +
+	"\x0ediscount_value\x18\x06 \x01(\x03R\rdiscountValue\"\xb7\x02\n" +
 	"\x19ListPurchaseOrdersRequest\x125\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1d.purchasing_iface.v1.POStatusR\x06status\x12\x1f\n" +
 	"\vsupplier_id\x18\x02 \x01(\tR\n" +

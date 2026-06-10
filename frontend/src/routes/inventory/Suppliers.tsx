@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
   HStack,
+  Input,
   Spinner,
   Stack,
   Switch,
@@ -10,7 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Archive, Plus } from "lucide-react";
+import { Archive, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,6 +33,10 @@ const Schema = z.object({
   name: z.string().min(1),
   contactEmail: z.string().email().or(z.literal("")),
   phone: z.string(),
+  address: z.string(),
+  bankName: z.string(),
+  bankAccountNumber: z.string(),
+  bankAccountHolder: z.string(),
 });
 type FormValues = z.infer<typeof Schema>;
 
@@ -39,20 +44,44 @@ export default function Suppliers() {
   const { t } = useTranslation();
   const [includeInactive, setIncludeInactive] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { page, setPage, pageSize, setPageSize } = usePageState(String(includeInactive));
-  const suppliersQ = useSuppliersQuery({ includeInactive, page, pageSize });
+  const [searchInput, setSearchInput] = useState("");
+  const [query, setQuery] = useState("");
+
+  // Debounce the search box (250ms) into the query that drives the request.
+  useEffect(() => {
+    const h = setTimeout(() => setQuery(searchInput.trim()), 250);
+    return () => clearTimeout(h);
+  }, [searchInput]);
+
+  const { page, setPage, pageSize, setPageSize } = usePageState(`${query}|${includeInactive}`);
+  const suppliersQ = useSuppliersQuery({ includeInactive, query, page, pageSize });
 
   return (
     <Stack gap={4}>
-      <HStack justify="space-between">
-        <Switch.Root
-          checked={includeInactive}
-          onCheckedChange={(d) => setIncludeInactive(d.checked)}
-        >
-          <Switch.HiddenInput />
-          <Switch.Control />
-          <Switch.Label>{t("common.showArchived")}</Switch.Label>
-        </Switch.Root>
+      <HStack justify="space-between" wrap="wrap" gap={2}>
+        <HStack gap={3}>
+          <Box position="relative">
+            <Box position="absolute" left={2} top="50%" transform="translateY(-50%)" color="fg.muted">
+              <Search size={14} />
+            </Box>
+            <Input
+              size="sm"
+              pl={7}
+              width="280px"
+              placeholder={t("inventory.suppliers.searchPlaceholder")}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </Box>
+          <Switch.Root
+            checked={includeInactive}
+            onCheckedChange={(d) => setIncludeInactive(d.checked)}
+          >
+            <Switch.HiddenInput />
+            <Switch.Control />
+            <Switch.Label>{t("common.showArchived")}</Switch.Label>
+          </Switch.Root>
+        </HStack>
         <Button size="sm" colorPalette="blue" onClick={() => setDrawerOpen(true)}>
           <Plus size={16} />
           {t("inventory.suppliers.addTitle")}
@@ -71,6 +100,7 @@ export default function Suppliers() {
               <Table.ColumnHeader>{t("inventory.suppliers.name")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("inventory.suppliers.email")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("inventory.suppliers.phone")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("inventory.suppliers.address")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
             </Table.Row>
@@ -81,7 +111,7 @@ export default function Suppliers() {
             ))}
             {suppliersQ.rows.length === 0 && (
               <Table.Row>
-                <Table.Cell colSpan={6}>
+                <Table.Cell colSpan={7}>
                   <Text color="fg.muted" textAlign="center" py={4}>
                     {t("common.noResults")}
                   </Text>
@@ -114,6 +144,7 @@ function Row({ supplier }: { supplier: Supplier }) {
       <Table.Cell>{supplier.name}</Table.Cell>
       <Table.Cell>{supplier.contactEmail}</Table.Cell>
       <Table.Cell>{supplier.phone}</Table.Cell>
+      <Table.Cell>{supplier.address}</Table.Cell>
       <Table.Cell>{supplier.active ? t("common.yes") : t("common.no")}</Table.Cell>
       <Table.Cell>
         {supplier.active && (
@@ -136,7 +167,16 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   const create = useCreateSupplierMutation();
   const form = useForm<FormValues>({
     resolver: zodResolver(Schema),
-    defaultValues: { code: "", name: "", contactEmail: "", phone: "" },
+    defaultValues: {
+      code: "",
+      name: "",
+      contactEmail: "",
+      phone: "",
+      address: "",
+      bankName: "",
+      bankAccountNumber: "",
+      bankAccountHolder: "",
+    },
   });
 
   const submit = form.handleSubmit(async (values) => {
@@ -146,6 +186,10 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         name: values.name,
         contactEmail: values.contactEmail,
         phone: values.phone,
+        address: values.address,
+        bankName: values.bankName,
+        bankAccountNumber: values.bankAccountNumber,
+        bankAccountHolder: values.bankAccountHolder,
       });
       toast.success(t("common.create") + " ✓");
       form.reset();
@@ -196,6 +240,29 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             control={form.control}
             name="phone"
             label={t("inventory.suppliers.phone")}
+          />
+          <FormField
+            control={form.control}
+            name="address"
+            label={t("inventory.suppliers.address")}
+          />
+          <Text fontSize="sm" fontWeight="medium" color="fg.muted" pt={2}>
+            {t("inventory.suppliers.bankInfo")}
+          </Text>
+          <FormField
+            control={form.control}
+            name="bankName"
+            label={t("inventory.suppliers.bankName")}
+          />
+          <FormField
+            control={form.control}
+            name="bankAccountNumber"
+            label={t("inventory.suppliers.bankAccountNumber")}
+          />
+          <FormField
+            control={form.control}
+            name="bankAccountHolder"
+            label={t("inventory.suppliers.bankAccountHolder")}
           />
         </Stack>
       </form>

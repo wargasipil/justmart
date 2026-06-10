@@ -22,11 +22,15 @@ func (s *SupplierService) CreateSupplier(
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("code and name required"))
 	}
 	sup := model.Supplier{
-		Code:         code,
-		Name:         name,
-		ContactEmail: strings.TrimSpace(req.Msg.ContactEmail),
-		Phone:        strings.TrimSpace(req.Msg.Phone),
-		Active:       true,
+		Code:              code,
+		Name:              name,
+		ContactEmail:      strings.TrimSpace(req.Msg.ContactEmail),
+		Phone:             strings.TrimSpace(req.Msg.Phone),
+		Address:           strings.TrimSpace(req.Msg.Address),
+		BankName:          strings.TrimSpace(req.Msg.BankName),
+		BankAccountNumber: strings.TrimSpace(req.Msg.BankAccountNumber),
+		BankAccountHolder: strings.TrimSpace(req.Msg.BankAccountHolder),
+		Active:            true,
 	}
 	if err := s.db.WithContext(ctx).Create(&sup).Error; err != nil {
 		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("create supplier: %w", err))

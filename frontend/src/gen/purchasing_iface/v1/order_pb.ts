@@ -336,6 +336,21 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
    */
   unitFactor = protoInt64.zero;
 
+  /**
+   * Per-line discount. discount_value is minor units when FIXED, basis points
+   * (percent*100, e.g. 12.5% = 1250) when PERCENT. subtotal is NET (after it).
+   *
+   * 'FIXED' | 'PERCENT' (empty => FIXED)
+   *
+   * @generated from field: string discount_type = 13;
+   */
+  discountType = "";
+
+  /**
+   * @generated from field: int64 discount_value = 14;
+   */
+  discountValue = protoInt64.zero;
+
   constructor(data?: PartialMessage<PurchaseOrderItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -356,6 +371,8 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
     { no: 10, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "unit_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 12, name: "unit_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 13, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 14, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItem {
@@ -405,6 +422,20 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
    */
   productUnitId = "";
 
+  /**
+   * 'FIXED' (default) | 'PERCENT'
+   *
+   * @generated from field: string discount_type = 5;
+   */
+  discountType = "";
+
+  /**
+   * FIXED=minor units; PERCENT=basis points (percent*100)
+   *
+   * @generated from field: int64 discount_value = 6;
+   */
+  discountValue = protoInt64.zero;
+
   constructor(data?: PartialMessage<PurchaseOrderItemInput>) {
     super();
     proto3.util.initPartial(data, this);
@@ -417,6 +448,8 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
     { no: 2, name: "ordered_qty", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 3, name: "unit_cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 4, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItemInput {

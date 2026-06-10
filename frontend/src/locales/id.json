@@ -179,6 +179,10 @@
     "itemsMore": "+{{count}} lainnya",
     "lineTotalInput": "Harga modal total (IDR)",
     "unitCostDerived": "Harga / satuan dasar",
+    "lineDiscount": "Diskon item",
+    "discountType": "Jenis diskon",
+    "fixed": "Nominal",
+    "percent": "Persen",
     "unit": "Satuan",
     "remaining": "Sisa",
     "statusTabs": {
@@ -498,7 +502,13 @@
       "code": "Kode",
       "name": "Nama",
       "email": "Email",
-      "phone": "Telepon"
+      "phone": "Telepon",
+      "address": "Alamat",
+      "bankInfo": "Data rekening",
+      "bankName": "Bank",
+      "bankAccountNumber": "No. Rekening",
+      "bankAccountHolder": "Atas Nama",
+      "searchPlaceholder": "Cari kode / nama…"
     },
     "batches": {
       "title": "Batch",

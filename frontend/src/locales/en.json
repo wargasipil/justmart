@@ -179,6 +179,10 @@
     "itemsMore": "+{{count}} more",
     "lineTotalInput": "Total cost (IDR)",
     "unitCostDerived": "Cost / base unit",
+    "lineDiscount": "Line discount",
+    "discountType": "Discount type",
+    "fixed": "Fixed",
+    "percent": "Percent",
     "unit": "Unit",
     "remaining": "Remaining",
     "statusTabs": {
@@ -498,7 +502,13 @@
       "code": "Code",
       "name": "Name",
       "email": "Email",
-      "phone": "Phone"
+      "phone": "Phone",
+      "address": "Address",
+      "bankInfo": "Bank account",
+      "bankName": "Bank",
+      "bankAccountNumber": "Account number",
+      "bankAccountHolder": "Account holder",
+      "searchPlaceholder": "Search by code / name…"
     },
     "batches": {
       "title": "Batches",

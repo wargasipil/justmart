@@ -41,6 +41,51 @@ func TestCreatePurchaseOrder_HappyPath(t *testing.T) {
 	require.Equal(t, int64(4000), o.OrderedTotal)
 }
 
+func TestCreatePurchaseOrder_FixedLineDiscount(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CPO-FIX", "Fixed disc supplier")
+	prodID := e.seedProduct(t, "cpo-fix-sku", "Fixed disc product", 1000)
+
+	resp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 5, UnitCostPrice: 800, DiscountType: "FIXED", DiscountValue: 500},
+		},
+	}))
+	require.NoError(t, err)
+	o := resp.Msg.Order
+	require.Len(t, o.Items, 1)
+	require.Equal(t, "FIXED", o.Items[0].DiscountType)
+	require.Equal(t, int64(500), o.Items[0].DiscountValue)
+	require.Equal(t, int64(3500), o.Items[0].Subtotal) // 5*800=4000 − 500
+	require.Equal(t, int64(3500), o.Subtotal)
+	require.Equal(t, int64(3500), o.OrderedTotal)
+}
+
+func TestCreatePurchaseOrder_PercentLineDiscountDecimal(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CPO-PCT", "Pct disc supplier")
+	prodID := e.seedProduct(t, "cpo-pct-sku", "Pct disc product", 1000)
+
+	resp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			// 12.5% = 1250 basis points; gross 10*1000=10000, disc 1250 → net 8750.
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000, DiscountType: "PERCENT", DiscountValue: 1250},
+		},
+	}))
+	require.NoError(t, err)
+	o := resp.Msg.Order
+	require.Len(t, o.Items, 1)
+	require.Equal(t, "PERCENT", o.Items[0].DiscountType)
+	require.Equal(t, int64(1250), o.Items[0].DiscountValue)
+	require.Equal(t, int64(8750), o.Items[0].Subtotal)
+	require.Equal(t, int64(8750), o.Subtotal)
+	require.Equal(t, int64(8750), o.OrderedTotal)
+}
+
 func TestCreatePurchaseOrder_NoItems(t *testing.T) {
 	t.Parallel()
 	e := newPOEnv(t)

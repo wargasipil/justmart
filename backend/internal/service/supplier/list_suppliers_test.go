@@ -38,6 +38,7 @@ func TestListSuppliers_QueryFilter(t *testing.T) {
 	seedSupplier(t, svc, "QF-2", "Sanbe Farma")
 	seedSupplier(t, svc, "QF-3", "Dexa Medica")
 
+	// Match by name.
 	resp, err := svc.ListSuppliers(context.Background(), connect.NewRequest(&inventoryifacev1.ListSuppliersRequest{
 		Query: "Kalbe",
 	}))
@@ -45,6 +46,25 @@ func TestListSuppliers_QueryFilter(t *testing.T) {
 	require.EqualValues(t, 1, resp.Msg.Total)
 	require.Len(t, resp.Msg.Suppliers, 1)
 	require.Equal(t, "Kalbe Farma", resp.Msg.Suppliers[0].Name)
+
+	// Match by code: "QF-2" only matches Sanbe Farma's code (not any name).
+	byCode, err := svc.ListSuppliers(context.Background(), connect.NewRequest(&inventoryifacev1.ListSuppliersRequest{
+		Query: "QF-2",
+	}))
+	require.NoError(t, err)
+	require.EqualValues(t, 1, byCode.Msg.Total)
+	require.Len(t, byCode.Msg.Suppliers, 1)
+	require.Equal(t, "Sanbe Farma", byCode.Msg.Suppliers[0].Name)
+
+	// Case-insensitive (pins common.LikeOp: LIKE on SQLite is ASCII-insensitive,
+	// ILIKE on Postgres) — lowercase query still matches the mixed-case name.
+	ci, err := svc.ListSuppliers(context.Background(), connect.NewRequest(&inventoryifacev1.ListSuppliersRequest{
+		Query: "kalbe",
+	}))
+	require.NoError(t, err)
+	require.EqualValues(t, 1, ci.Msg.Total)
+	require.Len(t, ci.Msg.Suppliers, 1)
+	require.Equal(t, "Kalbe Farma", ci.Msg.Suppliers[0].Name)
 }
 
 func TestListSuppliers_ExcludesInactiveByDefault(t *testing.T) {

@@ -20,10 +20,14 @@ func (s *SupplierService) UpdateSupplier(
 		return nil, err
 	}
 	updates := map[string]any{
-		"code":          strings.ToUpper(strings.TrimSpace(req.Msg.Code)),
-		"name":          strings.TrimSpace(req.Msg.Name),
-		"contact_email": strings.TrimSpace(req.Msg.ContactEmail),
-		"phone":         strings.TrimSpace(req.Msg.Phone),
+		"code":                strings.ToUpper(strings.TrimSpace(req.Msg.Code)),
+		"name":                strings.TrimSpace(req.Msg.Name),
+		"contact_email":       strings.TrimSpace(req.Msg.ContactEmail),
+		"phone":               strings.TrimSpace(req.Msg.Phone),
+		"address":             strings.TrimSpace(req.Msg.Address),
+		"bank_name":           strings.TrimSpace(req.Msg.BankName),
+		"bank_account_number": strings.TrimSpace(req.Msg.BankAccountNumber),
+		"bank_account_holder": strings.TrimSpace(req.Msg.BankAccountHolder),
 	}
 	if updates["name"].(string) == "" || updates["code"].(string) == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("code and name required"))

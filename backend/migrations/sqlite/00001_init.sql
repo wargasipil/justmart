@@ -21,14 +21,18 @@ CREATE TABLE users (
 );
 
 CREATE TABLE suppliers (
-    id            TEXT PRIMARY KEY NOT NULL,
-    name          TEXT NOT NULL,
-    contact_email TEXT COLLATE NOCASE,
-    phone         TEXT,
-    active        INTEGER NOT NULL DEFAULT 1,
-    created_at    DATETIME NOT NULL DEFAULT (datetime('now')),
-    updated_at    DATETIME NOT NULL DEFAULT (datetime('now')),
-    code          TEXT NOT NULL
+    id                  TEXT PRIMARY KEY NOT NULL,
+    name                TEXT NOT NULL,
+    contact_email       TEXT COLLATE NOCASE,
+    phone               TEXT,
+    active              INTEGER NOT NULL DEFAULT 1,
+    created_at          DATETIME NOT NULL DEFAULT (datetime('now')),
+    updated_at          DATETIME NOT NULL DEFAULT (datetime('now')),
+    code                TEXT NOT NULL,
+    address             TEXT NOT NULL DEFAULT '',
+    bank_name           TEXT NOT NULL DEFAULT '',
+    bank_account_number TEXT NOT NULL DEFAULT '',
+    bank_account_holder TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE customers (
@@ -247,7 +251,9 @@ CREATE TABLE purchase_order_items (
     subtotal          INTEGER NOT NULL DEFAULT 0,
     product_unit_id   TEXT,
     unit_name         TEXT NOT NULL DEFAULT '',
-    unit_factor       INTEGER NOT NULL DEFAULT 1
+    unit_factor       INTEGER NOT NULL DEFAULT 1,
+    discount_type     TEXT NOT NULL DEFAULT 'FIXED' CHECK (discount_type IN ('FIXED','PERCENT')),
+    discount_value    INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE purchase_receipts (

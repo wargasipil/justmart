@@ -43,6 +43,10 @@ type PurchaseOrderItem struct {
 	ProductUnitID *string `gorm:"type:uuid;column:product_unit_id"`
 	UnitName       string  `gorm:"not null;default:'';column:unit_name"`
 	UnitFactor     int64   `gorm:"not null;default:1;column:unit_factor"`
+	// Per-line discount. DiscountValue is minor units when FIXED, basis points
+	// (percent*100) when PERCENT. Subtotal above is the NET (gross − discount).
+	DiscountType  string `gorm:"not null;default:'FIXED';column:discount_type"`
+	DiscountValue int64  `gorm:"not null;default:0;column:discount_value"`
 }
 
 func (PurchaseOrderItem) TableName() string { return "purchase_order_items" }

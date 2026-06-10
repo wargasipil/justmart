@@ -58,17 +58,27 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 				if in.OrderedQty <= 0 {
 					return connect.NewError(connect.CodeInvalidArgument, errors.New("ordered_qty must be > 0"))
 				}
+				if in.UnitCostPrice < 0 {
+					return connect.NewError(connect.CodeInvalidArgument, errors.New("unit_cost_price must be >= 0"))
+				}
 				unit, err := resolvePurchaseUnit(tx, in.ProductId, in.ProductUnitId)
 				if err != nil {
 					return err
 				}
 				baseQty := in.OrderedQty * int32(unit.Factor) // ordered_qty stored in BASE units
+				gross := int64(baseQty) * in.UnitCostPrice
+				net, discType, err := lineNetSubtotal(gross, in.DiscountType, in.DiscountValue)
+				if err != nil {
+					return err
+				}
 				it := model.PurchaseOrderItem{
 					PurchaseOrderID: po.ID,
 					ProductID:       in.ProductId,
 					OrderedQty:      baseQty,
-					UnitCostPrice:   in.UnitCostPrice, // per base unit
-					Subtotal:        int64(baseQty) * in.UnitCostPrice,
+					UnitCostPrice:   in.UnitCostPrice, // GROSS per base unit
+					Subtotal:        net,              // NET (after per-line discount)
+					DiscountType:    discType,
+					DiscountValue:   in.DiscountValue,
 					ProductUnitID:   &unit.ID,
 					UnitName:        unit.Name,
 					UnitFactor:      unit.Factor,

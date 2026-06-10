@@ -59,6 +59,10 @@ message PurchaseOrderItem {
   string product_unit_id = 10;
   string unit_name = 11;
   int64 unit_factor = 12;
+  // Per-line discount. discount_value is minor units when FIXED, basis points
+  // (percent*100, e.g. 12.5% = 1250) when PERCENT. subtotal is NET (after it).
+  string discount_type = 13;   // 'FIXED' | 'PERCENT' (empty => FIXED)
+  int64 discount_value = 14;
 }
 
 message PurchaseOrderItemInput {
@@ -66,6 +70,8 @@ message PurchaseOrderItemInput {
   int32 ordered_qty = 2;          // qty in the chosen purchasable unit (empty unit_id => base)
   int64 unit_cost_price = 3;      // per BASE unit (frontend derives from line total)
   string product_unit_id = 4;    // purchasable unit; empty => base unit
+  string discount_type = 5;      // 'FIXED' (default) | 'PERCENT'
+  int64 discount_value = 6;      // FIXED=minor units; PERCENT=basis points (percent*100)
 }
 
 service PurchaseOrderService {

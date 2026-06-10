@@ -17,10 +17,14 @@ func TestCreateSupplier_RoundTrip(t *testing.T) {
 	svc := suppliersvc.NewSupplierService(servicetest.NewDB(t, servicetest.NewConfig(t)))
 
 	resp, err := svc.CreateSupplier(context.Background(), connect.NewRequest(&inventoryifacev1.CreateSupplierRequest{
-		Code:         "sup-001", // lowercased on input -> uppercased by handler
-		Name:         "Kimia Farma",
-		ContactEmail: "sales@kimiafarma.co.id",
-		Phone:        "0211234567",
+		Code:              "sup-001", // lowercased on input -> uppercased by handler
+		Name:              "Kimia Farma",
+		ContactEmail:      "sales@kimiafarma.co.id",
+		Phone:             "0211234567",
+		Address:           "Jl. Veteran No. 9, Jakarta",
+		BankName:          "BCA",
+		BankAccountNumber: "1234567890",
+		BankAccountHolder: "PT Kimia Farma",
 	}))
 	require.NoError(t, err)
 	sup := resp.Msg.Supplier
@@ -30,6 +34,10 @@ func TestCreateSupplier_RoundTrip(t *testing.T) {
 	require.Equal(t, "Kimia Farma", sup.Name)
 	require.Equal(t, "sales@kimiafarma.co.id", sup.ContactEmail)
 	require.Equal(t, "0211234567", sup.Phone)
+	require.Equal(t, "Jl. Veteran No. 9, Jakarta", sup.Address)
+	require.Equal(t, "BCA", sup.BankName)
+	require.Equal(t, "1234567890", sup.BankAccountNumber)
+	require.Equal(t, "PT Kimia Farma", sup.BankAccountHolder)
 	require.True(t, sup.Active)
 }
 

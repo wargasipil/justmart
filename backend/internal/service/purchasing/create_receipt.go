@@ -135,7 +135,16 @@ func (p *PurchaseReceipts) CreateReceipt(
 
 			unitCost := line.UnitCostPrice
 			if unitCost == 0 {
-				unitCost = poItem.UnitCostPrice
+				// Derive the NET per-base-unit cost from the PO line so a per-line
+				// discount lowers inventory cost (COGS/margins reflect it). Subtotal
+				// is NET; OrderedQty is BASE units. For a non-discounted line this
+				// equals the gross UnitCostPrice exactly → no behavior change. An
+				// explicit receipt override (line.UnitCostPrice != 0) still wins.
+				if poItem.OrderedQty > 0 {
+					unitCost = (poItem.Subtotal + int64(poItem.OrderedQty)/2) / int64(poItem.OrderedQty)
+				} else {
+					unitCost = poItem.UnitCostPrice
+				}
 			}
 
 			// Create the batch row carrying supplier + cost + expiry.

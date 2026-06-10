@@ -238,7 +238,18 @@
       "Bash(npm --prefix frontend run build)",
       "Bash(make portable-windows *)",
       "Bash(taskkill //F //T //PID 16412)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(echo \"=== exit $? ===\")",
+      "Bash(JUSTMART_DB_PORT=5433 make test-unit-postgres)",
+      "Bash(JUSTMART_DB_PORT=5433 JUSTMART_TEST_DB_DRIVER=postgres go -C backend test ./internal/service/warehouse/ -run TestGetWarehouse_Found -v -count=1)",
+      "Bash(JUSTMART_DB_PORT=5433 JUSTMART_TEST_DB_DRIVER=postgres go -C backend test ./internal/service/supplier/ -count=1 -v)",
+      "Bash(JUSTMART_DB_PORT=5433 JUSTMART_TEST_DB_DRIVER=postgres go -C backend test ./internal/service/stock/ -count=1)",
+      "Bash(JUSTMART_DB_PORT=5433 JUSTMART_TEST_DB_DRIVER=postgres go -C backend test ./internal/service/stock/ -run TestGetStockLevels_HappyPath -count=1 -v)",
+      "Bash(JUSTMART_DB_PORT=5433 JUSTMART_TEST_DB_DRIVER=postgres go -C backend test ./internal/service/branch/ -run TestListUserBranches_Self -count=1 -v)",
+      "Bash(go -C backend vet ./internal/service/...)",
+      "Bash(docker rm *)",
+      "Bash(go -C backend test ./internal/service/supplier/ -count=1)",
+      "Bash(go -C backend vet ./internal/service/purchasing/)"
     ],
     "additionalDirectories": [
       "\\tmp"
