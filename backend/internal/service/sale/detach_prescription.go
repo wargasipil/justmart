@@ -33,7 +33,11 @@ func (s *SaleService) DetachPrescription(
 			return connect.NewError(connect.CodeFailedPrecondition,
 				errors.New("remove prescription-required items from the cart before detaching the prescription"))
 		}
-		return tx.Model(sale).Update("prescription_id", nil).Error
+		// Clear the resep link + its service-fee snapshot, then recompute totals.
+		if err := tx.Model(sale).Updates(map[string]any{"prescription_id": nil, "biaya_jasa": 0}).Error; err != nil {
+			return connect.NewError(connect.CodeInternal, err)
+		}
+		return recomputeSaleTotals(tx, sale.ID)
 	})
 	if err != nil {
 		return nil, common.AsConnectErr(err)

@@ -1,0 +1,125 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e132]:
+      - generic [ref=e133]:
+        - paragraph [ref=e134]: POS
+        - generic [ref=e135]:
+          - button "MAIN · Gudang Utama" [ref=e136] [cursor=pointer]:
+            - generic [ref=e137]:
+              - img [ref=e138]
+              - paragraph [ref=e141]: MAIN · Gudang Utama
+            - img [ref=e142]
+          - paragraph [ref=e144]: Owner
+          - button "exit" [ref=e145] [cursor=pointer]:
+            - img [ref=e146]
+      - generic [ref=e149]:
+        - generic [ref=e150]:
+          - generic [ref=e151]:
+            - img [ref=e153]
+            - textbox "Search medicine / scan barcode…" [ref=e156]
+          - generic [ref=e157]:
+            - generic [ref=e158] [cursor=pointer]:
+              - generic [ref=e159]:
+                - generic [ref=e160]:
+                  - paragraph [ref=e161]: Makanan Kucibng tesat
+                  - paragraph [ref=e162]: · box
+                - paragraph [ref=e163]: dd · 6 box
+              - paragraph [ref=e164]: IDR 1,000
+            - generic [ref=e165]:
+              - generic [ref=e166]:
+                - generic [ref=e167]:
+                  - paragraph [ref=e168]: Makanan Kucibng tesat
+                  - paragraph [ref=e169]: · sak
+                - paragraph [ref=e170]: dd · 0 sak
+              - paragraph [ref=e171]: IDR 18,000
+            - generic [ref=e172] [cursor=pointer]:
+              - generic [ref=e173]:
+                - generic [ref=e174]:
+                  - paragraph [ref=e175]: bodrex
+                  - paragraph [ref=e176]: · biji
+                - paragraph [ref=e177]: 32682368472 · 796 biji
+              - paragraph [ref=e178]: IDR 500
+            - generic [ref=e179] [cursor=pointer]:
+              - generic [ref=e180]:
+                - generic [ref=e181]:
+                  - paragraph [ref=e182]: bodrex
+                  - paragraph [ref=e183]: · strip
+                - paragraph [ref=e184]: 32682368472 · 199 strip
+              - paragraph [ref=e185]: IDR 1,800
+            - generic [ref=e186] [cursor=pointer]:
+              - generic [ref=e187]:
+                - generic [ref=e188]:
+                  - paragraph [ref=e189]: bodrex
+                  - paragraph [ref=e190]: · box
+                - paragraph [ref=e191]: 32682368472 · 19 box
+              - paragraph [ref=e192]: IDR 18,000
+            - generic [ref=e193] [cursor=pointer]:
+              - generic [ref=e194]:
+                - generic [ref=e195]:
+                  - paragraph [ref=e196]: bodrex
+                  - paragraph [ref=e197]: · duz
+                - paragraph [ref=e198]: 32682368472 · 1 duz
+              - paragraph [ref=e199]: IDR 180,000
+            - generic [ref=e200] [cursor=pointer]:
+              - generic [ref=e201]:
+                - generic [ref=e202]:
+                  - paragraph [ref=e203]: makanan kucing
+                  - paragraph [ref=e204]: · sak
+                - paragraph [ref=e205]: 2736786378 · 3 sak
+              - paragraph [ref=e206]: IDR 200,000
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e209]:
+                  - paragraph [ref=e210]: makanan kucing
+                  - paragraph [ref=e211]: · box
+                - paragraph [ref=e212]: 2736786378 · 0 box
+              - paragraph [ref=e213]: IDR 10,000
+        - generic [ref=e214]:
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - paragraph [ref=e217]: Cart
+              - paragraph [ref=e218]: 0 items
+            - generic [ref=e219]:
+              - img [ref=e220]
+              - paragraph [ref=e223]: Pasien Tes 2026
+              - button "Clear" [ref=e302] [cursor=pointer]
+            - generic [ref=e225]:
+              - img [ref=e226]
+              - paragraph [ref=e229]: Attach prescription (F5)
+              - button "Attach prescription (F5)" [ref=e230] [cursor=pointer]
+          - paragraph [ref=e232]: Cart is empty
+          - generic [ref=e234]:
+            - generic [ref=e235]:
+              - paragraph [ref=e236]: Subtotal
+              - paragraph [ref=e237]: IDR 0
+            - generic [ref=e238]:
+              - paragraph [ref=e239]: Service fee
+              - textbox "Service fee" [ref=e240]:
+                - /placeholder: "0"
+            - generic [ref=e241]:
+              - paragraph [ref=e242]: TOTAL
+              - paragraph [ref=e243]: IDR 0
+            - generic [ref=e244]:
+              - paragraph [ref=e245]: Payment
+              - radiogroup [ref=e246]:
+                - generic [ref=e247]:
+                  - generic [ref=e248]:
+                    - radio "Cash" [checked] [ref=e249]
+                    - generic [ref=e252]: Cash
+                  - generic [ref=e253]:
+                    - radio "Non-cash" [ref=e254]
+                    - generic [ref=e256]: Non-cash
+            - generic [ref=e257]:
+              - generic [ref=e258]:
+                - paragraph [ref=e259]: Paid
+                - textbox "0" [ref=e260]
+              - generic [ref=e261]:
+                - paragraph [ref=e262]: Change
+                - paragraph [ref=e263]: IDR 0
+            - button "Complete (F8)" [disabled] [ref=e265]
+          - paragraph [ref=e267]: F2 search · F4 customer · F5 Rx · F8 complete · Esc clear
+    - generic [ref=e6]:
+      - img [ref=e8]
+      - button "Open Tanstack query devtools" [ref=e56] [cursor=pointer]:
+        - img [ref=e57]
+  - region "Notifications, top-end (alt+T)"

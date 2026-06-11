@@ -157,7 +157,9 @@ func recomputeSaleTotals(tx *gorm.DB, saleID string) error {
 	if err := tx.Where("id = ?", saleID).First(&current).Error; err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
-	total := subtotal - current.CartDiscount
+	// total = items subtotal − cart discount + biaya jasa (service fee). The fee
+	// is a sale-level charge snapshotted from the attached resep (editable at POS).
+	total := subtotal - current.CartDiscount + current.BiayaJasa
 	if total < 0 {
 		total = 0
 	}

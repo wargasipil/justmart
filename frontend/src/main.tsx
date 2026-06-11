@@ -21,6 +21,7 @@ import Users from "./routes/Users";
 import Customers from "./routes/Customers";
 import Orders from "./routes/Orders";
 import Prescriptions from "./routes/Prescriptions";
+import NewPrescription from "./routes/prescriptions/NewPrescription";
 import OrderDetail from "./routes/OrderDetail";
 import Inventory from "./routes/Inventory";
 import Pos from "./routes/Pos";
@@ -93,7 +94,10 @@ const router = createBrowserRouter([
         // Resep (prescriptions) — pharmacy mode. The Rx authority is OWNER +
         // PHARMACIST + APOTEKER (the licensed pharmacist); CASHIER is excluded.
         element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.APOTEKER]} />,
-        children: [{ path: "prescriptions", element: <Prescriptions /> }],
+        children: [
+          { path: "prescriptions/new", element: <NewPrescription /> },
+          { path: "prescriptions", element: <Prescriptions /> },
+        ],
       },
       {
         element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST]} />,
@@ -159,7 +163,14 @@ const router = createBrowserRouter([
       },
     ],
   },
-]);
+], {
+  // Opt in early to the router-level v7 behavior (silences its console
+  // future-flag warning; no behavioral change for our routes).
+  // v7_startTransition is a RouterProvider-level flag (set below), not here.
+  future: {
+    v7_relativeSplatPath: true,
+  },
+});
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -167,7 +178,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <ChakraProvider value={defaultSystem}>
           <AuthProvider>
-            <RouterProvider router={router} />
+            <RouterProvider router={router} future={{ v7_startTransition: true }} />
             <AppToaster />
           </AuthProvider>
           <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />

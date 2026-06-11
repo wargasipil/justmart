@@ -67,8 +67,10 @@ type UserServiceClient interface {
 	// history "Created by" column — CASHIER is allowed for the latter (resolves
 	// only ids it already sees in its warehouse's sales).
 	ResolveUsers(context.Context, *connect.Request[v1.ResolveUsersRequest]) (*connect.Response[v1.ResolveUsersResponse], error)
-	// Server-side fuzzy search for the warehouse-detail "Add user" picker.
-	// OWNER-only because this is an admin path.
+	// Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
+	// PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
+	// prescriptions). Returns only the minimal UserRef {id,name,email} that
+	// ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
 	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
 	CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error)
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
@@ -215,8 +217,10 @@ type UserServiceHandler interface {
 	// history "Created by" column — CASHIER is allowed for the latter (resolves
 	// only ids it already sees in its warehouse's sales).
 	ResolveUsers(context.Context, *connect.Request[v1.ResolveUsersRequest]) (*connect.Response[v1.ResolveUsersResponse], error)
-	// Server-side fuzzy search for the warehouse-detail "Add user" picker.
-	// OWNER-only because this is an admin path.
+	// Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
+	// PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
+	// prescriptions). Returns only the minimal UserRef {id,name,email} that
+	// ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
 	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
 	CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error)
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)

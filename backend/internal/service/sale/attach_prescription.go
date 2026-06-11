@@ -40,7 +40,9 @@ func (s *SaleService) AttachPrescription(
 
 		// Customer consistency: the sale's customer (if any) must be the Rx
 		// patient; an unset sale customer is auto-filled from the Rx.
-		updates := map[string]any{"prescription_id": rx.ID}
+		// Snapshot the resep's biaya jasa (service fee) onto the sale — survives
+		// later resep edits, same spirit as unit_price_snapshot; editable at POS.
+		updates := map[string]any{"prescription_id": rx.ID, "biaya_jasa": rx.BiayaJasa}
 		if sale.CustomerID != nil && *sale.CustomerID != "" {
 			if *sale.CustomerID != rx.CustomerID {
 				return connect.NewError(connect.CodeFailedPrecondition,
@@ -52,7 +54,9 @@ func (s *SaleService) AttachPrescription(
 		if err := tx.Model(sale).Updates(updates).Error; err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
-		return nil
+		// Recompute so the persisted total reflects the fee immediately (the
+		// CompleteSale cash guard reads sale.Total).
+		return recomputeSaleTotals(tx, sale.ID)
 	})
 	if err != nil {
 		return nil, common.AsConnectErr(err)

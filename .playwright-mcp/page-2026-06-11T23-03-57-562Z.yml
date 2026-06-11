@@ -1,0 +1,185 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e121]:
+      - complementary [ref=e122]:
+        - generic [ref=e123]:
+          - img [ref=e125]
+          - paragraph [ref=e128]: Example Apotek (Pharmacy)
+        - generic [ref=e129]:
+          - link "Dashboard" [ref=e130] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e131]:
+              - img [ref=e132]
+              - paragraph [ref=e137]: Dashboard
+          - link "Analytics" [ref=e138] [cursor=pointer]:
+            - /url: /analytics
+            - generic [ref=e139]:
+              - img [ref=e140]
+              - paragraph [ref=e142]: Analytics
+          - link "POS" [ref=e143] [cursor=pointer]:
+            - /url: /pos
+            - generic [ref=e144]:
+              - img [ref=e145]
+              - paragraph [ref=e149]: POS
+          - link "Medicines" [ref=e150] [cursor=pointer]:
+            - /url: /products
+            - generic [ref=e151]:
+              - img [ref=e152]
+              - paragraph [ref=e155]: Medicines
+          - button "Inventory" [ref=e157] [cursor=pointer]:
+            - img [ref=e158]
+            - paragraph [ref=e162]: Inventory
+            - img [ref=e164]
+          - link "Prescriptions" [ref=e166] [cursor=pointer]:
+            - /url: /prescriptions
+            - generic [ref=e167]:
+              - img [ref=e168]
+              - paragraph [ref=e171]: Prescriptions
+          - link "Customers" [ref=e172] [cursor=pointer]:
+            - /url: /customers
+            - generic [ref=e173]:
+              - img [ref=e174]
+              - paragraph [ref=e177]: Customers
+          - link "Order history" [ref=e178] [cursor=pointer]:
+            - /url: /orders
+            - generic [ref=e179]:
+              - img [ref=e180]
+              - paragraph [ref=e183]: Order history
+          - link "Warehouses" [ref=e184] [cursor=pointer]:
+            - /url: /warehouses
+            - generic [ref=e185]:
+              - img [ref=e186]
+              - paragraph [ref=e189]: Warehouses
+          - link "Users" [ref=e190] [cursor=pointer]:
+            - /url: /users
+            - generic [ref=e191]:
+              - img [ref=e192]
+              - paragraph [ref=e197]: Users
+          - link "Settings" [ref=e198] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e199]:
+              - img [ref=e200]
+              - paragraph [ref=e203]: Settings
+        - generic [ref=e204]:
+          - generic [ref=e205]:
+            - paragraph [ref=e206]: Owner
+            - paragraph [ref=e207]: owner@justmart.local
+          - button "Sign out" [ref=e208] [cursor=pointer]:
+            - img [ref=e209]
+            - paragraph [ref=e212]: Sign out
+          - button "toggle sidebar" [ref=e213] [cursor=pointer]:
+            - img [ref=e214]
+      - generic [ref=e217]:
+        - banner [ref=e218]:
+          - generic [ref=e220]:
+            - button "MAIN · Gudang Utama" [ref=e221] [cursor=pointer]:
+              - generic [ref=e222]:
+                - img [ref=e223]
+                - paragraph [ref=e226]: MAIN · Gudang Utama
+              - img [ref=e227]
+            - button "Notifications" [ref=e229] [cursor=pointer]:
+              - img [ref=e230]
+              - generic [ref=e233]: "2"
+            - button "language" [ref=e234] [cursor=pointer]:
+              - generic [ref=e235]:
+                - img [ref=e236]
+                - paragraph [ref=e240]: ID
+            - button "toggle theme" [ref=e241] [cursor=pointer]:
+              - img [ref=e242]
+            - button "user menu" [ref=e244] [cursor=pointer]:
+              - generic [ref=e245]: O
+        - main [ref=e246]:
+          - generic [ref=e247]:
+            - button "Back" [ref=e248] [cursor=pointer]:
+              - img [ref=e249]
+              - text: Back
+            - generic [ref=e251]:
+              - generic [ref=e252]:
+                - generic [ref=e253]:
+                  - link "Prescriptions" [ref=e254] [cursor=pointer]:
+                    - /url: /prescriptions
+                    - paragraph [ref=e255]: Prescriptions
+                  - img [ref=e256]
+                - paragraph [ref=e259]: New prescription
+              - heading "New prescription" [level=2] [ref=e262]
+            - generic [ref=e263]:
+              - generic [ref=e264]:
+                - generic [ref=e265]:
+                  - paragraph [ref=e266]: Patient *
+                  - generic [ref=e268]:
+                    - combobox "Select patient" [ref=e269]
+                    - button "Toggle suggestions" [ref=e271]:
+                      - img [ref=e272]
+                  - button "New patient" [ref=e274] [cursor=pointer]:
+                    - img [ref=e275]
+                    - text: New patient
+                - generic [ref=e276]:
+                  - paragraph [ref=e277]: Doctor / issuer *
+                  - generic [ref=e279]:
+                    - combobox "Select doctor / issuer" [ref=e280]
+                    - button "Toggle suggestions" [ref=e282]:
+                      - img [ref=e283]
+                - generic [ref=e285]:
+                  - generic [ref=e286]:
+                    - paragraph [ref=e287]: Issued *
+                    - generic [ref=e289]:
+                      - textbox "mm/dd/yyyy" [ref=e290]: 06/11/2026
+                      - generic [ref=e291]:
+                        - button "Clear date" [ref=e292] [cursor=pointer]:
+                          - img [ref=e293]
+                        - button "Open calendar" [ref=e296] [cursor=pointer]:
+                          - img [ref=e297]
+                  - generic [ref=e299]:
+                    - paragraph [ref=e300]: Expires
+                    - generic [ref=e302]:
+                      - textbox "mm/dd/yyyy" [ref=e303]
+                      - button "Open calendar" [ref=e305] [cursor=pointer]:
+                        - img [ref=e306]
+                    - paragraph [ref=e308]: Defaults to 90 days from issued date
+                - generic [ref=e309]:
+                  - generic [ref=e310]:
+                    - paragraph [ref=e311]: Age
+                    - spinbutton [ref=e312]
+                  - generic [ref=e313]:
+                    - paragraph [ref=e314]: Weight
+                    - textbox [ref=e315]
+                  - generic [ref=e316]:
+                    - paragraph [ref=e317]: Allergy
+                    - textbox [ref=e318]
+                - generic [ref=e319]:
+                  - generic [ref=e320]:
+                    - paragraph [ref=e321]: Service fee
+                    - textbox "0" [ref=e322]
+                  - generic [ref=e323]:
+                    - paragraph [ref=e324]: Note
+                    - textbox [ref=e325]
+                - generic [ref=e326]:
+                  - generic [ref=e327]:
+                    - heading "Items" [level=2] [ref=e328]
+                    - button "Add item" [ref=e329] [cursor=pointer]:
+                      - img [ref=e330]
+                      - text: Add item
+                  - generic [ref=e332]:
+                    - generic [ref=e333]:
+                      - generic [ref=e334]:
+                        - paragraph [ref=e335]: Select medicine
+                        - generic [ref=e337]:
+                          - combobox "Select medicine" [ref=e338]
+                          - button "Toggle suggestions" [ref=e340]:
+                            - img [ref=e341]
+                      - generic [ref=e343]:
+                        - paragraph [ref=e344]: Prescribed qty
+                        - spinbutton [ref=e345]: "1"
+                      - button "remove line" [disabled] [ref=e346]:
+                        - img [ref=e347]
+                    - generic [ref=e350]:
+                      - paragraph [ref=e351]: Dosage instructions
+                      - textbox [ref=e352]
+              - generic [ref=e353]:
+                - button "Cancel" [ref=e354] [cursor=pointer]
+                - button "Create" [disabled] [ref=e355]
+    - generic [ref=e6]:
+      - img [ref=e8]
+      - button "Open Tanstack query devtools" [ref=e56] [cursor=pointer]:
+        - img [ref=e57]
+  - region "Notifications, top-end (alt+T)"

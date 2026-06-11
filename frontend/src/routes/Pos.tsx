@@ -22,7 +22,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Lock, LogOut, Minus, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import EnumSelect from "../components/EnumSelect";
 import MoneyInput from "../components/MoneyInput";
@@ -41,6 +41,7 @@ import { useMyWarehousesQuery } from "../queries/warehouses";
 import { useAllProductsQuery } from "../queries/products";
 import { useStockLevelsQuery } from "../queries/stock";
 import { useCustomerSearchQuery } from "../queries/customers";
+import { useCustomerRefs } from "../queries/refs";
 import { useBusinessMode } from "../queries/settings";
 import { usePrescriptionsQuery } from "../queries/prescriptions";
 import {
@@ -52,12 +53,32 @@ import {
   useRemoveItemMutation,
   useSetItemQuantityMutation,
   useSetSaleCustomerMutation,
+  useSetServiceFeeMutation,
   useStartSaleMutation,
 } from "../queries/sales";
+
+// localStorage keys for preserving the in-progress DRAFT cart across the
+// create-resep round-trip (POS → /prescriptions/new → POS). Without this the
+// unmount cleanup would hard-delete the draft. POS_DEFERRED carries the
+// Rx-required product whose add was pending a covering prescription so it can
+// be re-added once the new resep is attached on return.
+const POS_DRAFT_KEY = "justmart_pos_draft";
+const POS_DEFERRED_KEY = "justmart_pos_deferred";
+
+// Release the body lock Chakra/Ark leaves behind when a modal Dialog is
+// unmounted via navigation instead of a normal close (it sets pointer-events:
+// none + overflow:hidden on <body> and aria-hidden on #root, and doesn't
+// restore them on abrupt unmount). Without this the destination page is frozen.
+function releaseModalBodyLock() {
+  document.body.style.removeProperty("pointer-events");
+  document.body.style.removeProperty("overflow");
+  document.getElementById("root")?.removeAttribute("aria-hidden");
+}
 
 export default function Pos() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -71,6 +92,7 @@ export default function Pos() {
   const setSaleCustomer = useSetSaleCustomerMutation();
   const attachPrescription = useAttachPrescriptionMutation();
   const detachPrescription = useDetachPrescriptionMutation();
+  const setServiceFee = useSetServiceFeeMutation();
   const completeSale = useCompleteSaleMutation();
 
   const [sale, setSale] = useState<Sale | null>(null);
@@ -84,6 +106,10 @@ export default function Pos() {
     PaymentSource.CASH,
   );
   const [paidAmount, setPaidAmount] = useState("0");
+  // Biaya jasa (service fee) — defaults from the attached resep, editable here.
+  // Local input state committed on blur via SetServiceFee (avoids an RPC per
+  // keystroke); kept in sync whenever the sale's fee changes (e.g. attach).
+  const [feeInput, setFeeInput] = useState("0");
 
   const ensureSale = useCallback(async (): Promise<Sale | null> => {
     if (sale) return sale;
@@ -103,17 +129,63 @@ export default function Pos() {
   // swallowed (no global error toast). saleRef mirrors `sale` so the mount-once
   // cleanup reads the latest value.
   const saleRef = useRef<Sale | null>(null);
+  // Set true before an intentional create-resep navigation so the unmount
+  // cleanup keeps the persisted DRAFT instead of discarding it.
+  const keepDraftRef = useRef(false);
   useEffect(() => {
     saleRef.current = sale;
   }, [sale]);
   useEffect(() => {
     return () => {
+      if (keepDraftRef.current) return; // intentional create-resep nav — keep the cart
       const s = saleRef.current;
       if (s && s.status === SaleStatus.DRAFT) {
         void saleClient.discardSale({ saleId: s.id }).catch(() => {});
       }
     };
   }, []);
+
+  // Persist the cart + the pending Rx-required product, then route to the
+  // full create-resep page. On return (?attachRx=<id>) the mount effect below
+  // restores the draft and attaches the new resep. Navigation is DEFERRED until
+  // after the picker dialog closes (see the effect below): navigating while a
+  // Chakra Dialog is open leaves the body scroll-lock / inert state applied,
+  // which freezes the whole destination page (nothing clickable/typable).
+  const [pendingResepNav, setPendingResepNav] = useState<string | null>(null);
+  const goCreateResep = useCallback(() => {
+    const s = saleRef.current;
+    if (s) localStorage.setItem(POS_DRAFT_KEY, s.id);
+    if (deferred) {
+      localStorage.setItem(
+        POS_DEFERRED_KEY,
+        JSON.stringify({ productId: deferred.product.id, unitId: deferred.unitId }),
+      );
+    } else {
+      localStorage.removeItem(POS_DEFERRED_KEY);
+    }
+    keepDraftRef.current = true;
+    const patient = s?.customerId ?? "";
+    setPrescriptionOpen(false); // close the picker first so it unmounts + releases the body lock
+    setPendingResepNav(
+      `/prescriptions/new?returnTo=pos${patient ? `&patient=${patient}` : ""}`,
+    );
+  }, [deferred]);
+
+  // Once the picker dialog has closed (committed), navigate on the next frame.
+  // Chakra/Ark applies a body lock (pointer-events:none + overflow:hidden) and
+  // sets aria-hidden on #root while a modal Dialog is open, and only restores
+  // them on a normal close transition — NOT when the Dialog unmounts because we
+  // navigated away. That leaves the destination page completely frozen. We've
+  // closed the picker (so it's unmounted by now) but must release the residual
+  // body lock ourselves before routing to the create-resep page.
+  useEffect(() => {
+    if (pendingResepNav == null) return;
+    const id = requestAnimationFrame(() => {
+      releaseModalBodyLock();
+      navigate(pendingResepNav);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [pendingResepNav, navigate]);
 
   // --- Warehouse gate: pick the selling warehouse before POS opens ----
   // POS is full-screen (no TopBar selector), so the cashier chooses the active
@@ -179,8 +251,65 @@ export default function Pos() {
     [currentWarehouse, sale, queryClient],
   );
 
+  // Mount: restore a preserved DRAFT cart if we're returning from the
+  // create-resep page (?attachRx=<id>), otherwise start a fresh draft. When an
+  // Rx was just created we attach it and re-add the deferred Rx-required product
+  // — a single round-trip lands the resep + the item that needed it.
+  const restoredRef = useRef(false);
   useEffect(() => {
-    void ensureSale();
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    const attachRx = searchParams.get("attachRx") ?? "";
+    const persistedSaleId = localStorage.getItem(POS_DRAFT_KEY);
+    const deferredRaw = localStorage.getItem(POS_DEFERRED_KEY);
+    localStorage.removeItem(POS_DRAFT_KEY);
+    localStorage.removeItem(POS_DEFERRED_KEY);
+
+    void (async () => {
+      let restored: Sale | null = null;
+      if (persistedSaleId) {
+        try {
+          const res = await saleClient.getSale({ id: persistedSaleId });
+          if (res.sale && res.sale.status === SaleStatus.DRAFT) {
+            restored = res.sale;
+            setSale(res.sale);
+          }
+        } catch {
+          /* draft gone — fall back to a fresh start */
+        }
+      }
+      if (!restored) {
+        await ensureSale();
+        return;
+      }
+      if (attachRx) {
+        const deferredInfo = deferredRaw
+          ? (JSON.parse(deferredRaw) as { productId: string; unitId: string })
+          : null;
+        try {
+          const attRes = await attachPrescription.mutateAsync({
+            saleId: restored.id,
+            prescriptionId: attachRx,
+          });
+          let cur = attRes.sale ?? restored;
+          if (deferredInfo?.productId) {
+            const addRes = await addItem.mutateAsync({
+              saleId: cur.id,
+              productId: deferredInfo.productId,
+              productUnitId: deferredInfo.unitId ?? "",
+              qty: 1,
+            });
+            cur = addRes.sale ?? cur;
+          }
+          setSale(cur);
+        } catch {
+          /* toast handled globally */
+        }
+        // Strip ?attachRx so a manual refresh doesn't re-trigger the attach.
+        setSearchParams({}, { replace: true });
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -427,6 +556,23 @@ export default function Pos() {
       if (res.sale) setSale(res.sale);
     } catch {
       /* toast handled globally (blocked if Rx items still in cart) */
+    }
+  };
+
+  // Keep the fee input mirrored to the sale (attach snapshots the resep's fee).
+  useEffect(() => {
+    setFeeInput(String(Number(sale?.biayaJasa ?? 0n)));
+  }, [sale?.biayaJasa]);
+
+  const commitFee = async () => {
+    if (!sale) return;
+    const v = Math.max(0, Number(feeInput || "0") || 0);
+    if (v === Number(sale.biayaJasa)) return;
+    try {
+      const res = await setServiceFee.mutateAsync({ saleId: sale.id, biayaJasa: BigInt(v) });
+      if (res.sale) setSale(res.sale);
+    } catch {
+      /* toast handled globally */
     }
   };
 
@@ -714,6 +860,19 @@ export default function Pos() {
                   {formatMoney(Number(sale?.subtotal ?? 0n))}
                 </Text>
               </Flex>
+              {isPharmacy && (
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="sm" color="fg.muted">{t("prescriptions.biayaJasa")}</Text>
+                  <MoneyInput
+                    size="sm"
+                    width="120px"
+                    value={feeInput}
+                    onChange={setFeeInput}
+                    onBlur={commitFee}
+                    aria-label={t("prescriptions.biayaJasa")}
+                  />
+                </Flex>
+              )}
               <Flex justify="space-between">
                 <Text fontWeight="semibold">{t("pos.total")}</Text>
                 <Text fontWeight="semibold" fontFamily="mono">
@@ -804,6 +963,7 @@ export default function Pos() {
           setDeferred(null);
         }}
         onPick={onAttachPrescription}
+        onCreateNew={goCreateResep}
       />
 
       <ReceiptDialog sale={completedSale} onClose={onCloseReceipt} />
@@ -873,12 +1033,18 @@ function CustomerBar({
   onClear: () => void;
 }) {
   const { t } = useTranslation();
-  const hasCustomer = !!sale?.customerId;
+  const customerId = sale?.customerId ?? "";
+  const hasCustomer = !!customerId;
+  // Resolve the attached customer's name (manual pick OR auto-filled from an
+  // attached resep) so the bar shows the name, not the raw UUID.
+  const refs = useCustomerRefs(useMemo(() => (customerId ? [customerId] : []), [customerId]));
   return (
     <Flex mt={2} align="center" gap={2}>
       <UserRound size={14} />
       <Text fontSize="xs" color="fg.muted" flex="1">
-        {hasCustomer ? sale!.customerId.slice(0, 8) : t("pos.customer")}
+        {hasCustomer
+          ? (refs.get(customerId)?.name ?? customerId.slice(0, 8))
+          : t("pos.customer")}
       </Text>
       {hasCustomer ? (
         <Button size="xs" variant="ghost" onClick={onClear}>
@@ -934,18 +1100,23 @@ function PrescriptionPickerDialog({
   deferredName,
   onClose,
   onPick,
+  onCreateNew,
 }: {
   open: boolean;
   customerId: string;
   deferredName: string;
   onClose: () => void;
   onPick: (prescriptionId: string) => void;
+  onCreateNew: () => void;
 }) {
   const { t } = useTranslation();
   const rxQ = usePrescriptionsQuery({ status: "ACTIVE", customerId, limit: 1000, enabled: open });
   const rows: Prescription[] = open ? rxQ.rows : [];
 
-  if (!open) return null;
+  // NOTE: always render Dialog.Root (never `if (!open) return null`). Returning
+  // null on close unmounts the dialog abruptly, which leaks Chakra/Ark's body
+  // lock (pointer-events:none on <body> + aria-hidden on #root) and freezes POS.
+  // Letting Dialog.Root see open=false runs Ark's proper close + restore.
   return (
     <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
       <Portal>
@@ -1000,6 +1171,12 @@ function PrescriptionPickerDialog({
                 </Stack>
               </Stack>
             </Dialog.Body>
+            <Dialog.Footer>
+              <Button colorPalette="blue" variant="outline" onClick={onCreateNew}>
+                <Plus size={14} />
+                {t("prescriptions.createNew")}
+              </Button>
+            </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
@@ -1020,7 +1197,8 @@ function CustomerPickerDialog({
   const [q, setQ] = useState("");
   const searchQ = useCustomerSearchQuery(q, open);
 
-  if (!open) return null;
+  // Always render Dialog.Root (see PrescriptionPickerDialog note) — returning
+  // null on close leaks the body lock and freezes POS.
   return (
     <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
       <Portal>
@@ -1083,8 +1261,11 @@ function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => vo
   const { t } = useTranslation();
   const productsQ = useAllProductsQuery();
   const printMut = usePrintReceiptMutation();
-  if (!sale) return null;
+  // Always render Dialog.Root (never `if (!sale) return null`) so Ark runs its
+  // close + body-lock restore; otherwise POS freezes after closing a receipt.
+  // The content is guarded on `sale` below.
   const onPrint = async () => {
+    if (!sale) return;
     try {
       await printMut.mutateAsync(sale.id);
       toast.success(t("pos.printSent"));
@@ -1099,6 +1280,8 @@ function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => vo
         <Dialog.Backdrop />
         <Dialog.Positioner>
           <Dialog.Content>
+            {sale && (
+              <>
             <Dialog.Header>
               <Dialog.Title>
                 {t("pos.receiptTitle")} · {sale.saleNo || sale.id.slice(0, 8)}
@@ -1128,6 +1311,12 @@ function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => vo
                     <Text fontSize="sm">{t("pos.subtotal")}</Text>
                     <Text fontSize="sm">{formatMoney(Number(sale.subtotal))}</Text>
                   </Flex>
+                  {Number(sale.biayaJasa) > 0 && (
+                    <Flex justify="space-between">
+                      <Text fontSize="sm">{t("prescriptions.biayaJasa")}</Text>
+                      <Text fontSize="sm">{formatMoney(Number(sale.biayaJasa))}</Text>
+                    </Flex>
+                  )}
                   <Flex justify="space-between">
                     <Text fontWeight="semibold">{t("pos.total")}</Text>
                     <Text fontWeight="semibold">{formatMoney(Number(sale.total))}</Text>
@@ -1153,6 +1342,8 @@ function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => vo
                 {t("pos.newSale")}
               </Button>
             </Dialog.Footer>
+              </>
+            )}
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>

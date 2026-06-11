@@ -13,6 +13,11 @@ type Prescription struct {
 	Status     string    `gorm:"not null;default:'ACTIVE'"`
 	CreatedBy  string    `gorm:"not null;type:uuid;column:created_by"`
 	BranchID   *string   `gorm:"type:uuid;column:branch_id"`
+	// Pharmacy: service fee (minor units) + resep-specific patient clinical info.
+	BiayaJasa      int64  `gorm:"not null;default:0;column:biaya_jasa"`
+	PatientAge     int32  `gorm:"not null;default:0;column:patient_age"`
+	PatientWeight  string `gorm:"not null;default:'';column:patient_weight"`
+	PatientAllergy string `gorm:"not null;default:'';column:patient_allergy"`
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 

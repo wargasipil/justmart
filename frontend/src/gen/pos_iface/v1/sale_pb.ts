@@ -159,6 +159,13 @@ export class Sale extends Message<Sale> {
    */
   customerName = "";
 
+  /**
+   * service fee (minor units); added to total, default from the attached resep
+   *
+   * @generated from field: int64 biaya_jasa = 19;
+   */
+  biayaJasa = protoInt64.zero;
+
   constructor(data?: PartialMessage<Sale>) {
     super();
     proto3.util.initPartial(data, this);
@@ -184,6 +191,7 @@ export class Sale extends Message<Sale> {
     { no: 16, name: "prescription_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 17, name: "warehouse_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 18, name: "customer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 19, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Sale {
@@ -1071,6 +1079,88 @@ export class DetachPrescriptionResponse extends Message<DetachPrescriptionRespon
 
   static equals(a: DetachPrescriptionResponse | PlainMessage<DetachPrescriptionResponse> | undefined, b: DetachPrescriptionResponse | PlainMessage<DetachPrescriptionResponse> | undefined): boolean {
     return proto3.util.equals(DetachPrescriptionResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetServiceFeeRequest
+ */
+export class SetServiceFeeRequest extends Message<SetServiceFeeRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * service fee in minor units (>= 0)
+   *
+   * @generated from field: int64 biaya_jasa = 2;
+   */
+  biayaJasa = protoInt64.zero;
+
+  constructor(data?: PartialMessage<SetServiceFeeRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetServiceFeeRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetServiceFeeRequest {
+    return new SetServiceFeeRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetServiceFeeRequest {
+    return new SetServiceFeeRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetServiceFeeRequest {
+    return new SetServiceFeeRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetServiceFeeRequest | PlainMessage<SetServiceFeeRequest> | undefined, b: SetServiceFeeRequest | PlainMessage<SetServiceFeeRequest> | undefined): boolean {
+    return proto3.util.equals(SetServiceFeeRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetServiceFeeResponse
+ */
+export class SetServiceFeeResponse extends Message<SetServiceFeeResponse> {
+  /**
+   * @generated from field: pos_iface.v1.Sale sale = 1;
+   */
+  sale?: Sale;
+
+  constructor(data?: PartialMessage<SetServiceFeeResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetServiceFeeResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale", kind: "message", T: Sale },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetServiceFeeResponse {
+    return new SetServiceFeeResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetServiceFeeResponse {
+    return new SetServiceFeeResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetServiceFeeResponse {
+    return new SetServiceFeeResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetServiceFeeResponse | PlainMessage<SetServiceFeeResponse> | undefined, b: SetServiceFeeResponse | PlainMessage<SetServiceFeeResponse> | undefined): boolean {
+    return proto3.util.equals(SetServiceFeeResponse, a, b);
   }
 }
 

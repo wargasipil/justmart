@@ -16,6 +16,7 @@ func saleToProto(s *model.Sale) *posifacev1.Sale {
 		CartDiscount:  s.CartDiscount,
 		Total:         s.Total,
 		PaidAmount:    s.PaidAmount,
+		BiayaJasa:     s.BiayaJasa,
 		Status:        saleStatusToProto(s.Status),
 		CreatedAt:     s.CreatedAt.Unix(),
 		PaymentSource: paymentSourceFromString(common.Deref(s.PaymentSource)),

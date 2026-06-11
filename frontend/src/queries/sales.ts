@@ -7,6 +7,7 @@ import type {
   AttachPrescriptionRequest,
   CompleteSaleRequest,
   DetachPrescriptionRequest,
+  SetServiceFeeRequest,
   GetSalesSummaryRequest,
   ListSalesRequest,
   RemoveItemRequest,
@@ -88,6 +89,17 @@ export function useDetachPrescriptionMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<DetachPrescriptionRequest>) =>
       saleClient.detachPrescription(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+  });
+}
+
+export function useSetServiceFeeMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<SetServiceFeeRequest>) =>
+      saleClient.setServiceFee(req),
     onSuccess: (res) => {
       if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
     },

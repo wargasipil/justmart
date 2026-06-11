@@ -198,6 +198,11 @@ func (a *AnalyticsService) productPageIDs(
 	return ids, total, nil
 }
 
+// productOrderForIDs computes per-product order metrics. terjual is item revenue
+// only (SUM(sale_items.line_total)) — the sale-level biaya_jasa service fee is
+// intentionally EXCLUDED here: a fee attached to a whole sale isn't attributable
+// to any single product. (DailyMetric / UserMetric / GetSalesSummary count the
+// fee at the sale level; this per-product carve-out mirrors the on_order one.)
 func (a *AnalyticsService) productOrderForIDs(ctx context.Context, from, to time.Time, warehouseID string, ids []string) (map[string]*analyticsifacev1.OrderItem, error) {
 	type row struct {
 		ProductID     string `gorm:"column:product_id"`

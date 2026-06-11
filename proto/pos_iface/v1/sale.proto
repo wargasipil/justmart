@@ -39,6 +39,7 @@ message Sale {
   string prescription_id = 16; // pharmacy mode: attached resep (empty = none)
   string warehouse_id = 17;
   string customer_name = 18;   // denormalized for the order-history list
+  int64 biaya_jasa = 19;       // service fee (minor units); added to total, default from the attached resep
 }
 
 message SaleItem {
@@ -110,6 +111,15 @@ service SaleService {
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc DetachPrescription(DetachPrescriptionRequest) returns (DetachPrescriptionResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // SetServiceFee overrides the sale's biaya jasa (service fee) at the till. The
+  // value defaults from the attached resep on AttachPrescription; this lets the
+  // cashier adjust it. DRAFT only.
+  rpc SetServiceFee(SetServiceFeeRequest) returns (SetServiceFeeResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
@@ -211,6 +221,12 @@ message DetachPrescriptionRequest {
   string sale_id = 1;
 }
 message DetachPrescriptionResponse { Sale sale = 1; }
+
+message SetServiceFeeRequest {
+  string sale_id = 1;
+  int64 biaya_jasa = 2; // service fee in minor units (>= 0)
+}
+message SetServiceFeeResponse { Sale sale = 1; }
 
 message CompleteSaleRequest {
   string sale_id = 1;

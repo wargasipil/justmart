@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
+import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -95,6 +95,19 @@ export const SaleService = {
       name: "DetachPrescription",
       I: DetachPrescriptionRequest,
       O: DetachPrescriptionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetServiceFee overrides the sale's biaya jasa (service fee) at the till. The
+     * value defaults from the attached resep on AttachPrescription; this lets the
+     * cashier adjust it. DRAFT only.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.SetServiceFee
+     */
+    setServiceFee: {
+      name: "SetServiceFee",
+      I: SetServiceFeeRequest,
+      O: SetServiceFeeResponse,
       kind: MethodKind.Unary,
     },
     /**

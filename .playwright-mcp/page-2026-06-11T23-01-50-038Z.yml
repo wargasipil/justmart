@@ -1,0 +1,206 @@
+- generic [active]:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - img
+          - paragraph: Example Apotek (Pharmacy)
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - paragraph: Dashboard
+          - link:
+            - /url: /analytics
+            - generic:
+              - img
+              - paragraph: Analytics
+          - link:
+            - /url: /pos
+            - generic:
+              - img
+              - paragraph: POS
+          - link:
+            - /url: /products
+            - generic:
+              - img
+              - paragraph: Medicines
+          - generic:
+            - button:
+              - img
+              - paragraph: Inventory
+              - img
+          - link:
+            - /url: /prescriptions
+            - generic:
+              - img
+              - paragraph: Prescriptions
+          - link:
+            - /url: /customers
+            - generic:
+              - img
+              - paragraph: Customers
+          - link:
+            - /url: /orders
+            - generic:
+              - img
+              - paragraph: Order history
+          - link:
+            - /url: /warehouses
+            - generic:
+              - img
+              - paragraph: Warehouses
+          - link:
+            - /url: /users
+            - generic:
+              - img
+              - paragraph: Users
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - paragraph: Settings
+        - generic:
+          - generic:
+            - paragraph: Owner
+            - paragraph: owner@justmart.local
+          - button:
+            - img
+            - paragraph: Sign out
+          - button:
+            - img
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - button:
+                - generic:
+                  - img
+                  - paragraph: MAIN · Gudang Utama
+                - img
+              - button:
+                - img
+                - generic: "2"
+              - button:
+                - generic:
+                  - img
+                  - paragraph: ID
+              - button:
+                - img
+              - button:
+                - generic: O
+        - main:
+          - generic:
+            - button:
+              - img
+              - text: Back
+            - generic:
+              - generic:
+                - generic:
+                  - link:
+                    - /url: /prescriptions
+                    - paragraph: Prescriptions
+                  - img
+                - generic:
+                  - paragraph: New prescription
+              - generic:
+                - generic:
+                  - heading [level=2]: New prescription
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Patient *
+                  - generic:
+                    - generic:
+                      - combobox
+                      - generic:
+                        - button:
+                          - img
+                  - button:
+                    - img
+                    - text: New patient
+                - generic:
+                  - paragraph: Doctor / issuer *
+                  - generic:
+                    - generic:
+                      - combobox
+                      - generic:
+                        - button:
+                          - img
+                - generic:
+                  - generic:
+                    - paragraph: Issued *
+                    - generic:
+                      - generic:
+                        - textbox:
+                          - /placeholder: mm/dd/yyyy
+                          - text: 06/11/2026
+                        - generic:
+                          - button:
+                            - img
+                          - button:
+                            - img
+                  - generic:
+                    - paragraph: Expires
+                    - generic:
+                      - generic:
+                        - textbox:
+                          - /placeholder: mm/dd/yyyy
+                        - generic:
+                          - button:
+                            - img
+                    - paragraph: Defaults to 90 days from issued date
+                - generic:
+                  - generic:
+                    - paragraph: Age
+                    - spinbutton
+                  - generic:
+                    - paragraph: Weight
+                    - textbox
+                  - generic:
+                    - paragraph: Allergy
+                    - textbox
+                - generic:
+                  - generic:
+                    - paragraph: Service fee
+                    - textbox:
+                      - /placeholder: "0"
+                  - generic:
+                    - paragraph: Note
+                    - textbox
+                - generic:
+                  - generic:
+                    - heading [level=2]: Items
+                    - button:
+                      - img
+                      - text: Add item
+                  - generic:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - paragraph: Select medicine
+                          - generic:
+                            - generic:
+                              - combobox
+                              - generic:
+                                - button:
+                                  - img
+                        - generic:
+                          - paragraph: Prescribed qty
+                          - spinbutton: "1"
+                        - button [disabled]:
+                          - img
+                      - generic:
+                        - paragraph: Dosage instructions
+                        - textbox
+              - generic:
+                - button: Cancel
+                - button [disabled]: Create
+    - generic:
+      - generic:
+        - img
+      - button:
+        - img
+  - region "Notifications, top-end (alt+T)"

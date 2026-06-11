@@ -150,15 +150,19 @@ func computeRxStatus(rx *model.Prescription, now time.Time) string {
 
 func rxToProto(rx *model.Prescription, status string) *prescriptionifacev1.Prescription {
 	out := &prescriptionifacev1.Prescription{
-		Id:         rx.ID,
-		CustomerId: rx.CustomerID,
-		IssuerName: rx.IssuerName,
-		IssuedAt:   rx.IssuedAt.Format(common.DateLayout),
-		ExpiresAt:  rx.ExpiresAt.Format(common.DateLayout),
-		Note:       rx.Note,
-		Status:     status,
-		CreatedBy:  rx.CreatedBy,
-		CreatedAt:  rx.CreatedAt.Unix(),
+		Id:             rx.ID,
+		CustomerId:     rx.CustomerID,
+		IssuerName:     rx.IssuerName,
+		IssuedAt:       rx.IssuedAt.Format(common.DateLayout),
+		ExpiresAt:      rx.ExpiresAt.Format(common.DateLayout),
+		Note:           rx.Note,
+		Status:         status,
+		CreatedBy:      rx.CreatedBy,
+		CreatedAt:      rx.CreatedAt.Unix(),
+		BiayaJasa:      rx.BiayaJasa,
+		PatientAge:     rx.PatientAge,
+		PatientWeight:  rx.PatientWeight,
+		PatientAllergy: rx.PatientAllergy,
 	}
 	if rx.RxNo != nil {
 		out.RxNo = *rx.RxNo

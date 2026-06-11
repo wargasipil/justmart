@@ -36,8 +36,10 @@ export const UserService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Server-side fuzzy search for the warehouse-detail "Add user" picker.
-     * OWNER-only because this is an admin path.
+     * Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
+     * PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
+     * prescriptions). Returns only the minimal UserRef {id,name,email} that
+     * ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
      *
      * @generated from rpc user_iface.v1.UserService.SearchUsers
      */

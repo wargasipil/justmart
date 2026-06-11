@@ -48,17 +48,24 @@ func (s *PrescriptionService) CreatePrescription(
 	if expires.Before(issued) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at must be on/after issued_at"))
 	}
+	if req.Msg.BiayaJasa < 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("biaya_jasa must be >= 0"))
+	}
 
 	var rx model.Prescription
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		rx = model.Prescription{
-			CustomerID: req.Msg.CustomerId,
-			IssuerName: strings.TrimSpace(req.Msg.IssuerName),
-			IssuedAt:   issued,
-			ExpiresAt:  *expires,
-			Note:       strings.TrimSpace(req.Msg.Note),
-			Status:     rxStatusActive,
-			CreatedBy:  caller.UserID,
+			CustomerID:     req.Msg.CustomerId,
+			IssuerName:     strings.TrimSpace(req.Msg.IssuerName),
+			IssuedAt:       issued,
+			ExpiresAt:      *expires,
+			Note:           strings.TrimSpace(req.Msg.Note),
+			Status:         rxStatusActive,
+			CreatedBy:      caller.UserID,
+			BiayaJasa:      req.Msg.BiayaJasa,
+			PatientAge:     req.Msg.PatientAge,
+			PatientWeight:  strings.TrimSpace(req.Msg.PatientWeight),
+			PatientAllergy: strings.TrimSpace(req.Msg.PatientAllergy),
 		}
 		rxNo, err := assignRxNo(tx, time.Now())
 		if err != nil {

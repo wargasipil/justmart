@@ -1075,11 +1075,11 @@ const file_user_iface_v1_users_proto_rawDesc = "" +
 	"\x1fRedeemPasswordResetTokenRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\"\n" +
-	" RedeemPasswordResetTokenResponse2\xac\a\n" +
+	" RedeemPasswordResetTokenResponse2\xae\a\n" +
 	"\vUserService\x12V\n" +
 	"\tListUsers\x12\x1f.user_iface.v1.ListUsersRequest\x1a .user_iface.v1.ListUsersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12a\n" +
-	"\fResolveUsers\x12\".user_iface.v1.ResolveUsersRequest\x1a#.user_iface.v1.ResolveUsersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12[\n" +
-	"\vSearchUsers\x12!.user_iface.v1.SearchUsersRequest\x1a\".user_iface.v1.SearchUsersResponse\"\x05\x8a\xb5\x18\x01\x01\x12X\n" +
+	"\fResolveUsers\x12\".user_iface.v1.ResolveUsersRequest\x1a#.user_iface.v1.ResolveUsersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12]\n" +
+	"\vSearchUsers\x12!.user_iface.v1.SearchUsersRequest\x1a\".user_iface.v1.SearchUsersResponse\"\a\x8a\xb5\x18\x03\x01\x02\x04\x12X\n" +
 	"\n" +
 	"CreateUser\x12 .user_iface.v1.CreateUserRequest\x1a!.user_iface.v1.CreateUserResponse\"\x05\x8a\xb5\x18\x01\x01\x12d\n" +
 	"\x0eUpdateUserRole\x12$.user_iface.v1.UpdateUserRoleRequest\x1a%.user_iface.v1.UpdateUserRoleResponse\"\x05\x8a\xb5\x18\x01\x01\x12a\n" +

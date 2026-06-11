@@ -55,6 +55,9 @@ const (
 	// SaleServiceDetachPrescriptionProcedure is the fully-qualified name of the SaleService's
 	// DetachPrescription RPC.
 	SaleServiceDetachPrescriptionProcedure = "/pos_iface.v1.SaleService/DetachPrescription"
+	// SaleServiceSetServiceFeeProcedure is the fully-qualified name of the SaleService's SetServiceFee
+	// RPC.
+	SaleServiceSetServiceFeeProcedure = "/pos_iface.v1.SaleService/SetServiceFee"
 	// SaleServiceCompleteSaleProcedure is the fully-qualified name of the SaleService's CompleteSale
 	// RPC.
 	SaleServiceCompleteSaleProcedure = "/pos_iface.v1.SaleService/CompleteSale"
@@ -87,6 +90,10 @@ type SaleServiceClient interface {
 	// *authoring* authority is separate (PrescriptionService Create/Update/Void).
 	AttachPrescription(context.Context, *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error)
 	DetachPrescription(context.Context, *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error)
+	// SetServiceFee overrides the sale's biaya jasa (service fee) at the till. The
+	// value defaults from the attached resep on AttachPrescription; this lets the
+	// cashier adjust it. DRAFT only.
+	SetServiceFee(context.Context, *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error)
 	CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error)
 	VoidSale(context.Context, *connect.Request[v1.VoidSaleRequest]) (*connect.Response[v1.VoidSaleResponse], error)
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
@@ -162,6 +169,12 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(saleServiceMethods.ByName("DetachPrescription")),
 			connect.WithClientOptions(opts...),
 		),
+		setServiceFee: connect.NewClient[v1.SetServiceFeeRequest, v1.SetServiceFeeResponse](
+			httpClient,
+			baseURL+SaleServiceSetServiceFeeProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("SetServiceFee")),
+			connect.WithClientOptions(opts...),
+		),
 		completeSale: connect.NewClient[v1.CompleteSaleRequest, v1.CompleteSaleResponse](
 			httpClient,
 			baseURL+SaleServiceCompleteSaleProcedure,
@@ -212,6 +225,7 @@ type saleServiceClient struct {
 	setSaleCustomer    *connect.Client[v1.SetSaleCustomerRequest, v1.SetSaleCustomerResponse]
 	attachPrescription *connect.Client[v1.AttachPrescriptionRequest, v1.AttachPrescriptionResponse]
 	detachPrescription *connect.Client[v1.DetachPrescriptionRequest, v1.DetachPrescriptionResponse]
+	setServiceFee      *connect.Client[v1.SetServiceFeeRequest, v1.SetServiceFeeResponse]
 	completeSale       *connect.Client[v1.CompleteSaleRequest, v1.CompleteSaleResponse]
 	voidSale           *connect.Client[v1.VoidSaleRequest, v1.VoidSaleResponse]
 	discardSale        *connect.Client[v1.DiscardSaleRequest, v1.DiscardSaleResponse]
@@ -265,6 +279,11 @@ func (c *saleServiceClient) DetachPrescription(ctx context.Context, req *connect
 	return c.detachPrescription.CallUnary(ctx, req)
 }
 
+// SetServiceFee calls pos_iface.v1.SaleService.SetServiceFee.
+func (c *saleServiceClient) SetServiceFee(ctx context.Context, req *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error) {
+	return c.setServiceFee.CallUnary(ctx, req)
+}
+
 // CompleteSale calls pos_iface.v1.SaleService.CompleteSale.
 func (c *saleServiceClient) CompleteSale(ctx context.Context, req *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error) {
 	return c.completeSale.CallUnary(ctx, req)
@@ -309,6 +328,10 @@ type SaleServiceHandler interface {
 	// *authoring* authority is separate (PrescriptionService Create/Update/Void).
 	AttachPrescription(context.Context, *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error)
 	DetachPrescription(context.Context, *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error)
+	// SetServiceFee overrides the sale's biaya jasa (service fee) at the till. The
+	// value defaults from the attached resep on AttachPrescription; this lets the
+	// cashier adjust it. DRAFT only.
+	SetServiceFee(context.Context, *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error)
 	CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error)
 	VoidSale(context.Context, *connect.Request[v1.VoidSaleRequest]) (*connect.Response[v1.VoidSaleResponse], error)
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
@@ -380,6 +403,12 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(saleServiceMethods.ByName("DetachPrescription")),
 		connect.WithHandlerOptions(opts...),
 	)
+	saleServiceSetServiceFeeHandler := connect.NewUnaryHandler(
+		SaleServiceSetServiceFeeProcedure,
+		svc.SetServiceFee,
+		connect.WithSchema(saleServiceMethods.ByName("SetServiceFee")),
+		connect.WithHandlerOptions(opts...),
+	)
 	saleServiceCompleteSaleHandler := connect.NewUnaryHandler(
 		SaleServiceCompleteSaleProcedure,
 		svc.CompleteSale,
@@ -436,6 +465,8 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 			saleServiceAttachPrescriptionHandler.ServeHTTP(w, r)
 		case SaleServiceDetachPrescriptionProcedure:
 			saleServiceDetachPrescriptionHandler.ServeHTTP(w, r)
+		case SaleServiceSetServiceFeeProcedure:
+			saleServiceSetServiceFeeHandler.ServeHTTP(w, r)
 		case SaleServiceCompleteSaleProcedure:
 			saleServiceCompleteSaleHandler.ServeHTTP(w, r)
 		case SaleServiceVoidSaleProcedure:
@@ -491,6 +522,10 @@ func (UnimplementedSaleServiceHandler) AttachPrescription(context.Context, *conn
 
 func (UnimplementedSaleServiceHandler) DetachPrescription(context.Context, *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.DetachPrescription is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) SetServiceFee(context.Context, *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetServiceFee is not implemented"))
 }
 
 func (UnimplementedSaleServiceHandler) CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error) {

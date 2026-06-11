@@ -59,12 +59,19 @@ func (s *PrescriptionService) UpdatePrescription(
 		if expires.Before(issued) {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at must be on/after issued_at"))
 		}
+		if req.Msg.BiayaJasa < 0 {
+			return connect.NewError(connect.CodeInvalidArgument, errors.New("biaya_jasa must be >= 0"))
+		}
 
 		updates := map[string]any{
-			"issuer_name": issuer,
-			"issued_at":   issued,
-			"expires_at":  *expires,
-			"note":        strings.TrimSpace(req.Msg.Note),
+			"issuer_name":     issuer,
+			"issued_at":       issued,
+			"expires_at":      *expires,
+			"note":            strings.TrimSpace(req.Msg.Note),
+			"biaya_jasa":      req.Msg.BiayaJasa,
+			"patient_age":     req.Msg.PatientAge,
+			"patient_weight":  strings.TrimSpace(req.Msg.PatientWeight),
+			"patient_allergy": strings.TrimSpace(req.Msg.PatientAllergy),
 		}
 		if err := tx.Model(rx).Updates(updates).Error; err != nil {
 			return connect.NewError(connect.CodeInternal, err)

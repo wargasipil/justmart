@@ -31,21 +31,25 @@ const (
 //
 // Clients should treat status as read-only.
 type Prescription struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	RxNo          string                 `protobuf:"bytes,2,opt,name=rx_no,json=rxNo,proto3" json:"rx_no,omitempty"` // RX-YYYY-NNNN, server-assigned
-	CustomerId    string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	IssuerName    string                 `protobuf:"bytes,4,opt,name=issuer_name,json=issuerName,proto3" json:"issuer_name,omitempty"` // free-text doctor name
-	IssuedAt      string                 `protobuf:"bytes,5,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`       // YYYY-MM-DD
-	ExpiresAt     string                 `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`    // YYYY-MM-DD
-	Note          string                 `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
-	Status        string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"` // ACTIVE | DISPENSED | EXPIRED | VOIDED
-	CreatedBy     string                 `protobuf:"bytes,9,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
-	BranchId      string                 `protobuf:"bytes,10,opt,name=branch_id,json=branchId,proto3" json:"branch_id,omitempty"` // placeholder (dormant; mirrors sales.branch_id)
-	CreatedAt     int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	Items         []*PrescriptionItem    `protobuf:"bytes,12,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	RxNo           string                 `protobuf:"bytes,2,opt,name=rx_no,json=rxNo,proto3" json:"rx_no,omitempty"` // RX-YYYY-NNNN, server-assigned
+	CustomerId     string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	IssuerName     string                 `protobuf:"bytes,4,opt,name=issuer_name,json=issuerName,proto3" json:"issuer_name,omitempty"` // free-text doctor name
+	IssuedAt       string                 `protobuf:"bytes,5,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`       // YYYY-MM-DD
+	ExpiresAt      string                 `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`    // YYYY-MM-DD
+	Note           string                 `protobuf:"bytes,7,opt,name=note,proto3" json:"note,omitempty"`
+	Status         string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"` // ACTIVE | DISPENSED | EXPIRED | VOIDED
+	CreatedBy      string                 `protobuf:"bytes,9,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
+	BranchId       string                 `protobuf:"bytes,10,opt,name=branch_id,json=branchId,proto3" json:"branch_id,omitempty"` // placeholder (dormant; mirrors sales.branch_id)
+	CreatedAt      int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	Items          []*PrescriptionItem    `protobuf:"bytes,12,rep,name=items,proto3" json:"items,omitempty"`
+	BiayaJasa      int64                  `protobuf:"varint,13,opt,name=biaya_jasa,json=biayaJasa,proto3" json:"biaya_jasa,omitempty"`            // service fee, minor units (default for the sale)
+	PatientAge     int32                  `protobuf:"varint,14,opt,name=patient_age,json=patientAge,proto3" json:"patient_age,omitempty"`         // resep patient clinical info (0 = unset)
+	PatientWeight  string                 `protobuf:"bytes,15,opt,name=patient_weight,json=patientWeight,proto3" json:"patient_weight,omitempty"` // free text, e.g. "12 kg"
+	PatientAllergy string                 `protobuf:"bytes,16,opt,name=patient_allergy,json=patientAllergy,proto3" json:"patient_allergy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Prescription) Reset() {
@@ -160,6 +164,34 @@ func (x *Prescription) GetItems() []*PrescriptionItem {
 		return x.Items
 	}
 	return nil
+}
+
+func (x *Prescription) GetBiayaJasa() int64 {
+	if x != nil {
+		return x.BiayaJasa
+	}
+	return 0
+}
+
+func (x *Prescription) GetPatientAge() int32 {
+	if x != nil {
+		return x.PatientAge
+	}
+	return 0
+}
+
+func (x *Prescription) GetPatientWeight() string {
+	if x != nil {
+		return x.PatientWeight
+	}
+	return ""
+}
+
+func (x *Prescription) GetPatientAllergy() string {
+	if x != nil {
+		return x.PatientAllergy
+	}
+	return ""
 }
 
 type PrescriptionItem struct {
@@ -531,15 +563,19 @@ func (x *GetPrescriptionResponse) GetPrescription() *Prescription {
 }
 
 type CreatePrescriptionRequest struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	CustomerId    string                   `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	IssuerName    string                   `protobuf:"bytes,2,opt,name=issuer_name,json=issuerName,proto3" json:"issuer_name,omitempty"`
-	IssuedAt      string                   `protobuf:"bytes,3,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`    // YYYY-MM-DD
-	ExpiresAt     string                   `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // YYYY-MM-DD (defaults to issued_at + 90d server-side if empty)
-	Note          string                   `protobuf:"bytes,5,opt,name=note,proto3" json:"note,omitempty"`
-	Items         []*PrescriptionItemInput `protobuf:"bytes,6,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState   `protogen:"open.v1"`
+	CustomerId     string                   `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	IssuerName     string                   `protobuf:"bytes,2,opt,name=issuer_name,json=issuerName,proto3" json:"issuer_name,omitempty"`
+	IssuedAt       string                   `protobuf:"bytes,3,opt,name=issued_at,json=issuedAt,proto3" json:"issued_at,omitempty"`    // YYYY-MM-DD
+	ExpiresAt      string                   `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"` // YYYY-MM-DD (defaults to issued_at + 90d server-side if empty)
+	Note           string                   `protobuf:"bytes,5,opt,name=note,proto3" json:"note,omitempty"`
+	Items          []*PrescriptionItemInput `protobuf:"bytes,6,rep,name=items,proto3" json:"items,omitempty"`
+	BiayaJasa      int64                    `protobuf:"varint,7,opt,name=biaya_jasa,json=biayaJasa,proto3" json:"biaya_jasa,omitempty"` // service fee, minor units
+	PatientAge     int32                    `protobuf:"varint,8,opt,name=patient_age,json=patientAge,proto3" json:"patient_age,omitempty"`
+	PatientWeight  string                   `protobuf:"bytes,9,opt,name=patient_weight,json=patientWeight,proto3" json:"patient_weight,omitempty"`
+	PatientAllergy string                   `protobuf:"bytes,10,opt,name=patient_allergy,json=patientAllergy,proto3" json:"patient_allergy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreatePrescriptionRequest) Reset() {
@@ -614,6 +650,34 @@ func (x *CreatePrescriptionRequest) GetItems() []*PrescriptionItemInput {
 	return nil
 }
 
+func (x *CreatePrescriptionRequest) GetBiayaJasa() int64 {
+	if x != nil {
+		return x.BiayaJasa
+	}
+	return 0
+}
+
+func (x *CreatePrescriptionRequest) GetPatientAge() int32 {
+	if x != nil {
+		return x.PatientAge
+	}
+	return 0
+}
+
+func (x *CreatePrescriptionRequest) GetPatientWeight() string {
+	if x != nil {
+		return x.PatientWeight
+	}
+	return ""
+}
+
+func (x *CreatePrescriptionRequest) GetPatientAllergy() string {
+	if x != nil {
+		return x.PatientAllergy
+	}
+	return ""
+}
+
 type CreatePrescriptionResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Prescription  *Prescription          `protobuf:"bytes,1,opt,name=prescription,proto3" json:"prescription,omitempty"`
@@ -666,9 +730,13 @@ type UpdatePrescriptionRequest struct {
 	ExpiresAt  string                 `protobuf:"bytes,4,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	Note       string                 `protobuf:"bytes,5,opt,name=note,proto3" json:"note,omitempty"`
 	// Full replace of lines. Allowed only when no item has been dispensed yet.
-	Items         []*PrescriptionItemInput `protobuf:"bytes,6,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Items          []*PrescriptionItemInput `protobuf:"bytes,6,rep,name=items,proto3" json:"items,omitempty"`
+	BiayaJasa      int64                    `protobuf:"varint,7,opt,name=biaya_jasa,json=biayaJasa,proto3" json:"biaya_jasa,omitempty"`
+	PatientAge     int32                    `protobuf:"varint,8,opt,name=patient_age,json=patientAge,proto3" json:"patient_age,omitempty"`
+	PatientWeight  string                   `protobuf:"bytes,9,opt,name=patient_weight,json=patientWeight,proto3" json:"patient_weight,omitempty"`
+	PatientAllergy string                   `protobuf:"bytes,10,opt,name=patient_allergy,json=patientAllergy,proto3" json:"patient_allergy,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *UpdatePrescriptionRequest) Reset() {
@@ -741,6 +809,34 @@ func (x *UpdatePrescriptionRequest) GetItems() []*PrescriptionItemInput {
 		return x.Items
 	}
 	return nil
+}
+
+func (x *UpdatePrescriptionRequest) GetBiayaJasa() int64 {
+	if x != nil {
+		return x.BiayaJasa
+	}
+	return 0
+}
+
+func (x *UpdatePrescriptionRequest) GetPatientAge() int32 {
+	if x != nil {
+		return x.PatientAge
+	}
+	return 0
+}
+
+func (x *UpdatePrescriptionRequest) GetPatientWeight() string {
+	if x != nil {
+		return x.PatientWeight
+	}
+	return ""
+}
+
+func (x *UpdatePrescriptionRequest) GetPatientAllergy() string {
+	if x != nil {
+		return x.PatientAllergy
+	}
+	return ""
 }
 
 type UpdatePrescriptionResponse struct {
@@ -879,7 +975,7 @@ var File_prescription_iface_v1_prescription_proto protoreflect.FileDescriptor
 
 const file_prescription_iface_v1_prescription_proto_rawDesc = "" +
 	"\n" +
-	"(prescription_iface/v1/prescription.proto\x12\x15prescription_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xf7\x02\n" +
+	"(prescription_iface/v1/prescription.proto\x12\x15prescription_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\x87\x04\n" +
 	"\fPrescription\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x13\n" +
 	"\x05rx_no\x18\x02 \x01(\tR\x04rxNo\x12\x1f\n" +
@@ -898,7 +994,13 @@ const file_prescription_iface_v1_prescription_proto_rawDesc = "" +
 	" \x01(\tR\bbranchId\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\v \x01(\x03R\tcreatedAt\x12=\n" +
-	"\x05items\x18\f \x03(\v2'.prescription_iface.v1.PrescriptionItemR\x05items\"\xfb\x01\n" +
+	"\x05items\x18\f \x03(\v2'.prescription_iface.v1.PrescriptionItemR\x05items\x12\x1d\n" +
+	"\n" +
+	"biaya_jasa\x18\r \x01(\x03R\tbiayaJasa\x12\x1f\n" +
+	"\vpatient_age\x18\x0e \x01(\x05R\n" +
+	"patientAge\x12%\n" +
+	"\x0epatient_weight\x18\x0f \x01(\tR\rpatientWeight\x12'\n" +
+	"\x0fpatient_allergy\x18\x10 \x01(\tR\x0epatientAllergy\"\xfb\x01\n" +
 	"\x10PrescriptionItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12'\n" +
 	"\x0fprescription_id\x18\x02 \x01(\tR\x0eprescriptionId\x12\x1d\n" +
@@ -926,7 +1028,7 @@ const file_prescription_iface_v1_prescription_proto_rawDesc = "" +
 	"\x16GetPrescriptionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"b\n" +
 	"\x17GetPrescriptionResponse\x12G\n" +
-	"\fprescription\x18\x01 \x01(\v2#.prescription_iface.v1.PrescriptionR\fprescription\"\xf1\x01\n" +
+	"\fprescription\x18\x01 \x01(\v2#.prescription_iface.v1.PrescriptionR\fprescription\"\x81\x03\n" +
 	"\x19CreatePrescriptionRequest\x12\x1f\n" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
 	"customerId\x12\x1f\n" +
@@ -936,9 +1038,16 @@ const file_prescription_iface_v1_prescription_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\tR\texpiresAt\x12\x12\n" +
 	"\x04note\x18\x05 \x01(\tR\x04note\x12B\n" +
-	"\x05items\x18\x06 \x03(\v2,.prescription_iface.v1.PrescriptionItemInputR\x05items\"e\n" +
+	"\x05items\x18\x06 \x03(\v2,.prescription_iface.v1.PrescriptionItemInputR\x05items\x12\x1d\n" +
+	"\n" +
+	"biaya_jasa\x18\a \x01(\x03R\tbiayaJasa\x12\x1f\n" +
+	"\vpatient_age\x18\b \x01(\x05R\n" +
+	"patientAge\x12%\n" +
+	"\x0epatient_weight\x18\t \x01(\tR\rpatientWeight\x12'\n" +
+	"\x0fpatient_allergy\x18\n" +
+	" \x01(\tR\x0epatientAllergy\"e\n" +
 	"\x1aCreatePrescriptionResponse\x12G\n" +
-	"\fprescription\x18\x01 \x01(\v2#.prescription_iface.v1.PrescriptionR\fprescription\"\xe0\x01\n" +
+	"\fprescription\x18\x01 \x01(\v2#.prescription_iface.v1.PrescriptionR\fprescription\"\xf0\x02\n" +
 	"\x19UpdatePrescriptionRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vissuer_name\x18\x02 \x01(\tR\n" +
@@ -947,7 +1056,14 @@ const file_prescription_iface_v1_prescription_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x04 \x01(\tR\texpiresAt\x12\x12\n" +
 	"\x04note\x18\x05 \x01(\tR\x04note\x12B\n" +
-	"\x05items\x18\x06 \x03(\v2,.prescription_iface.v1.PrescriptionItemInputR\x05items\"e\n" +
+	"\x05items\x18\x06 \x03(\v2,.prescription_iface.v1.PrescriptionItemInputR\x05items\x12\x1d\n" +
+	"\n" +
+	"biaya_jasa\x18\a \x01(\x03R\tbiayaJasa\x12\x1f\n" +
+	"\vpatient_age\x18\b \x01(\x05R\n" +
+	"patientAge\x12%\n" +
+	"\x0epatient_weight\x18\t \x01(\tR\rpatientWeight\x12'\n" +
+	"\x0fpatient_allergy\x18\n" +
+	" \x01(\tR\x0epatientAllergy\"e\n" +
 	"\x1aUpdatePrescriptionResponse\x12G\n" +
 	"\fprescription\x18\x01 \x01(\v2#.prescription_iface.v1.PrescriptionR\fprescription\")\n" +
 	"\x17VoidPrescriptionRequest\x12\x0e\n" +

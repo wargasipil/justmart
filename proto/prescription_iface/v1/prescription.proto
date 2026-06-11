@@ -25,6 +25,10 @@ message Prescription {
   string branch_id = 10;            // placeholder (dormant; mirrors sales.branch_id)
   int64 created_at = 11;
   repeated PrescriptionItem items = 12;
+  int64 biaya_jasa = 13;            // service fee, minor units (default for the sale)
+  int32 patient_age = 14;           // resep patient clinical info (0 = unset)
+  string patient_weight = 15;       // free text, e.g. "12 kg"
+  string patient_allergy = 16;
 }
 
 message PrescriptionItem {
@@ -97,6 +101,10 @@ message CreatePrescriptionRequest {
   string expires_at = 4;            // YYYY-MM-DD (defaults to issued_at + 90d server-side if empty)
   string note = 5;
   repeated PrescriptionItemInput items = 6;
+  int64 biaya_jasa = 7;            // service fee, minor units
+  int32 patient_age = 8;
+  string patient_weight = 9;
+  string patient_allergy = 10;
 }
 message CreatePrescriptionResponse { Prescription prescription = 1; }
 
@@ -108,6 +116,10 @@ message UpdatePrescriptionRequest {
   string note = 5;
   // Full replace of lines. Allowed only when no item has been dispensed yet.
   repeated PrescriptionItemInput items = 6;
+  int64 biaya_jasa = 7;
+  int32 patient_age = 8;
+  string patient_weight = 9;
+  string patient_allergy = 10;
 }
 message UpdatePrescriptionResponse { Prescription prescription = 1; }
 

@@ -16,6 +16,7 @@ type Sale struct {
 	BranchID       *string    `gorm:"type:uuid;column:branch_id"` // deprecated; superseded by warehouse_id
 	WarehouseID    *string    `gorm:"type:uuid;column:warehouse_id"`
 	PrescriptionID *string    `gorm:"type:uuid;column:prescription_id"` // pharmacy mode: attached resep
+	BiayaJasa      int64      `gorm:"not null;default:0;column:biaya_jasa"` // service fee (snapshot from resep, editable at POS)
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	CompletedAt    *time.Time `gorm:"column:completed_at"`

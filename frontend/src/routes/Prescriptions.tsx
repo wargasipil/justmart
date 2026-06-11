@@ -4,21 +4,16 @@ import {
   Button,
   Flex,
   HStack,
-  Heading,
-  IconButton,
-  Input,
   Spinner,
-  Stack,
   Table,
   Text,
-  Textarea,
 } from "@chakra-ui/react";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import ConfirmDialog from "../components/ConfirmDialog";
-import DatePickerField from "../components/DatePicker";
 import EntityDrawer from "../components/EntityDrawer";
 import EnumSelect from "../components/EnumSelect";
 import PageHeader from "../components/PageHeader";
@@ -29,25 +24,20 @@ import { formatDate } from "../lib/format";
 import { usePageState } from "../lib/pagination";
 import { toast } from "../lib/toaster";
 import { searchCustomers } from "../queries/customers";
-import { searchProducts } from "../queries/products";
-import { useCustomerRefs, useProductRefs } from "../queries/refs";
+import { useCustomerRefs } from "../queries/refs";
 import {
-  useCreatePrescriptionMutation,
   usePrescriptionsQuery,
   useUpdatePrescriptionMutation,
   useVoidPrescriptionMutation,
 } from "../queries/prescriptions";
+import PrescriptionFormFields, {
+  rxFormCanSubmit,
+  rxFormFromPrescription,
+  rxFormToPayload,
+  type RxFormState,
+} from "./prescriptions/PrescriptionFormFields";
 
 const ALL_STATUSES = ["ACTIVE", "DISPENSED", "EXPIRED", "VOIDED"] as const;
-
-type Line = {
-  productId: string;
-  prescribedQty: number;
-  dosageInstructions: string;
-  note: string;
-};
-
-const emptyLine: Line = { productId: "", prescribedQty: 1, dosageInstructions: "", note: "" };
 
 function statusBadge(status: string) {
   return status === "ACTIVE"
@@ -59,15 +49,11 @@ function statusBadge(status: string) {
         : "gray";
 }
 
-function isoToday() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export default function Prescriptions() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [customerFilter, setCustomerFilter] = useState<string>("");
-  const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Prescription | null>(null);
   const [voidConfirmId, setVoidConfirmId] = useState<string | null>(null);
 
@@ -97,7 +83,7 @@ export default function Prescriptions() {
         breadcrumbs={[{ label: t("prescriptions.title") }]}
         title={t("prescriptions.title")}
         actions={
-          <Button colorPalette="blue" onClick={() => setCreateOpen(true)}>
+          <Button colorPalette="blue" onClick={() => navigate("/prescriptions/new")}>
             <Plus size={16} />
             {t("prescriptions.addTitle")}
           </Button>
@@ -218,8 +204,7 @@ export default function Prescriptions() {
         />
       </Box>
 
-      <PrescriptionDrawer open={createOpen} editing={null} onClose={() => setCreateOpen(false)} />
-      <PrescriptionDrawer open={!!editing} editing={editing} onClose={() => setEditing(null)} />
+      <EditPrescriptionDrawer editing={editing} onClose={() => setEditing(null)} />
       <ConfirmDialog
         open={voidConfirmId !== null}
         title={t("prescriptions.void")}
@@ -241,263 +226,70 @@ export default function Prescriptions() {
   );
 }
 
-function PrescriptionDrawer({
-  open,
+// Edit-only drawer (create moved to the full /prescriptions/new page). Shares
+// the same form body as the create page so biaya jasa + clinical fields are
+// editable here too.
+function EditPrescriptionDrawer({
   editing,
   onClose,
 }: {
-  open: boolean;
   editing: Prescription | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
-  const createMut = useCreatePrescriptionMutation();
   const updateMut = useUpdatePrescriptionMutation();
+  const [form, setForm] = useState<RxFormState | null>(null);
 
-  const [customerId, setCustomerId] = useState(editing?.customerId ?? "");
-  const [issuerName, setIssuerName] = useState(editing?.issuerName ?? "");
-  const [issuedAt, setIssuedAt] = useState(editing?.issuedAt ?? isoToday());
-  const [expiresAt, setExpiresAt] = useState(editing?.expiresAt ?? "");
-  const [note, setNote] = useState(editing?.note ?? "");
-  const [lines, setLines] = useState<Line[]>(
-    editing
-      ? editing.items.map((it) => ({
-          productId: it.productId,
-          prescribedQty: it.prescribedQty,
-          dosageInstructions: it.dosageInstructions,
-          note: it.note,
-        }))
-      : [emptyLine],
-  );
-
-  // Resolve names for the trigger labels (resolve-by-IDs): the selected patient
-  // + every line's product (so edit-mode triggers show names, not UUIDs).
-  const customerRefs = useCustomerRefs(
-    useMemo(() => (customerId ? [customerId] : []), [customerId]),
-  );
-  const productRefs = useProductRefs(
-    useMemo(() => lines.map((l) => l.productId).filter(Boolean), [lines]),
-  );
-
-  // Reset form when the drawer opens or the editing target changes.
+  // Hydrate the form when the drawer opens / target changes.
   useEffect(() => {
-    if (!open) return;
-    setCustomerId(editing?.customerId ?? "");
-    setIssuerName(editing?.issuerName ?? "");
-    setIssuedAt(editing?.issuedAt ?? isoToday());
-    setExpiresAt(editing?.expiresAt ?? "");
-    setNote(editing?.note ?? "");
-    setLines(
-      editing
-        ? editing.items.map((it) => ({
-            productId: it.productId,
-            prescribedQty: it.prescribedQty,
-            dosageInstructions: it.dosageInstructions,
-            note: it.note,
-          }))
-        : [emptyLine],
-    );
-  }, [editing, open]);
+    setForm(editing ? rxFormFromPrescription(editing) : null);
+  }, [editing]);
 
-  const addLine = () => setLines((cur) => [...cur, emptyLine]);
-  const removeLine = (idx: number) => setLines((cur) => cur.filter((_, i) => i !== idx));
-  const updateLine = (idx: number, patch: Partial<Line>) =>
-    setLines((cur) => cur.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
-
-  const canSubmit =
-    !!customerId &&
-    issuerName.trim().length > 0 &&
-    issuedAt.length > 0 &&
-    lines.length > 0 &&
-    lines.every((l) => l.productId && l.prescribedQty > 0);
+  const onChange = (patch: Partial<RxFormState>) =>
+    setForm((cur) => (cur ? { ...cur, ...patch } : cur));
 
   const submit = async () => {
-    const payload = {
-      customerId,
-      issuerName: issuerName.trim(),
-      issuedAt,
-      expiresAt,
-      note: note.trim(),
-      items: lines.map((l) => ({
-        productId: l.productId,
-        prescribedQty: l.prescribedQty,
-        dosageInstructions: l.dosageInstructions,
-        note: l.note,
-      })),
-    };
+    if (!editing || !form) return;
     try {
-      if (editing) {
-        await updateMut.mutateAsync({ id: editing.id, ...payload });
-        toast.success(t("common.save") + " ✓");
-      } else {
-        await createMut.mutateAsync(payload);
-        toast.success(t("common.create") + " ✓");
-      }
+      await updateMut.mutateAsync({ id: editing.id, ...rxFormToPayload(form) });
+      toast.success(t("common.save") + " ✓");
       onClose();
     } catch {
       /* toast handled globally */
     }
   };
 
-  const isPending = createMut.isPending || updateMut.isPending;
-
   return (
     <EntityDrawer
-      open={open}
+      open={!!editing}
       onClose={onClose}
-      title={editing ? t("prescriptions.editTitle") : t("prescriptions.addTitle")}
+      title={t("prescriptions.editTitle")}
       footer={
         <HStack justify="space-between">
           <Button variant="ghost" onClick={onClose}>
             {t("common.cancel")}
           </Button>
-          <Button colorPalette="blue" onClick={submit} loading={isPending} disabled={!canSubmit}>
+          <Button
+            colorPalette="blue"
+            onClick={submit}
+            loading={updateMut.isPending}
+            disabled={!form || !rxFormCanSubmit(form)}
+          >
             {t("common.save")}
           </Button>
         </HStack>
       }
     >
-      <Stack gap={4}>
-        <Box>
-          <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
-            {t("prescriptions.customer")} *
-          </Text>
-          <SearchableSelect
-            value={customerId}
-            onChange={setCustomerId}
-            loadOptions={searchCustomers}
-            itemToString={(c) => c.name}
-            itemToValue={(c) => c.id}
-            selectedLabel={customerRefs.get(customerId)?.name}
-            placeholder={t("prescriptions.selectCustomer")}
-          />
-        </Box>
-
-        <Box>
-          <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
-            {t("prescriptions.issuerName")} *
-          </Text>
-          <Input value={issuerName} onChange={(e) => setIssuerName(e.target.value)} />
-        </Box>
-
-        <Flex gap={3}>
-          <Box flex="1">
-            <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
-              {t("prescriptions.issuedAt")} *
+      {form && (
+        <>
+          <PrescriptionFormFields value={form} onChange={onChange} editing={editing} />
+          {editing && (
+            <Text fontSize="xs" color="fg.muted" mt={4}>
+              {t("prescriptions.rxNo")}: {editing.rxNo} · {formatDate(editing.issuedAt)}
             </Text>
-            <DatePickerField value={issuedAt} onChange={setIssuedAt} />
-          </Box>
-          <Box flex="1">
-            <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
-              {t("prescriptions.expiresAt")}
-            </Text>
-            <DatePickerField value={expiresAt} onChange={setExpiresAt} />
-            <Text fontSize="xs" color="fg.muted" mt={1}>
-              {t("prescriptions.expiresAtHelp")}
-            </Text>
-          </Box>
-        </Flex>
-
-        <Box>
-          <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
-            {t("prescriptions.note")}
-          </Text>
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
-        </Box>
-
-        <Box>
-          <HStack justify="space-between" mb={2}>
-            <Heading size="sm">{t("prescriptions.items")}</Heading>
-            <Button size="xs" variant="outline" onClick={addLine}>
-              <Plus size={14} />
-              {t("prescriptions.addLine")}
-            </Button>
-          </HStack>
-          <Stack gap={3}>
-            {lines.map((l, idx) => {
-              const dispensed = editing?.items[idx]?.dispensedQty ?? 0;
-              return (
-                <Box
-                  key={idx}
-                  borderWidth="1px"
-                  borderRadius="md"
-                  p={3}
-                  bg="bg.subtle"
-                  borderColor="border.muted"
-                >
-                  <Flex gap={2} wrap="wrap" align="flex-end">
-                    <Box flex="2" minW="220px">
-                      <Text fontSize="xs" color="fg.muted" mb={1}>
-                        {t("prescriptions.selectProduct")}
-                      </Text>
-                      <SearchableSelect
-                        size="sm"
-                        value={l.productId}
-                        onChange={(v) => updateLine(idx, { productId: v })}
-                        loadOptions={searchProducts}
-                        itemToString={(m) =>
-                          `${m.sku} · ${m.name}${m.prescriptionRequired ? " (Rx)" : ""}`
-                        }
-                        itemToValue={(m) => m.id}
-                        selectedLabel={productRefs.get(l.productId)?.name}
-                        placeholder={t("prescriptions.selectProduct")}
-                      />
-                    </Box>
-                    <Box w="120px">
-                      <Text fontSize="xs" color="fg.muted" mb={1}>
-                        {t("prescriptions.prescribedQty")}
-                      </Text>
-                      <Input
-                        size="sm"
-                        type="number"
-                        value={l.prescribedQty}
-                        onChange={(e) =>
-                          updateLine(idx, { prescribedQty: parseInt(e.target.value, 10) || 0 })
-                        }
-                      />
-                    </Box>
-                    {editing && (
-                      <Box w="90px">
-                        <Text fontSize="xs" color="fg.muted" mb={1}>
-                          {t("prescriptions.dispensedQty")}
-                        </Text>
-                        <Text fontSize="sm" fontFamily="mono" pt={1}>
-                          {dispensed}
-                        </Text>
-                      </Box>
-                    )}
-                    <IconButton
-                      aria-label="remove line"
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => removeLine(idx)}
-                      disabled={lines.length === 1}
-                    >
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </Flex>
-                  <Box mt={2}>
-                    <Text fontSize="xs" color="fg.muted" mb={1}>
-                      {t("prescriptions.dosage")}
-                    </Text>
-                    <Input
-                      size="sm"
-                      value={l.dosageInstructions}
-                      onChange={(e) => updateLine(idx, { dosageInstructions: e.target.value })}
-                    />
-                  </Box>
-                </Box>
-              );
-            })}
-          </Stack>
-        </Box>
-
-        {editing && (
-          <Text fontSize="xs" color="fg.muted">
-            {t("prescriptions.rxNo")}: {editing.rxNo} · {formatDate(editing.issuedAt)}
-          </Text>
-        )}
-      </Stack>
+          )}
+        </>
+      )}
     </EntityDrawer>
   );
 }

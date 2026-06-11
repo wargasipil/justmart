@@ -22,6 +22,9 @@ export default function Daily() {
   const { t } = useTranslation();
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
   const [granularity, setGranularity] = useState<Granularity>(Granularity.DAY);
+  // Controlled so the Graphs panel only mounts when its tab is active — Recharts'
+  // ResponsiveContainer measures 0x0 (and warns) inside a display:none tab panel.
+  const [tab, setTab] = useState("table");
   const [visibleFields, setVisibleFields] = useState<Set<string>>(
     () => new Set(DEFAULT_DAILY_FIELDS),
   );
@@ -82,7 +85,7 @@ export default function Daily() {
         </HStack>
       </HStack>
 
-      <Tabs.Root defaultValue="table" variant="line">
+      <Tabs.Root value={tab} onValueChange={(e) => setTab(e.value)} variant="line">
         <Tabs.List>
           <Tabs.Trigger value="table">{t("analytics.tab.table")}</Tabs.Trigger>
           <Tabs.Trigger value="graph">{t("analytics.tab.graph")}</Tabs.Trigger>
@@ -105,14 +108,16 @@ export default function Daily() {
         </Tabs.Content>
         <Tabs.Content value="graph">
           <Box pt={3}>
-            <MetricGraphs
-              ids={q.data?.days ?? []}
-              order={q.data?.order}
-              stock={q.data?.stock}
-              metricTypes={metricTypes}
-              visibleFields={visibleFields}
-              isLoading={q.isLoading}
-            />
+            {tab === "graph" && (
+              <MetricGraphs
+                ids={q.data?.days ?? []}
+                order={q.data?.order}
+                stock={q.data?.stock}
+                metricTypes={metricTypes}
+                visibleFields={visibleFields}
+                isLoading={q.isLoading}
+              />
+            )}
           </Box>
         </Tabs.Content>
       </Tabs.Root>

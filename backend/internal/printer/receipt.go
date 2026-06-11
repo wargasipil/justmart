@@ -16,6 +16,7 @@ type Receipt struct {
 	Customer    string // optional; empty = walk-in
 	Items       []ReceiptLine
 	Subtotal    int64
+	BiayaJasa   int64 // service fee (pharmacy resep); 0 = not applicable
 	Total       int64
 	Paid        int64
 	Payment     string // "CASH" | "NON_CASH"
@@ -92,6 +93,9 @@ func Render(r Receipt, s Settings) []byte {
 
 	// Totals.
 	b.Line(twoCol(s.Width, "Subtotal", formatIDR(r.Subtotal)))
+	if r.BiayaJasa > 0 {
+		b.Line(twoCol(s.Width, "Biaya jasa", formatIDR(r.BiayaJasa)))
+	}
 	b.Bold(true).Line(twoCol(s.Width, "TOTAL", formatIDR(r.Total))).Bold(false)
 	payLabel := paymentLabel(r.Payment)
 	b.Line(twoCol(s.Width, "Bayar ("+payLabel+")", formatIDR(r.Paid)))

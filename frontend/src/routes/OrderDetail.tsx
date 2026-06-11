@@ -112,9 +112,12 @@ export default function OrderDetail() {
         </Section>
 
         <Section title={t("orders.detail.totals")}>
-          <Grid templateColumns={{ base: "1fr 1fr", md: "repeat(5, 1fr)" }} gap={3}>
+          <Grid templateColumns={{ base: "1fr 1fr", md: "repeat(6, 1fr)" }} gap={3}>
             <MoneyTile label={t("orders.detail.subtotal")} value={Number(sale.subtotal)} />
             <MoneyTile label={t("orders.detail.cartDiscount")} value={Number(sale.cartDiscount)} />
+            {Number(sale.biayaJasa) > 0 && (
+              <MoneyTile label={t("prescriptions.biayaJasa")} value={Number(sale.biayaJasa)} />
+            )}
             <MoneyTile label={t("orders.detail.total")} value={Number(sale.total)} accent />
             <MoneyTile label={t("orders.detail.paid")} value={Number(sale.paidAmount)} />
             <MoneyTile label={t("orders.detail.change")} value={change} />

@@ -96,6 +96,7 @@ func (s *SaleService) PrintReceipt(
 		Customer:    customerName,
 		Items:       lines,
 		Subtotal:    sale.Subtotal,
+		BiayaJasa:   sale.BiayaJasa,
 		Total:       sale.Total,
 		Paid:        sale.PaidAmount,
 		Payment:     paymentStr,

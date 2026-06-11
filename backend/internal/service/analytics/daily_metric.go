@@ -75,16 +75,58 @@ func (a *AnalyticsService) DailyMetric(
 }
 
 func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.Time, gran, warehouseID string) (map[string]*analyticsifacev1.OrderItem, error) {
-	type row struct {
+	out := map[string]*analyticsifacev1.OrderItem{}
+	accum := func(day string, addTerjual, addHpp int64) {
+		t, perr := time.ParseInLocation("2006-01-02", day, time.Local)
+		if perr != nil {
+			return
+		}
+		key := dayBucketKey(bucketStart(t, gran), gran)
+		item := out[key]
+		if item == nil {
+			item = &analyticsifacev1.OrderItem{}
+			out[key] = item
+		}
+		item.Terjual += addTerjual
+		item.Hpp += addHpp
+		item.Profit = item.Terjual - item.Hpp
+	}
+
+	// Revenue per sale. Uses the sale-level total (NOT SUM(sale_items.line_total))
+	// so terjual INCLUDES the biaya_jasa service fee (and any cart discount),
+	// matching GetSalesSummary / GetTodaySnapshot / UserMetric — all of which sum
+	// sale.total. Summing per-sale also avoids multiplying a sale-level fee by the
+	// line count. (ProductMetric keeps item-only revenue — a sale-level fee isn't
+	// attributable to a single product; documented carve-out there.)
+	type revRow struct {
 		Day     string `gorm:"column:day"`
 		Terjual int64
-		Hpp     int64
 	}
-	var rows []row
-	err := a.db.WithContext(ctx).Raw(`
+	var revRows []revRow
+	if err := a.db.WithContext(ctx).Raw(`
 		SELECT `+common.DayKeyExpr(a.db, "s.completed_at")+` AS day,
-		       COALESCE(SUM(si.line_total), 0) AS terjual,
-		       COALESCE(SUM(c.cogs), 0)        AS hpp
+		       COALESCE(SUM(s.total), 0) AS terjual
+		FROM sales s
+		WHERE s.status = ? AND s.warehouse_id = ?
+		  AND s.completed_at >= ? AND s.completed_at < ?
+		GROUP BY day
+	`, common.SaleStatusCompleted, warehouseID, from, to).Scan(&revRows).Error; err != nil {
+		return nil, err
+	}
+	for _, r := range revRows {
+		accum(r.Day, r.Terjual, 0)
+	}
+
+	// COGS per day from SALE stock movements (|qty| x batch cost), joined by
+	// sale_item — correct under multi-unit / multi-batch lines.
+	type cogsRow struct {
+		Day string `gorm:"column:day"`
+		Hpp int64
+	}
+	var cogsRows []cogsRow
+	if err := a.db.WithContext(ctx).Raw(`
+		SELECT `+common.DayKeyExpr(a.db, "s.completed_at")+` AS day,
+		       COALESCE(SUM(c.cogs), 0) AS hpp
 		FROM sales s
 		JOIN sale_items si ON si.sale_id = s.id
 		LEFT JOIN (
@@ -97,26 +139,13 @@ func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.T
 		WHERE s.status = ? AND s.warehouse_id = ?
 		  AND s.completed_at >= ? AND s.completed_at < ?
 		GROUP BY day
-	`, common.SaleStatusCompleted, warehouseID, from, to).Scan(&rows).Error
-	if err != nil {
+	`, common.SaleStatusCompleted, warehouseID, from, to).Scan(&cogsRows).Error; err != nil {
 		return nil, err
 	}
-	out := map[string]*analyticsifacev1.OrderItem{}
-	for _, r := range rows {
-		t, perr := time.ParseInLocation("2006-01-02", r.Day, time.Local)
-		if perr != nil {
-			continue
-		}
-		key := dayBucketKey(bucketStart(t, gran), gran)
-		item := out[key]
-		if item == nil {
-			item = &analyticsifacev1.OrderItem{}
-			out[key] = item
-		}
-		item.Terjual += r.Terjual
-		item.Hpp += r.Hpp
-		item.Profit = item.Terjual - item.Hpp
+	for _, r := range cogsRows {
+		accum(r.Day, 0, r.Hpp)
 	}
+
 	return out, nil
 }
 

@@ -28,6 +28,8 @@ data/
 # Node / frontend
 node_modules/
 .vite/
+# tsc -b incremental cache — a build artifact; tracking it can mask type errors.
+*.tsbuildinfo
 # Build outputs: frontend bundle + the compiled single binary.
 /frontend/dist/
 /dist/

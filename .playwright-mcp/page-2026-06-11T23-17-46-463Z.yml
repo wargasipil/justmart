@@ -1,0 +1,157 @@
+- generic:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: POS
+          - generic:
+            - button:
+              - generic:
+                - img
+                - paragraph: MAIN · Gudang Utama
+              - img
+            - paragraph: Owner
+            - button:
+              - img
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - img
+              - textbox:
+                - /placeholder: Search medicine / scan barcode…
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: Makanan Kucibng tesat
+                    - paragraph: · box
+                  - paragraph: dd · 6 box
+                - paragraph: IDR 1,000
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: Makanan Kucibng tesat
+                    - paragraph: · sak
+                  - paragraph: dd · 0 sak
+                - paragraph: IDR 18,000
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: bodrex
+                    - paragraph: · biji
+                  - paragraph: 32682368472 · 796 biji
+                - paragraph: IDR 500
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: bodrex
+                    - paragraph: · strip
+                  - paragraph: 32682368472 · 199 strip
+                - paragraph: IDR 1,800
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: bodrex
+                    - paragraph: · box
+                  - paragraph: 32682368472 · 19 box
+                - paragraph: IDR 18,000
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: bodrex
+                    - paragraph: · duz
+                  - paragraph: 32682368472 · 1 duz
+                - paragraph: IDR 180,000
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: makanan kucing
+                    - paragraph: · sak
+                  - paragraph: 2736786378 · 3 sak
+                - paragraph: IDR 200,000
+              - generic:
+                - generic:
+                  - generic:
+                    - paragraph: makanan kucing
+                    - paragraph: · box
+                  - paragraph: 2736786378 · 0 box
+                - paragraph: IDR 10,000
+          - generic:
+            - generic:
+              - generic:
+                - paragraph: Cart
+                - paragraph: 0 items
+              - generic:
+                - img
+                - paragraph: Customer
+                - button: Attach customer
+              - generic:
+                - img
+                - paragraph: Attach prescription (F5)
+                - button: Attach prescription (F5)
+            - generic:
+              - paragraph: Cart is empty
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Subtotal
+                  - paragraph: IDR 0
+                - generic:
+                  - paragraph: Service fee
+                  - textbox:
+                    - /placeholder: "0"
+                - generic:
+                  - paragraph: TOTAL
+                  - paragraph: IDR 0
+                - generic:
+                  - paragraph: Payment
+                  - radiogroup:
+                    - generic:
+                      - generic:
+                        - radio [checked]
+                        - generic: Cash
+                      - generic:
+                        - radio
+                        - generic: Non-cash
+                - generic:
+                  - generic:
+                    - paragraph: Paid
+                    - textbox:
+                      - /placeholder: "0"
+                  - generic:
+                    - paragraph: Change
+                    - paragraph: IDR 0
+                - generic:
+                  - button [disabled]: Complete (F8)
+            - generic:
+              - paragraph: F2 search · F4 customer · F5 Rx · F8 complete · Esc clear
+    - generic:
+      - generic:
+        - img
+      - button:
+        - img
+  - region "Notifications, top-end (alt+T)"
+  - dialog "Attach customer" [ref=e7]:
+    - generic [ref=e8]:
+      - heading "Attach customer" [level=2] [ref=e9]
+      - button "close" [ref=e10] [cursor=pointer]:
+        - img [ref=e11]
+    - generic [ref=e15]:
+      - textbox "Search by name / phone / BPJS…" [active] [ref=e16]
+      - generic [ref=e17]:
+        - generic [ref=e18] [cursor=pointer]:
+          - generic [ref=e19]:
+            - paragraph [ref=e20]: Pasien Tes 2026
+            - paragraph [ref=e21]: —
+          - img [ref=e22]
+        - generic [ref=e23] [cursor=pointer]:
+          - generic [ref=e24]:
+            - paragraph [ref=e25]: asdas
+            - paragraph [ref=e26]: asdasd
+          - img [ref=e27]
+        - generic [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]:
+            - paragraph [ref=e30]: asdasd
+            - paragraph [ref=e31]: asdasd
+          - img [ref=e32]

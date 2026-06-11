@@ -72,6 +72,19 @@ export async function searchCustomers(query: string) {
   return res.customers;
 }
 
+// Single customer detail — backs the resep patient-info panel (phone/address).
+export function useCustomerQuery(id: string) {
+  return useQuery({
+    queryKey: [...customerKeys.all, "detail", id],
+    queryFn: async () => {
+      const res = await customerClient.getCustomer({ id });
+      return res.customer;
+    },
+    enabled: !!id,
+    staleTime: 30_000,
+  });
+}
+
 export function useCreateCustomerMutation() {
   const qc = useQueryClient();
   return useMutation({

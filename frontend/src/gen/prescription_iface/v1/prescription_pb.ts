@@ -89,6 +89,32 @@ export class Prescription extends Message<Prescription> {
    */
   items: PrescriptionItem[] = [];
 
+  /**
+   * service fee, minor units (default for the sale)
+   *
+   * @generated from field: int64 biaya_jasa = 13;
+   */
+  biayaJasa = protoInt64.zero;
+
+  /**
+   * resep patient clinical info (0 = unset)
+   *
+   * @generated from field: int32 patient_age = 14;
+   */
+  patientAge = 0;
+
+  /**
+   * free text, e.g. "12 kg"
+   *
+   * @generated from field: string patient_weight = 15;
+   */
+  patientWeight = "";
+
+  /**
+   * @generated from field: string patient_allergy = 16;
+   */
+  patientAllergy = "";
+
   constructor(data?: PartialMessage<Prescription>) {
     super();
     proto3.util.initPartial(data, this);
@@ -109,6 +135,10 @@ export class Prescription extends Message<Prescription> {
     { no: 10, name: "branch_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 12, name: "items", kind: "message", T: PrescriptionItem, repeated: true },
+    { no: 13, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 14, name: "patient_age", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 15, name: "patient_weight", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 16, name: "patient_allergy", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Prescription {
@@ -470,6 +500,28 @@ export class CreatePrescriptionRequest extends Message<CreatePrescriptionRequest
    */
   items: PrescriptionItemInput[] = [];
 
+  /**
+   * service fee, minor units
+   *
+   * @generated from field: int64 biaya_jasa = 7;
+   */
+  biayaJasa = protoInt64.zero;
+
+  /**
+   * @generated from field: int32 patient_age = 8;
+   */
+  patientAge = 0;
+
+  /**
+   * @generated from field: string patient_weight = 9;
+   */
+  patientWeight = "";
+
+  /**
+   * @generated from field: string patient_allergy = 10;
+   */
+  patientAllergy = "";
+
   constructor(data?: PartialMessage<CreatePrescriptionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -484,6 +536,10 @@ export class CreatePrescriptionRequest extends Message<CreatePrescriptionRequest
     { no: 4, name: "expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "note", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "items", kind: "message", T: PrescriptionItemInput, repeated: true },
+    { no: 7, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "patient_age", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 9, name: "patient_weight", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "patient_allergy", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreatePrescriptionRequest {
@@ -576,6 +632,26 @@ export class UpdatePrescriptionRequest extends Message<UpdatePrescriptionRequest
    */
   items: PrescriptionItemInput[] = [];
 
+  /**
+   * @generated from field: int64 biaya_jasa = 7;
+   */
+  biayaJasa = protoInt64.zero;
+
+  /**
+   * @generated from field: int32 patient_age = 8;
+   */
+  patientAge = 0;
+
+  /**
+   * @generated from field: string patient_weight = 9;
+   */
+  patientWeight = "";
+
+  /**
+   * @generated from field: string patient_allergy = 10;
+   */
+  patientAllergy = "";
+
   constructor(data?: PartialMessage<UpdatePrescriptionRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -590,6 +666,10 @@ export class UpdatePrescriptionRequest extends Message<UpdatePrescriptionRequest
     { no: 4, name: "expires_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "note", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "items", kind: "message", T: PrescriptionItemInput, repeated: true },
+    { no: 7, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "patient_age", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 9, name: "patient_weight", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "patient_allergy", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdatePrescriptionRequest {
