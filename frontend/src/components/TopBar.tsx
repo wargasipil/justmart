@@ -75,7 +75,9 @@ export default function TopBar() {
 
         <HStack gap={1}>
           {user && <WarehouseSelector />}
-          {user && user.role !== Role.CASHIER && <LowStockBell isOwner={user.role === Role.OWNER} />}
+          {user && (user.role === Role.OWNER || user.role === Role.PHARMACIST) && (
+            <LowStockBell isOwner={user.role === Role.OWNER} />
+          )}
           <IconButton aria-label="language" variant="ghost" size="sm" onClick={flipLocale}>
             <HStack gap={1}>
               <Languages size={16} />

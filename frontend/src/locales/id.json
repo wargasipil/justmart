@@ -1,6 +1,19 @@
 {
   "app": {
-    "name": "Justmart"
+    "name": "Justmart",
+    "pharmacyName": "Apotek"
+  },
+  "glossary": {
+    "product": "produk",
+    "products": "produk",
+    "productCap": "Produk",
+    "productsCap": "Produk"
+  },
+  "glossaryPharmacy": {
+    "product": "obat",
+    "products": "obat",
+    "productCap": "Obat",
+    "productsCap": "Obat"
   },
   "datepicker": {
     "open": "Buka kalender",
@@ -46,6 +59,7 @@
     "pos": "Kasir",
     "inventory": "Inventaris",
     "products": "Produk",
+    "medicines": "Obat",
     "suppliers": "Pemasok",
     "batches": "Batch",
     "movements": "Mutasi stok",
@@ -67,14 +81,27 @@
     "tabs": {
       "general": "Umum",
       "units": "Satuan",
+      "license": "Lisensi",
       "backups": "Backup"
     },
+    "license": {
+      "current": "Lisensi saat ini",
+      "none": "Belum ada lisensi",
+      "keyLabel": "Kunci lisensi",
+      "placeholder": "Tempel kunci lisensi di sini…",
+      "help": "Tempel kunci lisensi untuk toko ini. Kunci menentukan mode bisnis (retail atau apotek) dan tetap tersimpan setelah restart.",
+      "apply": "Terapkan lisensi",
+      "applied": "Lisensi diterapkan untuk {{name}}",
+      "modePharmacy": "Mode apotek",
+      "modeRetail": "Mode retail",
+      "modeUnset": "Tanpa lisensi"
+    },
     "lowStockThreshold": "Ambang stok menipis",
-    "lowStockHelp": "Tampilkan notifikasi saat stok siap produk di gudang aktif ≤ angka ini.",
+    "lowStockHelp": "Tampilkan notifikasi saat stok siap $t(glossary.product) di gudang aktif ≤ angka ini.",
     "invalidThreshold": "Ambang harus bilangan bulat tak negatif",
     "units": {
       "title": "Katalog satuan",
-      "help": "Daftarkan satuan dasar (tablet, ml) dan turunannya (strip ×10, box ×100). Dipakai sebagai preset saat membuat produk dan sebagai opsi popover \"Satuan\" di daftar produk.",
+      "help": "Daftarkan satuan dasar (tablet, ml) dan turunannya (strip ×10, box ×100). Dipakai sebagai preset saat membuat $t(glossary.product) dan sebagai opsi popover \"Satuan\" di daftar $t(glossary.product).",
       "empty": "Belum ada katalog satuan. Tambah satuan dasar untuk mulai.",
       "addBase": "Tambah dasar",
       "basePlaceholder": "mis. tablet",
@@ -137,7 +164,7 @@
     "outstanding": "Tertunggak",
     "paid": "Dibayar",
     "addLine": "Tambah baris",
-    "selectProduct": "Pilih produk",
+    "selectProduct": "Pilih $t(glossary.product)",
     "selectSupplier": "Pilih pemasok",
     "addSupplierLink": "Tambah pemasok",
     "actions": {
@@ -171,7 +198,7 @@
     "invoiceNo": "No. faktur",
     "item": "Item",
     "created": "Dibuat",
-    "searchPlaceholder": "Cari PO / pemasok / kode / produk",
+    "searchPlaceholder": "Cari PO / pemasok / kode / $t(glossary.product)",
     "dateOff": "Tanggal: nonaktif",
     "dateCreated": "Per tanggal dibuat",
     "dateReceived": "Per tanggal diterima",
@@ -205,6 +232,7 @@
     "roles": {
       "owner": "Pemilik",
       "pharmacist": "Manajer",
+      "apoteker": "Apoteker",
       "cashier": "Kasir",
       "unknown": "Tidak diketahui"
     },
@@ -252,7 +280,7 @@
     "title": "Analitik",
     "menu": {
       "daily": "Harian",
-      "product": "Produk",
+      "product": "$t(glossary.productCap)",
       "user": "Pengguna"
     },
     "range": {
@@ -304,7 +332,7 @@
   },
   "pos": {
     "title": "Kasir",
-    "searchPlaceholder": "Cari produk / scan barcode…",
+    "searchPlaceholder": "Cari $t(glossary.product) / scan barcode…",
     "addedToCart": "Ditambahkan ke keranjang",
     "cart": "Keranjang",
     "empty": "Keranjang kosong",
@@ -351,7 +379,7 @@
     "expiresAtHelp": "Default 90 hari sejak tanggal terbit",
     "note": "Catatan",
     "items": "Item",
-    "selectProduct": "Pilih produk",
+    "selectProduct": "Pilih $t(glossary.product)",
     "selectCustomer": "Pilih pasien",
     "prescribedQty": "Jumlah diresepkan",
     "dispensedQty": "Sudah diberikan",
@@ -368,13 +396,13 @@
     },
     "filterStatus": "Status",
     "filterAll": "Semua",
-    "rxRequiredMissing": "Produk ini perlu resep. Lampirkan resep ke transaksi terlebih dahulu.",
+    "rxRequiredMissing": "$t(glossary.productCap) ini perlu resep. Lampirkan resep ke transaksi terlebih dahulu.",
     "attached": "Resep terlampir",
     "attach": "Lampirkan resep (F5)",
     "detach": "Lepas",
     "needForProduct": "Perlu resep untuk: {{product}}",
     "goCreate": "Buat resep",
-    "noCoveringRx": "Belum ada resep aktif untuk produk ini."
+    "noCoveringRx": "Belum ada resep aktif untuk $t(glossary.product) ini."
   },
   "customers": {
     "title": "Pelanggan",
@@ -440,7 +468,7 @@
   "inventory": {
     "title": "Inventaris",
     "tabs": {
-      "products": "Produk",
+      "products": "$t(glossary.productsCap)",
       "suppliers": "Pemasok",
       "batches": "Batch",
       "movements": "Mutasi",
@@ -448,11 +476,11 @@
       "transfers": "Transfer"
     },
     "products": {
-      "title": "Produk",
-      "tabActive": "Produk aktif",
-      "tabArchived": "Produk diarsipkan",
-      "addTitle": "Tambah produk",
-      "editTitle": "Ubah produk",
+      "title": "$t(glossary.productsCap)",
+      "tabActive": "$t(glossary.productsCap) aktif",
+      "tabArchived": "$t(glossary.productsCap) diarsipkan",
+      "addTitle": "Tambah $t(glossary.product)",
+      "editTitle": "Ubah $t(glossary.product)",
       "sku": "SKU",
       "name": "Nama",
       "unit": "Satuan",
@@ -472,9 +500,9 @@
       "infoSection": "Informasi",
       "batchesSection": "Batch",
       "movementsSection": "Mutasi terbaru",
-      "confirmArchive": "Arsipkan produk ini?",
+      "confirmArchive": "Arsipkan $t(glossary.product) ini?",
       "unarchive": "Pulihkan",
-      "confirmUnarchive": "Pulihkan produk ini?",
+      "confirmUnarchive": "Pulihkan $t(glossary.product) ini?",
       "lastRestock": "Restok terakhir",
       "lastStocktake": "Opname terakhir",
       "opnameBefore": "Opname sebelum",
@@ -485,6 +513,7 @@
       "stockValuation": "Valuasi stok",
       "baseUnit": "Satuan dasar",
       "basePrice": "Harga dasar (per satuan dasar)",
+      "prescriptionRequired": "Perlu resep",
       "unitsSection": "Satuan",
       "unitsBaseNote": "Satuan dasar: {{unit}}. Tambah kemasan lebih besar (box, strip…) di bawah; faktor = jumlah satuan dasar per kemasan.",
       "unitName": "Satuan",
@@ -513,10 +542,10 @@
     "batches": {
       "title": "Batch",
       "addTitle": "Terima batch",
-      "searchPlaceholder": "Cari produk / no batch…",
+      "searchPlaceholder": "Cari $t(glossary.product) / no batch…",
       "byReceived": "Tgl diterima",
       "byExpiry": "Tgl kedaluwarsa",
-      "product": "Produk",
+      "product": "$t(glossary.productCap)",
       "supplier": "Pemasok",
       "supplierNone": "— tidak ada —",
       "batchNumber": "No. batch",
@@ -536,7 +565,7 @@
       "recordTitle": "Catat mutasi (penyesuaian / write-off)",
       "filterByBatch": "Saring per batch:",
       "filterAll": "— semua —",
-      "searchPlaceholder": "Cari batch / produk…",
+      "searchPlaceholder": "Cari batch / $t(glossary.product)…",
       "when": "Waktu",
       "batch": "Batch",
       "type": "Jenis",
@@ -571,11 +600,11 @@
       "addBatches": "Tambah batch",
       "addAllInStock": "Tambah semua yang ada stok",
       "addedSummary": "{{added}} ditambahkan · {{skipped}} dilewati",
-      "filterByProduct": "Saring per produk (opsional)",
-      "anyProduct": "Semua produk",
+      "filterByProduct": "Saring per $t(glossary.product) (opsional)",
+      "anyProduct": "Semua $t(glossary.product)",
       "pickBatch": "Pilih batch",
       "add": "Tambah",
-      "product": "Produk",
+      "product": "$t(glossary.productCap)",
       "batch": "Batch",
       "expiry": "Kedaluwarsa",
       "expected": "Sistem",
@@ -656,7 +685,7 @@
     "selectWarehouse": "Pilih gudang",
     "items": "Item",
     "pickBatch": "Pilih batch",
-    "product": "Produk",
+    "product": "$t(glossary.productCap)",
     "available": "tersedia",
     "addBatch": "Tambah batch",
     "expShort": "exp",
@@ -673,7 +702,7 @@
   },
   "orders": {
     "title": "Riwayat order",
-    "searchPlaceholder": "Cari no penjualan, pelanggan, atau produk…",
+    "searchPlaceholder": "Cari no penjualan, pelanggan, atau $t(glossary.product)…",
     "saleNo": "No penjualan",
     "date": "Tanggal",
     "createdBy": "Dibuat oleh",
@@ -719,7 +748,7 @@
       "dpp": "DPP",
       "ppn": "PPN",
       "issuedAt": "Diterbitkan pada",
-      "product": "Produk",
+      "product": "$t(glossary.productCap)",
       "qty": "Qty",
       "unitPrice": "Harga satuan",
       "lineDiscount": "Diskon",

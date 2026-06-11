@@ -9,9 +9,11 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
+  FileText,
   LayoutDashboard,
   LogOut,
   Package,
+  Pill,
   Receipt,
   Repeat,
   Settings as SettingsIcon,
@@ -28,6 +30,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { useAuth } from "../lib/auth";
+import { useBusinessMode } from "../queries/settings";
 import { usePreferencesStore } from "../stores/preferences";
 
 type NavLeaf = {
@@ -35,6 +38,7 @@ type NavLeaf = {
   label: string;
   icon: typeof Package;
   roles?: Role[];
+  pharmacyOnly?: boolean; // hidden unless the shop is in pharmacy mode
 };
 
 type NavGroup = {
@@ -51,7 +55,7 @@ function isGroup(e: NavEntry): e is NavGroup {
   return "kind" in e && e.kind === "group";
 }
 
-function buildItems(t: (k: string) => string): NavEntry[] {
+function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
   return [
     { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard },
     {
@@ -63,8 +67,9 @@ function buildItems(t: (k: string) => string): NavEntry[] {
     { to: "/pos", label: t("nav.pos"), icon: ShoppingCart },
     {
       to: "/products",
-      label: t("nav.products"),
-      icon: Package,
+      // In pharmacy mode the catalog is "Obat" (medicines); in retail it's "Produk".
+      label: isPharmacy ? t("nav.medicines") : t("nav.products"),
+      icon: isPharmacy ? Pill : Package,
       roles: [Role.OWNER, Role.PHARMACIST],
     },
     {
@@ -82,6 +87,16 @@ function buildItems(t: (k: string) => string): NavEntry[] {
       ],
     },
     {
+      // Resep (prescriptions) — pharmacy mode. Visible to the Rx authority
+      // (OWNER + PHARMACIST + APOTEKER). Phase 5 will additionally gate this on
+      // the active business mode (hidden in retail mode).
+      to: "/prescriptions",
+      label: t("nav.prescriptions"),
+      icon: FileText,
+      roles: [Role.OWNER, Role.PHARMACIST, Role.APOTEKER],
+      pharmacyOnly: true,
+    },
+    {
       to: "/customers",
       label: t("nav.customers"),
       icon: UserRound,
@@ -90,7 +105,7 @@ function buildItems(t: (k: string) => string): NavEntry[] {
       to: "/orders",
       label: t("nav.orders"),
       icon: Receipt,
-      roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER],
+      roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER],
     },
     { to: "/warehouses", label: t("nav.warehouses"), icon: WarehouseIcon, roles: [Role.OWNER] },
     { to: "/users", label: t("nav.users"), icon: UsersIcon, roles: [Role.OWNER] },
@@ -103,9 +118,15 @@ export default function Sidebar() {
   const collapsed = usePreferencesStore((s) => s.sidebarCollapsed);
   const toggle = usePreferencesStore((s) => s.toggleSidebar);
   const { user, logout } = useAuth();
+  const { isPharmacy, shopName } = useBusinessMode();
+  // Pharmacy mode brands the top-left with the licensed shop name (like apotech),
+  // falling back to a generic pharmacy label; retail keeps the Justmart brand.
+  const brandName = isPharmacy ? shopName || t("app.pharmacyName") : t("app.name");
 
-  const items = buildItems(t).filter(
-    (item) => !item.roles || (user && item.roles.includes(user.role)),
+  const items = buildItems(t, isPharmacy).filter(
+    (item) =>
+      (!item.roles || (user && item.roles.includes(user.role))) &&
+      (!("pharmacyOnly" in item && item.pharmacyOnly) || isPharmacy),
   );
 
   const width = collapsed ? "64px" : "240px";
@@ -128,11 +149,17 @@ export default function Sidebar() {
       {/* Brand */}
       <HStack gap={2} px={4} h="56px" borderBottomWidth="1px">
         <Box color="colorPalette.solid">
-          <Store size={22} />
+          {isPharmacy ? <Pill size={22} /> : <Store size={22} />}
         </Box>
         {!collapsed && (
-          <Text fontWeight="semibold" color="colorPalette.solid" fontSize="lg">
-            {t("app.name")}
+          <Text
+            fontWeight="semibold"
+            color="colorPalette.solid"
+            fontSize="lg"
+            truncate
+            title={brandName}
+          >
+            {brandName}
           </Text>
         )}
       </HStack>

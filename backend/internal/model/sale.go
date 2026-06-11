@@ -15,6 +15,7 @@ type Sale struct {
 	Status         string     `gorm:"not null;default:'DRAFT'"`
 	BranchID       *string    `gorm:"type:uuid;column:branch_id"` // deprecated; superseded by warehouse_id
 	WarehouseID    *string    `gorm:"type:uuid;column:warehouse_id"`
+	PrescriptionID *string    `gorm:"type:uuid;column:prescription_id"` // pharmacy mode: attached resep
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	CompletedAt    *time.Time `gorm:"column:completed_at"`

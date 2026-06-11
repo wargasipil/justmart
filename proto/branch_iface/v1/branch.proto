@@ -29,6 +29,7 @@ service BranchService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc CreateBranch(CreateBranchRequest) returns (CreateBranchResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
@@ -51,11 +52,13 @@ service BranchService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc SetDefaultBranch(SetDefaultBranchRequest) returns (SetDefaultBranchResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
 }
 

@@ -1934,19 +1934,19 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\x14ListLowStockResponse\x127\n" +
 	"\bproducts\x18\x01 \x03(\v2\x1b.inventory_iface.v1.ProductR\bproducts\x12\x1c\n" +
 	"\tthreshold\x18\x02 \x01(\x05R\tthreshold\x12\x14\n" +
-	"\x05total\x18\x03 \x01(\x05R\x05total2\xf9\t\n" +
-	"\x0eProductService\x12j\n" +
-	"\fListProducts\x12'.inventory_iface.v1.ListProductsRequest\x1a(.inventory_iface.v1.ListProductsResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12d\n" +
+	"\x05total\x18\x03 \x01(\x05R\x05total2\xfd\t\n" +
+	"\x0eProductService\x12k\n" +
+	"\fListProducts\x12'.inventory_iface.v1.ListProductsRequest\x1a(.inventory_iface.v1.ListProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12e\n" +
 	"\n" +
-	"GetProduct\x12%.inventory_iface.v1.GetProductRequest\x1a&.inventory_iface.v1.GetProductResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12l\n" +
+	"GetProduct\x12%.inventory_iface.v1.GetProductRequest\x1a&.inventory_iface.v1.GetProductResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12l\n" +
 	"\rCreateProduct\x12(.inventory_iface.v1.CreateProductRequest\x1a).inventory_iface.v1.CreateProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
 	"\rUpdateProduct\x12(.inventory_iface.v1.UpdateProductRequest\x1a).inventory_iface.v1.UpdateProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
 	"\x0eArchiveProduct\x12).inventory_iface.v1.ArchiveProductRequest\x1a*.inventory_iface.v1.ArchiveProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12u\n" +
 	"\x10UnarchiveProduct\x12+.inventory_iface.v1.UnarchiveProductRequest\x1a,.inventory_iface.v1.UnarchiveProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12x\n" +
 	"\x11ListProductPrices\x12,.inventory_iface.v1.ListProductPricesRequest\x1a-.inventory_iface.v1.ListProductPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
-	"\x15ListProductUnitPrices\x120.inventory_iface.v1.ListProductUnitPricesRequest\x1a1.inventory_iface.v1.ListProductUnitPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12p\n" +
-	"\x0eSearchProducts\x12).inventory_iface.v1.SearchProductsRequest\x1a*.inventory_iface.v1.SearchProductsResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12s\n" +
-	"\x0fResolveProducts\x12*.inventory_iface.v1.ResolveProductsRequest\x1a+.inventory_iface.v1.ResolveProductsResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12i\n" +
+	"\x15ListProductUnitPrices\x120.inventory_iface.v1.ListProductUnitPricesRequest\x1a1.inventory_iface.v1.ListProductUnitPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12q\n" +
+	"\x0eSearchProducts\x12).inventory_iface.v1.SearchProductsRequest\x1a*.inventory_iface.v1.SearchProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12t\n" +
+	"\x0fResolveProducts\x12*.inventory_iface.v1.ResolveProductsRequest\x1a+.inventory_iface.v1.ResolveProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12i\n" +
 	"\fListLowStock\x12'.inventory_iface.v1.ListLowStockRequest\x1a(.inventory_iface.v1.ListLowStockResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
 
 var (

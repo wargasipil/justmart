@@ -4,6 +4,12 @@ config.yaml
 # Docker compose secrets (copy from .env.example)
 .env
 
+# License tokens — signed credentials minted by `cmd/license`; never commit.
+# `licence.{pharmacy,retail}.example` are local sample tokens for testing
+# Settings > License (one per business mode).
+licence*.example
+*.license
+
 # Local docker volumes (postgres data, etc.)
 data/
 
@@ -46,3 +52,7 @@ packaging/windows/.cache/
 .DS_Store
 Thumbs.db
 *.log
+
+
+thirdparties/bin
+server.exe

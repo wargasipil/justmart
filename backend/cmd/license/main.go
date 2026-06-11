@@ -69,19 +69,7 @@ func run(_ context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	now := time.Now()
-	claims := jwt.MapClaims{
-		"name":             name,
-		"business_type":    settingsifacev1.BussinessType_name[int32(bt)],
-		"business_type_id": int32(bt),
-		"iat":              now.Unix(),
-	}
-	if days := cmd.Int("expires"); days > 0 {
-		claims["exp"] = now.Add(time.Duration(days) * 24 * time.Hour).Unix()
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signed, err := token.SignedString([]byte(security.SecretRoot))
+	signed, err := buildLicenseToken(name, bt, cmd.Int("expires"))
 	if err != nil {
 		return fmt.Errorf("sign license: %w", err)
 	}
@@ -95,6 +83,24 @@ func run(_ context.Context, cmd *cli.Command) error {
 	}
 	fmt.Println(signed)
 	return nil
+}
+
+// buildLicenseToken mints a license JWT (HS256, signed with security.SecretRoot)
+// carrying the holder name + business type, and an optional expiry. Extracted
+// from run() so it's unit-testable without the interactive picker.
+func buildLicenseToken(name string, bt settingsifacev1.BussinessType, expiresDays int) (string, error) {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"name":             name,
+		"business_type":    settingsifacev1.BussinessType_name[int32(bt)],
+		"business_type_id": int32(bt),
+		"iat":              now.Unix(),
+	}
+	if expiresDays > 0 {
+		claims["exp"] = now.Add(time.Duration(expiresDays) * 24 * time.Hour).Unix()
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(security.SecretRoot))
 }
 
 // pickBusinessType is implemented per-platform: an interactive arrow-key menu

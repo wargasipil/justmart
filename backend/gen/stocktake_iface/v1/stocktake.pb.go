@@ -1395,12 +1395,12 @@ const file_stocktake_iface_v1_stocktake_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x8f\x01\n" +
 	"\x14GetStocktakeResponse\x12>\n" +
 	"\asession\x18\x01 \x01(\v2$.stocktake_iface.v1.StocktakeSessionR\asession\x127\n" +
-	"\x05lines\x18\x02 \x03(\v2!.stocktake_iface.v1.StocktakeLineR\x05lines2\x96\t\n" +
+	"\x05lines\x18\x02 \x03(\v2!.stocktake_iface.v1.StocktakeLineR\x05lines2\x97\t\n" +
 	"\x10StocktakeService\x12o\n" +
 	"\x0eStartStocktake\x12).stocktake_iface.v1.StartStocktakeRequest\x1a*.stocktake_iface.v1.StartStocktakeResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12~\n" +
 	"\x13AddBatchesToSession\x12..stocktake_iface.v1.AddBatchesToSessionRequest\x1a/.stocktake_iface.v1.AddBatchesToSessionResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x81\x01\n" +
-	"\x14AddAllInStockBatches\x12/.stocktake_iface.v1.AddAllInStockBatchesRequest\x1a0.stocktake_iface.v1.AddAllInStockBatchesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12g\n" +
-	"\vRecordCount\x12&.stocktake_iface.v1.RecordCountRequest\x1a'.stocktake_iface.v1.RecordCountResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12{\n" +
+	"\x14AddAllInStockBatches\x12/.stocktake_iface.v1.AddAllInStockBatchesRequest\x1a0.stocktake_iface.v1.AddAllInStockBatchesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12h\n" +
+	"\vRecordCount\x12&.stocktake_iface.v1.RecordCountRequest\x1a'.stocktake_iface.v1.RecordCountResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12{\n" +
 	"\x12SetLineDisposition\x12-.stocktake_iface.v1.SetLineDispositionRequest\x1a..stocktake_iface.v1.SetLineDispositionResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12c\n" +
 	"\n" +
 	"RemoveLine\x12%.stocktake_iface.v1.RemoveLineRequest\x1a&.stocktake_iface.v1.RemoveLineResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12x\n" +

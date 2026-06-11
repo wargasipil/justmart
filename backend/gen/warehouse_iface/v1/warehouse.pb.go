@@ -1460,19 +1460,19 @@ const file_warehouse_iface_v1_warehouse_proto_rawDesc = "" +
 	" SetGlobalDefaultWarehouseRequest\x12!\n" +
 	"\fwarehouse_id\x18\x01 \x01(\tR\vwarehouseId\"`\n" +
 	"!SetGlobalDefaultWarehouseResponse\x12;\n" +
-	"\twarehouse\x18\x01 \x01(\v2\x1d.warehouse_iface.v1.WarehouseR\twarehouse2\xe2\n" +
+	"\twarehouse\x18\x01 \x01(\v2\x1d.warehouse_iface.v1.WarehouseR\twarehouse2\xe7\n" +
 	"\n" +
-	"\x10WarehouseService\x12p\n" +
-	"\x0eListWarehouses\x12).warehouse_iface.v1.ListWarehousesRequest\x1a*.warehouse_iface.v1.ListWarehousesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12j\n" +
-	"\fGetWarehouse\x12'.warehouse_iface.v1.GetWarehouseRequest\x1a(.warehouse_iface.v1.GetWarehouseResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12z\n" +
+	"\x10WarehouseService\x12q\n" +
+	"\x0eListWarehouses\x12).warehouse_iface.v1.ListWarehousesRequest\x1a*.warehouse_iface.v1.ListWarehousesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12k\n" +
+	"\fGetWarehouse\x12'.warehouse_iface.v1.GetWarehouseRequest\x1a(.warehouse_iface.v1.GetWarehouseResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12z\n" +
 	"\x12ListWarehouseUsers\x12-.warehouse_iface.v1.ListWarehouseUsersRequest\x1a..warehouse_iface.v1.ListWarehouseUsersResponse\"\x05\x8a\xb5\x18\x01\x01\x12q\n" +
 	"\x0fCreateWarehouse\x12*.warehouse_iface.v1.CreateWarehouseRequest\x1a+.warehouse_iface.v1.CreateWarehouseResponse\"\x05\x8a\xb5\x18\x01\x01\x12q\n" +
 	"\x0fUpdateWarehouse\x12*.warehouse_iface.v1.UpdateWarehouseRequest\x1a+.warehouse_iface.v1.UpdateWarehouseResponse\"\x05\x8a\xb5\x18\x01\x01\x12t\n" +
 	"\x10ArchiveWarehouse\x12+.warehouse_iface.v1.ArchiveWarehouseRequest\x1a,.warehouse_iface.v1.ArchiveWarehouseResponse\"\x05\x8a\xb5\x18\x01\x01\x12\x80\x01\n" +
 	"\x14GrantWarehouseAccess\x12/.warehouse_iface.v1.GrantWarehouseAccessRequest\x1a0.warehouse_iface.v1.GrantWarehouseAccessResponse\"\x05\x8a\xb5\x18\x01\x01\x12\x83\x01\n" +
-	"\x15RevokeWarehouseAccess\x120.warehouse_iface.v1.RevokeWarehouseAccessRequest\x1a1.warehouse_iface.v1.RevokeWarehouseAccessResponse\"\x05\x8a\xb5\x18\x01\x01\x12|\n" +
-	"\x12ListUserWarehouses\x12-.warehouse_iface.v1.ListUserWarehousesRequest\x1a..warehouse_iface.v1.ListUserWarehousesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12\x7f\n" +
-	"\x13SetDefaultWarehouse\x12..warehouse_iface.v1.SetDefaultWarehouseRequest\x1a/.warehouse_iface.v1.SetDefaultWarehouseResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12\x8f\x01\n" +
+	"\x15RevokeWarehouseAccess\x120.warehouse_iface.v1.RevokeWarehouseAccessRequest\x1a1.warehouse_iface.v1.RevokeWarehouseAccessResponse\"\x05\x8a\xb5\x18\x01\x01\x12}\n" +
+	"\x12ListUserWarehouses\x12-.warehouse_iface.v1.ListUserWarehousesRequest\x1a..warehouse_iface.v1.ListUserWarehousesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x80\x01\n" +
+	"\x13SetDefaultWarehouse\x12..warehouse_iface.v1.SetDefaultWarehouseRequest\x1a/.warehouse_iface.v1.SetDefaultWarehouseResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x8f\x01\n" +
 	"\x19SetGlobalDefaultWarehouse\x124.warehouse_iface.v1.SetGlobalDefaultWarehouseRequest\x1a5.warehouse_iface.v1.SetGlobalDefaultWarehouseResponse\"\x05\x8a\xb5\x18\x01\x01BEZCgithub.com/justmart/backend/gen/warehouse_iface/v1;warehouseifacev1b\x06proto3"
 
 var (

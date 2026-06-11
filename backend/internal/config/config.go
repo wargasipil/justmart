@@ -29,9 +29,10 @@ type Database struct {
 	Password string `yaml:"password"`
 	Name     string `yaml:"name"`
 	SSLMode  string `yaml:"sslmode"`
-	// AutoMigrate runs goose migrations on server boot. Pointer so an unset
-	// value defaults to true (turnkey deploys); set `auto_migrate: false` to
-	// run migrations explicitly via `cmd/migrate`. Read via ShouldAutoMigrate.
+	// AutoMigrate runs goose migrations on server boot. Pointer so unset is
+	// distinguishable; the default is OFF (migrations are run explicitly via
+	// `cmd/server migrate`). Set `auto_migrate: true` to migrate on boot — the
+	// turnkey Docker / Windows configs do this. Read via ShouldAutoMigrate.
 	AutoMigrate *bool `yaml:"auto_migrate"`
 }
 
@@ -56,9 +57,10 @@ func (d Database) SQLitePath() string {
 }
 
 // ShouldAutoMigrate reports whether the server should run migrations on boot.
-// Defaults to true when unset.
+// Defaults to FALSE when unset — the server does not migrate on start unless
+// `auto_migrate: true` is set (turnkey deploys). Otherwise run `cmd/server migrate`.
 func (d Database) ShouldAutoMigrate() bool {
-	return d.AutoMigrate == nil || *d.AutoMigrate
+	return d.AutoMigrate != nil && *d.AutoMigrate
 }
 
 type Auth struct {
@@ -105,6 +107,10 @@ type Config struct {
 	Bootstrap Bootstrap `yaml:"bootstrap"`
 	Printer   Printer   `yaml:"printer"`
 	Backup    Backup    `yaml:"backup"`
+	// License is an offline license token (JWT minted by cmd/license, signed with
+	// security.SecretRoot). When present + valid, its business type drives the
+	// app's business mode on boot. Empty = unlicensed (mode stays UNSPECIFIED).
+	License string `yaml:"license"`
 }
 
 func (d Database) DSN() string {
@@ -178,6 +184,9 @@ func applyEnvOverrides(c *Config) {
 	}
 	if v := os.Getenv("JUSTMART_PG_TOOLS_DIR"); v != "" {
 		c.Backup.PgToolsDir = v
+	}
+	if v := os.Getenv("JUSTMART_LICENSE"); v != "" {
+		c.License = v
 	}
 }
 

@@ -1027,16 +1027,16 @@ const file_branch_iface_v1_branch_proto_rawDesc = "" +
 	"\x18SetDefaultBranchResponse\x12E\n" +
 	"\n" +
 	"membership\x18\x01 \x01(\v2%.branch_iface.v1.UserBranchMembershipR\n" +
-	"membership2\xf1\x06\n" +
-	"\rBranchService\x12d\n" +
-	"\fListBranches\x12$.branch_iface.v1.ListBranchesRequest\x1a%.branch_iface.v1.ListBranchesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12b\n" +
+	"membership2\xf4\x06\n" +
+	"\rBranchService\x12e\n" +
+	"\fListBranches\x12$.branch_iface.v1.ListBranchesRequest\x1a%.branch_iface.v1.ListBranchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12b\n" +
 	"\fCreateBranch\x12$.branch_iface.v1.CreateBranchRequest\x1a%.branch_iface.v1.CreateBranchResponse\"\x05\x8a\xb5\x18\x01\x01\x12b\n" +
 	"\fUpdateBranch\x12$.branch_iface.v1.UpdateBranchRequest\x1a%.branch_iface.v1.UpdateBranchResponse\"\x05\x8a\xb5\x18\x01\x01\x12e\n" +
 	"\rArchiveBranch\x12%.branch_iface.v1.ArchiveBranchRequest\x1a&.branch_iface.v1.ArchiveBranchResponse\"\x05\x8a\xb5\x18\x01\x01\x12q\n" +
 	"\x11GrantBranchAccess\x12).branch_iface.v1.GrantBranchAccessRequest\x1a*.branch_iface.v1.GrantBranchAccessResponse\"\x05\x8a\xb5\x18\x01\x01\x12t\n" +
-	"\x12RevokeBranchAccess\x12*.branch_iface.v1.RevokeBranchAccessRequest\x1a+.branch_iface.v1.RevokeBranchAccessResponse\"\x05\x8a\xb5\x18\x01\x01\x12p\n" +
-	"\x10ListUserBranches\x12(.branch_iface.v1.ListUserBranchesRequest\x1a).branch_iface.v1.ListUserBranchesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12p\n" +
-	"\x10SetDefaultBranch\x12(.branch_iface.v1.SetDefaultBranchRequest\x1a).branch_iface.v1.SetDefaultBranchResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03B?Z=github.com/justmart/backend/gen/branch_iface/v1;branchifacev1b\x06proto3"
+	"\x12RevokeBranchAccess\x12*.branch_iface.v1.RevokeBranchAccessRequest\x1a+.branch_iface.v1.RevokeBranchAccessResponse\"\x05\x8a\xb5\x18\x01\x01\x12q\n" +
+	"\x10ListUserBranches\x12(.branch_iface.v1.ListUserBranchesRequest\x1a).branch_iface.v1.ListUserBranchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
+	"\x10SetDefaultBranch\x12(.branch_iface.v1.SetDefaultBranchRequest\x1a).branch_iface.v1.SetDefaultBranchResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04B?Z=github.com/justmart/backend/gen/branch_iface/v1;branchifacev1b\x06proto3"
 
 var (
 	file_branch_iface_v1_branch_proto_rawDescOnce sync.Once

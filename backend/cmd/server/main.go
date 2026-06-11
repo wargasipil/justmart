@@ -1,171 +1,41 @@
+// Command server is the Justmart binary. Run with no subcommand to start the
+// HTTP server (Connect API + embedded SPA); use the `migrate` subcommand to run
+// database migrations. Built on urfave/cli/v3 (same as cmd/license).
 package main
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
-	"net/http"
 	"os"
-	"time"
 	// Embed the IANA timezone DB so `TZ=Asia/Jakarta` resolves even on a minimal
 	// base image (distroless has no /usr/share/zoneinfo). The "today" boundary in
 	// GetTodaySnapshot relies on time.Local being the shop's zone.
 	_ "time/tzdata"
 
-	"connectrpc.com/connect"
-
-	"github.com/justmart/backend/gen/analytics_iface/v1/analyticsifacev1connect"
-	"github.com/justmart/backend/gen/backup_iface/v1/backupifacev1connect"
-	"github.com/justmart/backend/gen/branch_iface/v1/branchifacev1connect"
-	"github.com/justmart/backend/gen/customer_iface/v1/customerifacev1connect"
-	"github.com/justmart/backend/gen/health_iface/v1/healthifacev1connect"
-	"github.com/justmart/backend/gen/inventory_iface/v1/inventoryifacev1connect"
-	"github.com/justmart/backend/gen/pos_iface/v1/posifacev1connect"
-	"github.com/justmart/backend/gen/purchasing_iface/v1/purchasingifacev1connect"
-	"github.com/justmart/backend/gen/settings_iface/v1/settingsifacev1connect"
-	"github.com/justmart/backend/gen/unit_iface/v1/unitifacev1connect"
-	"github.com/justmart/backend/gen/stocktake_iface/v1/stocktakeifacev1connect"
-	"github.com/justmart/backend/gen/user_iface/v1/userifacev1connect"
-	"github.com/justmart/backend/gen/warehouse_iface/v1/warehouseifacev1connect"
-	"github.com/justmart/backend/internal/auth"
-	"github.com/justmart/backend/internal/config"
-	"github.com/justmart/backend/internal/db"
-	"github.com/justmart/backend/internal/dbmigrate"
-	"github.com/justmart/backend/internal/service/analytics"
-	authsvc "github.com/justmart/backend/internal/service/auth"
-	"github.com/justmart/backend/internal/service/backup"
-	"github.com/justmart/backend/internal/service/batch"
-	"github.com/justmart/backend/internal/service/branch"
-	"github.com/justmart/backend/internal/service/customer"
-	"github.com/justmart/backend/internal/service/health"
-	"github.com/justmart/backend/internal/service/product"
-	"github.com/justmart/backend/internal/service/purchasing"
-	"github.com/justmart/backend/internal/service/sale"
-	"github.com/justmart/backend/internal/service/settings"
-	"github.com/justmart/backend/internal/service/stock"
-	"github.com/justmart/backend/internal/service/stocktake"
-	"github.com/justmart/backend/internal/service/supplier"
-	"github.com/justmart/backend/internal/service/transfer"
-	"github.com/justmart/backend/internal/service/unit"
-	"github.com/justmart/backend/internal/service/user"
-	"github.com/justmart/backend/internal/service/warehouse"
-	"github.com/justmart/backend/internal/web"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 
-	cfg := config.MustLoad()
-	gormDB := db.MustOpen(cfg)
-
-	// Auto-migrate on boot (default on) so a freshly deployed binary brings its
-	// own schema up to date — no separate migrate step in Docker / Windows.
-	if cfg.Database.ShouldAutoMigrate() {
-		sqlDB, err := gormDB.DB()
-		if err != nil {
-			log.Fatalf("get sql.DB for migrate: %v", err)
-		}
-		if err := dbmigrate.Run(sqlDB, cfg.Database.DriverName()); err != nil {
-			log.Fatalf("auto-migrate: %v", err)
-		}
-		slog.Info("migrations applied")
+	cmd := &cli.Command{
+		Name:  "justmart",
+		Usage: "Justmart server — runs the HTTP server by default; `migrate` for DB migrations",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "config",
+				Aliases: []string{"c"},
+				Usage:   "path to config.yaml (else $JUSTMART_CONFIG / ./config.yaml)",
+			},
+		},
+		Action:   serve, // default action: run the server
+		Commands: []*cli.Command{migrateCmd},
 	}
 
-	issuer := &auth.Issuer{
-		Secret: []byte(cfg.Auth.JWTSecret),
-		TTL:    cfg.Auth.AccessTokenTTL,
-	}
-	refreshIssuer := &auth.RefreshIssuer{
-		DB:  gormDB,
-		TTL: cfg.Auth.RefreshTokenTTL,
-	}
-
-	policy := auth.BuildPolicy()
-	slog.Info("auth policy built", "procedures", len(policy))
-	interceptors := connect.WithInterceptors(
-		auth.NewInterceptor(issuer, policy),
-		auth.NewAuditInterceptor(gormDB),
-	)
-
-	loginLimiter := auth.NewLoginLimiter(5, 60*time.Second)
-	userSvc := user.NewUserService(gormDB)
-	authSvc := authsvc.NewAuthService(gormDB, issuer, refreshIssuer, loginLimiter)
-	healthSvc := health.NewHealthService(gormDB)
-	supplierSvc := supplier.NewSupplierService(gormDB)
-	productSvc := product.NewProductService(gormDB)
-	batchSvc := batch.NewBatchService(gormDB)
-	stockSvc := stock.NewStockService(gormDB)
-	customerSvc := customer.NewCustomerService(gormDB)
-	saleSvc := sale.NewSaleService(gormDB, cfg.Printer)
-	analyticsSvc := analytics.NewAnalyticsService(gormDB)
-	purchaseOrdersSvc := purchasing.NewPurchaseOrderService(gormDB)
-	purchaseReceiptsSvc := purchasing.NewPurchaseReceiptService(gormDB)
-	purchasePaymentsSvc := purchasing.NewPurchasePaymentService(gormDB)
-	branchesSvc := branch.NewBranchService(gormDB)
-	stocktakesSvc := stocktake.NewStocktakeService(gormDB)
-	warehousesSvc := warehouse.NewWarehouseService(gormDB)
-	transfersSvc := transfer.NewTransferService(gormDB)
-	settingsSvc := settings.NewSettingsService(gormDB)
-	unitsSvc := unit.NewUnitService(gormDB)
-	backupSvc := backup.NewBackupService(gormDB, cfg)
-
-	if err := userSvc.EnsureBootstrapOwner(context.Background(), cfg.Bootstrap); err != nil {
-		log.Fatalf("bootstrap: %v", err) // intentionally fatal — server can't start
-	}
-
-	// Background sweeper: hard-delete abandoned DRAFT carts the POS client missed
-	// (crashes, lost sessions). In-process, single-node — like the rate limiter.
-	sale.StartDraftSweeper(gormDB)
-
-	// Connect RPC handlers live on apiMux and are mounted under /api so the
-	// embedded SPA can share the same origin (frontend transport baseUrl="/api").
-	apiMux := http.NewServeMux()
-	apiMux.Handle(healthifacev1connect.NewHealthServiceHandler(healthSvc, interceptors))
-	apiMux.Handle(userifacev1connect.NewAuthServiceHandler(authSvc, interceptors))
-	apiMux.Handle(userifacev1connect.NewUserServiceHandler(userSvc, interceptors))
-	apiMux.Handle(inventoryifacev1connect.NewSupplierServiceHandler(supplierSvc, interceptors))
-	apiMux.Handle(inventoryifacev1connect.NewProductServiceHandler(productSvc, interceptors))
-	apiMux.Handle(inventoryifacev1connect.NewBatchServiceHandler(batchSvc, interceptors))
-	apiMux.Handle(inventoryifacev1connect.NewStockMovementServiceHandler(stockSvc, interceptors))
-	apiMux.Handle(customerifacev1connect.NewCustomerServiceHandler(customerSvc, interceptors))
-	apiMux.Handle(posifacev1connect.NewSaleServiceHandler(saleSvc, interceptors))
-	apiMux.Handle(analyticsifacev1connect.NewAnalyticsServiceHandler(analyticsSvc, interceptors))
-	apiMux.Handle(purchasingifacev1connect.NewPurchaseOrderServiceHandler(purchaseOrdersSvc, interceptors))
-	apiMux.Handle(purchasingifacev1connect.NewPurchaseReceiptServiceHandler(purchaseReceiptsSvc, interceptors))
-	apiMux.Handle(purchasingifacev1connect.NewPurchasePaymentServiceHandler(purchasePaymentsSvc, interceptors))
-	apiMux.Handle(branchifacev1connect.NewBranchServiceHandler(branchesSvc, interceptors))
-	apiMux.Handle(stocktakeifacev1connect.NewStocktakeServiceHandler(stocktakesSvc, interceptors))
-	apiMux.Handle(warehouseifacev1connect.NewWarehouseServiceHandler(warehousesSvc, interceptors))
-	apiMux.Handle(warehouseifacev1connect.NewStockTransferServiceHandler(transfersSvc, interceptors))
-	apiMux.Handle(settingsifacev1connect.NewSettingsServiceHandler(settingsSvc, interceptors))
-	apiMux.Handle(unitifacev1connect.NewUnitServiceHandler(unitsSvc, interceptors))
-	apiMux.Handle(backupifacev1connect.NewBackupServiceHandler(backupSvc, interceptors))
-
-	// Root mux: /api/* → Connect handlers, /healthz → liveness probe,
-	// everything else → the embedded SPA (single self-contained binary).
-	root := http.NewServeMux()
-	root.Handle("/api/", http.StripPrefix("/api", apiMux))
-	root.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		_, _ = w.Write([]byte("ok"))
-	})
-	root.Handle("/", web.Handler())
-
-	var protocols http.Protocols
-	protocols.SetHTTP1(true)
-	protocols.SetUnencryptedHTTP2(true) // h2c: HTTP/2 over plain TCP for gRPC/Connect streams
-
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	srv := &http.Server{
-		Addr:      addr,
-		Handler:   root,
-		Protocols: &protocols,
-	}
-
-	slog.Info("justmart listening", "addr", addr)
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
 	}
 }

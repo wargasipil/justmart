@@ -20,9 +20,10 @@ database:
   password: justmart
   name: justmart
   sslmode: disable
-  # auto_migrate: run goose migrations on server boot. Default true (turnkey).
-  # Set false to apply migrations explicitly via `make migrate-up`.
-  auto_migrate: true
+  # auto_migrate: run goose migrations on server boot. Default OFF — migrations
+  # are applied explicitly via `cmd/server migrate up` (or `make migrate-up`).
+  # Set true for a turnkey deploy that should self-migrate on start.
+  auto_migrate: false
 
 auth:
   jwt_secret: change-me-to-a-long-random-string
@@ -32,6 +33,13 @@ auth:
 bootstrap:
   owner_email: owner@justmart.local
   owner_password: change-me-on-first-login
+
+# Optional: offline license token (a JWT minted by `cmd/license`) that selects
+# the business mode — retail or pharmacy/apotek. A token set here (or via the
+# JUSTMART_LICENSE env var) takes precedence and is re-applied every boot;
+# otherwise the server falls back to a license applied in-app under
+# Settings > License. Empty = unlicensed (mode UNSPECIFIED, behaves as retail).
+# license: ""
 
 # Optional: ESC/POS thermal printer. Leave `enabled: false` to disable Print
 # in the POS receipt dialog. Backend opens a raw TCP connection to `address`

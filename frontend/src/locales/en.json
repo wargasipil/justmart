@@ -1,6 +1,19 @@
 {
   "app": {
-    "name": "Justmart"
+    "name": "Justmart",
+    "pharmacyName": "Pharmacy"
+  },
+  "glossary": {
+    "product": "product",
+    "products": "products",
+    "productCap": "Product",
+    "productsCap": "Products"
+  },
+  "glossaryPharmacy": {
+    "product": "medicine",
+    "products": "medicines",
+    "productCap": "Medicine",
+    "productsCap": "Medicines"
   },
   "datepicker": {
     "open": "Open calendar",
@@ -46,6 +59,7 @@
     "pos": "POS",
     "inventory": "Inventory",
     "products": "Products",
+    "medicines": "Medicines",
     "suppliers": "Suppliers",
     "batches": "Batches",
     "movements": "Movements",
@@ -67,14 +81,27 @@
     "tabs": {
       "general": "General",
       "units": "Units",
+      "license": "License",
       "backups": "Backups"
     },
+    "license": {
+      "current": "Current license",
+      "none": "No license applied",
+      "keyLabel": "License key",
+      "placeholder": "Paste the license key here…",
+      "help": "Paste the license key issued for this shop. It sets the business mode (retail or pharmacy) and persists across restarts.",
+      "apply": "Apply license",
+      "applied": "License applied for {{name}}",
+      "modePharmacy": "Pharmacy mode",
+      "modeRetail": "Retail mode",
+      "modeUnset": "Unlicensed"
+    },
     "lowStockThreshold": "Low-stock threshold",
-    "lowStockHelp": "Show a notification when a product's ready stock in the active warehouse is at or below this number.",
+    "lowStockHelp": "Show a notification when a $t(glossary.product)'s ready stock in the active warehouse is at or below this number.",
     "invalidThreshold": "Threshold must be a non-negative integer",
     "units": {
       "title": "Unit catalog",
-      "help": "Register base units (tablet, ml) and their derivatives (strip ×10, box ×100). Used as presets when creating a product and as options in the Products list \"Units\" popover.",
+      "help": "Register base units (tablet, ml) and their derivatives (strip ×10, box ×100). Used as presets when creating a $t(glossary.product) and as options in the $t(glossary.productsCap) list \"Units\" popover.",
       "empty": "No unit catalog yet. Add a base unit to get started.",
       "addBase": "Add base",
       "basePlaceholder": "e.g. tablet",
@@ -137,7 +164,7 @@
     "outstanding": "Outstanding",
     "paid": "Paid",
     "addLine": "Add line",
-    "selectProduct": "Select product",
+    "selectProduct": "Select $t(glossary.product)",
     "selectSupplier": "Select supplier",
     "addSupplierLink": "Add supplier",
     "actions": {
@@ -171,7 +198,7 @@
     "invoiceNo": "Invoice no",
     "item": "Item",
     "created": "Created",
-    "searchPlaceholder": "Search PO / supplier / code / product",
+    "searchPlaceholder": "Search PO / supplier / code / $t(glossary.product)",
     "dateOff": "Date: off",
     "dateCreated": "By created date",
     "dateReceived": "By received date",
@@ -205,6 +232,7 @@
     "roles": {
       "owner": "Owner",
       "pharmacist": "Manager",
+      "apoteker": "Apoteker",
       "cashier": "Cashier",
       "unknown": "Unknown"
     },
@@ -252,7 +280,7 @@
     "title": "Analytics",
     "menu": {
       "daily": "Daily",
-      "product": "Product",
+      "product": "$t(glossary.productCap)",
       "user": "User"
     },
     "range": {
@@ -304,7 +332,7 @@
   },
   "pos": {
     "title": "POS",
-    "searchPlaceholder": "Search product / scan barcode…",
+    "searchPlaceholder": "Search $t(glossary.product) / scan barcode…",
     "addedToCart": "Added to cart",
     "cart": "Cart",
     "empty": "Cart is empty",
@@ -351,7 +379,7 @@
     "expiresAtHelp": "Defaults to 90 days from issued date",
     "note": "Note",
     "items": "Items",
-    "selectProduct": "Select product",
+    "selectProduct": "Select $t(glossary.product)",
     "selectCustomer": "Select patient",
     "prescribedQty": "Prescribed qty",
     "dispensedQty": "Dispensed",
@@ -368,13 +396,13 @@
     },
     "filterStatus": "Status",
     "filterAll": "All",
-    "rxRequiredMissing": "This product requires a prescription. Attach one to the sale first.",
+    "rxRequiredMissing": "This $t(glossary.product) requires a prescription. Attach one to the sale first.",
     "attached": "Rx attached",
     "attach": "Attach prescription (F5)",
     "detach": "Detach",
     "needForProduct": "Need prescription for: {{product}}",
     "goCreate": "Create a prescription",
-    "noCoveringRx": "No active prescription for this product."
+    "noCoveringRx": "No active prescription for this $t(glossary.product)."
   },
   "customers": {
     "title": "Customers",
@@ -440,7 +468,7 @@
   "inventory": {
     "title": "Inventory",
     "tabs": {
-      "products": "Products",
+      "products": "$t(glossary.productsCap)",
       "suppliers": "Suppliers",
       "batches": "Batches",
       "movements": "Movements",
@@ -448,11 +476,11 @@
       "transfers": "Transfers"
     },
     "products": {
-      "title": "Products",
-      "tabActive": "Active products",
-      "tabArchived": "Archived products",
-      "addTitle": "Add product",
-      "editTitle": "Edit product",
+      "title": "$t(glossary.productsCap)",
+      "tabActive": "Active $t(glossary.products)",
+      "tabArchived": "Archived $t(glossary.products)",
+      "addTitle": "Add $t(glossary.product)",
+      "editTitle": "Edit $t(glossary.product)",
       "sku": "SKU",
       "name": "Name",
       "unit": "Unit",
@@ -472,9 +500,9 @@
       "infoSection": "Information",
       "batchesSection": "Batches",
       "movementsSection": "Recent movements",
-      "confirmArchive": "Archive this product?",
+      "confirmArchive": "Archive this $t(glossary.product)?",
       "unarchive": "Restore",
-      "confirmUnarchive": "Restore this product?",
+      "confirmUnarchive": "Restore this $t(glossary.product)?",
       "lastRestock": "Last restock",
       "lastStocktake": "Last opname",
       "opnameBefore": "Opname before",
@@ -485,6 +513,7 @@
       "stockValuation": "Stock valuation",
       "baseUnit": "Base unit",
       "basePrice": "Base price (per base unit)",
+      "prescriptionRequired": "Requires prescription (resep)",
       "unitsSection": "Units",
       "unitsBaseNote": "Base unit: {{unit}}. Add larger packs (box, strip…) below; factor = base units per pack.",
       "unitName": "Unit",
@@ -513,10 +542,10 @@
     "batches": {
       "title": "Batches",
       "addTitle": "Receive batch",
-      "searchPlaceholder": "Search product / batch no…",
+      "searchPlaceholder": "Search $t(glossary.product) / batch no…",
       "byReceived": "By received",
       "byExpiry": "By expiry",
-      "product": "Product",
+      "product": "$t(glossary.productCap)",
       "supplier": "Supplier",
       "supplierNone": "— none —",
       "batchNumber": "Batch #",
@@ -536,7 +565,7 @@
       "recordTitle": "Record movement (adjustment / write-off)",
       "filterByBatch": "Filter by batch:",
       "filterAll": "— all —",
-      "searchPlaceholder": "Search batch / product…",
+      "searchPlaceholder": "Search batch / $t(glossary.product)…",
       "when": "When",
       "batch": "Batch",
       "type": "Type",
@@ -571,11 +600,11 @@
       "addBatches": "Add batches",
       "addAllInStock": "Seed all in-stock",
       "addedSummary": "{{added}} added · {{skipped}} skipped",
-      "filterByProduct": "Filter by product (optional)",
-      "anyProduct": "Any product",
+      "filterByProduct": "Filter by $t(glossary.product) (optional)",
+      "anyProduct": "Any $t(glossary.product)",
       "pickBatch": "Pick a batch",
       "add": "Add",
-      "product": "Product",
+      "product": "$t(glossary.productCap)",
       "batch": "Batch",
       "expiry": "Expiry",
       "expected": "Expected",
@@ -656,7 +685,7 @@
     "selectWarehouse": "Select warehouse",
     "items": "Items",
     "pickBatch": "Pick a batch",
-    "product": "Product",
+    "product": "$t(glossary.productCap)",
     "available": "available",
     "addBatch": "Add batch",
     "expShort": "exp",
@@ -673,7 +702,7 @@
   },
   "orders": {
     "title": "Order history",
-    "searchPlaceholder": "Search sale no, customer, or product…",
+    "searchPlaceholder": "Search sale no, customer, or $t(glossary.product)…",
     "saleNo": "Sale no",
     "date": "Date",
     "createdBy": "Created by",
@@ -719,7 +748,7 @@
       "dpp": "DPP",
       "ppn": "PPN",
       "issuedAt": "Issued at",
-      "product": "Product",
+      "product": "$t(glossary.productCap)",
       "qty": "Qty",
       "unitPrice": "Unit price",
       "lineDiscount": "Discount",

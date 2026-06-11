@@ -21,6 +21,11 @@ void i18n
       lookupLocalStorage: "justmart_lang",
       caches: ["localStorage"],
     },
+    // Re-render translation consumers when a resource bundle is overwritten at
+    // runtime — the mode-aware glossary swap (catalog noun: Product vs Obat) in
+    // <GlossaryBridge> overrides the `glossary` bundle once the business mode
+    // resolves; without this, nested `$t(glossary.*)` strings wouldn't refresh.
+    react: { bindI18nStore: "added" },
   });
 
 export default i18n;

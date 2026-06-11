@@ -14,6 +14,7 @@ import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { formatStock, unitGroupsFromCatalog } from "../../lib/stockUnit";
 import { fetchProductsForExport, useProductsQuery } from "../../queries/products";
+import { useBusinessMode } from "../../queries/settings";
 import { useUnitBasesQuery } from "../../queries/units";
 import { usePreferencesStore } from "../../stores/preferences";
 import { CreateProductDialog } from "./productDrawers";
@@ -21,6 +22,8 @@ import { CreateProductDialog } from "./productDrawers";
 export default function Products() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isPharmacy } = useBusinessMode();
+  const catalogLabel = isPharmacy ? t("nav.medicines") : t("nav.products");
   const [createOpen, setCreateOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
@@ -73,7 +76,7 @@ export default function Products() {
 
   return (
     <Box>
-      <PageHeader breadcrumbs={[{ label: t("nav.products") }]} title={t("nav.products")} />
+      <PageHeader breadcrumbs={[{ label: catalogLabel }]} title={catalogLabel} />
       <Stack gap={4}>
         <Tabs.Root
           value={tab}

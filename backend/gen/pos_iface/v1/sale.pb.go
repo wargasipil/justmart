@@ -124,25 +124,26 @@ func (SaleStatus) EnumDescriptor() ([]byte, []int) {
 }
 
 type Sale struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	SaleNo        string                 `protobuf:"bytes,2,opt,name=sale_no,json=saleNo,proto3" json:"sale_no,omitempty"`
-	CustomerId    string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	CashierUserId string                 `protobuf:"bytes,4,opt,name=cashier_user_id,json=cashierUserId,proto3" json:"cashier_user_id,omitempty"`
-	PaymentSource PaymentSource          `protobuf:"varint,5,opt,name=payment_source,json=paymentSource,proto3,enum=pos_iface.v1.PaymentSource" json:"payment_source,omitempty"`
-	Subtotal      int64                  `protobuf:"varint,7,opt,name=subtotal,proto3" json:"subtotal,omitempty"`
-	CartDiscount  int64                  `protobuf:"varint,8,opt,name=cart_discount,json=cartDiscount,proto3" json:"cart_discount,omitempty"`
-	Total         int64                  `protobuf:"varint,9,opt,name=total,proto3" json:"total,omitempty"`
-	PaidAmount    int64                  `protobuf:"varint,10,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
-	Status        SaleStatus             `protobuf:"varint,11,opt,name=status,proto3,enum=pos_iface.v1.SaleStatus" json:"status,omitempty"`
-	BranchId      string                 `protobuf:"bytes,12,opt,name=branch_id,json=branchId,proto3" json:"branch_id,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	CompletedAt   int64                  `protobuf:"varint,14,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
-	Items         []*SaleItem            `protobuf:"bytes,15,rep,name=items,proto3" json:"items,omitempty"`
-	WarehouseId   string                 `protobuf:"bytes,17,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
-	CustomerName  string                 `protobuf:"bytes,18,opt,name=customer_name,json=customerName,proto3" json:"customer_name,omitempty"` // denormalized for the order-history list
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	SaleNo         string                 `protobuf:"bytes,2,opt,name=sale_no,json=saleNo,proto3" json:"sale_no,omitempty"`
+	CustomerId     string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	CashierUserId  string                 `protobuf:"bytes,4,opt,name=cashier_user_id,json=cashierUserId,proto3" json:"cashier_user_id,omitempty"`
+	PaymentSource  PaymentSource          `protobuf:"varint,5,opt,name=payment_source,json=paymentSource,proto3,enum=pos_iface.v1.PaymentSource" json:"payment_source,omitempty"`
+	Subtotal       int64                  `protobuf:"varint,7,opt,name=subtotal,proto3" json:"subtotal,omitempty"`
+	CartDiscount   int64                  `protobuf:"varint,8,opt,name=cart_discount,json=cartDiscount,proto3" json:"cart_discount,omitempty"`
+	Total          int64                  `protobuf:"varint,9,opt,name=total,proto3" json:"total,omitempty"`
+	PaidAmount     int64                  `protobuf:"varint,10,opt,name=paid_amount,json=paidAmount,proto3" json:"paid_amount,omitempty"`
+	Status         SaleStatus             `protobuf:"varint,11,opt,name=status,proto3,enum=pos_iface.v1.SaleStatus" json:"status,omitempty"`
+	BranchId       string                 `protobuf:"bytes,12,opt,name=branch_id,json=branchId,proto3" json:"branch_id,omitempty"`
+	CreatedAt      int64                  `protobuf:"varint,13,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	CompletedAt    int64                  `protobuf:"varint,14,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	Items          []*SaleItem            `protobuf:"bytes,15,rep,name=items,proto3" json:"items,omitempty"`
+	PrescriptionId string                 `protobuf:"bytes,16,opt,name=prescription_id,json=prescriptionId,proto3" json:"prescription_id,omitempty"` // pharmacy mode: attached resep (empty = none)
+	WarehouseId    string                 `protobuf:"bytes,17,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
+	CustomerName   string                 `protobuf:"bytes,18,opt,name=customer_name,json=customerName,proto3" json:"customer_name,omitempty"` // denormalized for the order-history list
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Sale) Reset() {
@@ -271,6 +272,13 @@ func (x *Sale) GetItems() []*SaleItem {
 		return x.Items
 	}
 	return nil
+}
+
+func (x *Sale) GetPrescriptionId() string {
+	if x != nil {
+		return x.PrescriptionId
+	}
+	return ""
 }
 
 func (x *Sale) GetWarehouseId() string {
@@ -1139,6 +1147,190 @@ func (x *SetSaleCustomerResponse) GetSale() *Sale {
 	return nil
 }
 
+type AttachPrescriptionRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SaleId         string                 `protobuf:"bytes,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
+	PrescriptionId string                 `protobuf:"bytes,2,opt,name=prescription_id,json=prescriptionId,proto3" json:"prescription_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AttachPrescriptionRequest) Reset() {
+	*x = AttachPrescriptionRequest{}
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AttachPrescriptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AttachPrescriptionRequest) ProtoMessage() {}
+
+func (x *AttachPrescriptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AttachPrescriptionRequest.ProtoReflect.Descriptor instead.
+func (*AttachPrescriptionRequest) Descriptor() ([]byte, []int) {
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *AttachPrescriptionRequest) GetSaleId() string {
+	if x != nil {
+		return x.SaleId
+	}
+	return ""
+}
+
+func (x *AttachPrescriptionRequest) GetPrescriptionId() string {
+	if x != nil {
+		return x.PrescriptionId
+	}
+	return ""
+}
+
+type AttachPrescriptionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sale          *Sale                  `protobuf:"bytes,1,opt,name=sale,proto3" json:"sale,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AttachPrescriptionResponse) Reset() {
+	*x = AttachPrescriptionResponse{}
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AttachPrescriptionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AttachPrescriptionResponse) ProtoMessage() {}
+
+func (x *AttachPrescriptionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AttachPrescriptionResponse.ProtoReflect.Descriptor instead.
+func (*AttachPrescriptionResponse) Descriptor() ([]byte, []int) {
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AttachPrescriptionResponse) GetSale() *Sale {
+	if x != nil {
+		return x.Sale
+	}
+	return nil
+}
+
+type DetachPrescriptionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SaleId        string                 `protobuf:"bytes,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DetachPrescriptionRequest) Reset() {
+	*x = DetachPrescriptionRequest{}
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DetachPrescriptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DetachPrescriptionRequest) ProtoMessage() {}
+
+func (x *DetachPrescriptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DetachPrescriptionRequest.ProtoReflect.Descriptor instead.
+func (*DetachPrescriptionRequest) Descriptor() ([]byte, []int) {
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *DetachPrescriptionRequest) GetSaleId() string {
+	if x != nil {
+		return x.SaleId
+	}
+	return ""
+}
+
+type DetachPrescriptionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sale          *Sale                  `protobuf:"bytes,1,opt,name=sale,proto3" json:"sale,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DetachPrescriptionResponse) Reset() {
+	*x = DetachPrescriptionResponse{}
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DetachPrescriptionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DetachPrescriptionResponse) ProtoMessage() {}
+
+func (x *DetachPrescriptionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DetachPrescriptionResponse.ProtoReflect.Descriptor instead.
+func (*DetachPrescriptionResponse) Descriptor() ([]byte, []int) {
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DetachPrescriptionResponse) GetSale() *Sale {
+	if x != nil {
+		return x.Sale
+	}
+	return nil
+}
+
 type CompleteSaleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SaleId        string                 `protobuf:"bytes,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
@@ -1150,7 +1342,7 @@ type CompleteSaleRequest struct {
 
 func (x *CompleteSaleRequest) Reset() {
 	*x = CompleteSaleRequest{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[16]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1162,7 +1354,7 @@ func (x *CompleteSaleRequest) String() string {
 func (*CompleteSaleRequest) ProtoMessage() {}
 
 func (x *CompleteSaleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[16]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1175,7 +1367,7 @@ func (x *CompleteSaleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteSaleRequest.ProtoReflect.Descriptor instead.
 func (*CompleteSaleRequest) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{16}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CompleteSaleRequest) GetSaleId() string {
@@ -1208,7 +1400,7 @@ type CompleteSaleResponse struct {
 
 func (x *CompleteSaleResponse) Reset() {
 	*x = CompleteSaleResponse{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[17]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1220,7 +1412,7 @@ func (x *CompleteSaleResponse) String() string {
 func (*CompleteSaleResponse) ProtoMessage() {}
 
 func (x *CompleteSaleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[17]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1233,7 +1425,7 @@ func (x *CompleteSaleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CompleteSaleResponse.ProtoReflect.Descriptor instead.
 func (*CompleteSaleResponse) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{17}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CompleteSaleResponse) GetSale() *Sale {
@@ -1252,7 +1444,7 @@ type VoidSaleRequest struct {
 
 func (x *VoidSaleRequest) Reset() {
 	*x = VoidSaleRequest{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[18]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1264,7 +1456,7 @@ func (x *VoidSaleRequest) String() string {
 func (*VoidSaleRequest) ProtoMessage() {}
 
 func (x *VoidSaleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[18]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1277,7 +1469,7 @@ func (x *VoidSaleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoidSaleRequest.ProtoReflect.Descriptor instead.
 func (*VoidSaleRequest) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{18}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *VoidSaleRequest) GetSaleId() string {
@@ -1296,7 +1488,7 @@ type VoidSaleResponse struct {
 
 func (x *VoidSaleResponse) Reset() {
 	*x = VoidSaleResponse{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[19]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1308,7 +1500,7 @@ func (x *VoidSaleResponse) String() string {
 func (*VoidSaleResponse) ProtoMessage() {}
 
 func (x *VoidSaleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[19]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1321,7 +1513,7 @@ func (x *VoidSaleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoidSaleResponse.ProtoReflect.Descriptor instead.
 func (*VoidSaleResponse) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{19}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *VoidSaleResponse) GetSale() *Sale {
@@ -1340,7 +1532,7 @@ type DiscardSaleRequest struct {
 
 func (x *DiscardSaleRequest) Reset() {
 	*x = DiscardSaleRequest{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[20]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1352,7 +1544,7 @@ func (x *DiscardSaleRequest) String() string {
 func (*DiscardSaleRequest) ProtoMessage() {}
 
 func (x *DiscardSaleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[20]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1365,7 +1557,7 @@ func (x *DiscardSaleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscardSaleRequest.ProtoReflect.Descriptor instead.
 func (*DiscardSaleRequest) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{20}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DiscardSaleRequest) GetSaleId() string {
@@ -1383,7 +1575,7 @@ type DiscardSaleResponse struct {
 
 func (x *DiscardSaleResponse) Reset() {
 	*x = DiscardSaleResponse{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[21]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1395,7 +1587,7 @@ func (x *DiscardSaleResponse) String() string {
 func (*DiscardSaleResponse) ProtoMessage() {}
 
 func (x *DiscardSaleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[21]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1408,7 +1600,7 @@ func (x *DiscardSaleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscardSaleResponse.ProtoReflect.Descriptor instead.
 func (*DiscardSaleResponse) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{21}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{25}
 }
 
 type GetTodaySnapshotRequest struct {
@@ -1423,7 +1615,7 @@ type GetTodaySnapshotRequest struct {
 
 func (x *GetTodaySnapshotRequest) Reset() {
 	*x = GetTodaySnapshotRequest{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[22]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1435,7 +1627,7 @@ func (x *GetTodaySnapshotRequest) String() string {
 func (*GetTodaySnapshotRequest) ProtoMessage() {}
 
 func (x *GetTodaySnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[22]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1448,7 +1640,7 @@ func (x *GetTodaySnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTodaySnapshotRequest.ProtoReflect.Descriptor instead.
 func (*GetTodaySnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{22}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetTodaySnapshotRequest) GetCashierUserId() string {
@@ -1474,7 +1666,7 @@ type GetTodaySnapshotResponse struct {
 
 func (x *GetTodaySnapshotResponse) Reset() {
 	*x = GetTodaySnapshotResponse{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[23]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1486,7 +1678,7 @@ func (x *GetTodaySnapshotResponse) String() string {
 func (*GetTodaySnapshotResponse) ProtoMessage() {}
 
 func (x *GetTodaySnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[23]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1499,7 +1691,7 @@ func (x *GetTodaySnapshotResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTodaySnapshotResponse.ProtoReflect.Descriptor instead.
 func (*GetTodaySnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{23}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetTodaySnapshotResponse) GetRevenue() int64 {
@@ -1559,7 +1751,7 @@ type GetSalesSummaryRequest struct {
 
 func (x *GetSalesSummaryRequest) Reset() {
 	*x = GetSalesSummaryRequest{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[24]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1571,7 +1763,7 @@ func (x *GetSalesSummaryRequest) String() string {
 func (*GetSalesSummaryRequest) ProtoMessage() {}
 
 func (x *GetSalesSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[24]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1584,7 +1776,7 @@ func (x *GetSalesSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSalesSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetSalesSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{24}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetSalesSummaryRequest) GetFromUnix() int64 {
@@ -1626,7 +1818,7 @@ type GetSalesSummaryResponse struct {
 
 func (x *GetSalesSummaryResponse) Reset() {
 	*x = GetSalesSummaryResponse{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[25]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1638,7 +1830,7 @@ func (x *GetSalesSummaryResponse) String() string {
 func (*GetSalesSummaryResponse) ProtoMessage() {}
 
 func (x *GetSalesSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[25]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1651,7 +1843,7 @@ func (x *GetSalesSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSalesSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetSalesSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{25}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetSalesSummaryResponse) GetSaleCount() int64 {
@@ -1684,7 +1876,7 @@ type PrintReceiptRequest struct {
 
 func (x *PrintReceiptRequest) Reset() {
 	*x = PrintReceiptRequest{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[26]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1696,7 +1888,7 @@ func (x *PrintReceiptRequest) String() string {
 func (*PrintReceiptRequest) ProtoMessage() {}
 
 func (x *PrintReceiptRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[26]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1709,7 +1901,7 @@ func (x *PrintReceiptRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrintReceiptRequest.ProtoReflect.Descriptor instead.
 func (*PrintReceiptRequest) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{26}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *PrintReceiptRequest) GetSaleId() string {
@@ -1730,7 +1922,7 @@ type PrintReceiptResponse struct {
 
 func (x *PrintReceiptResponse) Reset() {
 	*x = PrintReceiptResponse{}
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[27]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1742,7 +1934,7 @@ func (x *PrintReceiptResponse) String() string {
 func (*PrintReceiptResponse) ProtoMessage() {}
 
 func (x *PrintReceiptResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pos_iface_v1_sale_proto_msgTypes[27]
+	mi := &file_pos_iface_v1_sale_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1755,7 +1947,7 @@ func (x *PrintReceiptResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrintReceiptResponse.ProtoReflect.Descriptor instead.
 func (*PrintReceiptResponse) Descriptor() ([]byte, []int) {
-	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{27}
+	return file_pos_iface_v1_sale_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *PrintReceiptResponse) GetBytesSent() int32 {
@@ -1769,7 +1961,7 @@ var File_pos_iface_v1_sale_proto protoreflect.FileDescriptor
 
 const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"\n" +
-	"\x17pos_iface/v1/sale.proto\x12\fpos_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xc7\x04\n" +
+	"\x17pos_iface/v1/sale.proto\x12\fpos_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xea\x04\n" +
 	"\x04Sale\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\asale_no\x18\x02 \x01(\tR\x06saleNo\x12\x1f\n" +
@@ -1788,9 +1980,10 @@ const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\r \x01(\x03R\tcreatedAt\x12!\n" +
 	"\fcompleted_at\x18\x0e \x01(\x03R\vcompletedAt\x12,\n" +
-	"\x05items\x18\x0f \x03(\v2\x16.pos_iface.v1.SaleItemR\x05items\x12!\n" +
+	"\x05items\x18\x0f \x03(\v2\x16.pos_iface.v1.SaleItemR\x05items\x12'\n" +
+	"\x0fprescription_id\x18\x10 \x01(\tR\x0eprescriptionId\x12!\n" +
 	"\fwarehouse_id\x18\x11 \x01(\tR\vwarehouseId\x12#\n" +
-	"\rcustomer_name\x18\x12 \x01(\tR\fcustomerNameJ\x04\b\x06\x10\aJ\x04\b\x10\x10\x11\"\x97\x03\n" +
+	"\rcustomer_name\x18\x12 \x01(\tR\fcustomerNameJ\x04\b\x06\x10\a\"\x97\x03\n" +
 	"\bSaleItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\asale_id\x18\x02 \x01(\tR\x06saleId\x12\x1d\n" +
@@ -1850,6 +2043,15 @@ const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"\vcustomer_id\x18\x02 \x01(\tR\n" +
 	"customerId\"A\n" +
 	"\x17SetSaleCustomerResponse\x12&\n" +
+	"\x04sale\x18\x01 \x01(\v2\x12.pos_iface.v1.SaleR\x04sale\"]\n" +
+	"\x19AttachPrescriptionRequest\x12\x17\n" +
+	"\asale_id\x18\x01 \x01(\tR\x06saleId\x12'\n" +
+	"\x0fprescription_id\x18\x02 \x01(\tR\x0eprescriptionId\"D\n" +
+	"\x1aAttachPrescriptionResponse\x12&\n" +
+	"\x04sale\x18\x01 \x01(\v2\x12.pos_iface.v1.SaleR\x04sale\"4\n" +
+	"\x19DetachPrescriptionRequest\x12\x17\n" +
+	"\asale_id\x18\x01 \x01(\tR\x06saleId\"D\n" +
+	"\x1aDetachPrescriptionResponse\x12&\n" +
 	"\x04sale\x18\x01 \x01(\v2\x12.pos_iface.v1.SaleR\x04sale\"\x93\x01\n" +
 	"\x13CompleteSaleRequest\x12\x17\n" +
 	"\asale_id\x18\x01 \x01(\tR\x06saleId\x12B\n" +
@@ -1901,22 +2103,24 @@ const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"\x17SALE_STATUS_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11SALE_STATUS_DRAFT\x10\x01\x12\x19\n" +
 	"\x15SALE_STATUS_COMPLETED\x10\x02\x12\x16\n" +
-	"\x12SALE_STATUS_VOIDED\x10\x032\xcf\t\n" +
-	"\vSaleService\x12U\n" +
-	"\tStartSale\x12\x1e.pos_iface.v1.StartSaleRequest\x1a\x1f.pos_iface.v1.StartSaleResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12O\n" +
-	"\aGetSale\x12\x1c.pos_iface.v1.GetSaleRequest\x1a\x1d.pos_iface.v1.GetSaleResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12U\n" +
-	"\tListSales\x12\x1e.pos_iface.v1.ListSalesRequest\x1a\x1f.pos_iface.v1.ListSalesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12O\n" +
-	"\aAddItem\x12\x1c.pos_iface.v1.AddItemRequest\x1a\x1d.pos_iface.v1.AddItemResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12g\n" +
-	"\x0fSetItemQuantity\x12$.pos_iface.v1.SetItemQuantityRequest\x1a%.pos_iface.v1.SetItemQuantityResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12X\n" +
+	"\x12SALE_STATUS_VOIDED\x10\x032\xc2\v\n" +
+	"\vSaleService\x12V\n" +
+	"\tStartSale\x12\x1e.pos_iface.v1.StartSaleRequest\x1a\x1f.pos_iface.v1.StartSaleResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12P\n" +
+	"\aGetSale\x12\x1c.pos_iface.v1.GetSaleRequest\x1a\x1d.pos_iface.v1.GetSaleResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12V\n" +
+	"\tListSales\x12\x1e.pos_iface.v1.ListSalesRequest\x1a\x1f.pos_iface.v1.ListSalesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12P\n" +
+	"\aAddItem\x12\x1c.pos_iface.v1.AddItemRequest\x1a\x1d.pos_iface.v1.AddItemResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12h\n" +
+	"\x0fSetItemQuantity\x12$.pos_iface.v1.SetItemQuantityRequest\x1a%.pos_iface.v1.SetItemQuantityResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12Y\n" +
 	"\n" +
-	"RemoveItem\x12\x1f.pos_iface.v1.RemoveItemRequest\x1a .pos_iface.v1.RemoveItemResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12g\n" +
-	"\x0fSetSaleCustomer\x12$.pos_iface.v1.SetSaleCustomerRequest\x1a%.pos_iface.v1.SetSaleCustomerResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12^\n" +
-	"\fCompleteSale\x12!.pos_iface.v1.CompleteSaleRequest\x1a\".pos_iface.v1.CompleteSaleResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12R\n" +
-	"\bVoidSale\x12\x1d.pos_iface.v1.VoidSaleRequest\x1a\x1e.pos_iface.v1.VoidSaleResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12[\n" +
-	"\vDiscardSale\x12 .pos_iface.v1.DiscardSaleRequest\x1a!.pos_iface.v1.DiscardSaleResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12j\n" +
-	"\x10GetTodaySnapshot\x12%.pos_iface.v1.GetTodaySnapshotRequest\x1a&.pos_iface.v1.GetTodaySnapshotResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12g\n" +
-	"\x0fGetSalesSummary\x12$.pos_iface.v1.GetSalesSummaryRequest\x1a%.pos_iface.v1.GetSalesSummaryResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12^\n" +
-	"\fPrintReceipt\x12!.pos_iface.v1.PrintReceiptRequest\x1a\".pos_iface.v1.PrintReceiptResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03B9Z7github.com/justmart/backend/gen/pos_iface/v1;posifacev1b\x06proto3"
+	"RemoveItem\x12\x1f.pos_iface.v1.RemoveItemRequest\x1a .pos_iface.v1.RemoveItemResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12h\n" +
+	"\x0fSetSaleCustomer\x12$.pos_iface.v1.SetSaleCustomerRequest\x1a%.pos_iface.v1.SetSaleCustomerResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
+	"\x12AttachPrescription\x12'.pos_iface.v1.AttachPrescriptionRequest\x1a(.pos_iface.v1.AttachPrescriptionResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
+	"\x12DetachPrescription\x12'.pos_iface.v1.DetachPrescriptionRequest\x1a(.pos_iface.v1.DetachPrescriptionResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12_\n" +
+	"\fCompleteSale\x12!.pos_iface.v1.CompleteSaleRequest\x1a\".pos_iface.v1.CompleteSaleResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12S\n" +
+	"\bVoidSale\x12\x1d.pos_iface.v1.VoidSaleRequest\x1a\x1e.pos_iface.v1.VoidSaleResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\\\n" +
+	"\vDiscardSale\x12 .pos_iface.v1.DiscardSaleRequest\x1a!.pos_iface.v1.DiscardSaleResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12k\n" +
+	"\x10GetTodaySnapshot\x12%.pos_iface.v1.GetTodaySnapshotRequest\x1a&.pos_iface.v1.GetTodaySnapshotResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12h\n" +
+	"\x0fGetSalesSummary\x12$.pos_iface.v1.GetSalesSummaryRequest\x1a%.pos_iface.v1.GetSalesSummaryResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12_\n" +
+	"\fPrintReceipt\x12!.pos_iface.v1.PrintReceiptRequest\x1a\".pos_iface.v1.PrintReceiptResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04B9Z7github.com/justmart/backend/gen/pos_iface/v1;posifacev1b\x06proto3"
 
 var (
 	file_pos_iface_v1_sale_proto_rawDescOnce sync.Once
@@ -1931,38 +2135,42 @@ func file_pos_iface_v1_sale_proto_rawDescGZIP() []byte {
 }
 
 var file_pos_iface_v1_sale_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_pos_iface_v1_sale_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_pos_iface_v1_sale_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_pos_iface_v1_sale_proto_goTypes = []any{
-	(PaymentSource)(0),               // 0: pos_iface.v1.PaymentSource
-	(SaleStatus)(0),                  // 1: pos_iface.v1.SaleStatus
-	(*Sale)(nil),                     // 2: pos_iface.v1.Sale
-	(*SaleItem)(nil),                 // 3: pos_iface.v1.SaleItem
-	(*StartSaleRequest)(nil),         // 4: pos_iface.v1.StartSaleRequest
-	(*StartSaleResponse)(nil),        // 5: pos_iface.v1.StartSaleResponse
-	(*GetSaleRequest)(nil),           // 6: pos_iface.v1.GetSaleRequest
-	(*GetSaleResponse)(nil),          // 7: pos_iface.v1.GetSaleResponse
-	(*ListSalesRequest)(nil),         // 8: pos_iface.v1.ListSalesRequest
-	(*ListSalesResponse)(nil),        // 9: pos_iface.v1.ListSalesResponse
-	(*AddItemRequest)(nil),           // 10: pos_iface.v1.AddItemRequest
-	(*AddItemResponse)(nil),          // 11: pos_iface.v1.AddItemResponse
-	(*SetItemQuantityRequest)(nil),   // 12: pos_iface.v1.SetItemQuantityRequest
-	(*SetItemQuantityResponse)(nil),  // 13: pos_iface.v1.SetItemQuantityResponse
-	(*RemoveItemRequest)(nil),        // 14: pos_iface.v1.RemoveItemRequest
-	(*RemoveItemResponse)(nil),       // 15: pos_iface.v1.RemoveItemResponse
-	(*SetSaleCustomerRequest)(nil),   // 16: pos_iface.v1.SetSaleCustomerRequest
-	(*SetSaleCustomerResponse)(nil),  // 17: pos_iface.v1.SetSaleCustomerResponse
-	(*CompleteSaleRequest)(nil),      // 18: pos_iface.v1.CompleteSaleRequest
-	(*CompleteSaleResponse)(nil),     // 19: pos_iface.v1.CompleteSaleResponse
-	(*VoidSaleRequest)(nil),          // 20: pos_iface.v1.VoidSaleRequest
-	(*VoidSaleResponse)(nil),         // 21: pos_iface.v1.VoidSaleResponse
-	(*DiscardSaleRequest)(nil),       // 22: pos_iface.v1.DiscardSaleRequest
-	(*DiscardSaleResponse)(nil),      // 23: pos_iface.v1.DiscardSaleResponse
-	(*GetTodaySnapshotRequest)(nil),  // 24: pos_iface.v1.GetTodaySnapshotRequest
-	(*GetTodaySnapshotResponse)(nil), // 25: pos_iface.v1.GetTodaySnapshotResponse
-	(*GetSalesSummaryRequest)(nil),   // 26: pos_iface.v1.GetSalesSummaryRequest
-	(*GetSalesSummaryResponse)(nil),  // 27: pos_iface.v1.GetSalesSummaryResponse
-	(*PrintReceiptRequest)(nil),      // 28: pos_iface.v1.PrintReceiptRequest
-	(*PrintReceiptResponse)(nil),     // 29: pos_iface.v1.PrintReceiptResponse
+	(PaymentSource)(0),                 // 0: pos_iface.v1.PaymentSource
+	(SaleStatus)(0),                    // 1: pos_iface.v1.SaleStatus
+	(*Sale)(nil),                       // 2: pos_iface.v1.Sale
+	(*SaleItem)(nil),                   // 3: pos_iface.v1.SaleItem
+	(*StartSaleRequest)(nil),           // 4: pos_iface.v1.StartSaleRequest
+	(*StartSaleResponse)(nil),          // 5: pos_iface.v1.StartSaleResponse
+	(*GetSaleRequest)(nil),             // 6: pos_iface.v1.GetSaleRequest
+	(*GetSaleResponse)(nil),            // 7: pos_iface.v1.GetSaleResponse
+	(*ListSalesRequest)(nil),           // 8: pos_iface.v1.ListSalesRequest
+	(*ListSalesResponse)(nil),          // 9: pos_iface.v1.ListSalesResponse
+	(*AddItemRequest)(nil),             // 10: pos_iface.v1.AddItemRequest
+	(*AddItemResponse)(nil),            // 11: pos_iface.v1.AddItemResponse
+	(*SetItemQuantityRequest)(nil),     // 12: pos_iface.v1.SetItemQuantityRequest
+	(*SetItemQuantityResponse)(nil),    // 13: pos_iface.v1.SetItemQuantityResponse
+	(*RemoveItemRequest)(nil),          // 14: pos_iface.v1.RemoveItemRequest
+	(*RemoveItemResponse)(nil),         // 15: pos_iface.v1.RemoveItemResponse
+	(*SetSaleCustomerRequest)(nil),     // 16: pos_iface.v1.SetSaleCustomerRequest
+	(*SetSaleCustomerResponse)(nil),    // 17: pos_iface.v1.SetSaleCustomerResponse
+	(*AttachPrescriptionRequest)(nil),  // 18: pos_iface.v1.AttachPrescriptionRequest
+	(*AttachPrescriptionResponse)(nil), // 19: pos_iface.v1.AttachPrescriptionResponse
+	(*DetachPrescriptionRequest)(nil),  // 20: pos_iface.v1.DetachPrescriptionRequest
+	(*DetachPrescriptionResponse)(nil), // 21: pos_iface.v1.DetachPrescriptionResponse
+	(*CompleteSaleRequest)(nil),        // 22: pos_iface.v1.CompleteSaleRequest
+	(*CompleteSaleResponse)(nil),       // 23: pos_iface.v1.CompleteSaleResponse
+	(*VoidSaleRequest)(nil),            // 24: pos_iface.v1.VoidSaleRequest
+	(*VoidSaleResponse)(nil),           // 25: pos_iface.v1.VoidSaleResponse
+	(*DiscardSaleRequest)(nil),         // 26: pos_iface.v1.DiscardSaleRequest
+	(*DiscardSaleResponse)(nil),        // 27: pos_iface.v1.DiscardSaleResponse
+	(*GetTodaySnapshotRequest)(nil),    // 28: pos_iface.v1.GetTodaySnapshotRequest
+	(*GetTodaySnapshotResponse)(nil),   // 29: pos_iface.v1.GetTodaySnapshotResponse
+	(*GetSalesSummaryRequest)(nil),     // 30: pos_iface.v1.GetSalesSummaryRequest
+	(*GetSalesSummaryResponse)(nil),    // 31: pos_iface.v1.GetSalesSummaryResponse
+	(*PrintReceiptRequest)(nil),        // 32: pos_iface.v1.PrintReceiptRequest
+	(*PrintReceiptResponse)(nil),       // 33: pos_iface.v1.PrintReceiptResponse
 }
 var file_pos_iface_v1_sale_proto_depIdxs = []int32{
 	0,  // 0: pos_iface.v1.Sale.payment_source:type_name -> pos_iface.v1.PaymentSource
@@ -1976,41 +2184,47 @@ var file_pos_iface_v1_sale_proto_depIdxs = []int32{
 	2,  // 8: pos_iface.v1.SetItemQuantityResponse.sale:type_name -> pos_iface.v1.Sale
 	2,  // 9: pos_iface.v1.RemoveItemResponse.sale:type_name -> pos_iface.v1.Sale
 	2,  // 10: pos_iface.v1.SetSaleCustomerResponse.sale:type_name -> pos_iface.v1.Sale
-	0,  // 11: pos_iface.v1.CompleteSaleRequest.payment_source:type_name -> pos_iface.v1.PaymentSource
-	2,  // 12: pos_iface.v1.CompleteSaleResponse.sale:type_name -> pos_iface.v1.Sale
-	2,  // 13: pos_iface.v1.VoidSaleResponse.sale:type_name -> pos_iface.v1.Sale
-	1,  // 14: pos_iface.v1.GetSalesSummaryRequest.status:type_name -> pos_iface.v1.SaleStatus
-	4,  // 15: pos_iface.v1.SaleService.StartSale:input_type -> pos_iface.v1.StartSaleRequest
-	6,  // 16: pos_iface.v1.SaleService.GetSale:input_type -> pos_iface.v1.GetSaleRequest
-	8,  // 17: pos_iface.v1.SaleService.ListSales:input_type -> pos_iface.v1.ListSalesRequest
-	10, // 18: pos_iface.v1.SaleService.AddItem:input_type -> pos_iface.v1.AddItemRequest
-	12, // 19: pos_iface.v1.SaleService.SetItemQuantity:input_type -> pos_iface.v1.SetItemQuantityRequest
-	14, // 20: pos_iface.v1.SaleService.RemoveItem:input_type -> pos_iface.v1.RemoveItemRequest
-	16, // 21: pos_iface.v1.SaleService.SetSaleCustomer:input_type -> pos_iface.v1.SetSaleCustomerRequest
-	18, // 22: pos_iface.v1.SaleService.CompleteSale:input_type -> pos_iface.v1.CompleteSaleRequest
-	20, // 23: pos_iface.v1.SaleService.VoidSale:input_type -> pos_iface.v1.VoidSaleRequest
-	22, // 24: pos_iface.v1.SaleService.DiscardSale:input_type -> pos_iface.v1.DiscardSaleRequest
-	24, // 25: pos_iface.v1.SaleService.GetTodaySnapshot:input_type -> pos_iface.v1.GetTodaySnapshotRequest
-	26, // 26: pos_iface.v1.SaleService.GetSalesSummary:input_type -> pos_iface.v1.GetSalesSummaryRequest
-	28, // 27: pos_iface.v1.SaleService.PrintReceipt:input_type -> pos_iface.v1.PrintReceiptRequest
-	5,  // 28: pos_iface.v1.SaleService.StartSale:output_type -> pos_iface.v1.StartSaleResponse
-	7,  // 29: pos_iface.v1.SaleService.GetSale:output_type -> pos_iface.v1.GetSaleResponse
-	9,  // 30: pos_iface.v1.SaleService.ListSales:output_type -> pos_iface.v1.ListSalesResponse
-	11, // 31: pos_iface.v1.SaleService.AddItem:output_type -> pos_iface.v1.AddItemResponse
-	13, // 32: pos_iface.v1.SaleService.SetItemQuantity:output_type -> pos_iface.v1.SetItemQuantityResponse
-	15, // 33: pos_iface.v1.SaleService.RemoveItem:output_type -> pos_iface.v1.RemoveItemResponse
-	17, // 34: pos_iface.v1.SaleService.SetSaleCustomer:output_type -> pos_iface.v1.SetSaleCustomerResponse
-	19, // 35: pos_iface.v1.SaleService.CompleteSale:output_type -> pos_iface.v1.CompleteSaleResponse
-	21, // 36: pos_iface.v1.SaleService.VoidSale:output_type -> pos_iface.v1.VoidSaleResponse
-	23, // 37: pos_iface.v1.SaleService.DiscardSale:output_type -> pos_iface.v1.DiscardSaleResponse
-	25, // 38: pos_iface.v1.SaleService.GetTodaySnapshot:output_type -> pos_iface.v1.GetTodaySnapshotResponse
-	27, // 39: pos_iface.v1.SaleService.GetSalesSummary:output_type -> pos_iface.v1.GetSalesSummaryResponse
-	29, // 40: pos_iface.v1.SaleService.PrintReceipt:output_type -> pos_iface.v1.PrintReceiptResponse
-	28, // [28:41] is the sub-list for method output_type
-	15, // [15:28] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	2,  // 11: pos_iface.v1.AttachPrescriptionResponse.sale:type_name -> pos_iface.v1.Sale
+	2,  // 12: pos_iface.v1.DetachPrescriptionResponse.sale:type_name -> pos_iface.v1.Sale
+	0,  // 13: pos_iface.v1.CompleteSaleRequest.payment_source:type_name -> pos_iface.v1.PaymentSource
+	2,  // 14: pos_iface.v1.CompleteSaleResponse.sale:type_name -> pos_iface.v1.Sale
+	2,  // 15: pos_iface.v1.VoidSaleResponse.sale:type_name -> pos_iface.v1.Sale
+	1,  // 16: pos_iface.v1.GetSalesSummaryRequest.status:type_name -> pos_iface.v1.SaleStatus
+	4,  // 17: pos_iface.v1.SaleService.StartSale:input_type -> pos_iface.v1.StartSaleRequest
+	6,  // 18: pos_iface.v1.SaleService.GetSale:input_type -> pos_iface.v1.GetSaleRequest
+	8,  // 19: pos_iface.v1.SaleService.ListSales:input_type -> pos_iface.v1.ListSalesRequest
+	10, // 20: pos_iface.v1.SaleService.AddItem:input_type -> pos_iface.v1.AddItemRequest
+	12, // 21: pos_iface.v1.SaleService.SetItemQuantity:input_type -> pos_iface.v1.SetItemQuantityRequest
+	14, // 22: pos_iface.v1.SaleService.RemoveItem:input_type -> pos_iface.v1.RemoveItemRequest
+	16, // 23: pos_iface.v1.SaleService.SetSaleCustomer:input_type -> pos_iface.v1.SetSaleCustomerRequest
+	18, // 24: pos_iface.v1.SaleService.AttachPrescription:input_type -> pos_iface.v1.AttachPrescriptionRequest
+	20, // 25: pos_iface.v1.SaleService.DetachPrescription:input_type -> pos_iface.v1.DetachPrescriptionRequest
+	22, // 26: pos_iface.v1.SaleService.CompleteSale:input_type -> pos_iface.v1.CompleteSaleRequest
+	24, // 27: pos_iface.v1.SaleService.VoidSale:input_type -> pos_iface.v1.VoidSaleRequest
+	26, // 28: pos_iface.v1.SaleService.DiscardSale:input_type -> pos_iface.v1.DiscardSaleRequest
+	28, // 29: pos_iface.v1.SaleService.GetTodaySnapshot:input_type -> pos_iface.v1.GetTodaySnapshotRequest
+	30, // 30: pos_iface.v1.SaleService.GetSalesSummary:input_type -> pos_iface.v1.GetSalesSummaryRequest
+	32, // 31: pos_iface.v1.SaleService.PrintReceipt:input_type -> pos_iface.v1.PrintReceiptRequest
+	5,  // 32: pos_iface.v1.SaleService.StartSale:output_type -> pos_iface.v1.StartSaleResponse
+	7,  // 33: pos_iface.v1.SaleService.GetSale:output_type -> pos_iface.v1.GetSaleResponse
+	9,  // 34: pos_iface.v1.SaleService.ListSales:output_type -> pos_iface.v1.ListSalesResponse
+	11, // 35: pos_iface.v1.SaleService.AddItem:output_type -> pos_iface.v1.AddItemResponse
+	13, // 36: pos_iface.v1.SaleService.SetItemQuantity:output_type -> pos_iface.v1.SetItemQuantityResponse
+	15, // 37: pos_iface.v1.SaleService.RemoveItem:output_type -> pos_iface.v1.RemoveItemResponse
+	17, // 38: pos_iface.v1.SaleService.SetSaleCustomer:output_type -> pos_iface.v1.SetSaleCustomerResponse
+	19, // 39: pos_iface.v1.SaleService.AttachPrescription:output_type -> pos_iface.v1.AttachPrescriptionResponse
+	21, // 40: pos_iface.v1.SaleService.DetachPrescription:output_type -> pos_iface.v1.DetachPrescriptionResponse
+	23, // 41: pos_iface.v1.SaleService.CompleteSale:output_type -> pos_iface.v1.CompleteSaleResponse
+	25, // 42: pos_iface.v1.SaleService.VoidSale:output_type -> pos_iface.v1.VoidSaleResponse
+	27, // 43: pos_iface.v1.SaleService.DiscardSale:output_type -> pos_iface.v1.DiscardSaleResponse
+	29, // 44: pos_iface.v1.SaleService.GetTodaySnapshot:output_type -> pos_iface.v1.GetTodaySnapshotResponse
+	31, // 45: pos_iface.v1.SaleService.GetSalesSummary:output_type -> pos_iface.v1.GetSalesSummaryResponse
+	33, // 46: pos_iface.v1.SaleService.PrintReceipt:output_type -> pos_iface.v1.PrintReceiptResponse
+	32, // [32:47] is the sub-list for method output_type
+	17, // [17:32] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_pos_iface_v1_sale_proto_init() }
@@ -2024,7 +2238,7 @@ func file_pos_iface_v1_sale_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pos_iface_v1_sale_proto_rawDesc), len(file_pos_iface_v1_sale_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   28,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

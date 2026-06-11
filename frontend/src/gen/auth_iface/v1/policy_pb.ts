@@ -30,6 +30,15 @@ export enum Role {
    * @generated from enum value: ROLE_CASHIER = 3;
    */
   CASHIER = 3,
+
+  /**
+   * Apoteker (pharmacist) — the dedicated pharmacy-mode role: counter sales +
+   * prescription (resep) authority. Distinct from ROLE_PHARMACIST, which this
+   * app uses as a "manager" tier.
+   *
+   * @generated from enum value: ROLE_APOTEKER = 4;
+   */
+  APOTEKER = 4,
 }
 // Retrieve enum metadata with: proto3.getEnumType(Role)
 proto3.util.setEnumType(Role, "auth_iface.v1.Role", [
@@ -37,6 +46,7 @@ proto3.util.setEnumType(Role, "auth_iface.v1.Role", [
   { no: 1, name: "ROLE_OWNER" },
   { no: 2, name: "ROLE_PHARMACIST" },
   { no: 3, name: "ROLE_CASHIER" },
+  { no: 4, name: "ROLE_APOTEKER" },
 ]);
 
 /**

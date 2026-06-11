@@ -33,6 +33,7 @@ import {
 const ROLE_OPTIONS: { value: Role; key: string }[] = [
   { value: Role.OWNER, key: "owner" },
   { value: Role.PHARMACIST, key: "pharmacist" },
+  { value: Role.APOTEKER, key: "apoteker" },
   { value: Role.CASHIER, key: "cashier" },
 ];
 

@@ -59,6 +59,8 @@ func roleEnumToString(r authifacev1.Role) string {
 		return "PHARMACIST"
 	case authifacev1.Role_ROLE_CASHIER:
 		return "CASHIER"
+	case authifacev1.Role_ROLE_APOTEKER:
+		return "APOTEKER"
 	default:
 		return ""
 	}

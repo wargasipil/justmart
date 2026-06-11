@@ -28,6 +28,7 @@ service UserService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // Server-side fuzzy search for the warehouse-detail "Add user" picker.
   // OWNER-only because this is an admin path.

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetSettingsRequest, GetSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -31,12 +31,51 @@ export const SettingsService = {
       kind: MethodKind.Unary,
     },
     /**
+     * Readable by every authenticated role — the business mode drives branding,
+     * navigation and POS behavior for all users (cashier + apoteker included).
+     *
      * @generated from rpc settings_iface.v1.SettingsService.GetBussinessSettings
      */
     getBussinessSettings: {
       name: "GetBussinessSettings",
       I: GetBussinessSettingsRequest,
       O: GetBussinessSettingsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Setting the shop's business type is an owner-level config change.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.SetBussinessSettings
+     */
+    setBussinessSettings: {
+      name: "SetBussinessSettings",
+      I: SetBussinessSettingsRequest,
+      O: SetBussinessSettingsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ApplyLicense verifies a license token (entered in Settings), persists it,
+     * and applies its business type. Owner-only.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.ApplyLicense
+     */
+    applyLicense: {
+      name: "ApplyLicense",
+      I: ApplyLicenseRequest,
+      O: ApplyLicenseResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetLicenseInfo reports the currently-applied license (holder name + mode).
+     * Readable by every role (the holder name brands the app for all users); only
+     * applying a license (ApplyLicense) is owner-gated.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetLicenseInfo
+     */
+    getLicenseInfo: {
+      name: "GetLicenseInfo",
+      I: GetLicenseInfoRequest,
+      O: GetLicenseInfoResponse,
       kind: MethodKind.Unary,
     },
   }

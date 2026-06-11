@@ -86,7 +86,12 @@ func (s *SaleService) AddItem(
 			}
 		}
 
-		return recomputeSaleTotals(tx, sale.ID)
+		if err := recomputeSaleTotals(tx, sale.ID); err != nil {
+			return err
+		}
+		// Pharmacy gate: an Rx-required product needs a covering ACTIVE Rx.
+		// No-op in retail mode (see assertRxCovers).
+		return s.assertRxCovers(ctx, tx, sale, med.ID)
 	})
 	if err != nil {
 		return nil, common.AsConnectErr(err)

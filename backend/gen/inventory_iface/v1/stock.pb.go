@@ -641,11 +641,11 @@ const file_inventory_iface_v1_stock_proto_rawDesc = "" +
 	"\x16MOVEMENT_TYPE_PURCHASE\x10\x01\x12\x16\n" +
 	"\x12MOVEMENT_TYPE_SALE\x10\x02\x12\x1c\n" +
 	"\x18MOVEMENT_TYPE_ADJUSTMENT\x10\x03\x12\x1b\n" +
-	"\x17MOVEMENT_TYPE_WRITE_OFF\x10\x042\xe7\x02\n" +
+	"\x17MOVEMENT_TYPE_WRITE_OFF\x10\x042\xe8\x02\n" +
 	"\x14StockMovementService\x12l\n" +
 	"\rListMovements\x12(.inventory_iface.v1.ListMovementsRequest\x1a).inventory_iface.v1.ListMovementsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
-	"\x0eRecordMovement\x12).inventory_iface.v1.RecordMovementRequest\x1a*.inventory_iface.v1.RecordMovementResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12p\n" +
-	"\x0eGetStockLevels\x12).inventory_iface.v1.GetStockLevelsRequest\x1a*.inventory_iface.v1.GetStockLevelsResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
+	"\x0eRecordMovement\x12).inventory_iface.v1.RecordMovementRequest\x1a*.inventory_iface.v1.RecordMovementResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12q\n" +
+	"\x0eGetStockLevels\x12).inventory_iface.v1.GetStockLevelsRequest\x1a*.inventory_iface.v1.GetStockLevelsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
 
 var (
 	file_inventory_iface_v1_stock_proto_rawDescOnce sync.Once

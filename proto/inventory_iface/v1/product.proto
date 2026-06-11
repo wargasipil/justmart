@@ -81,11 +81,13 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
@@ -116,6 +118,7 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // ResolveProducts returns minimal display refs for a set of ids (batch
   // lookup-by-IDs for name resolution; never a full-list preload).
@@ -123,6 +126,7 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // ListLowStock returns active products whose ready_stock in the caller's
   // active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).

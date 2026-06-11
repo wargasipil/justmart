@@ -6,14 +6,27 @@ import (
 	"connectrpc.com/connect"
 
 	settingsifacev1 "github.com/justmart/backend/gen/settings_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 )
 
-// GetBussinessSettings is a stub for the (in-progress) per-business-type
-// settings RPC: it accepts a BussinessType and returns an empty response. Wire
-// real business-type-specific settings here when the feature is fleshed out.
+// GetBussinessSettings returns the shop's configured business type (UNSPECIFIED
+// when it has never been set).
 func (s *SettingsService) GetBussinessSettings(
-	_ context.Context,
+	ctx context.Context,
 	_ *connect.Request[settingsifacev1.GetBussinessSettingsRequest],
 ) (*connect.Response[settingsifacev1.GetBussinessSettingsResponse], error) {
-	return connect.NewResponse(&settingsifacev1.GetBussinessSettingsResponse{}), nil
+	n, err := common.GetBussinessType(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	// Licensed shop name — surfaced to every role so the app chrome can brand by
+	// it (e.g. the pharmacy-mode header). Empty when unlicensed.
+	name, err := common.GetLicenseName(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&settingsifacev1.GetBussinessSettingsResponse{
+		Type: settingsifacev1.BussinessType(n),
+		Name: name,
+	}), nil
 }

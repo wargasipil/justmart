@@ -23,9 +23,10 @@ const (
 )
 
 // One backup directory on disk:
-//   <config.backup.directory>/backup_<YYYY-mm-dd_HHMMSS>/
-//     database.sql.gz
-//     manifest.txt
+//
+//	<config.backup.directory>/backup_<YYYY-mm-dd_HHMMSS>/
+//	  database.sql.gz
+//	  manifest.txt
 type Backup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Directory name (e.g. "backup_2026-05-26_152400"). The name doubles as the

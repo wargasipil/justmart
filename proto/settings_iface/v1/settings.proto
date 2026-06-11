@@ -23,7 +23,33 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
   }
 
-  rpc GetBussinessSettings(GetBussinessSettingsRequest) returns (GetBussinessSettingsResponse);
+  // Readable by every authenticated role — the business mode drives branding,
+  // navigation and POS behavior for all users (cashier + apoteker included).
+  rpc GetBussinessSettings(GetBussinessSettingsRequest) returns (GetBussinessSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // Setting the shop's business type is an owner-level config change.
+  rpc SetBussinessSettings(SetBussinessSettingsRequest) returns (SetBussinessSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+
+  // ApplyLicense verifies a license token (entered in Settings), persists it,
+  // and applies its business type. Owner-only.
+  rpc ApplyLicense(ApplyLicenseRequest) returns (ApplyLicenseResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  // GetLicenseInfo reports the currently-applied license (holder name + mode).
+  // Readable by every role (the holder name brands the app for all users); only
+  // applying a license (ApplyLicense) is owner-gated.
+  rpc GetLicenseInfo(GetLicenseInfoRequest) returns (GetLicenseInfoResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
 }
 
 enum BussinessType {
@@ -32,11 +58,34 @@ enum BussinessType {
   BUSSINESS_TYPE_RETAIL = 2;
 }
 
-message GetBussinessSettingsRequest {
-  BussinessType type = 1;
+message GetBussinessSettingsRequest {}
+
+message GetBussinessSettingsResponse {
+  BussinessType type = 1;   // the shop's configured business type (UNSPECIFIED when unset)
+  string name = 2;          // licensed shop/holder name (empty when unlicensed) — readable by all roles for branding
 }
 
-message GetBussinessSettingsResponse {}
+message SetBussinessSettingsRequest {
+  BussinessType type = 1;   // must be a concrete type (not UNSPECIFIED)
+}
+message SetBussinessSettingsResponse {
+  BussinessType type = 1;   // the persisted type, echoed back
+}
+
+message ApplyLicenseRequest {
+  string token = 1;         // the license token (JWT) pasted by the owner
+}
+message ApplyLicenseResponse {
+  string name = 1;          // verified license holder / business name
+  BussinessType type = 2;   // the business type the license applied
+}
+
+message GetLicenseInfoRequest {}
+message GetLicenseInfoResponse {
+  bool has_license = 1;     // true when a license has been applied
+  string name = 2;          // licensed holder / business name (empty when none)
+  BussinessType type = 3;   // the active business type
+}
 
 message GetSettingsRequest {}
 message GetSettingsResponse {

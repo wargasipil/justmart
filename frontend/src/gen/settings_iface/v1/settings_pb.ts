@@ -79,11 +79,6 @@ export class Settings extends Message<Settings> {
  * @generated from message settings_iface.v1.GetBussinessSettingsRequest
  */
 export class GetBussinessSettingsRequest extends Message<GetBussinessSettingsRequest> {
-  /**
-   * @generated from field: settings_iface.v1.BussinessType type = 1;
-   */
-  type = BussinessType.UNSPECIFIED;
-
   constructor(data?: PartialMessage<GetBussinessSettingsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -92,7 +87,6 @@ export class GetBussinessSettingsRequest extends Message<GetBussinessSettingsReq
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "settings_iface.v1.GetBussinessSettingsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBussinessSettingsRequest {
@@ -116,6 +110,20 @@ export class GetBussinessSettingsRequest extends Message<GetBussinessSettingsReq
  * @generated from message settings_iface.v1.GetBussinessSettingsResponse
  */
 export class GetBussinessSettingsResponse extends Message<GetBussinessSettingsResponse> {
+  /**
+   * the shop's configured business type (UNSPECIFIED when unset)
+   *
+   * @generated from field: settings_iface.v1.BussinessType type = 1;
+   */
+  type = BussinessType.UNSPECIFIED;
+
+  /**
+   * licensed shop/holder name (empty when unlicensed) — readable by all roles for branding
+   *
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
   constructor(data?: PartialMessage<GetBussinessSettingsResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -124,6 +132,8 @@ export class GetBussinessSettingsResponse extends Message<GetBussinessSettingsRe
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "settings_iface.v1.GetBussinessSettingsResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBussinessSettingsResponse {
@@ -140,6 +150,256 @@ export class GetBussinessSettingsResponse extends Message<GetBussinessSettingsRe
 
   static equals(a: GetBussinessSettingsResponse | PlainMessage<GetBussinessSettingsResponse> | undefined, b: GetBussinessSettingsResponse | PlainMessage<GetBussinessSettingsResponse> | undefined): boolean {
     return proto3.util.equals(GetBussinessSettingsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetBussinessSettingsRequest
+ */
+export class SetBussinessSettingsRequest extends Message<SetBussinessSettingsRequest> {
+  /**
+   * must be a concrete type (not UNSPECIFIED)
+   *
+   * @generated from field: settings_iface.v1.BussinessType type = 1;
+   */
+  type = BussinessType.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<SetBussinessSettingsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetBussinessSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetBussinessSettingsRequest {
+    return new SetBussinessSettingsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetBussinessSettingsRequest {
+    return new SetBussinessSettingsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetBussinessSettingsRequest {
+    return new SetBussinessSettingsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetBussinessSettingsRequest | PlainMessage<SetBussinessSettingsRequest> | undefined, b: SetBussinessSettingsRequest | PlainMessage<SetBussinessSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(SetBussinessSettingsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetBussinessSettingsResponse
+ */
+export class SetBussinessSettingsResponse extends Message<SetBussinessSettingsResponse> {
+  /**
+   * the persisted type, echoed back
+   *
+   * @generated from field: settings_iface.v1.BussinessType type = 1;
+   */
+  type = BussinessType.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<SetBussinessSettingsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetBussinessSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetBussinessSettingsResponse {
+    return new SetBussinessSettingsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetBussinessSettingsResponse {
+    return new SetBussinessSettingsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetBussinessSettingsResponse {
+    return new SetBussinessSettingsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetBussinessSettingsResponse | PlainMessage<SetBussinessSettingsResponse> | undefined, b: SetBussinessSettingsResponse | PlainMessage<SetBussinessSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(SetBussinessSettingsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.ApplyLicenseRequest
+ */
+export class ApplyLicenseRequest extends Message<ApplyLicenseRequest> {
+  /**
+   * the license token (JWT) pasted by the owner
+   *
+   * @generated from field: string token = 1;
+   */
+  token = "";
+
+  constructor(data?: PartialMessage<ApplyLicenseRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.ApplyLicenseRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyLicenseRequest {
+    return new ApplyLicenseRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyLicenseRequest {
+    return new ApplyLicenseRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyLicenseRequest {
+    return new ApplyLicenseRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyLicenseRequest | PlainMessage<ApplyLicenseRequest> | undefined, b: ApplyLicenseRequest | PlainMessage<ApplyLicenseRequest> | undefined): boolean {
+    return proto3.util.equals(ApplyLicenseRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.ApplyLicenseResponse
+ */
+export class ApplyLicenseResponse extends Message<ApplyLicenseResponse> {
+  /**
+   * verified license holder / business name
+   *
+   * @generated from field: string name = 1;
+   */
+  name = "";
+
+  /**
+   * the business type the license applied
+   *
+   * @generated from field: settings_iface.v1.BussinessType type = 2;
+   */
+  type = BussinessType.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<ApplyLicenseResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.ApplyLicenseResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyLicenseResponse {
+    return new ApplyLicenseResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyLicenseResponse {
+    return new ApplyLicenseResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyLicenseResponse {
+    return new ApplyLicenseResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyLicenseResponse | PlainMessage<ApplyLicenseResponse> | undefined, b: ApplyLicenseResponse | PlainMessage<ApplyLicenseResponse> | undefined): boolean {
+    return proto3.util.equals(ApplyLicenseResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetLicenseInfoRequest
+ */
+export class GetLicenseInfoRequest extends Message<GetLicenseInfoRequest> {
+  constructor(data?: PartialMessage<GetLicenseInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetLicenseInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetLicenseInfoRequest {
+    return new GetLicenseInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetLicenseInfoRequest {
+    return new GetLicenseInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetLicenseInfoRequest {
+    return new GetLicenseInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetLicenseInfoRequest | PlainMessage<GetLicenseInfoRequest> | undefined, b: GetLicenseInfoRequest | PlainMessage<GetLicenseInfoRequest> | undefined): boolean {
+    return proto3.util.equals(GetLicenseInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetLicenseInfoResponse
+ */
+export class GetLicenseInfoResponse extends Message<GetLicenseInfoResponse> {
+  /**
+   * true when a license has been applied
+   *
+   * @generated from field: bool has_license = 1;
+   */
+  hasLicense = false;
+
+  /**
+   * licensed holder / business name (empty when none)
+   *
+   * @generated from field: string name = 2;
+   */
+  name = "";
+
+  /**
+   * the active business type
+   *
+   * @generated from field: settings_iface.v1.BussinessType type = 3;
+   */
+  type = BussinessType.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetLicenseInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetLicenseInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "has_license", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetLicenseInfoResponse {
+    return new GetLicenseInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetLicenseInfoResponse {
+    return new GetLicenseInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetLicenseInfoResponse {
+    return new GetLicenseInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetLicenseInfoResponse | PlainMessage<GetLicenseInfoResponse> | undefined, b: GetLicenseInfoResponse | PlainMessage<GetLicenseInfoResponse> | undefined): boolean {
+    return proto3.util.equals(GetLicenseInfoResponse, a, b);
   }
 }
 

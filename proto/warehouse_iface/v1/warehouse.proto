@@ -32,11 +32,13 @@ service WarehouseService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc GetWarehouse(GetWarehouseRequest) returns (GetWarehouseResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc ListWarehouseUsers(ListWarehouseUsersRequest) returns (ListWarehouseUsersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
@@ -62,11 +64,13 @@ service WarehouseService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc SetDefaultWarehouse(SetDefaultWarehouseRequest) returns (SetDefaultWarehouseResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc SetGlobalDefaultWarehouse(SetGlobalDefaultWarehouseRequest) returns (SetGlobalDefaultWarehouseResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;

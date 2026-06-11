@@ -935,13 +935,13 @@ const file_customer_iface_v1_customer_proto_rawDesc = "" +
 	"\x16ArchiveCustomerRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"R\n" +
 	"\x17ArchiveCustomerResponse\x127\n" +
-	"\bcustomer\x18\x01 \x01(\v2\x1b.customer_iface.v1.CustomerR\bcustomer2\x9f\x06\n" +
-	"\x0fCustomerService\x12k\n" +
-	"\rListCustomers\x12'.customer_iface.v1.ListCustomersRequest\x1a(.customer_iface.v1.ListCustomersResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12e\n" +
-	"\vGetCustomer\x12%.customer_iface.v1.GetCustomerRequest\x1a&.customer_iface.v1.GetCustomerResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12q\n" +
-	"\x0fSearchCustomers\x12).customer_iface.v1.SearchCustomersRequest\x1a*.customer_iface.v1.SearchCustomersResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12t\n" +
-	"\x10ResolveCustomers\x12*.customer_iface.v1.ResolveCustomersRequest\x1a+.customer_iface.v1.ResolveCustomersResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12n\n" +
-	"\x0eCreateCustomer\x12(.customer_iface.v1.CreateCustomerRequest\x1a).customer_iface.v1.CreateCustomerResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12m\n" +
+	"\bcustomer\x18\x01 \x01(\v2\x1b.customer_iface.v1.CustomerR\bcustomer2\xa4\x06\n" +
+	"\x0fCustomerService\x12l\n" +
+	"\rListCustomers\x12'.customer_iface.v1.ListCustomersRequest\x1a(.customer_iface.v1.ListCustomersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12f\n" +
+	"\vGetCustomer\x12%.customer_iface.v1.GetCustomerRequest\x1a&.customer_iface.v1.GetCustomerResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12r\n" +
+	"\x0fSearchCustomers\x12).customer_iface.v1.SearchCustomersRequest\x1a*.customer_iface.v1.SearchCustomersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12u\n" +
+	"\x10ResolveCustomers\x12*.customer_iface.v1.ResolveCustomersRequest\x1a+.customer_iface.v1.ResolveCustomersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12o\n" +
+	"\x0eCreateCustomer\x12(.customer_iface.v1.CreateCustomerRequest\x1a).customer_iface.v1.CreateCustomerResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12m\n" +
 	"\x0eUpdateCustomer\x12(.customer_iface.v1.UpdateCustomerRequest\x1a).customer_iface.v1.UpdateCustomerResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12p\n" +
 	"\x0fArchiveCustomer\x12).customer_iface.v1.ArchiveCustomerRequest\x1a*.customer_iface.v1.ArchiveCustomerResponse\"\x06\x8a\xb5\x18\x02\x01\x02BCZAgithub.com/justmart/backend/gen/customer_iface/v1;customerifacev1b\x06proto3"
 

@@ -20,7 +20,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Minus, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
+import { FileText, Lock, LogOut, Minus, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -31,6 +31,7 @@ import WarehouseSelect from "../components/WarehouseSelect";
 import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
 import { Customer } from "../gen/customer_iface/v1/customer_pb";
+import type { Prescription } from "../gen/prescription_iface/v1/prescription_pb";
 import { saleClient } from "../lib/clients";
 import { formatMoney } from "../lib/format";
 import { toast } from "../lib/toaster";
@@ -40,9 +41,13 @@ import { useMyWarehousesQuery } from "../queries/warehouses";
 import { useAllProductsQuery } from "../queries/products";
 import { useStockLevelsQuery } from "../queries/stock";
 import { useCustomerSearchQuery } from "../queries/customers";
+import { useBusinessMode } from "../queries/settings";
+import { usePrescriptionsQuery } from "../queries/prescriptions";
 import {
   useAddItemMutation,
+  useAttachPrescriptionMutation,
   useCompleteSaleMutation,
+  useDetachPrescriptionMutation,
   usePrintReceiptMutation,
   useRemoveItemMutation,
   useSetItemQuantityMutation,
@@ -56,17 +61,25 @@ export default function Pos() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  const { isPharmacy } = useBusinessMode();
+
   // Sale lifecycle ----
   const startSale = useStartSaleMutation();
   const addItem = useAddItemMutation();
   const setQty = useSetItemQuantityMutation();
   const removeItem = useRemoveItemMutation();
   const setSaleCustomer = useSetSaleCustomerMutation();
+  const attachPrescription = useAttachPrescriptionMutation();
+  const detachPrescription = useDetachPrescriptionMutation();
   const completeSale = useCompleteSaleMutation();
 
   const [sale, setSale] = useState<Sale | null>(null);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
   const [customerOpen, setCustomerOpen] = useState(false);
+  // Pharmacy resep flow: the picker, plus a product whose add was deferred until
+  // a covering prescription is attached (the "click Rx-required product" path).
+  const [prescriptionOpen, setPrescriptionOpen] = useState(false);
+  const [deferred, setDeferred] = useState<{ product: Product; unitId: string } | null>(null);
   const [paymentSource, setPaymentSource] = useState<PaymentSource>(
     PaymentSource.CASH,
   );
@@ -217,6 +230,14 @@ export default function Pos() {
     async (product: Product, unitId: string, available?: number) => {
       const s = await ensureSale();
       if (!s) return;
+      // Pharmacy gate: an Rx-required product can't be added until a covering
+      // prescription is attached. Defer the add and open the picker instead of
+      // letting the backend reject it.
+      if (isPharmacy && product.prescriptionRequired && !s.prescriptionId) {
+        setDeferred({ product, unitId });
+        setPrescriptionOpen(true);
+        return;
+      }
       const enough =
         available !== undefined
           ? available >= 1
@@ -239,7 +260,7 @@ export default function Pos() {
         /* toast handled globally */
       }
     },
-    [ensureSale, addItem, stockByProduct, t],
+    [ensureSale, addItem, stockByProduct, isPharmacy, t],
   );
 
   const onSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -276,6 +297,10 @@ export default function Pos() {
       } else if (e.key === "F4") {
         e.preventDefault();
         setCustomerOpen(true);
+      } else if (e.key === "F5" && isPharmacy) {
+        e.preventDefault();
+        setDeferred(null);
+        setPrescriptionOpen(true);
       } else if (e.key === "F8") {
         e.preventDefault();
         void doComplete();
@@ -284,7 +309,7 @@ export default function Pos() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sale, paymentSource, paidAmount]);
+  }, [sale, paymentSource, paidAmount, isPharmacy]);
 
   // Cart ops ----
   const onChangeQty = async (itemId: string, qty: number) => {
@@ -358,6 +383,50 @@ export default function Pos() {
       if (res.sale) setSale(res.sale);
     } catch {
       /* */
+    }
+  };
+
+  // Attach a prescription, then (if a product add was deferred pending the Rx)
+  // add that product immediately — a single user gesture lands both.
+  const onAttachPrescription = async (prescriptionId: string) => {
+    const s = await ensureSale();
+    if (!s) return;
+    try {
+      const res = await attachPrescription.mutateAsync({
+        saleId: s.id,
+        prescriptionId,
+      });
+      if (res.sale) setSale(res.sale);
+      setPrescriptionOpen(false);
+      if (deferred && res.sale) {
+        const d = deferred;
+        setDeferred(null);
+        try {
+          const addRes = await addItem.mutateAsync({
+            saleId: res.sale.id,
+            productId: d.product.id,
+            productUnitId: d.unitId,
+            qty: 1,
+          });
+          if (addRes.sale) setSale(addRes.sale);
+          setQuery("");
+          searchRef.current?.focus();
+        } catch {
+          /* backend coverage toast */
+        }
+      }
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
+  const onDetachPrescription = async () => {
+    if (!sale) return;
+    try {
+      const res = await detachPrescription.mutateAsync({ saleId: sale.id });
+      if (res.sale) setSale(res.sale);
+    } catch {
+      /* toast handled globally (blocked if Rx items still in cart) */
     }
   };
 
@@ -485,6 +554,9 @@ export default function Pos() {
               const { med: m, unit, available } = row;
               const out = available < 1;
               const active = i === highlight;
+              // Pharmacy cue: Rx-required product with no covering Rx yet — dimmed
+              // + lock, but still clickable (the click opens the Rx picker).
+              const needsRx = isPharmacy && m.prescriptionRequired && !sale?.prescriptionId;
               return (
                 <Flex
                   key={`${m.id}:${unit.id}`}
@@ -497,18 +569,24 @@ export default function Pos() {
                   align="center"
                   justify="space-between"
                   cursor={out ? "not-allowed" : "pointer"}
-                  opacity={out ? 0.5 : 1}
+                  opacity={out ? 0.5 : needsRx ? 0.7 : 1}
                   onMouseEnter={() => setHighlight(i)}
                   onClick={() => !out && onAdd(m, unit.id, available)}
                 >
                   <Stack gap={0} flex="1">
                     <HStack gap={2}>
+                      {needsRx && <Lock size={12} />}
                       <Text fontSize="sm" fontWeight="medium">
                         {m.name}
                       </Text>
                       <Text fontSize="xs" color="fg.muted">
                         · {unit.name}
                       </Text>
+                      {needsRx && (
+                        <Text fontSize="xs" color="orange.fg">
+                          {t("pos.needsRx")}
+                        </Text>
+                      )}
                     </HStack>
                     <Text fontSize="xs" color="fg.muted">
                       {m.sku} · {available} {unit.name}
@@ -542,6 +620,16 @@ export default function Pos() {
               onAttach={() => setCustomerOpen(true)}
               onClear={onClearCustomer}
             />
+            {isPharmacy && (
+              <PrescriptionBar
+                sale={sale}
+                onAttach={() => {
+                  setDeferred(null);
+                  setPrescriptionOpen(true);
+                }}
+                onDetach={onDetachPrescription}
+              />
+            )}
           </Box>
 
           <Box flex="1" overflowY="auto" px={4} py={2}>
@@ -707,6 +795,17 @@ export default function Pos() {
         onPick={onAttachCustomer}
       />
 
+      <PrescriptionPickerDialog
+        open={prescriptionOpen}
+        customerId={sale?.customerId ?? ""}
+        deferredName={deferred?.product.name ?? ""}
+        onClose={() => {
+          setPrescriptionOpen(false);
+          setDeferred(null);
+        }}
+        onPick={onAttachPrescription}
+      />
+
       <ReceiptDialog sale={completedSale} onClose={onCloseReceipt} />
     </Flex>
   );
@@ -791,6 +890,120 @@ function CustomerBar({
         </Button>
       )}
     </Flex>
+  );
+}
+
+// PrescriptionBar — pharmacy mode only. Shows the attached resep (Rx number) or
+// an "attach" affordance (F5). Sits under the CustomerBar in the cart panel.
+function PrescriptionBar({
+  sale,
+  onAttach,
+  onDetach,
+}: {
+  sale: Sale | null;
+  onAttach: () => void;
+  onDetach: () => void;
+}) {
+  const { t } = useTranslation();
+  const attached = !!sale?.prescriptionId;
+  return (
+    <Flex mt={2} align="center" gap={2}>
+      <FileText size={14} />
+      <Text fontSize="xs" color="fg.muted" flex="1">
+        {attached ? t("prescriptions.attached") : t("prescriptions.attach")}
+      </Text>
+      {attached ? (
+        <Button size="xs" variant="ghost" onClick={onDetach}>
+          {t("prescriptions.detach")}
+        </Button>
+      ) : (
+        <Button size="xs" variant="ghost" onClick={onAttach}>
+          {t("prescriptions.attach")}
+        </Button>
+      )}
+    </Flex>
+  );
+}
+
+// PrescriptionPickerDialog — lists ACTIVE prescriptions (scoped to the sale's
+// patient when one is set) for the cashier/apoteker to attach. The backend
+// enforces per-product coverage on the subsequent AddItem.
+function PrescriptionPickerDialog({
+  open,
+  customerId,
+  deferredName,
+  onClose,
+  onPick,
+}: {
+  open: boolean;
+  customerId: string;
+  deferredName: string;
+  onClose: () => void;
+  onPick: (prescriptionId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const rxQ = usePrescriptionsQuery({ status: "ACTIVE", customerId, limit: 1000, enabled: open });
+  const rows: Prescription[] = open ? rxQ.rows : [];
+
+  if (!open) return null;
+  return (
+    <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>{t("prescriptions.attach")}</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="close" variant="ghost" size="sm">
+                  <X size={16} />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Stack gap={3}>
+                {deferredName && (
+                  <Text fontSize="sm" color="orange.fg">
+                    {t("prescriptions.needForProduct", { product: deferredName })}
+                  </Text>
+                )}
+                <Stack gap={1} maxH="320px" overflowY="auto">
+                  {rows.map((rx) => (
+                    <Flex
+                      key={rx.id}
+                      px={3}
+                      py={2}
+                      borderRadius="md"
+                      _hover={{ bg: "bg.muted" }}
+                      cursor="pointer"
+                      justify="space-between"
+                      onClick={() => onPick(rx.id)}
+                    >
+                      <Stack gap={0}>
+                        <Text fontSize="sm" fontWeight="medium" fontFamily="mono">
+                          {rx.rxNo}
+                        </Text>
+                        <Text fontSize="xs" color="fg.muted">
+                          {rx.issuerName} · {rx.items.length} {t("prescriptions.items")}
+                        </Text>
+                      </Stack>
+                      <Plus size={14} />
+                    </Flex>
+                  ))}
+                  {rows.length === 0 && (
+                    <Stack gap={2} py={4} align="center">
+                      <Text color="fg.muted" fontSize="sm">
+                        {t("prescriptions.noCoveringRx")}
+                      </Text>
+                    </Stack>
+                  )}
+                </Stack>
+              </Stack>
+            </Dialog.Body>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
   );
 }
 

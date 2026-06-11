@@ -4,7 +4,9 @@ import type { PartialMessage } from "@bufbuild/protobuf";
 import { saleClient } from "../lib/clients";
 import type {
   AddItemRequest,
+  AttachPrescriptionRequest,
   CompleteSaleRequest,
+  DetachPrescriptionRequest,
   GetSalesSummaryRequest,
   ListSalesRequest,
   RemoveItemRequest,
@@ -64,6 +66,28 @@ export function useSetSaleCustomerMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<SetSaleCustomerRequest>) =>
       saleClient.setSaleCustomer(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+  });
+}
+
+export function useAttachPrescriptionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<AttachPrescriptionRequest>) =>
+      saleClient.attachPrescription(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+  });
+}
+
+export function useDetachPrescriptionMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<DetachPrescriptionRequest>) =>
+      saleClient.detachPrescription(req),
     onSuccess: (res) => {
       if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
     },

@@ -32,6 +32,9 @@ func saleToProto(s *model.Sale) *posifacev1.Sale {
 	if s.WarehouseID != nil {
 		out.WarehouseId = *s.WarehouseID
 	}
+	if s.PrescriptionID != nil {
+		out.PrescriptionId = *s.PrescriptionID
+	}
 	if s.CompletedAt != nil {
 		out.CompletedAt = s.CompletedAt.Unix()
 	}

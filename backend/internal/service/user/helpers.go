@@ -92,6 +92,8 @@ func roleFromProto(r authifacev1.Role) (string, error) {
 		return rolePharmacist, nil
 	case authifacev1.Role_ROLE_CASHIER:
 		return roleCashier, nil
+	case authifacev1.Role_ROLE_APOTEKER:
+		return roleApoteker, nil
 	default:
 		return "", errors.New("role required")
 	}
@@ -105,6 +107,8 @@ func roleToProto(s string) authifacev1.Role {
 		return authifacev1.Role_ROLE_PHARMACIST
 	case roleCashier:
 		return authifacev1.Role_ROLE_CASHIER
+	case roleApoteker:
+		return authifacev1.Role_ROLE_APOTEKER
 	default:
 		return authifacev1.Role_ROLE_UNSPECIFIED
 	}

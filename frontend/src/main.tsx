@@ -20,6 +20,7 @@ import Dashboard from "./routes/Dashboard";
 import Users from "./routes/Users";
 import Customers from "./routes/Customers";
 import Orders from "./routes/Orders";
+import Prescriptions from "./routes/Prescriptions";
 import OrderDetail from "./routes/OrderDetail";
 import Inventory from "./routes/Inventory";
 import Pos from "./routes/Pos";
@@ -40,6 +41,7 @@ import WarehouseDetail from "./routes/WarehouseDetail";
 import Settings from "./routes/Settings";
 import SettingsGeneral from "./routes/settings/SettingsGeneral";
 import SettingsUnits from "./routes/settings/SettingsUnits";
+import SettingsLicense from "./routes/settings/SettingsLicense";
 import SettingsBackups from "./routes/settings/SettingsBackups";
 import Transfers from "./routes/inventory/Transfers";
 import PurchaseOrdersList from "./routes/purchasing/PurchaseOrdersList";
@@ -73,18 +75,25 @@ const router = createBrowserRouter([
               { index: true, element: <Navigate to="general" replace /> },
               { path: "general", element: <SettingsGeneral /> },
               { path: "units", element: <SettingsUnits /> },
+              { path: "license", element: <SettingsLicense /> },
               { path: "backups", element: <SettingsBackups /> },
             ],
           },
         ],
       },
       {
-        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.CASHIER]} />,
+        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER]} />,
         children: [
           { path: "customers", element: <Customers /> },
           { path: "orders", element: <Orders /> },
           { path: "orders/:id", element: <OrderDetail /> },
         ],
+      },
+      {
+        // Resep (prescriptions) — pharmacy mode. The Rx authority is OWNER +
+        // PHARMACIST + APOTEKER (the licensed pharmacist); CASHIER is excluded.
+        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.APOTEKER]} />,
+        children: [{ path: "prescriptions", element: <Prescriptions /> }],
       },
       {
         element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST]} />,

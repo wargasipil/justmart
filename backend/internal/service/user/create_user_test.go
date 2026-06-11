@@ -33,6 +33,21 @@ func TestCreateUser_RoundTrip(t *testing.T) {
 	require.True(t, u.Active)
 }
 
+// The dedicated pharmacy role round-trips through roleFromProto/roleToProto.
+func TestCreateUser_ApotekerRole(t *testing.T) {
+	t.Parallel()
+	svc := usersvc.NewUserService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+
+	resp, err := svc.CreateUser(context.Background(), connect.NewRequest(&userifacev1.CreateUserRequest{
+		Email:    "apoteker@test.local",
+		Name:     "Apoteker One",
+		Password: "supersecret",
+		Role:     authifacev1.Role_ROLE_APOTEKER,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, authifacev1.Role_ROLE_APOTEKER, resp.Msg.User.Role)
+}
+
 func TestCreateUser_ShortPassword(t *testing.T) {
 	t.Parallel()
 	svc := usersvc.NewUserService(servicetest.NewDB(t, servicetest.NewConfig(t)))

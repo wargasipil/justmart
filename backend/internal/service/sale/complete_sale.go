@@ -42,6 +42,23 @@ func (s *SaleService) CompleteSale(
 			return connect.NewError(connect.CodeFailedPrecondition, errors.New("cart is empty"))
 		}
 
+		// Pharmacy: re-assert Rx coverage at completion (per distinct product) so
+		// a DRAFT built while the gate was off — retail mode at add-time, then a
+		// switch to pharmacy mode (license re-applied on boot; drafts survive) —
+		// can't finalize an Rx-required product with no covering prescription.
+		// No-op in retail / for non-Rx products (assertRxCovers is mode+flag gated).
+		seenRx := make(map[string]struct{}, len(items))
+		for i := range items {
+			pid := items[i].ProductID
+			if _, ok := seenRx[pid]; ok {
+				continue
+			}
+			seenRx[pid] = struct{}{}
+			if err := s.assertRxCovers(ctx, tx, sale, pid); err != nil {
+				return err
+			}
+		}
+
 		// Cash requires paid_amount >= total. Non-cash settles externally.
 		if paymentStr == paymentCash && req.Msg.PaidAmount < sale.Total {
 			return connect.NewError(connect.CodeInvalidArgument, errors.New("paid_amount less than total"))
@@ -124,6 +141,11 @@ func (s *SaleService) CompleteSale(
 				return connect.NewError(connect.CodeFailedPrecondition,
 					fmt.Errorf("insufficient stock for product %s (%d base units short)", item.ProductID, needed))
 			}
+		}
+
+		// Pharmacy: accrue dispensed_qty against the attached Rx (no-op if none).
+		if err := s.incrementRxDispensed(tx, sale, items); err != nil {
+			return err
 		}
 
 		// Recompute totals from the now-allocated sale_items.

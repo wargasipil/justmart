@@ -22,8 +22,10 @@ import { useAuth } from "../lib/auth";
 import { formatMoney, formatUnix } from "../lib/format";
 import { useDailyMetricQuery } from "../queries/analytics";
 import { useExpiringSoonCountQuery } from "../queries/batches";
+import { useActiveRxCountQuery } from "../queries/prescriptions";
 import { useLowStockQuery } from "../queries/products";
 import { useTodaySnapshotQuery } from "../queries/sales";
+import { useBusinessMode } from "../queries/settings";
 
 function roleKey(role: Role): string {
   switch (role) {
@@ -33,6 +35,8 @@ function roleKey(role: Role): string {
       return "pharmacist";
     case Role.CASHIER:
       return "cashier";
+    case Role.APOTEKER:
+      return "apoteker";
     default:
       return "unknown";
   }
@@ -56,7 +60,9 @@ export default function Dashboard() {
       />
       {user?.role === Role.OWNER && <OwnerHealth />}
       {user?.role === Role.PHARMACIST && <InventoryHealth />}
-      {user?.role === Role.CASHIER && <MyShift cashierUserId={user.id} />}
+      {(user?.role === Role.CASHIER || user?.role === Role.APOTEKER) && (
+        <MyShift cashierUserId={user.id} />
+      )}
     </Box>
   );
 }
@@ -163,15 +169,18 @@ function OwnerHealth() {
 
 function InventoryHealth() {
   const { t } = useTranslation();
+  const { isPharmacy } = useBusinessMode();
   const lowStockQ = useLowStockQuery();
   const expiringQ = useExpiringSoonCountQuery(30);
+  // Active Rx count only matters in pharmacy mode; skip the query in retail.
+  const activeRxQ = useActiveRxCountQuery(isPharmacy);
 
   const lowStockCount = lowStockQ.data?.total ?? 0;
 
   return (
     <Stack gap={5}>
       <Heading size="md">{t("dashboard.section.inventoryHealth")}</Heading>
-      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
+      <Grid templateColumns={{ base: "1fr", md: isPharmacy ? "repeat(3, 1fr)" : "repeat(2, 1fr)" }} gap={4}>
         <DashboardTile
           label={t("dashboard.tile.lowStock")}
           value={String(lowStockCount)}
@@ -184,6 +193,13 @@ function InventoryHealth() {
           to="/inventory/batches"
           tone={expiringQ.count > 0 ? "warning" : "default"}
         />
+        {isPharmacy && (
+          <DashboardTile
+            label={t("dashboard.tile.activeRx")}
+            value={String(activeRxQ.count)}
+            to="/prescriptions"
+          />
+        )}
       </Grid>
     </Stack>
   );

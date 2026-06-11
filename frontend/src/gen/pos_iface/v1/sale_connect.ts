@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddItemRequest, AddItemResponse, CompleteSaleRequest, CompleteSaleResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
+import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -73,6 +73,28 @@ export const SaleService = {
       name: "SetSaleCustomer",
       I: SetSaleCustomerRequest,
       O: SetSaleCustomerResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
+     * everyone who can run POS (the dispensing happens at the till). The Rx
+     * *authoring* authority is separate (PrescriptionService Create/Update/Void).
+     *
+     * @generated from rpc pos_iface.v1.SaleService.AttachPrescription
+     */
+    attachPrescription: {
+      name: "AttachPrescription",
+      I: AttachPrescriptionRequest,
+      O: AttachPrescriptionResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc pos_iface.v1.SaleService.DetachPrescription
+     */
+    detachPrescription: {
+      name: "DetachPrescription",
+      I: DetachPrescriptionRequest,
+      O: DetachPrescriptionResponse,
       kind: MethodKind.Unary,
     },
     /**

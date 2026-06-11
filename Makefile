@@ -127,17 +127,17 @@ test-e2e-sqlite:
 	$(GO_BACKEND) test ./e2e/... -v -count=1
 
 migrate-up:
-	$(GO_BACKEND) run ./cmd/migrate up
+	$(GO_BACKEND) run ./cmd/server migrate up
 
 migrate-down:
-	$(GO_BACKEND) run ./cmd/migrate down
+	$(GO_BACKEND) run ./cmd/server migrate down
 
 migrate-status:
-	$(GO_BACKEND) run ./cmd/migrate status
+	$(GO_BACKEND) run ./cmd/server migrate status
 
 # Usage: make migrate-create name=add_medicines_table
 migrate-create:
-	$(GO_BACKEND) run ./cmd/migrate create $(name) sql
+	$(GO_BACKEND) run ./cmd/server migrate create $(name) sql
 
 # --- Frontend (React + Vite) -------------------------------------------------
 web-install:
@@ -181,3 +181,7 @@ backup:
 	  echo "size_bytes=$$size"; \
 	} > $$dir/manifest.txt; \
 	echo "Wrote $$dir/"
+
+
+download-tools: ## Download third-party dev tools into thirdparties/bin/
+	powershell -ExecutionPolicy Bypass -File scripts/download-tools.ps1

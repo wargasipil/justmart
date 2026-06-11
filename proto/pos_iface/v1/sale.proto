@@ -20,7 +20,7 @@ enum SaleStatus {
 }
 
 message Sale {
-  reserved 6, 16;  // removed: tax_invoice_no, prescription_id
+  reserved 6;  // removed: tax_invoice_no
 
   string id = 1;
   string sale_no = 2;
@@ -36,6 +36,7 @@ message Sale {
   int64 created_at = 13;
   int64 completed_at = 14;
   repeated SaleItem items = 15;
+  string prescription_id = 16; // pharmacy mode: attached resep (empty = none)
   string warehouse_id = 17;
   string customer_name = 18;   // denormalized for the order-history list
 }
@@ -61,46 +62,70 @@ service SaleService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc ListSales(ListSalesRequest) returns (ListSalesResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc AddItem(AddItemRequest) returns (AddItemResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc SetItemQuantity(SetItemQuantityRequest) returns (SetItemQuantityResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc SetSaleCustomer(SetSaleCustomerRequest) returns (SetSaleCustomerResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
+  // everyone who can run POS (the dispensing happens at the till). The Rx
+  // *authoring* authority is separate (PrescriptionService Create/Update/Void).
+  rpc AttachPrescription(AttachPrescriptionRequest) returns (AttachPrescriptionResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  rpc DetachPrescription(DetachPrescriptionRequest) returns (DetachPrescriptionResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc CompleteSale(CompleteSaleRequest) returns (CompleteSaleResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc VoidSale(VoidSaleRequest) returns (VoidSaleResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
   // POS carts so they leave no VOIDED trace. Only DRAFT sales are discardable.
@@ -108,21 +133,25 @@ service SaleService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc GetTodaySnapshot(GetTodaySnapshotRequest) returns (GetTodaySnapshotResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc GetSalesSummary(GetSalesSummaryRequest) returns (GetSalesSummaryResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc PrintReceipt(PrintReceiptRequest) returns (PrintReceiptResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
 }
 
@@ -171,6 +200,17 @@ message SetSaleCustomerRequest {
   string customer_id = 2;
 }
 message SetSaleCustomerResponse { Sale sale = 1; }
+
+message AttachPrescriptionRequest {
+  string sale_id = 1;
+  string prescription_id = 2;
+}
+message AttachPrescriptionResponse { Sale sale = 1; }
+
+message DetachPrescriptionRequest {
+  string sale_id = 1;
+}
+message DetachPrescriptionResponse { Sale sale = 1; }
 
 message CompleteSaleRequest {
   string sale_id = 1;

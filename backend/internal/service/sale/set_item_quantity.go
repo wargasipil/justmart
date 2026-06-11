@@ -41,7 +41,11 @@ func (s *SaleService) SetItemQuantity(
 		if err := tx.Save(&item).Error; err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
-		return recomputeSaleTotals(tx, sale.ID)
+		if err := recomputeSaleTotals(tx, sale.ID); err != nil {
+			return err
+		}
+		// Pharmacy gate: re-check Rx coverage for the new quantity.
+		return s.assertRxCovers(ctx, tx, sale, item.ProductID)
 	})
 	if err != nil {
 		return nil, common.AsConnectErr(err)

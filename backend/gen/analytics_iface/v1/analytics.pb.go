@@ -737,9 +737,10 @@ func (x *DailyMetricRequest) GetGranularity() Granularity {
 type DailyMetricResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Days in the order the UI should render. Bucket key per granularity:
-	//   DAY   = "YYYY-MM-DD"
-	//   WEEK  = "YYYY-Www" (ISO week)
-	//   MONTH = "YYYY-MM"
+	//
+	//	DAY   = "YYYY-MM-DD"
+	//	WEEK  = "YYYY-Www" (ISO week)
+	//	MONTH = "YYYY-MM"
 	Days          []string     `protobuf:"bytes,1,rep,name=days,proto3" json:"days,omitempty"`
 	Order         *MetricOrder `protobuf:"bytes,2,opt,name=order,proto3" json:"order,omitempty"`
 	Stock         *MetricStock `protobuf:"bytes,3,opt,name=stock,proto3" json:"stock,omitempty"`

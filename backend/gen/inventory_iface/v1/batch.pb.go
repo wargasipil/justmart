@@ -1050,14 +1050,14 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x15ResolveBatchesRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"P\n" +
 	"\x16ResolveBatchesResponse\x126\n" +
-	"\abatches\x18\x01 \x03(\v2\x1c.inventory_iface.v1.BatchRefR\abatches2\x88\x05\n" +
-	"\fBatchService\x12g\n" +
-	"\vListBatches\x12&.inventory_iface.v1.ListBatchesRequest\x1a'.inventory_iface.v1.ListBatchesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12^\n" +
-	"\bGetBatch\x12#.inventory_iface.v1.GetBatchRequest\x1a$.inventory_iface.v1.GetBatchResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12f\n" +
+	"\abatches\x18\x01 \x03(\v2\x1c.inventory_iface.v1.BatchRefR\abatches2\x8c\x05\n" +
+	"\fBatchService\x12h\n" +
+	"\vListBatches\x12&.inventory_iface.v1.ListBatchesRequest\x1a'.inventory_iface.v1.ListBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12_\n" +
+	"\bGetBatch\x12#.inventory_iface.v1.GetBatchRequest\x1a$.inventory_iface.v1.GetBatchResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12f\n" +
 	"\vCreateBatch\x12&.inventory_iface.v1.CreateBatchRequest\x1a'.inventory_iface.v1.CreateBatchResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
-	"\vUpdateBatch\x12&.inventory_iface.v1.UpdateBatchRequest\x1a'.inventory_iface.v1.UpdateBatchResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12m\n" +
-	"\rSearchBatches\x12(.inventory_iface.v1.SearchBatchesRequest\x1a).inventory_iface.v1.SearchBatchesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03\x12p\n" +
-	"\x0eResolveBatches\x12).inventory_iface.v1.ResolveBatchesRequest\x1a*.inventory_iface.v1.ResolveBatchesResponse\"\a\x8a\xb5\x18\x03\x01\x02\x03BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
+	"\vUpdateBatch\x12&.inventory_iface.v1.UpdateBatchRequest\x1a'.inventory_iface.v1.UpdateBatchResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12n\n" +
+	"\rSearchBatches\x12(.inventory_iface.v1.SearchBatchesRequest\x1a).inventory_iface.v1.SearchBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
+	"\x0eResolveBatches\x12).inventory_iface.v1.ResolveBatchesRequest\x1a*.inventory_iface.v1.ResolveBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
 
 var (
 	file_inventory_iface_v1_batch_proto_rawDescOnce sync.Once

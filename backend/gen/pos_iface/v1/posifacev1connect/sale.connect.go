@@ -49,6 +49,12 @@ const (
 	// SaleServiceSetSaleCustomerProcedure is the fully-qualified name of the SaleService's
 	// SetSaleCustomer RPC.
 	SaleServiceSetSaleCustomerProcedure = "/pos_iface.v1.SaleService/SetSaleCustomer"
+	// SaleServiceAttachPrescriptionProcedure is the fully-qualified name of the SaleService's
+	// AttachPrescription RPC.
+	SaleServiceAttachPrescriptionProcedure = "/pos_iface.v1.SaleService/AttachPrescription"
+	// SaleServiceDetachPrescriptionProcedure is the fully-qualified name of the SaleService's
+	// DetachPrescription RPC.
+	SaleServiceDetachPrescriptionProcedure = "/pos_iface.v1.SaleService/DetachPrescription"
 	// SaleServiceCompleteSaleProcedure is the fully-qualified name of the SaleService's CompleteSale
 	// RPC.
 	SaleServiceCompleteSaleProcedure = "/pos_iface.v1.SaleService/CompleteSale"
@@ -76,6 +82,11 @@ type SaleServiceClient interface {
 	SetItemQuantity(context.Context, *connect.Request[v1.SetItemQuantityRequest]) (*connect.Response[v1.SetItemQuantityResponse], error)
 	RemoveItem(context.Context, *connect.Request[v1.RemoveItemRequest]) (*connect.Response[v1.RemoveItemResponse], error)
 	SetSaleCustomer(context.Context, *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error)
+	// AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
+	// everyone who can run POS (the dispensing happens at the till). The Rx
+	// *authoring* authority is separate (PrescriptionService Create/Update/Void).
+	AttachPrescription(context.Context, *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error)
+	DetachPrescription(context.Context, *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error)
 	CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error)
 	VoidSale(context.Context, *connect.Request[v1.VoidSaleRequest]) (*connect.Response[v1.VoidSaleResponse], error)
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
@@ -139,6 +150,18 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(saleServiceMethods.ByName("SetSaleCustomer")),
 			connect.WithClientOptions(opts...),
 		),
+		attachPrescription: connect.NewClient[v1.AttachPrescriptionRequest, v1.AttachPrescriptionResponse](
+			httpClient,
+			baseURL+SaleServiceAttachPrescriptionProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("AttachPrescription")),
+			connect.WithClientOptions(opts...),
+		),
+		detachPrescription: connect.NewClient[v1.DetachPrescriptionRequest, v1.DetachPrescriptionResponse](
+			httpClient,
+			baseURL+SaleServiceDetachPrescriptionProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("DetachPrescription")),
+			connect.WithClientOptions(opts...),
+		),
 		completeSale: connect.NewClient[v1.CompleteSaleRequest, v1.CompleteSaleResponse](
 			httpClient,
 			baseURL+SaleServiceCompleteSaleProcedure,
@@ -180,19 +203,21 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // saleServiceClient implements SaleServiceClient.
 type saleServiceClient struct {
-	startSale        *connect.Client[v1.StartSaleRequest, v1.StartSaleResponse]
-	getSale          *connect.Client[v1.GetSaleRequest, v1.GetSaleResponse]
-	listSales        *connect.Client[v1.ListSalesRequest, v1.ListSalesResponse]
-	addItem          *connect.Client[v1.AddItemRequest, v1.AddItemResponse]
-	setItemQuantity  *connect.Client[v1.SetItemQuantityRequest, v1.SetItemQuantityResponse]
-	removeItem       *connect.Client[v1.RemoveItemRequest, v1.RemoveItemResponse]
-	setSaleCustomer  *connect.Client[v1.SetSaleCustomerRequest, v1.SetSaleCustomerResponse]
-	completeSale     *connect.Client[v1.CompleteSaleRequest, v1.CompleteSaleResponse]
-	voidSale         *connect.Client[v1.VoidSaleRequest, v1.VoidSaleResponse]
-	discardSale      *connect.Client[v1.DiscardSaleRequest, v1.DiscardSaleResponse]
-	getTodaySnapshot *connect.Client[v1.GetTodaySnapshotRequest, v1.GetTodaySnapshotResponse]
-	getSalesSummary  *connect.Client[v1.GetSalesSummaryRequest, v1.GetSalesSummaryResponse]
-	printReceipt     *connect.Client[v1.PrintReceiptRequest, v1.PrintReceiptResponse]
+	startSale          *connect.Client[v1.StartSaleRequest, v1.StartSaleResponse]
+	getSale            *connect.Client[v1.GetSaleRequest, v1.GetSaleResponse]
+	listSales          *connect.Client[v1.ListSalesRequest, v1.ListSalesResponse]
+	addItem            *connect.Client[v1.AddItemRequest, v1.AddItemResponse]
+	setItemQuantity    *connect.Client[v1.SetItemQuantityRequest, v1.SetItemQuantityResponse]
+	removeItem         *connect.Client[v1.RemoveItemRequest, v1.RemoveItemResponse]
+	setSaleCustomer    *connect.Client[v1.SetSaleCustomerRequest, v1.SetSaleCustomerResponse]
+	attachPrescription *connect.Client[v1.AttachPrescriptionRequest, v1.AttachPrescriptionResponse]
+	detachPrescription *connect.Client[v1.DetachPrescriptionRequest, v1.DetachPrescriptionResponse]
+	completeSale       *connect.Client[v1.CompleteSaleRequest, v1.CompleteSaleResponse]
+	voidSale           *connect.Client[v1.VoidSaleRequest, v1.VoidSaleResponse]
+	discardSale        *connect.Client[v1.DiscardSaleRequest, v1.DiscardSaleResponse]
+	getTodaySnapshot   *connect.Client[v1.GetTodaySnapshotRequest, v1.GetTodaySnapshotResponse]
+	getSalesSummary    *connect.Client[v1.GetSalesSummaryRequest, v1.GetSalesSummaryResponse]
+	printReceipt       *connect.Client[v1.PrintReceiptRequest, v1.PrintReceiptResponse]
 }
 
 // StartSale calls pos_iface.v1.SaleService.StartSale.
@@ -228,6 +253,16 @@ func (c *saleServiceClient) RemoveItem(ctx context.Context, req *connect.Request
 // SetSaleCustomer calls pos_iface.v1.SaleService.SetSaleCustomer.
 func (c *saleServiceClient) SetSaleCustomer(ctx context.Context, req *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error) {
 	return c.setSaleCustomer.CallUnary(ctx, req)
+}
+
+// AttachPrescription calls pos_iface.v1.SaleService.AttachPrescription.
+func (c *saleServiceClient) AttachPrescription(ctx context.Context, req *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error) {
+	return c.attachPrescription.CallUnary(ctx, req)
+}
+
+// DetachPrescription calls pos_iface.v1.SaleService.DetachPrescription.
+func (c *saleServiceClient) DetachPrescription(ctx context.Context, req *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error) {
+	return c.detachPrescription.CallUnary(ctx, req)
 }
 
 // CompleteSale calls pos_iface.v1.SaleService.CompleteSale.
@@ -269,6 +304,11 @@ type SaleServiceHandler interface {
 	SetItemQuantity(context.Context, *connect.Request[v1.SetItemQuantityRequest]) (*connect.Response[v1.SetItemQuantityResponse], error)
 	RemoveItem(context.Context, *connect.Request[v1.RemoveItemRequest]) (*connect.Response[v1.RemoveItemResponse], error)
 	SetSaleCustomer(context.Context, *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error)
+	// AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
+	// everyone who can run POS (the dispensing happens at the till). The Rx
+	// *authoring* authority is separate (PrescriptionService Create/Update/Void).
+	AttachPrescription(context.Context, *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error)
+	DetachPrescription(context.Context, *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error)
 	CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error)
 	VoidSale(context.Context, *connect.Request[v1.VoidSaleRequest]) (*connect.Response[v1.VoidSaleResponse], error)
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
@@ -328,6 +368,18 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(saleServiceMethods.ByName("SetSaleCustomer")),
 		connect.WithHandlerOptions(opts...),
 	)
+	saleServiceAttachPrescriptionHandler := connect.NewUnaryHandler(
+		SaleServiceAttachPrescriptionProcedure,
+		svc.AttachPrescription,
+		connect.WithSchema(saleServiceMethods.ByName("AttachPrescription")),
+		connect.WithHandlerOptions(opts...),
+	)
+	saleServiceDetachPrescriptionHandler := connect.NewUnaryHandler(
+		SaleServiceDetachPrescriptionProcedure,
+		svc.DetachPrescription,
+		connect.WithSchema(saleServiceMethods.ByName("DetachPrescription")),
+		connect.WithHandlerOptions(opts...),
+	)
 	saleServiceCompleteSaleHandler := connect.NewUnaryHandler(
 		SaleServiceCompleteSaleProcedure,
 		svc.CompleteSale,
@@ -380,6 +432,10 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 			saleServiceRemoveItemHandler.ServeHTTP(w, r)
 		case SaleServiceSetSaleCustomerProcedure:
 			saleServiceSetSaleCustomerHandler.ServeHTTP(w, r)
+		case SaleServiceAttachPrescriptionProcedure:
+			saleServiceAttachPrescriptionHandler.ServeHTTP(w, r)
+		case SaleServiceDetachPrescriptionProcedure:
+			saleServiceDetachPrescriptionHandler.ServeHTTP(w, r)
 		case SaleServiceCompleteSaleProcedure:
 			saleServiceCompleteSaleHandler.ServeHTTP(w, r)
 		case SaleServiceVoidSaleProcedure:
@@ -427,6 +483,14 @@ func (UnimplementedSaleServiceHandler) RemoveItem(context.Context, *connect.Requ
 
 func (UnimplementedSaleServiceHandler) SetSaleCustomer(context.Context, *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetSaleCustomer is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) AttachPrescription(context.Context, *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.AttachPrescription is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) DetachPrescription(context.Context, *connect.Request[v1.DetachPrescriptionRequest]) (*connect.Response[v1.DetachPrescriptionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.DetachPrescription is not implemented"))
 }
 
 func (UnimplementedSaleServiceHandler) CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error) {

@@ -1,9 +1,9 @@
-import { Button, HStack, IconButton, Input, Stack, Text } from "@chakra-ui/react";
+import { Button, HStack, IconButton, Input, Stack, Switch, Text } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import EntityDialog from "../../components/EntityDialog";
@@ -15,6 +15,7 @@ import { formatMoney } from "../../lib/format";
 import { marginPct, priceFromMarkup } from "../../lib/pricing";
 import { toast } from "../../lib/toaster";
 import { useCreateProductMutation, useUpdateProductMutation } from "../../queries/products";
+import { useBusinessMode } from "../../queries/settings";
 
 const Schema = z.object({
   sku: z.string().min(1),
@@ -110,6 +111,7 @@ function ProductForm({
   isCreate?: boolean;
 }) {
   const { t } = useTranslation();
+  const { isPharmacy } = useBusinessMode();
   const baseName = form.watch("unit");
   const [baseMarkup, setBaseMarkup] = useState("");
   const hasCost = referenceCost > 0n;
@@ -149,6 +151,25 @@ function ProductForm({
           />
         )}
       </Stack>
+
+      {/* Prescription requirement — pharmacy mode only. In retail this concept
+          doesn't exist, so the toggle is hidden and the value stays false. */}
+      {isPharmacy && (
+        <Controller
+          control={form.control}
+          name="prescriptionRequired"
+          render={({ field }) => (
+            <Switch.Root
+              checked={field.value}
+              onCheckedChange={(d) => field.onChange(d.checked)}
+            >
+              <Switch.HiddenInput />
+              <Switch.Control />
+              <Switch.Label>{t("inventory.products.prescriptionRequired")}</Switch.Label>
+            </Switch.Root>
+          )}
+        />
+      )}
 
       {/* Larger units (box / strip …) — converted to the base unit by factor. */}
       <Stack gap={2} borderTopWidth="1px" pt={3}>

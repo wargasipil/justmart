@@ -12,6 +12,10 @@ enum Role {
   ROLE_OWNER = 1;
   ROLE_PHARMACIST = 2;
   ROLE_CASHIER = 3;
+  // Apoteker (pharmacist) — the dedicated pharmacy-mode role: counter sales +
+  // prescription (resep) authority. Distinct from ROLE_PHARMACIST, which this
+  // app uses as a "manager" tier.
+  ROLE_APOTEKER = 4;
 }
 
 // Method-level auth policy. Per rpc, declare ONE of:
