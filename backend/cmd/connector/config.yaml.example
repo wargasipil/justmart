@@ -1,0 +1,15 @@
+# Justmart print connector config.
+# Copy to config.yaml next to justmart-connector.exe and edit.
+# Every value can also be set via env: JUSTMART_CONNECTOR_SERVER_URL,
+# JUSTMART_CONNECTOR_TOKEN, JUSTMART_CONNECTOR_DEFAULT_PRINTER.
+
+# The Justmart server's /api base URL (the machine running justmart.exe).
+server_url: "http://192.168.1.10:8080/api"
+
+# Shared secret — must match the server's connector.token (config.yaml /
+# JUSTMART_CONNECTOR_TOKEN). The server rejects the stream otherwise.
+token: "CHANGE_ME"
+
+# Printer used when a job names none. Blank = always use the job's printer.
+# Use the exact Windows printer name (Control Panel ▸ Devices and Printers).
+default_printer: ""

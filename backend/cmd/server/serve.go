@@ -14,6 +14,7 @@ import (
 	"github.com/justmart/backend/gen/analytics_iface/v1/analyticsifacev1connect"
 	"github.com/justmart/backend/gen/backup_iface/v1/backupifacev1connect"
 	"github.com/justmart/backend/gen/branch_iface/v1/branchifacev1connect"
+	"github.com/justmart/backend/gen/connector_iface/v1/connectorifacev1connect"
 	"github.com/justmart/backend/gen/customer_iface/v1/customerifacev1connect"
 	"github.com/justmart/backend/gen/health_iface/v1/healthifacev1connect"
 	"github.com/justmart/backend/gen/inventory_iface/v1/inventoryifacev1connect"
@@ -36,6 +37,7 @@ import (
 	"github.com/justmart/backend/internal/service/batch"
 	"github.com/justmart/backend/internal/service/branch"
 	"github.com/justmart/backend/internal/service/common"
+	"github.com/justmart/backend/internal/service/connector"
 	"github.com/justmart/backend/internal/service/customer"
 	"github.com/justmart/backend/internal/service/health"
 	"github.com/justmart/backend/internal/service/prescription"
@@ -106,7 +108,9 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	batchSvc := batch.NewBatchService(gormDB)
 	stockSvc := stock.NewStockService(gormDB)
 	customerSvc := customer.NewCustomerService(gormDB)
+	connectorSvc := connector.NewConnectorService(cfg.Connector.Token)
 	saleSvc := sale.NewSaleService(gormDB, cfg.Printer)
+	saleSvc.SetConnector(cfg.Connector, connectorSvc)
 	analyticsSvc := analytics.NewAnalyticsService(gormDB)
 	purchaseOrdersSvc := purchasing.NewPurchaseOrderService(gormDB)
 	purchaseReceiptsSvc := purchasing.NewPurchaseReceiptService(gormDB)
@@ -183,6 +187,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	apiMux.Handle(inventoryifacev1connect.NewStockMovementServiceHandler(stockSvc, interceptors))
 	apiMux.Handle(customerifacev1connect.NewCustomerServiceHandler(customerSvc, interceptors))
 	apiMux.Handle(posifacev1connect.NewSaleServiceHandler(saleSvc, interceptors))
+	apiMux.Handle(connectorifacev1connect.NewConnectorServiceHandler(connectorSvc, interceptors))
 	apiMux.Handle(analyticsifacev1connect.NewAnalyticsServiceHandler(analyticsSvc, interceptors))
 	apiMux.Handle(purchasingifacev1connect.NewPurchaseOrderServiceHandler(purchaseOrdersSvc, interceptors))
 	apiMux.Handle(purchasingifacev1connect.NewPurchaseReceiptServiceHandler(purchaseReceiptsSvc, interceptors))

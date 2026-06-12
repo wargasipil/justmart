@@ -57,7 +57,16 @@ printer:
   footer:
     - "Thank you!"
 
-# Where BackupService writes per-timestamp backup directories
+# How PrintReceipt dispatches the rendered receipt. The receipt is rendered the
+# same way (using the `printer.*` header/footer/width above) in both modes.
+#   mode: tcp        -> raw TCP to printer.address (the default; network printers)
+#   mode: connector  -> push to a Justmart print connector running next to the
+#                       printer (USB/any Windows printer via the print spooler).
+# In connector mode, set a shared `token` (or JUSTMART_CONNECTOR_TOKEN) that the
+# connector must present; pick the default connector/printer in Settings > Printing.
+connector:
+  mode: tcp
+  token: ""
 # (backup_YYYY-mm-dd_HHMMSS/{database.sql.gz,manifest.txt}).
 # Empty => "./backups" (CWD-relative). Override with JUSTMART_BACKUP_DIR.
 backup:

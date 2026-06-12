@@ -1,0 +1,85 @@
+# Builds the standalone Windows print connector (justmart-connector.exe + config
+# template + launchers), zipped. Cross-compiles on a Linux runner (GOOS=windows;
+# the connector has no SPA/UI, so no Node step). Uploads the zip on every run and
+# publishes a GitHub Release with it on `v*` tags.
+#
+# Trigger a release:  git tag v1.2.0 && git push origin v1.2.0
+# Build on demand:    Actions tab -> "Connector (Windows)" -> Run workflow
+name: Connector (Windows)
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label (e.g. 1.2.0). Blank => dev label."
+        required: false
+        default: ""
+
+concurrency:
+  group: connector-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # required to create a Release on tag push
+
+jobs:
+  connector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # Gate on the connector registry tests (engine-agnostic, no DB).
+      - name: Connector tests
+        run: go -C backend test ./internal/service/connector/... -count=1
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            v="${GITHUB_REF#refs/tags/v}"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            v="${{ github.event.inputs.version }}"
+          else
+            v="0.0.0-${GITHUB_SHA::7}"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Connector version: $v"
+
+      # Cross-compile the win64 exe + stage config/launchers, then zip.
+      - name: Build connector bundle
+        run: |
+          make dist-connector-windows
+          cd dist/connector
+          zip -r "../justmart-connector-${{ steps.ver.outputs.version }}-windows-amd64.zip" .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: justmart-connector-${{ steps.ver.outputs.version }}
+          path: dist/justmart-connector-*.zip
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          zip="$(ls dist/justmart-connector-*.zip | head -n1)"
+          # Idempotent: create on first run, else attach/overwrite the asset.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$zip" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$zip" --title "Justmart $GITHUB_REF_NAME" --generate-notes
+          fi

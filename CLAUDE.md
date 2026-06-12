@@ -71,11 +71,13 @@ justmart/
 │   ├── stocktake_iface/v1/ # StocktakeSession + StocktakeLine + StocktakeService
 │   ├── settings_iface/v1/  # App-wide Settings (low_stock_threshold) + SettingsService
 │   ├── backup_iface/v1/    # BackupService (OWNER-only Create / List / Delete; per-timestamp dirs)
+│   ├── connector_iface/v1/ # ConnectorService (print connector: server-stream registration + push; ListConnectors)
 │   └── warehouse_iface/v1/ # Warehouse + UserWarehouseMembership + WarehouseService + StockTransferService
 ├── buf.yaml                # buf v2 module config (root)
 ├── buf.gen.yaml            # buf v2 codegen config (root)
 ├── backend/                # Go service
 │   ├── cmd/server/         # urfave/cli entrypoint (main.go + serve.go + migrate.go): default action serves UI + /api (auto-migrates on boot); `migrate` subcommand = goose CLI (`create` writes to disk)
+│   ├── cmd/connector/      # standalone Windows print connector (dials server, prints via Windows spooler); Windows-only spooler dep isolated behind //go:build windows
 │   ├── internal/
 │   │   ├── auth/           # JWT issuer, password hash, ctx Principal, interceptor
 │   │   ├── config/         # YAML loader (Server{Host,Port}, Database{…,AutoMigrate}, Auth, Bootstrap, Printer, Backup) + env overrides
@@ -198,6 +200,7 @@ make web-install     # npm install (frontend)
 make web             # Vite dev server on :5173
 make build           # single self-contained binary -> dist/justmart (SPA + migrations embedded)
 make dist-windows    # cross-compile dist/justmart.exe (input to the Windows installer)
+make dist-connector-windows # cross-compile dist/connector/justmart-connector.exe (+ config/launchers)
 make docker-build    # docker build -t justmart:latest .
 make docker-up       # docker compose -f docker-compose.prod.yml up -d --build
 make docker-down     # tear down the prod stack
@@ -441,7 +444,17 @@ The app ships as one binary that runs in one of two **business modes**, selected
 - **Config** ([config.example.yaml](config.example.yaml)): `printer.enabled`, `printer.address` (host:port), `printer.width` (32 for 58mm, 48 for 80mm), `printer.timeout`, `printer.open_drawer`, `printer.header[]` (shop name/address lines printed at top), `printer.footer[]` (closing lines). When `enabled: false`, `PrintReceipt` returns `FailedPrecondition` with a clear message.
 - **RPC**: `SaleService.PrintReceipt(sale_id)` ([service/sales.go](backend/internal/service/sales.go)). Open to CASHIER + PHARMACIST + OWNER. Requires the sale to be in `COMPLETED` status — reprints work because the RPC is idempotent and stateless. Returns `bytes_sent` for debugging. Network/printer errors come back as `Unavailable`.
 - **Frontend UX**: the receipt dialog after CompleteSale now has a **Print** button next to **New sale**. Reprint from the Sales list is not wired yet — straightforward follow-up if needed.
-- **Multi-shop limitation**: TCP dispatch assumes backend and printer share a LAN. If the backend ever moves to a hosted deployment, swap the dispatch path for the original "render bytes, return them, client-side print bridge POSTs to localhost:9100" architecture (the `Render` / `Dispatch` split makes this a 1-file change).
+- **Multi-shop / USB-printer limitation**: raw-TCP dispatch only reaches network printers (IP:9100) on the backend's LAN — no USB printers, no hosted backend. The **print connector** (below) lifts both limits.
+
+### Print connector (WargaPOS-style) — server pushes, a separate Windows program prints
+A **connector** is a small standalone Windows program ([backend/cmd/connector](backend/cmd/connector)) that runs next to the printer. It dials the server OUTBOUND over a long-lived Connect **server-stream** (`ConnectorService.Connect`), registers its `device_id`/name + locally-installed printer names, and prints the jobs the server pushes down the stream — via the **Windows print spooler** (`github.com/alexbrainman/printer`, RAW mode), so USB/any installed printer works. The server still renders the bytes (`printer.Render`) — the connector only spools.
+- **Mode switch (`connector.mode` in config, default `tcp`)**: `SaleService.PrintReceipt` renders, then either `DispatchTCP` (legacy) or `connector.Push(...)` ([service/sale/print_receipt.go](backend/internal/service/sale/print_receipt.go)). Target = the request's `connector_device_id`/`printer_name`, else the saved `app_settings` default (`common.{Get,Set}PrintTarget`, keys `print_connector_device`/`print_connector_printer`), else the **sole** connected connector. The TCP path is unchanged + fully covered.
+- **Registry** ([service/connector/](backend/internal/service/connector/)): in-memory, single-node (same posture as the login rate limiter / draft sweeper). `conn` holds a `send func` (abstracted from the raw stream so the registry is unit-testable); **every `Send` is serialized per-conn (`sendMu`)** because connect-go streams are NOT concurrency-safe and `Push` runs on a different goroutine than the blocked `Connect`; unregister uses a `if conns[id]==c` guard so a same-id reconnect survives the stale one's teardown.
+- **Auth caveat (HARD RULE)**: the unary `auth.NewInterceptor` does NOT cover streaming RPCs. So `Connect` is `public` and **self-authenticates** in-handler against the shared `connector.token` (config / `JUSTMART_CONNECTOR_TOKEN`). Any future streaming RPC must likewise self-auth. `ListConnectors`/`SettingsService.{Get,Set}PrintTarget` are normal unary (role-gated) RPCs.
+- **Windows-dep isolation (HARD RULE)**: `alexbrainman/printer` is in `go.mod` but imported ONLY by [cmd/connector/spooler_windows.go](backend/cmd/connector/spooler_windows.go) (`//go:build windows`); the `//go:build !windows` `spooler_other.go` stub keeps `cmd/server` + the test suite compiling on Linux CI without ever linking it (verified: `go list -deps ./cmd/server` has no alexbrainman). The connector dials the plain-HTTP LAN server-stream with an explicit **h2c `http2.Transport`** (h2c is already on server-side via `SetUnencryptedHTTP2`).
+- **Frontend**: `connectorClient` ([lib/clients.ts](frontend/src/lib/clients.ts)); [queries/connectors.ts](frontend/src/queries/connectors.ts) (`useConnectorsQuery` polls 5s + `use{Print,SetPrint}TargetQuery/Mutation`); Settings ▸ Printing panel ([routes/settings/SettingsPrinting.tsx](frontend/src/routes/settings/SettingsPrinting.tsx)) lists live connectors + picks the default connector/printer (OWNER). A single-connector shop with a `default_printer` set needs zero UI — the POS Print button sends an empty target and the server resolves the sole device.
+- **Build/release**: `make dist-connector-windows` cross-compiles + zips the exe + config template + launchers; [.github/workflows/connector.yml](.github/workflows/connector.yml) builds it on Linux (GOOS=windows) and publishes a release zip on `v*` tags. The connector's own config ([cmd/connector/config.yaml.example](backend/cmd/connector/config.yaml.example)): `server_url` (the `/api` base), `token` (matches the server), `default_printer`; identity persisted to `connector-identity.json`.
+- **Tests**: [service/connector/service_test.go](backend/internal/service/connector/service_test.go) (register/push/unregister/resolve/reconnect/auth + a `-race` concurrency case; engine-agnostic, no DB) + sale `print_receipt_connector_test.go` (connector routing: explicit target / saved default / not-connected, both engines) + settings `print_target_test.go`.
 
 ## e-Faktur / tax invoice (Phase 7 sub-project 2)
 - **Bookkeeping only**, not a live DJP integration. The actual e-Nofa / DJP web-service client would need a digital certificate + merchant credentials that aren't wired today. The shipped pieces:

@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package connector_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/connector_iface/v1;connectorifacev1";
+
+// ConnectorService is the server side of the print-connector link. A connector
+// is a separate (Windows) program running next to the physical printer; it
+// dials Connect (outbound), authenticates with the shared connector token,
+// registers its locally-installed printers, and then receives PrintJob pushes
+// for the life of the connection. The server renders the ESC/POS bytes
+// (printer.Render) and pushes them down the stream — the connector only spools.
+service ConnectorService {
+  // Connect is the long-lived outbound stream from a connector to the server.
+  // It MUST be public: the unary auth interceptor does not cover streaming
+  // RPCs, so this handler authenticates itself by checking ConnectRequest.token
+  // against the server's configured connector token.
+  rpc Connect(ConnectRequest) returns (stream ServerEvent) {
+    option (auth_iface.v1.public) = true;
+  }
+
+  // ListConnectors returns the connectors currently connected + their printers,
+  // for the Settings ▸ Printing picker. Read-only, manager-tier.
+  rpc ListConnectors(ListConnectorsRequest) returns (ListConnectorsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ConnectRequest {
+  string token = 1;                  // shared connector secret (verified in-handler)
+  string device_id = 2;              // persisted uuid from connector-identity.json
+  string device_name = 3;            // the connector host's name
+  repeated string printer_names = 4; // Windows printers the connector can target
+}
+
+// ServerEvent is a message the server pushes down the stream to the connector.
+message ServerEvent {
+  oneof event {
+    Registered registered = 1; // sent once, right after a successful register
+    PrintJob print_job = 2;    // one per receipt to print
+  }
+}
+
+message Registered {
+  string device_id = 1;
+}
+
+message PrintJob {
+  string job_id = 1;       // uuid; used as the spooler document name + for logs
+  string printer_name = 2; // target Windows printer; empty = connector default
+  bytes payload = 3;       // already-rendered ESC/POS bytes (printer.Render)
+}
+
+// Connector is the UI-facing view of a connected connector.
+message Connector {
+  string device_id = 1;
+  string device_name = 2;
+  repeated string printer_names = 3;
+}
+
+message ListConnectorsRequest {}
+message ListConnectorsResponse {
+  repeated Connector connectors = 1;
+}

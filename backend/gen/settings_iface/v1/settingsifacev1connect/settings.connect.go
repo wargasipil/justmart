@@ -51,6 +51,12 @@ const (
 	// SettingsServiceGetLicenseInfoProcedure is the fully-qualified name of the SettingsService's
 	// GetLicenseInfo RPC.
 	SettingsServiceGetLicenseInfoProcedure = "/settings_iface.v1.SettingsService/GetLicenseInfo"
+	// SettingsServiceGetPrintTargetProcedure is the fully-qualified name of the SettingsService's
+	// GetPrintTarget RPC.
+	SettingsServiceGetPrintTargetProcedure = "/settings_iface.v1.SettingsService/GetPrintTarget"
+	// SettingsServiceSetPrintTargetProcedure is the fully-qualified name of the SettingsService's
+	// SetPrintTarget RPC.
+	SettingsServiceSetPrintTargetProcedure = "/settings_iface.v1.SettingsService/SetPrintTarget"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
@@ -69,6 +75,12 @@ type SettingsServiceClient interface {
 	// Readable by every role (the holder name brands the app for all users); only
 	// applying a license (ApplyLicense) is owner-gated.
 	GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error)
+	// GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
+	// (app_settings) used by SaleService.PrintReceipt when the request carries no
+	// explicit target. Get is manager-tier (drives the Settings ▸ Printing panel);
+	// Set is owner-only.
+	GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error)
+	SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -118,6 +130,18 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("GetLicenseInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		getPrintTarget: connect.NewClient[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse](
+			httpClient,
+			baseURL+SettingsServiceGetPrintTargetProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetPrintTarget")),
+			connect.WithClientOptions(opts...),
+		),
+		setPrintTarget: connect.NewClient[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse](
+			httpClient,
+			baseURL+SettingsServiceSetPrintTargetProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("SetPrintTarget")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -129,6 +153,8 @@ type settingsServiceClient struct {
 	setBussinessSettings *connect.Client[v1.SetBussinessSettingsRequest, v1.SetBussinessSettingsResponse]
 	applyLicense         *connect.Client[v1.ApplyLicenseRequest, v1.ApplyLicenseResponse]
 	getLicenseInfo       *connect.Client[v1.GetLicenseInfoRequest, v1.GetLicenseInfoResponse]
+	getPrintTarget       *connect.Client[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse]
+	setPrintTarget       *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -161,6 +187,16 @@ func (c *settingsServiceClient) GetLicenseInfo(ctx context.Context, req *connect
 	return c.getLicenseInfo.CallUnary(ctx, req)
 }
 
+// GetPrintTarget calls settings_iface.v1.SettingsService.GetPrintTarget.
+func (c *settingsServiceClient) GetPrintTarget(ctx context.Context, req *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error) {
+	return c.getPrintTarget.CallUnary(ctx, req)
+}
+
+// SetPrintTarget calls settings_iface.v1.SettingsService.SetPrintTarget.
+func (c *settingsServiceClient) SetPrintTarget(ctx context.Context, req *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error) {
+	return c.setPrintTarget.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
@@ -177,6 +213,12 @@ type SettingsServiceHandler interface {
 	// Readable by every role (the holder name brands the app for all users); only
 	// applying a license (ApplyLicense) is owner-gated.
 	GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error)
+	// GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
+	// (app_settings) used by SaleService.PrintReceipt when the request carries no
+	// explicit target. Get is manager-tier (drives the Settings ▸ Printing panel);
+	// Set is owner-only.
+	GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error)
+	SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -222,6 +264,18 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("GetLicenseInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetPrintTargetHandler := connect.NewUnaryHandler(
+		SettingsServiceGetPrintTargetProcedure,
+		svc.GetPrintTarget,
+		connect.WithSchema(settingsServiceMethods.ByName("GetPrintTarget")),
+		connect.WithHandlerOptions(opts...),
+	)
+	settingsServiceSetPrintTargetHandler := connect.NewUnaryHandler(
+		SettingsServiceSetPrintTargetProcedure,
+		svc.SetPrintTarget,
+		connect.WithSchema(settingsServiceMethods.ByName("SetPrintTarget")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
@@ -236,6 +290,10 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceApplyLicenseHandler.ServeHTTP(w, r)
 		case SettingsServiceGetLicenseInfoProcedure:
 			settingsServiceGetLicenseInfoHandler.ServeHTTP(w, r)
+		case SettingsServiceGetPrintTargetProcedure:
+			settingsServiceGetPrintTargetHandler.ServeHTTP(w, r)
+		case SettingsServiceSetPrintTargetProcedure:
+			settingsServiceSetPrintTargetHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -267,4 +325,12 @@ func (UnimplementedSettingsServiceHandler) ApplyLicense(context.Context, *connec
 
 func (UnimplementedSettingsServiceHandler) GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetLicenseInfo is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetPrintTarget is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetPrintTarget is not implemented"))
 }

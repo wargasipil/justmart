@@ -27,6 +27,11 @@ const (
 	SettingKeyLicense     = "license"
 	SettingKeyLicenseName = "license_name"
 
+	// Default print target (connector mode): which connector device + printer
+	// SaleService.PrintReceipt uses when the request carries no explicit target.
+	SettingKeyPrintConnectorDevice  = "print_connector_device"
+	SettingKeyPrintConnectorPrinter = "print_connector_printer"
+
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
 	BussinessTypeUnspecified int32 = 0
@@ -90,6 +95,28 @@ func GetLicense(ctx context.Context, db *gorm.DB) (string, error) {
 // GetLicenseName returns the cached licensed-holder name ("" when none).
 func GetLicenseName(ctx context.Context, db *gorm.DB) (string, error) {
 	return getSetting(ctx, db, SettingKeyLicenseName)
+}
+
+// GetPrintTarget returns the saved default print connector device + printer
+// ("" each when unset). Read by SaleService.PrintReceipt + SettingsService.
+func GetPrintTarget(ctx context.Context, db *gorm.DB) (deviceID, printerName string, err error) {
+	deviceID, err = getSetting(ctx, db, SettingKeyPrintConnectorDevice)
+	if err != nil {
+		return "", "", err
+	}
+	printerName, err = getSetting(ctx, db, SettingKeyPrintConnectorPrinter)
+	if err != nil {
+		return "", "", err
+	}
+	return deviceID, printerName, nil
+}
+
+// SetPrintTarget persists the default print connector device + printer.
+func SetPrintTarget(ctx context.Context, db *gorm.DB, deviceID, printerName string) error {
+	if err := setSetting(ctx, db, SettingKeyPrintConnectorDevice, deviceID); err != nil {
+		return err
+	}
+	return setSetting(ctx, db, SettingKeyPrintConnectorPrinter, printerName)
 }
 
 // getSetting reads a single app_settings value ("" when the row is absent).

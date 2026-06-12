@@ -12,6 +12,7 @@ export default function Settings() {
     { value: "general", to: "/settings/general", label: t("settings.tabs.general") },
     { value: "units", to: "/settings/units", label: t("settings.tabs.units") },
     { value: "license", to: "/settings/license", label: t("settings.tabs.license") },
+    { value: "printing", to: "/settings/printing", label: t("settings.tabs.printing") },
     { value: "backups", to: "/settings/backups", label: t("settings.tabs.backups") },
   ];
   const activeKey =

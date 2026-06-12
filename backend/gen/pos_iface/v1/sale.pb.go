@@ -1972,10 +1972,14 @@ func (x *GetSalesSummaryResponse) GetRevenue() int64 {
 }
 
 type PrintReceiptRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SaleId        string                 `protobuf:"bytes,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	SaleId string                 `protobuf:"bytes,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
+	// Optional print target (connector mode). Empty → the server resolves the
+	// saved default (app_settings) and falls back to the sole connected device.
+	ConnectorDeviceId string `protobuf:"bytes,2,opt,name=connector_device_id,json=connectorDeviceId,proto3" json:"connector_device_id,omitempty"`
+	PrinterName       string `protobuf:"bytes,3,opt,name=printer_name,json=printerName,proto3" json:"printer_name,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *PrintReceiptRequest) Reset() {
@@ -2011,6 +2015,20 @@ func (*PrintReceiptRequest) Descriptor() ([]byte, []int) {
 func (x *PrintReceiptRequest) GetSaleId() string {
 	if x != nil {
 		return x.SaleId
+	}
+	return ""
+}
+
+func (x *PrintReceiptRequest) GetConnectorDeviceId() string {
+	if x != nil {
+		return x.ConnectorDeviceId
+	}
+	return ""
+}
+
+func (x *PrintReceiptRequest) GetPrinterName() string {
+	if x != nil {
+		return x.PrinterName
 	}
 	return ""
 }
@@ -2200,9 +2218,11 @@ const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"sale_count\x18\x01 \x01(\x03R\tsaleCount\x12\x1d\n" +
 	"\n" +
 	"items_sold\x18\x02 \x01(\x03R\titemsSold\x12\x18\n" +
-	"\arevenue\x18\x03 \x01(\x03R\arevenue\".\n" +
+	"\arevenue\x18\x03 \x01(\x03R\arevenue\"\x81\x01\n" +
 	"\x13PrintReceiptRequest\x12\x17\n" +
-	"\asale_id\x18\x01 \x01(\tR\x06saleId\"5\n" +
+	"\asale_id\x18\x01 \x01(\tR\x06saleId\x12.\n" +
+	"\x13connector_device_id\x18\x02 \x01(\tR\x11connectorDeviceId\x12!\n" +
+	"\fprinter_name\x18\x03 \x01(\tR\vprinterName\"5\n" +
 	"\x14PrintReceiptResponse\x12\x1d\n" +
 	"\n" +
 	"bytes_sent\x18\x01 \x01(\x05R\tbytesSent*e\n" +

@@ -82,7 +82,20 @@
       "general": "Umum",
       "units": "Satuan",
       "license": "Lisensi",
+      "printing": "Pencetakan",
       "backups": "Backup"
+    },
+    "printing": {
+      "connectors": "Konektor cetak terhubung",
+      "noConnectors": "Belum ada konektor cetak yang terhubung. Jalankan konektor Justmart di komputer dekat printer, lalu akan muncul di sini.",
+      "online": "Online",
+      "defaultConnector": "Konektor default",
+      "selectConnector": "Pilih konektor",
+      "autoSole": "Otomatis (pakai satu-satunya yang terhubung)",
+      "defaultPrinter": "Printer default",
+      "selectPrinter": "Pilih printer",
+      "connectorDefault": "Default konektor",
+      "help": "Default ini dipakai tombol Cetak struk di POS saat server berjalan dalam mode konektor. Toko dengan satu konektor bisa membiarkan pilihan konektor pada Otomatis."
     },
     "license": {
       "current": "Lisensi saat ini",

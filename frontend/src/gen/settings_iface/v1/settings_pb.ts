@@ -545,3 +545,167 @@ export class UpdateSettingsResponse extends Message<UpdateSettingsResponse> {
   }
 }
 
+/**
+ * @generated from message settings_iface.v1.GetPrintTargetRequest
+ */
+export class GetPrintTargetRequest extends Message<GetPrintTargetRequest> {
+  constructor(data?: PartialMessage<GetPrintTargetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetPrintTargetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPrintTargetRequest {
+    return new GetPrintTargetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPrintTargetRequest {
+    return new GetPrintTargetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPrintTargetRequest {
+    return new GetPrintTargetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetPrintTargetRequest | PlainMessage<GetPrintTargetRequest> | undefined, b: GetPrintTargetRequest | PlainMessage<GetPrintTargetRequest> | undefined): boolean {
+    return proto3.util.equals(GetPrintTargetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetPrintTargetResponse
+ */
+export class GetPrintTargetResponse extends Message<GetPrintTargetResponse> {
+  /**
+   * saved default connector ("" = none)
+   *
+   * @generated from field: string connector_device_id = 1;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * saved default printer ("" = connector default)
+   *
+   * @generated from field: string printer_name = 2;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<GetPrintTargetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetPrintTargetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPrintTargetResponse {
+    return new GetPrintTargetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPrintTargetResponse {
+    return new GetPrintTargetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPrintTargetResponse {
+    return new GetPrintTargetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetPrintTargetResponse | PlainMessage<GetPrintTargetResponse> | undefined, b: GetPrintTargetResponse | PlainMessage<GetPrintTargetResponse> | undefined): boolean {
+    return proto3.util.equals(GetPrintTargetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetPrintTargetRequest
+ */
+export class SetPrintTargetRequest extends Message<SetPrintTargetRequest> {
+  /**
+   * @generated from field: string connector_device_id = 1;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 2;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<SetPrintTargetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetPrintTargetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetPrintTargetRequest {
+    return new SetPrintTargetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetPrintTargetRequest {
+    return new SetPrintTargetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetPrintTargetRequest {
+    return new SetPrintTargetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetPrintTargetRequest | PlainMessage<SetPrintTargetRequest> | undefined, b: SetPrintTargetRequest | PlainMessage<SetPrintTargetRequest> | undefined): boolean {
+    return proto3.util.equals(SetPrintTargetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetPrintTargetResponse
+ */
+export class SetPrintTargetResponse extends Message<SetPrintTargetResponse> {
+  /**
+   * @generated from field: string connector_device_id = 1;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 2;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<SetPrintTargetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetPrintTargetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetPrintTargetResponse {
+    return new SetPrintTargetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetPrintTargetResponse {
+    return new SetPrintTargetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetPrintTargetResponse {
+    return new SetPrintTargetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetPrintTargetResponse | PlainMessage<SetPrintTargetResponse> | undefined, b: SetPrintTargetResponse | PlainMessage<SetPrintTargetResponse> | undefined): boolean {
+    return proto3.util.equals(SetPrintTargetResponse, a, b);
+  }
+}
+

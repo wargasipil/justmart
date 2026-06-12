@@ -279,6 +279,10 @@ message GetSalesSummaryResponse {
 
 message PrintReceiptRequest {
   string sale_id = 1;
+  // Optional print target (connector mode). Empty → the server resolves the
+  // saved default (app_settings) and falls back to the sole connected device.
+  string connector_device_id = 2;
+  string printer_name = 3;
 }
 message PrintReceiptResponse {
   // Echoes the rendered byte length so the client can confirm something

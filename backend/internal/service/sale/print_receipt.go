@@ -10,15 +10,17 @@ import (
 	posifacev1 "github.com/justmart/backend/gen/pos_iface/v1"
 	"github.com/justmart/backend/internal/model"
 	"github.com/justmart/backend/internal/printer"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *SaleService) PrintReceipt(
 	ctx context.Context,
 	req *connect.Request[posifacev1.PrintReceiptRequest],
 ) (*connect.Response[posifacev1.PrintReceiptResponse], error) {
-	if !s.printer.Enabled {
+	connectorMode := s.connectorCfg.Mode == "connector"
+	if !connectorMode && !s.printer.Enabled {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("printer is not configured (set printer.enabled in config.yaml)"))
+			errors.New("printing is not configured (set printer.enabled or connector.mode in config.yaml)"))
 	}
 	sale, err := s.loadFull(ctx, req.Msg.SaleId)
 	if err != nil {
@@ -110,7 +112,29 @@ func (s *SaleService) PrintReceipt(
 	}
 	payload := printer.Render(receipt, settings)
 
-	if err := printer.DispatchTCP(s.printer.Address, payload, s.printer.Timeout); err != nil {
+	if connectorMode {
+		if s.connector == nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				errors.New("connector mode is on but no print connector registry is wired"))
+		}
+		deviceID := req.Msg.ConnectorDeviceId
+		printerName := req.Msg.PrinterName
+		// No explicit target on the request → fall back to the saved default.
+		if deviceID == "" {
+			d, p, derr := common.GetPrintTarget(ctx, s.db)
+			if derr != nil {
+				return nil, connect.NewError(connect.CodeInternal, derr)
+			}
+			deviceID = d
+			if printerName == "" {
+				printerName = p
+			}
+		}
+		// deviceID may still be "" → Push targets the sole connected connector.
+		if _, err := s.connector.Push(deviceID, printerName, payload); err != nil {
+			return nil, err // already a connect error (Unavailable)
+		}
+	} else if err := printer.DispatchTCP(s.printer.Address, payload, s.printer.Timeout); err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 	return connect.NewResponse(&posifacev1.PrintReceiptResponse{

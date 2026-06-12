@@ -43,6 +43,7 @@ import Settings from "./routes/Settings";
 import SettingsGeneral from "./routes/settings/SettingsGeneral";
 import SettingsUnits from "./routes/settings/SettingsUnits";
 import SettingsLicense from "./routes/settings/SettingsLicense";
+import SettingsPrinting from "./routes/settings/SettingsPrinting";
 import SettingsBackups from "./routes/settings/SettingsBackups";
 import Transfers from "./routes/inventory/Transfers";
 import PurchaseOrdersList from "./routes/purchasing/PurchaseOrdersList";
@@ -77,6 +78,7 @@ const router = createBrowserRouter([
               { path: "general", element: <SettingsGeneral /> },
               { path: "units", element: <SettingsUnits /> },
               { path: "license", element: <SettingsLicense /> },
+              { path: "printing", element: <SettingsPrinting /> },
               { path: "backups", element: <SettingsBackups /> },
             ],
           },

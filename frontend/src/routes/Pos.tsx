@@ -1267,7 +1267,8 @@ function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => vo
   const onPrint = async () => {
     if (!sale) return;
     try {
-      await printMut.mutateAsync(sale.id);
+      // Empty target → the server uses the saved default / sole connector.
+      await printMut.mutateAsync({ saleId: sale.id });
       toast.success(t("pos.printSent"));
     } catch {
       /* toast handled globally */

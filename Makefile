@@ -1,7 +1,7 @@
 .PHONY: up down reset-devel-data generate tidy run test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
-        embed-web build dist-windows docker-build docker-up docker-down installer \
+        embed-web build dist-windows dist-connector-windows docker-build docker-up docker-down installer \
         portable-windows backup
 
 # `go -C backend run ...` runs the binary with CWD = backend/, so we point
@@ -58,6 +58,16 @@ build: embed-web
 dist-windows: embed-web
 	@mkdir -p dist
 	GOOS=windows GOARCH=amd64 $(GO_BACKEND) build -ldflags "-s -w" -o ../dist/justmart.exe ./cmd/server
+
+# Cross-compile the standalone Windows print connector (no embedded UI). Ships
+# as a small zip the shop runs next to the printer. The Windows-only spooler dep
+# is isolated behind //go:build windows, so this is the only target that links it.
+dist-connector-windows:
+	@mkdir -p dist/connector
+	GOOS=windows GOARCH=amd64 $(GO_BACKEND) build -ldflags "-s -w" -o ../dist/connector/justmart-connector.exe ./cmd/connector
+	cp backend/cmd/connector/config.yaml.example dist/connector/
+	cp backend/cmd/connector/start.bat dist/connector/
+	cp backend/cmd/connector/start.ps1 dist/connector/
 
 # --- Docker (production image + compose) --------------------------------------
 docker-build:

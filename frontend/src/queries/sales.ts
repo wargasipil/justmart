@@ -126,9 +126,12 @@ export function useVoidSaleMutation() {
   });
 }
 
+// Print a completed sale's receipt. An empty connectorDeviceId/printerName lets
+// the server resolve the saved default target (or the sole connected connector).
 export function usePrintReceiptMutation() {
   return useMutation({
-    mutationFn: (saleId: string) => saleClient.printReceipt({ saleId }),
+    mutationFn: (req: { saleId: string; connectorDeviceId?: string; printerName?: string }) =>
+      saleClient.printReceipt(req),
   });
 }
 

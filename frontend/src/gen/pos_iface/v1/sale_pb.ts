@@ -1626,6 +1626,19 @@ export class PrintReceiptRequest extends Message<PrintReceiptRequest> {
    */
   saleId = "";
 
+  /**
+   * Optional print target (connector mode). Empty → the server resolves the
+   * saved default (app_settings) and falls back to the sole connected device.
+   *
+   * @generated from field: string connector_device_id = 2;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 3;
+   */
+  printerName = "";
+
   constructor(data?: PartialMessage<PrintReceiptRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1635,6 +1648,8 @@ export class PrintReceiptRequest extends Message<PrintReceiptRequest> {
   static readonly typeName = "pos_iface.v1.PrintReceiptRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PrintReceiptRequest {

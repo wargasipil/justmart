@@ -50,6 +50,18 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
+
+  // GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
+  // (app_settings) used by SaleService.PrintReceipt when the request carries no
+  // explicit target. Get is manager-tier (drives the Settings ▸ Printing panel);
+  // Set is owner-only.
+  rpc GetPrintTarget(GetPrintTargetRequest) returns (GetPrintTargetResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SetPrintTarget(SetPrintTargetRequest) returns (SetPrintTargetResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
 }
 
 enum BussinessType {
@@ -97,4 +109,18 @@ message UpdateSettingsRequest {
 }
 message UpdateSettingsResponse {
   Settings settings = 1;
+}
+
+message GetPrintTargetRequest {}
+message GetPrintTargetResponse {
+  string connector_device_id = 1; // saved default connector ("" = none)
+  string printer_name = 2;        // saved default printer ("" = connector default)
+}
+message SetPrintTargetRequest {
+  string connector_device_id = 1;
+  string printer_name = 2;
+}
+message SetPrintTargetResponse {
+  string connector_device_id = 1;
+  string printer_name = 2;
 }

@@ -21,6 +21,7 @@ import { StockTransferService } from "../gen/warehouse_iface/v1/transfer_connect
 import { SettingsService } from "../gen/settings_iface/v1/settings_connect";
 import { UnitService } from "../gen/unit_iface/v1/unit_connect";
 import { BackupService } from "../gen/backup_iface/v1/backup_connect";
+import { ConnectorService } from "../gen/connector_iface/v1/connector_connect";
 import { transport } from "./transport";
 
 export const healthClient = createPromiseClient(HealthService, transport);
@@ -44,3 +45,4 @@ export const stockTransferClient = createPromiseClient(StockTransferService, tra
 export const settingsClient = createPromiseClient(SettingsService, transport);
 export const unitClient = createPromiseClient(UnitService, transport);
 export const backupClient = createPromiseClient(BackupService, transport);
+export const connectorClient = createPromiseClient(ConnectorService, transport);

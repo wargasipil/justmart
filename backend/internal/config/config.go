@@ -100,12 +100,23 @@ type Backup struct {
 	PgToolsDir string `yaml:"pg_tools_dir"`
 }
 
+// Connector controls how SaleService.PrintReceipt dispatches the rendered
+// receipt. Mode "tcp" (default) keeps the legacy raw-TCP-to-IP:9100 path
+// (printer.Address). Mode "connector" pushes the rendered bytes to a connected
+// print connector (a separate program by the printer; see cmd/connector). Token
+// is the shared secret a connector must present on its Connect stream.
+type Connector struct {
+	Mode  string `yaml:"mode"`  // "tcp" (default) | "connector"
+	Token string `yaml:"token"` // shared secret connectors must present
+}
+
 type Config struct {
 	Server    Server    `yaml:"server"`
 	Database  Database  `yaml:"database"`
 	Auth      Auth      `yaml:"auth"`
 	Bootstrap Bootstrap `yaml:"bootstrap"`
 	Printer   Printer   `yaml:"printer"`
+	Connector Connector `yaml:"connector"`
 	Backup    Backup    `yaml:"backup"`
 	// License is an offline license token (JWT minted by cmd/license, signed with
 	// security.SecretRoot). When present + valid, its business type drives the
@@ -188,6 +199,9 @@ func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_LICENSE"); v != "" {
 		c.License = v
 	}
+	if v := os.Getenv("JUSTMART_CONNECTOR_TOKEN"); v != "" {
+		c.Connector.Token = v
+	}
 }
 
 // applyDefaults fills in safe fallbacks for fields that the packaged flavors
@@ -196,6 +210,9 @@ func applyEnvOverrides(c *Config) {
 func applyDefaults(c *Config) {
 	if c.Server.Host == "" {
 		c.Server.Host = "0.0.0.0"
+	}
+	if c.Connector.Mode == "" {
+		c.Connector.Mode = "tcp" // legacy raw-TCP path stays the default
 	}
 	if c.Backup.Directory == "" {
 		c.Backup.Directory = "./backups"

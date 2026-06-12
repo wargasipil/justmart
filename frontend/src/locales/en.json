@@ -82,7 +82,20 @@
       "general": "General",
       "units": "Units",
       "license": "License",
+      "printing": "Printing",
       "backups": "Backups"
+    },
+    "printing": {
+      "connectors": "Connected print connectors",
+      "noConnectors": "No print connector is connected. Run the Justmart connector next to the printer and it will appear here.",
+      "online": "Online",
+      "defaultConnector": "Default connector",
+      "selectConnector": "Select a connector",
+      "autoSole": "Auto (use the only connected one)",
+      "defaultPrinter": "Default printer",
+      "selectPrinter": "Select a printer",
+      "connectorDefault": "Connector default",
+      "help": "These defaults are used by the POS receipt Print button when the server runs in connector mode. A single-connector shop can leave the connector on Auto."
     },
     "license": {
       "current": "Current license",
