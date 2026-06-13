@@ -1,5 +1,7 @@
-# Local config (copy from config.example.yaml)
-config.yaml
+# Local runtime config (copy from config.example.yaml). Anchored to the repo
+# root so it does NOT also ignore packaging templates named config.yaml
+# (e.g. packaging/windows/portable-template/config.yaml, needed by the CI build).
+/config.yaml
 
 # Docker compose secrets (copy from .env.example)
 .env

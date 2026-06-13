@@ -1,0 +1,50 @@
+server:
+  # 127.0.0.1 = this PC only (portable default). Set 0.0.0.0 to allow other
+  # devices on your LAN to connect (then allow justmart.exe through the firewall).
+  host: 127.0.0.1
+  port: __PORT__
+
+database:
+  # Portable edition uses SQLite: zero dependencies, no PostgreSQL, no Docker.
+  # The whole database is the single file below, created next to justmart.exe.
+  driver: sqlite
+  path: ./justmart.db
+  # Run schema migrations automatically on startup (keeps the file turnkey).
+  auto_migrate: true
+
+auth:
+  jwt_secret: __JWT_SECRET__
+  access_token_ttl: 1h
+  refresh_token_ttl: 720h   # 30 days
+
+bootstrap:
+  # This owner account is (re)applied from this file on every startup, so
+  # config.yaml is the source of truth for it. Change owner_password here and
+  # restart to rotate it.
+  owner_email: __OWNER_EMAIL__
+  owner_password: __OWNER_PASSWORD__
+
+# Optional ESC/POS thermal printer (disabled by default). Set enabled: true and
+# point address at your printer (most network thermal printers listen on :9100).
+printer:
+  enabled: false
+  address: 192.168.1.100:9100
+  width: 32                # 32 for 58mm paper, 48 for 80mm paper
+  timeout: 5s
+  open_drawer: false
+  header:
+    - "JUSTMART"
+  footer:
+    - "Thank you!"
+
+# Print connector (optional) - print to a USB / locally-installed printer via
+# the bundled connector program. Full steps: connector\CONNECTOR-SETUP.txt.
+# To enable: change mode below to "connector", restart, then run
+# connector\"Start Connector.bat". The connector connects freely (no token).
+connector:
+  mode: tcp                # "tcp" = network printer (above) | "connector" = bundled connector
+
+# In-app backups (OWNER -> Settings -> Backups) are written here, next to the
+# exe. SQLite backups use VACUUM INTO (a consistent snapshot, no external tools).
+backup:
+  directory: ./backups
