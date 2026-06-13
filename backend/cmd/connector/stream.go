@@ -58,7 +58,6 @@ func connectOnce(client connectorifacev1connect.ConnectorServiceClient, cfg conf
 		slog.Warn("could not list printers", "error", err)
 	}
 	stream, err := client.Connect(context.Background(), connect.NewRequest(&connectorifacev1.ConnectRequest{
-		Token:        cfg.Token,
 		DeviceId:     id.ID,
 		DeviceName:   id.Name,
 		PrinterNames: printers,

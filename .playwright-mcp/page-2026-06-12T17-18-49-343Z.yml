@@ -1,0 +1,84 @@
+- generic:
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - paragraph: POS
+          - generic:
+            - generic:
+              - img
+              - paragraph: Gudang Utama
+            - button:
+              - generic:
+                - img
+                - paragraph: Auto (default printer)
+              - img
+            - paragraph: Owner
+            - button:
+              - img
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - img
+              - textbox:
+                - /placeholder: Search product / scan barcode…
+            - generic:
+              - paragraph: No results
+          - generic:
+            - generic:
+              - generic:
+                - paragraph: Cart
+                - paragraph: 0 items
+              - generic:
+                - img
+                - paragraph: Customer
+                - button: Attach customer
+            - generic:
+              - paragraph: Cart is empty
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Subtotal
+                  - paragraph: IDR 0
+                - generic:
+                  - paragraph: TOTAL
+                  - paragraph: IDR 0
+                - generic:
+                  - paragraph: Payment
+                  - radiogroup:
+                    - generic:
+                      - generic:
+                        - radio [checked]
+                        - generic: Cash
+                      - generic:
+                        - radio
+                        - generic: Non-cash
+                - generic:
+                  - generic:
+                    - paragraph: Paid
+                    - textbox:
+                      - /placeholder: "0"
+                  - generic:
+                    - paragraph: Change
+                    - paragraph: IDR 0
+                - generic:
+                  - button [disabled]: Complete (F8)
+            - generic:
+              - paragraph: F2 search · F4 customer · F5 Rx · F8 complete · Esc clear
+  - region "Notifications, top-end (alt+T)"
+  - dialog "Select printer" [ref=e85]:
+    - generic [ref=e86]:
+      - heading "Select printer" [level=2] [ref=e87]
+      - button "close" [active] [ref=e88] [cursor=pointer]:
+        - img [ref=e89]
+    - generic [ref=e93]:
+      - generic [ref=e94] [cursor=pointer]:
+        - paragraph [ref=e95]: Auto (default printer)
+        - img [ref=e96]
+      - paragraph [ref=e99] [cursor=pointer]: OneNote (Desktop) - Protected
+      - paragraph [ref=e101] [cursor=pointer]: POS-80
+      - paragraph [ref=e103] [cursor=pointer]: OneNote (Desktop)
+      - paragraph [ref=e105] [cursor=pointer]: Microsoft Print to PDF
+      - paragraph [ref=e107] [cursor=pointer]: Fax
+      - paragraph [ref=e109] [cursor=pointer]: ESC_POS_Virtual_Printer

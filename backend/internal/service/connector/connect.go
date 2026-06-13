@@ -9,18 +9,14 @@ import (
 	connectorifacev1 "github.com/justmart/backend/gen/connector_iface/v1"
 )
 
-// Connect is the long-lived outbound stream from a connector. It is a `public`
-// RPC (the unary auth interceptor doesn't cover streams), so it authenticates
-// itself against the shared connector token, registers the device, acks, then
-// blocks until the connector disconnects.
+// Connect is the long-lived outbound stream from a connector. It is a `public`,
+// UNAUTHENTICATED RPC — a connector connects freely (trusted single-shop LAN).
+// It registers the device, acks, then blocks until the connector disconnects.
 func (s *ConnectorService) Connect(
 	ctx context.Context,
 	req *connect.Request[connectorifacev1.ConnectRequest],
 	stream *connect.ServerStream[connectorifacev1.ServerEvent],
 ) error {
-	if err := s.authenticate(req.Msg.Token); err != nil {
-		return err
-	}
 	id := req.Msg.DeviceId
 	if id == "" {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("device_id is required"))
@@ -48,16 +44,6 @@ func (s *ConnectorService) Connect(
 
 	// Hold the stream open until the connector disconnects (request ctx cancels).
 	<-ctx.Done()
-	return nil
-}
-
-// authenticate verifies the connector's shared token. An empty server token
-// rejects everything (the connector feature is effectively off until a token is
-// configured). Extracted for unit testing.
-func (s *ConnectorService) authenticate(token string) error {
-	if s.token == "" || token != s.token {
-		return connect.NewError(connect.CodeUnauthenticated, errors.New("invalid connector token"))
-	}
 	return nil
 }
 

@@ -11,13 +11,6 @@ import { Message, proto3 } from "@bufbuild/protobuf";
  */
 export class ConnectRequest extends Message<ConnectRequest> {
   /**
-   * shared connector secret (verified in-handler)
-   *
-   * @generated from field: string token = 1;
-   */
-  token = "";
-
-  /**
    * persisted uuid from connector-identity.json
    *
    * @generated from field: string device_id = 2;
@@ -46,7 +39,6 @@ export class ConnectRequest extends Message<ConnectRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "connector_iface.v1.ConnectRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
-    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "device_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 4, name: "printer_names", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },

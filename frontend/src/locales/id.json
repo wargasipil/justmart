@@ -95,7 +95,13 @@
       "defaultPrinter": "Printer default",
       "selectPrinter": "Pilih printer",
       "connectorDefault": "Default konektor",
-      "help": "Default ini dipakai tombol Cetak struk di POS saat server berjalan dalam mode konektor. Toko dengan satu konektor bisa membiarkan pilihan konektor pada Otomatis."
+      "help": "Default ini dipakai tombol Cetak struk di POS saat server berjalan dalam mode konektor. Toko dengan satu konektor bisa membiarkan pilihan konektor pada Otomatis.",
+      "receiptTitle": "Header & footer struk",
+      "receiptHelp": "Dicetak di bagian atas dan bawah setiap struk — satu baris per baris teks. Kosongkan jika tidak ada.",
+      "receiptHeader": "Header (nama toko / alamat)",
+      "receiptHeaderPlaceholder": "TOKO JAYA\nJl. Merdeka 1\nBandung",
+      "receiptFooter": "Footer (pesan penutup)",
+      "receiptFooterPlaceholder": "Terima kasih!"
     },
     "license": {
       "current": "Lisensi saat ini",
@@ -371,6 +377,8 @@
     "newSale": "Transaksi baru",
     "print": "Cetak",
     "printSent": "Dikirim ke printer",
+    "printerAuto": "Otomatis (printer default)",
+    "selectPrinter": "Pilih printer",
     "dashboardTitle": "Hari ini",
     "dashboardRevenue": "Pendapatan hari ini",
     "dashboardSales": "Transaksi hari ini",

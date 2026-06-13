@@ -49,6 +49,15 @@ Edit "port:" in config.yaml (default __PORT__), save, restart. Then browse to
 http://localhost:<your-port>.
 
 
+PRINT RECEIPTS TO A USB / LOCAL PRINTER
+---------------------------------------
+This folder includes a "connector" that prints to a printer attached to this PC
+(USB thermal printers, or any printer installed in Windows). Open the
+   connector\  folder and follow  connector\CONNECTOR-SETUP.txt.
+(A network printer with its own IP does not need the connector - set
+"printer: enabled: true" + its address in config.yaml instead.)
+
+
 USE FROM OTHER DEVICES ON THE NETWORK
 -------------------------------------
 By default Justmart only answers on this PC (host: 127.0.0.1). To let other

@@ -1,0 +1,7 @@
+# Justmart print connector config (portable edition).
+# Points at the Justmart server running on THIS same PC. Connects freely (no auth).
+server_url: "http://127.0.0.1:__PORT__/api"
+
+# Printer used when a receipt names none. Blank = pick it in Settings > Printing.
+# To hard-wire one, put the exact Windows printer name here.
+default_printer: ""

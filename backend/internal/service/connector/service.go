@@ -25,15 +25,15 @@ type conn struct {
 	send       func(*connectorifacev1.ServerEvent) error
 }
 
-// ConnectorService holds the live device registry, guarded by mu.
+// ConnectorService holds the live device registry, guarded by mu. Connectors
+// connect freely (no auth) — see the Connect handler.
 type ConnectorService struct {
 	mu    sync.RWMutex
 	conns map[string]*conn
-	token string // shared connector secret, verified in the Connect handler
 }
 
-func NewConnectorService(token string) *ConnectorService {
-	return &ConnectorService{conns: map[string]*conn{}, token: token}
+func NewConnectorService() *ConnectorService {
+	return &ConnectorService{conns: map[string]*conn{}}
 }
 
 var _ connectorifacev1connect.ConnectorServiceHandler = (*ConnectorService)(nil)

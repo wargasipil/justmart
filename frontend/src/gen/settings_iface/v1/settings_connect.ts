@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -99,6 +99,29 @@ export const SettingsService = {
       name: "SetPrintTarget",
       I: SetPrintTargetRequest,
       O: SetPrintTargetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetReceiptSettings / SetReceiptSettings store the printed-receipt header
+     * (shop name/address lines) + footer (closing lines). Multi-line strings, one
+     * receipt line per text line. Seeded at boot from config.yaml printer.header/
+     * footer. Get is manager-tier; Set is owner-only.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetReceiptSettings
+     */
+    getReceiptSettings: {
+      name: "GetReceiptSettings",
+      I: GetReceiptSettingsRequest,
+      O: GetReceiptSettingsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc settings_iface.v1.SettingsService.SetReceiptSettings
+     */
+    setReceiptSettings: {
+      name: "SetReceiptSettings",
+      I: SetReceiptSettingsRequest,
+      O: SetReceiptSettingsResponse,
       kind: MethodKind.Unary,
     },
   }

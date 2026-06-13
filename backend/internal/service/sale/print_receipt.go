@@ -104,10 +104,18 @@ func (s *SaleService) PrintReceipt(
 		Payment:     paymentStr,
 		Change:      change,
 	}
+	// Header/footer come from app_settings (seeded at boot from config.yaml,
+	// editable in Settings ▸ Printing); fall back to the config only if the
+	// lookup errors. Width + drawer stay hardware config.
+	header, footer := s.printer.Header, s.printer.Footer
+	if h, f, err := common.GetReceiptText(ctx, s.db); err == nil {
+		header = common.ReceiptLines(h)
+		footer = common.ReceiptLines(f)
+	}
 	settings := printer.Settings{
 		Width:      s.printer.Width,
-		Header:     s.printer.Header,
-		Footer:     s.printer.Footer,
+		Header:     header,
+		Footer:     footer,
 		OpenDrawer: s.printer.OpenDrawer,
 	}
 	payload := printer.Render(receipt, settings)

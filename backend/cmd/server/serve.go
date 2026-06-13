@@ -108,7 +108,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	batchSvc := batch.NewBatchService(gormDB)
 	stockSvc := stock.NewStockService(gormDB)
 	customerSvc := customer.NewCustomerService(gormDB)
-	connectorSvc := connector.NewConnectorService(cfg.Connector.Token)
+	connectorSvc := connector.NewConnectorService()
 	saleSvc := sale.NewSaleService(gormDB, cfg.Printer)
 	saleSvc.SetConnector(cfg.Connector, connectorSvc)
 	analyticsSvc := analytics.NewAnalyticsService(gormDB)
@@ -126,6 +126,13 @@ func serve(_ context.Context, cmd *cli.Command) error {
 
 	if err := userSvc.EnsureBootstrapOwner(context.Background(), cfg.Bootstrap); err != nil {
 		return fmt.Errorf("bootstrap owner: %w", err) // server can't start without it
+	}
+
+	// Seed the receipt header/footer from config.yaml into app_settings on first
+	// boot (set-if-absent), so the printed receipt is editable in Settings ▸
+	// Printing while existing config-based shops keep their values.
+	if err := common.SeedReceiptDefaults(context.Background(), gormDB, cfg.Printer.Header, cfg.Printer.Footer); err != nil {
+		slog.Warn("could not seed receipt defaults", "error", err)
 	}
 
 	// License drives the business mode. Precedence: a config/env license

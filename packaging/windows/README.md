@@ -16,7 +16,8 @@ No prerequisites for the pharmacist.
 |---|---|
 | `justmart.exe` | Windows Service `justmart-server` (via **WinSW**). Serves UI + `/api` on one port; auto-migrates on boot. |
 | Bundled PostgreSQL (`pgsql\`) | Native Windows Service `justmart-postgres` (via `pg_ctl register`, runs as `NetworkService`, bound to `127.0.0.1`). |
-| `config.yaml`, `pgdata\`, `backups\`, `logs\` | Under `C:\ProgramData\Justmart\`. App + program files under `C:\Program Files\Justmart\`. |
+| `connector\justmart-connector.exe` | Print connector — prints receipts to a USB/local Windows printer. Launched on demand via the **"Justmart Connector"** shortcut (not a service). Off by default (`connector.mode: tcp`); see `connector\CONNECTOR-SETUP.txt`. `setup.ps1` writes its config to `C:\ProgramData\Justmart\connector\`. Connects freely (no auth). |
+| `config.yaml`, `pgdata\`, `backups\`, `logs\`, `connector\` | Under `C:\ProgramData\Justmart\`. App + program files under `C:\Program Files\Justmart\`. |
 
 ## Build prerequisites (developer machine, Windows x64)
 - **Go 1.25+** and **Node 20+** (to compile `justmart.exe` with the SPA embedded).

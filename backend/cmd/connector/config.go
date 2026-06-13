@@ -7,11 +7,10 @@ import (
 )
 
 // config is the connector's own configuration (NOT the server's config.yaml).
-// server_url is the Justmart server's /api base; token must match the server's
-// connector.token; default_printer is used when a job names no printer.
+// server_url is the Justmart server's /api base; default_printer is used when a
+// job names no printer. (No token - connectors connect without auth.)
 type config struct {
 	ServerURL      string `yaml:"server_url"`
-	Token          string `yaml:"token"`
 	DefaultPrinter string `yaml:"default_printer"`
 }
 
@@ -31,9 +30,6 @@ func loadConfig() (config, error) {
 	}
 	if v := os.Getenv("JUSTMART_CONNECTOR_SERVER_URL"); v != "" {
 		c.ServerURL = v
-	}
-	if v := os.Getenv("JUSTMART_CONNECTOR_TOKEN"); v != "" {
-		c.Token = v
 	}
 	if v := os.Getenv("JUSTMART_CONNECTOR_DEFAULT_PRINTER"); v != "" {
 		c.DefaultPrinter = v

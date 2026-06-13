@@ -57,6 +57,12 @@ const (
 	// SettingsServiceSetPrintTargetProcedure is the fully-qualified name of the SettingsService's
 	// SetPrintTarget RPC.
 	SettingsServiceSetPrintTargetProcedure = "/settings_iface.v1.SettingsService/SetPrintTarget"
+	// SettingsServiceGetReceiptSettingsProcedure is the fully-qualified name of the SettingsService's
+	// GetReceiptSettings RPC.
+	SettingsServiceGetReceiptSettingsProcedure = "/settings_iface.v1.SettingsService/GetReceiptSettings"
+	// SettingsServiceSetReceiptSettingsProcedure is the fully-qualified name of the SettingsService's
+	// SetReceiptSettings RPC.
+	SettingsServiceSetReceiptSettingsProcedure = "/settings_iface.v1.SettingsService/SetReceiptSettings"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
@@ -81,6 +87,12 @@ type SettingsServiceClient interface {
 	// Set is owner-only.
 	GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error)
 	SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error)
+	// GetReceiptSettings / SetReceiptSettings store the printed-receipt header
+	// (shop name/address lines) + footer (closing lines). Multi-line strings, one
+	// receipt line per text line. Seeded at boot from config.yaml printer.header/
+	// footer. Get is manager-tier; Set is owner-only.
+	GetReceiptSettings(context.Context, *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error)
+	SetReceiptSettings(context.Context, *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -142,6 +154,18 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("SetPrintTarget")),
 			connect.WithClientOptions(opts...),
 		),
+		getReceiptSettings: connect.NewClient[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse](
+			httpClient,
+			baseURL+SettingsServiceGetReceiptSettingsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetReceiptSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		setReceiptSettings: connect.NewClient[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse](
+			httpClient,
+			baseURL+SettingsServiceSetReceiptSettingsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("SetReceiptSettings")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -155,6 +179,8 @@ type settingsServiceClient struct {
 	getLicenseInfo       *connect.Client[v1.GetLicenseInfoRequest, v1.GetLicenseInfoResponse]
 	getPrintTarget       *connect.Client[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse]
 	setPrintTarget       *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
+	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
+	setReceiptSettings   *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -197,6 +223,16 @@ func (c *settingsServiceClient) SetPrintTarget(ctx context.Context, req *connect
 	return c.setPrintTarget.CallUnary(ctx, req)
 }
 
+// GetReceiptSettings calls settings_iface.v1.SettingsService.GetReceiptSettings.
+func (c *settingsServiceClient) GetReceiptSettings(ctx context.Context, req *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error) {
+	return c.getReceiptSettings.CallUnary(ctx, req)
+}
+
+// SetReceiptSettings calls settings_iface.v1.SettingsService.SetReceiptSettings.
+func (c *settingsServiceClient) SetReceiptSettings(ctx context.Context, req *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error) {
+	return c.setReceiptSettings.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
@@ -219,6 +255,12 @@ type SettingsServiceHandler interface {
 	// Set is owner-only.
 	GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error)
 	SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error)
+	// GetReceiptSettings / SetReceiptSettings store the printed-receipt header
+	// (shop name/address lines) + footer (closing lines). Multi-line strings, one
+	// receipt line per text line. Seeded at boot from config.yaml printer.header/
+	// footer. Get is manager-tier; Set is owner-only.
+	GetReceiptSettings(context.Context, *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error)
+	SetReceiptSettings(context.Context, *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -276,6 +318,18 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("SetPrintTarget")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetReceiptSettingsHandler := connect.NewUnaryHandler(
+		SettingsServiceGetReceiptSettingsProcedure,
+		svc.GetReceiptSettings,
+		connect.WithSchema(settingsServiceMethods.ByName("GetReceiptSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	settingsServiceSetReceiptSettingsHandler := connect.NewUnaryHandler(
+		SettingsServiceSetReceiptSettingsProcedure,
+		svc.SetReceiptSettings,
+		connect.WithSchema(settingsServiceMethods.ByName("SetReceiptSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
@@ -294,6 +348,10 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceGetPrintTargetHandler.ServeHTTP(w, r)
 		case SettingsServiceSetPrintTargetProcedure:
 			settingsServiceSetPrintTargetHandler.ServeHTTP(w, r)
+		case SettingsServiceGetReceiptSettingsProcedure:
+			settingsServiceGetReceiptSettingsHandler.ServeHTTP(w, r)
+		case SettingsServiceSetReceiptSettingsProcedure:
+			settingsServiceSetReceiptSettingsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -333,4 +391,12 @@ func (UnimplementedSettingsServiceHandler) GetPrintTarget(context.Context, *conn
 
 func (UnimplementedSettingsServiceHandler) SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetPrintTarget is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetReceiptSettings(context.Context, *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetReceiptSettings is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) SetReceiptSettings(context.Context, *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetReceiptSettings is not implemented"))
 }

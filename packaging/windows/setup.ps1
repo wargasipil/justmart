@@ -125,9 +125,24 @@ printer:
     - "JUSTMART"
   footer:
     - "Thank you!"
+
+connector:
+  mode: tcp
 "@
   Set-Content -Path $config -Value $yaml -Encoding utf8
   Write-Host "Wrote $config"
+
+  # Print connector runtime config in the WRITABLE data dir (the exe runs from
+  # there so connector-identity.json + config.yaml resolve). No token - the
+  # connector connects freely.
+  $connDir = Join-Path $DataDir "connector"
+  New-Item -ItemType Directory -Force -Path $connDir | Out-Null
+  $connYaml = @"
+server_url: "http://127.0.0.1:$AppPort/api"
+default_printer: ""
+"@
+  Set-Content -Path (Join-Path $connDir "config.yaml") -Value $connYaml -Encoding utf8
+  Write-Host "Wrote connector config -> $connDir\config.yaml"
 } else {
   Write-Host "Existing config.yaml found -leaving it untouched."
 }
@@ -163,5 +178,23 @@ foreach ($dir in @(
   $lnk.TargetPath = $url
   $lnk.Save()
 }
+
+# Print-connector shortcut. WorkingDirectory = the writable data-dir connector
+# folder so the exe finds config.yaml + writes connector-identity.json there.
+$connExe = Join-Path $AppDir "connector\justmart-connector.exe"
+if (Test-Path $connExe) {
+  $connWorkDir = Join-Path $DataDir "connector"
+  New-Item -ItemType Directory -Force -Path $connWorkDir | Out-Null
+  foreach ($dir in @(
+      [Environment]::GetFolderPath("CommonDesktopDirectory"),
+      (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs"))) {
+    $clnk = $ws.CreateShortcut((Join-Path $dir "Justmart Connector.lnk"))
+    $clnk.TargetPath = $connExe
+    $clnk.WorkingDirectory = $connWorkDir
+    $clnk.Description = "Print receipts to a local/USB printer (see connector\CONNECTOR-SETUP.txt)"
+    $clnk.Save()
+  }
+}
+
 Start-Process $url
 Write-Host "Justmart setup complete: $url"

@@ -1,0 +1,55 @@
+JUSTMART PRINT CONNECTOR - SETUP
+================================
+
+WHAT IS THIS?
+-------------
+The connector lets Justmart print receipts to a printer attached to THIS PC -
+USB thermal printers, or any printer installed in Windows. Without it, Justmart
+can only print to a NETWORK printer that has its own IP address.
+
+You only need this if you want to print receipts to a local / USB printer.
+
+
+ONE-TIME SETUP
+--------------
+1. Install your printer in Windows and confirm it prints a Windows test page
+   (Settings -> Bluetooth & devices -> Printers & scanners).
+
+2. Turn on connector mode in Justmart:
+   - Open  config.yaml  (in the MAIN Justmart folder, one level up) in Notepad.
+   - In the "connector:" section change
+         mode: tcp
+     to
+         mode: connector
+   - Save, then restart Justmart (close its black window and run
+     "Start Justmart.bat" again).
+
+3. Start the connector:
+   - Double-click  "Start Connector.bat"  in THIS folder.
+   - A window opens and stays open. Keep it open while you want to print.
+   - It connects to Justmart on this PC automatically and lists your printers.
+
+4. Pick your printer in Justmart:
+   - Sign in as the owner, go to  Settings -> Printing.
+   - Your connector appears with its printers. Choose the default printer
+     (or leave the connector on "Auto" if there is only one) and click Save.
+
+Done - the "Print" button on a completed sale now prints to your printer.
+
+
+START AUTOMATICALLY WITH WINDOWS (optional)
+-------------------------------------------
+Press Win+R, type   shell:startup   and press Enter. Put a SHORTCUT to
+"Start Connector.bat" in that folder. The connector will then start on login.
+
+
+TROUBLESHOOTING
+---------------
+- "No print connector is connected" when printing:
+    The connector window is not running. Run "Start Connector.bat".
+- No printers listed under Settings -> Printing:
+    Install the printer in Windows first, then restart the connector.
+- Receipt width looks wrong:
+    Set "printer: width:" in the MAIN config.yaml (32 for 58mm, 48 for 80mm).
+- Windows SmartScreen warns about justmart-connector.exe (not code-signed):
+    Choose "More info" -> "Run anyway" if you trust this copy.

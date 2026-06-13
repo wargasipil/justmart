@@ -67,6 +67,23 @@ if ($SkipExeBuild -and (Test-Path $exe)) {
 }
 if (-not (Test-Path $exe)) { throw "justmart.exe not found at $exe" }
 
+# --- 1b. Build the print connector (Windows-only spooler dep, isolated) -------
+# Separate exe shipped in connector\; the shop runs it to print to a USB / local
+# printer. CGO off + GOOS=windows like the server (the alexbrainman/printer dep
+# is behind //go:build windows, so this is the only target that links it).
+$connExe = Join-Path $dist "justmart-connector.exe"
+if (-not ($SkipExeBuild -and (Test-Path $connExe))) {
+  Write-Host "Building print connector..."
+  Push-Location (Join-Path $root "backend")
+  $env:GOOS = "windows"; $env:GOARCH = "amd64"; $env:CGO_ENABLED = "0"
+  go build -ldflags "-s -w" -o $connExe ./cmd/connector
+  $connExit = $LASTEXITCODE
+  Remove-Item Env:\GOOS, Env:\GOARCH, Env:\CGO_ENABLED
+  Pop-Location
+  if ($connExit -ne 0) { throw "connector build failed (exit $connExit)." }
+}
+if (-not (Test-Path $connExe)) { throw "justmart-connector.exe not found at $connExe" }
+
 # --- 2. Generate a per-build JWT secret (32 random bytes, hex) ----------------
 function New-Secret([int]$bytes = 32) {
   $b = New-Object byte[] $bytes
@@ -96,6 +113,14 @@ Write-Rendered "config.yaml"        "config.yaml"
 Write-Rendered "Start Justmart.bat" "Start Justmart.bat"
 Write-Rendered "README.txt"         "README.txt"
 
+# Connector subfolder: exe + config + launcher + setup tutorial.
+$connDir = Join-Path $outDir "connector"
+New-Item -ItemType Directory -Force -Path $connDir | Out-Null
+Copy-Item $connExe (Join-Path $connDir "justmart-connector.exe")
+Write-Rendered "connector-config.yaml" "connector\config.yaml"
+Copy-Item (Join-Path $template "Start Connector.bat") (Join-Path $connDir "Start Connector.bat")
+Copy-Item (Join-Path $template "CONNECTOR-SETUP.txt")  (Join-Path $connDir "CONNECTOR-SETUP.txt")
+
 # --- 4. Zip for distribution -------------------------------------------------
 $zip = Join-Path $dist "$outName.zip"
 Remove-Item -Force $zip -ErrorAction SilentlyContinue
@@ -106,3 +131,4 @@ Write-Host "Portable build complete:"
 Write-Host "  folder: $outDir"
 Write-Host "  zip:    $zip"
 Write-Host "  login:  $OwnerEmail / $OwnerPassword   (port $Port)"
+Write-Host "  connector bundled in connector\ (see connector\CONNECTOR-SETUP.txt)"

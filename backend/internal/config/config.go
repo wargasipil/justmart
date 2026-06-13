@@ -103,11 +103,10 @@ type Backup struct {
 // Connector controls how SaleService.PrintReceipt dispatches the rendered
 // receipt. Mode "tcp" (default) keeps the legacy raw-TCP-to-IP:9100 path
 // (printer.Address). Mode "connector" pushes the rendered bytes to a connected
-// print connector (a separate program by the printer; see cmd/connector). Token
-// is the shared secret a connector must present on its Connect stream.
+// print connector (a separate program by the printer; see cmd/connector).
+// Connectors connect freely (no auth) — suitable for a trusted single-shop LAN.
 type Connector struct {
-	Mode  string `yaml:"mode"`  // "tcp" (default) | "connector"
-	Token string `yaml:"token"` // shared secret connectors must present
+	Mode string `yaml:"mode"` // "tcp" (default) | "connector"
 }
 
 type Config struct {
@@ -198,9 +197,6 @@ func applyEnvOverrides(c *Config) {
 	}
 	if v := os.Getenv("JUSTMART_LICENSE"); v != "" {
 		c.License = v
-	}
-	if v := os.Getenv("JUSTMART_CONNECTOR_TOKEN"); v != "" {
-		c.Connector.Token = v
 	}
 }
 

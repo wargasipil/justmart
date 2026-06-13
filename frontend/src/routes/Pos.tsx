@@ -27,6 +27,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import EnumSelect from "../components/EnumSelect";
 import MoneyInput from "../components/MoneyInput";
 import NumberInput from "../components/NumberInput";
+import PrinterSelect from "../components/PrinterSelect";
 import WarehouseSelect from "../components/WarehouseSelect";
 import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
@@ -42,6 +43,7 @@ import { useAllProductsQuery } from "../queries/products";
 import { useStockLevelsQuery } from "../queries/stock";
 import { useCustomerSearchQuery } from "../queries/customers";
 import { useCustomerRefs } from "../queries/refs";
+import { useConnectorsQuery } from "../queries/connectors";
 import { useBusinessMode } from "../queries/settings";
 import { usePrescriptionsQuery } from "../queries/prescriptions";
 import {
@@ -64,6 +66,19 @@ import {
 // be re-added once the new resep is attached on return.
 const POS_DRAFT_KEY = "justmart_pos_draft";
 const POS_DEFERRED_KEY = "justmart_pos_deferred";
+// The cashier's chosen receipt printer (connector mode), persisted per device so
+// it sticks across sales. Value is "<deviceId>|<printerName>", or "" for Auto.
+const POS_PRINTER_KEY = "justmart_pos_printer";
+
+// decodePrinter splits the persisted "<deviceId>|<printerName>" value. Split on
+// the FIRST "|" — deviceId is a uuid (no "|"); a printer name may contain one.
+function decodePrinter(v: string): { deviceId: string; printerName: string } {
+  if (!v) return { deviceId: "", printerName: "" };
+  const i = v.indexOf("|");
+  return i < 0
+    ? { deviceId: v, printerName: "" }
+    : { deviceId: v.slice(0, i), printerName: v.slice(i + 1) };
+}
 
 // Release the body lock Chakra/Ark leaves behind when a modal Dialog is
 // unmounted via navigation instead of a normal close (it sets pointer-events:
@@ -250,6 +265,35 @@ export default function Pos() {
     },
     [currentWarehouse, sale, queryClient],
   );
+
+  // Receipt printer selection (connector mode). Live list of connectors+printers
+  // (polls 5s); the cashier picks the print device from the header. The choice
+  // persists per device and drives the receipt Print. The header picker is shown
+  // only when a connector printer is available — TCP/no-connector shops never
+  // see it. "" = Auto (server resolves the saved default / sole connector).
+  const connectorsQ = useConnectorsQuery();
+  const connectors = useMemo(() => connectorsQ.data ?? [], [connectorsQ.data]);
+  const hasPrinters = connectors.some((c) => c.printerNames.length > 0);
+  const [printerValue, setPrinterValue] = useState<string>(
+    () => localStorage.getItem(POS_PRINTER_KEY) ?? "",
+  );
+  // Drop the persisted choice if that device/printer is no longer connected.
+  useEffect(() => {
+    if (!printerValue) return;
+    const { deviceId, printerName } = decodePrinter(printerValue);
+    const stillThere = connectors.some(
+      (c) => c.deviceId === deviceId && c.printerNames.includes(printerName),
+    );
+    if (!stillThere) {
+      setPrinterValue("");
+      localStorage.removeItem(POS_PRINTER_KEY);
+    }
+  }, [connectors, printerValue]);
+  const onPickPrinter = (v: string) => {
+    setPrinterValue(v);
+    if (v) localStorage.setItem(POS_PRINTER_KEY, v);
+    else localStorage.removeItem(POS_PRINTER_KEY);
+  };
 
   // Mount: restore a preserved DRAFT cart if we're returning from the
   // create-resep page (?attachRx=<id>), otherwise start a fresh draft. When an
@@ -661,6 +705,15 @@ export default function Pos() {
               <Text fontSize="xs">{activeWarehouseName}</Text>
             </HStack>
           ) : null}
+          {hasPrinters && (
+            <PrinterSelect
+              connectors={connectors}
+              value={printerValue}
+              onChange={onPickPrinter}
+              size="xs"
+              width="190px"
+            />
+          )}
           {user && (
             <Text fontSize="sm" color="fg.muted">
               {user.name || user.email}
@@ -966,7 +1019,11 @@ export default function Pos() {
         onCreateNew={goCreateResep}
       />
 
-      <ReceiptDialog sale={completedSale} onClose={onCloseReceipt} />
+      <ReceiptDialog
+        sale={completedSale}
+        onClose={onCloseReceipt}
+        printerTarget={decodePrinter(printerValue)}
+      />
     </Flex>
   );
 }
@@ -1257,18 +1314,31 @@ function CustomerPickerDialog({
   );
 }
 
-function ReceiptDialog({ sale, onClose }: { sale: Sale | null; onClose: () => void }) {
+function ReceiptDialog({
+  sale,
+  onClose,
+  printerTarget,
+}: {
+  sale: Sale | null;
+  onClose: () => void;
+  // The print device chosen in the POS header (decoded). Empty → the server
+  // resolves the saved default / sole connector.
+  printerTarget: { deviceId: string; printerName: string };
+}) {
   const { t } = useTranslation();
   const productsQ = useAllProductsQuery();
   const printMut = usePrintReceiptMutation();
+
   // Always render Dialog.Root (never `if (!sale) return null`) so Ark runs its
-  // close + body-lock restore; otherwise POS freezes after closing a receipt.
-  // The content is guarded on `sale` below.
+  // close + body-lock restore; content is guarded on `sale` below.
   const onPrint = async () => {
     if (!sale) return;
     try {
-      // Empty target → the server uses the saved default / sole connector.
-      await printMut.mutateAsync({ saleId: sale.id });
+      await printMut.mutateAsync({
+        saleId: sale.id,
+        connectorDeviceId: printerTarget.deviceId,
+        printerName: printerTarget.printerName,
+      });
       toast.success(t("pos.printSent"));
     } catch {
       /* toast handled globally */

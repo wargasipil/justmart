@@ -95,7 +95,13 @@
       "defaultPrinter": "Default printer",
       "selectPrinter": "Select a printer",
       "connectorDefault": "Connector default",
-      "help": "These defaults are used by the POS receipt Print button when the server runs in connector mode. A single-connector shop can leave the connector on Auto."
+      "help": "These defaults are used by the POS receipt Print button when the server runs in connector mode. A single-connector shop can leave the connector on Auto.",
+      "receiptTitle": "Receipt header & footer",
+      "receiptHelp": "Printed at the top and bottom of every receipt — one line per row. Leave blank for none.",
+      "receiptHeader": "Header (shop name / address)",
+      "receiptHeaderPlaceholder": "TOKO JAYA\nJl. Merdeka 1\nBandung",
+      "receiptFooter": "Footer (closing message)",
+      "receiptFooterPlaceholder": "Thank you!"
     },
     "license": {
       "current": "Current license",
@@ -371,6 +377,8 @@
     "newSale": "New sale",
     "print": "Print",
     "printSent": "Sent to printer",
+    "printerAuto": "Auto (default printer)",
+    "selectPrinter": "Select printer",
     "dashboardTitle": "Today",
     "dashboardRevenue": "Revenue today",
     "dashboardSales": "Sales today",

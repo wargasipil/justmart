@@ -62,6 +62,33 @@ func TestPrintReceipt_ConnectorMode_ExplicitTarget(t *testing.T) {
 	require.Equal(t, int32(len(fake.payload)), resp.Msg.BytesSent)
 }
 
+// TestPrintReceipt_UsesConfiguredHeaderFooter: the receipt header/footer set in
+// Settings (app_settings) are rendered into the printed bytes.
+func TestPrintReceipt_UsesConfiguredHeaderFooter(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := salesvc.NewSaleService(gormDB, cfg.Printer)
+	fake := &fakePusher{}
+	svc.SetConnector(config.Connector{Mode: "connector"}, fake)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	require.NoError(t, common.SetReceiptText(ctx, gormDB, "TOKO JAYA\nBandung", "Terima kasih"))
+
+	productID := seedProduct(t, gormDB, "rcpt-1", "Item", 2000)
+	seedStock(t, gormDB, productID, ownerID, 10)
+	saleID := startDraft(t, svc, ctx)
+	completeOne(t, svc, ctx, productID, saleID, 1, 5000)
+
+	_, err := svc.PrintReceipt(ctx, connect.NewRequest(&posifacev1.PrintReceiptRequest{SaleId: saleID}))
+	require.NoError(t, err)
+	require.True(t, fake.called)
+	payload := string(fake.payload)
+	require.Contains(t, payload, "TOKO JAYA")
+	require.Contains(t, payload, "Bandung")
+	require.Contains(t, payload, "Terima kasih")
+}
+
 // TestPrintReceipt_ConnectorMode_DefaultTarget: with no target on the request,
 // the saved app_settings default is used.
 func TestPrintReceipt_ConnectorMode_DefaultTarget(t *testing.T) {

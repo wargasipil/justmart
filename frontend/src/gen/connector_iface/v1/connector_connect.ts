@@ -21,9 +21,9 @@ export const ConnectorService = {
   methods: {
     /**
      * Connect is the long-lived outbound stream from a connector to the server.
-     * It MUST be public: the unary auth interceptor does not cover streaming
-     * RPCs, so this handler authenticates itself by checking ConnectRequest.token
-     * against the server's configured connector token.
+     * It is public + UNAUTHENTICATED by design: a connector connects freely (no
+     * token), suitable for a trusted single-shop LAN. The unary auth interceptor
+     * does not cover streams anyway.
      *
      * @generated from rpc connector_iface.v1.ConnectorService.Connect
      */
@@ -35,7 +35,8 @@ export const ConnectorService = {
     },
     /**
      * ListConnectors returns the connectors currently connected + their printers,
-     * for the Settings ▸ Printing picker. Read-only, manager-tier.
+     * for the Settings ▸ Printing picker AND the POS receipt printer picker. Open
+     * to every POS role (returns only device + printer names, nothing sensitive).
      *
      * @generated from rpc connector_iface.v1.ConnectorService.ListConnectors
      */

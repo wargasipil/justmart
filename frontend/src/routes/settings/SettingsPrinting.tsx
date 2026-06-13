@@ -1,4 +1,4 @@
-import { Badge, Box, Button, HStack, Spinner, Stack, Text } from "@chakra-ui/react";
+import { Badge, Box, Button, Heading, HStack, Spinner, Stack, Text, Textarea } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +7,9 @@ import { toast } from "../../lib/toaster";
 import {
   useConnectorsQuery,
   usePrintTargetQuery,
+  useReceiptSettingsQuery,
   useSetPrintTargetMutation,
+  useSetReceiptSettingsMutation,
 } from "../../queries/connectors";
 
 type Option = { value: string; label: string };
@@ -53,6 +55,27 @@ export default function SettingsPrinting() {
         connectorDeviceId: deviceId.trim(),
         printerName: printerName.trim(),
       });
+      toast.success(t("common.save") + " ✓");
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
+  // Receipt header/footer (applies to both connector + network printing).
+  const receiptQ = useReceiptSettingsQuery();
+  const saveReceipt = useSetReceiptSettingsMutation();
+  const [header, setHeader] = useState("");
+  const [footer, setFooter] = useState("");
+  useEffect(() => {
+    if (receiptQ.data) {
+      setHeader(receiptQ.data.header);
+      setFooter(receiptQ.data.footer);
+    }
+  }, [receiptQ.data]);
+
+  const onSaveReceipt = async () => {
+    try {
+      await saveReceipt.mutateAsync({ header, footer });
       toast.success(t("common.save") + " ✓");
     } catch {
       /* toast handled globally */
@@ -138,6 +161,44 @@ export default function SettingsPrinting() {
       <Text fontSize="xs" color="fg.muted">
         {t("settings.printing.help")}
       </Text>
+
+      <Box borderTopWidth="1px" pt={5}>
+        <Heading size="sm" mb={1}>
+          {t("settings.printing.receiptTitle")}
+        </Heading>
+        <Text fontSize="xs" color="fg.muted" mb={3}>
+          {t("settings.printing.receiptHelp")}
+        </Text>
+        <Stack gap={3} maxW="md">
+          <Stack gap={1}>
+            <Text fontSize="sm" fontWeight="medium">
+              {t("settings.printing.receiptHeader")}
+            </Text>
+            <Textarea
+              rows={3}
+              value={header}
+              onChange={(e) => setHeader(e.target.value)}
+              placeholder={t("settings.printing.receiptHeaderPlaceholder")}
+            />
+          </Stack>
+          <Stack gap={1}>
+            <Text fontSize="sm" fontWeight="medium">
+              {t("settings.printing.receiptFooter")}
+            </Text>
+            <Textarea
+              rows={2}
+              value={footer}
+              onChange={(e) => setFooter(e.target.value)}
+              placeholder={t("settings.printing.receiptFooterPlaceholder")}
+            />
+          </Stack>
+          <HStack>
+            <Button colorPalette="blue" onClick={onSaveReceipt} loading={saveReceipt.isPending}>
+              {t("common.save")}
+            </Button>
+          </HStack>
+        </Stack>
+      </Box>
     </Stack>
   );
 }

@@ -48,13 +48,29 @@ if (-not $SkipExeBuild -or -not (Test-Path $exe)) {
   Pop-Location
 }
 
+# Print connector exe (Windows-only spooler dep isolated behind //go:build windows).
+$connExe = Join-Path $dist "justmart-connector.exe"
+if (-not $SkipExeBuild -or -not (Test-Path $connExe)) {
+  Write-Host "Building print connector..."
+  Push-Location (Join-Path $root "backend")
+  $env:GOOS = "windows"; $env:GOARCH = "amd64"; $env:CGO_ENABLED = "0"
+  go build -ldflags "-s -w" -o $connExe ./cmd/connector
+  Remove-Item Env:\GOOS, Env:\GOARCH, Env:\CGO_ENABLED
+  Pop-Location
+}
+
 # --- 2. Assemble payload -----------------------------------------------------
 Write-Host "Assembling payload..."
 Remove-Item -Recurse -Force $payload -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path `
-  $payload, (Join-Path $payload "winsw"), (Join-Path $payload "scripts") | Out-Null
+  $payload, (Join-Path $payload "winsw"), (Join-Path $payload "scripts"), (Join-Path $payload "connector") | Out-Null
 
 Copy-Item $exe (Join-Path $payload "justmart.exe")
+
+# Print connector: exe + setup tutorial (setup.ps1 writes the runtime config +
+# shortcut into the writable data dir on first install).
+Copy-Item $connExe (Join-Path $payload "connector\justmart-connector.exe")
+Copy-Item (Join-Path $here "connector-readme.txt") (Join-Path $payload "connector\CONNECTOR-SETUP.txt")
 
 # WinSW (service wrapper for the app)
 $winsw = Join-Path $cache "WinSW-x64-$WinswVersion.exe"

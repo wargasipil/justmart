@@ -44,12 +44,13 @@ const (
 // ConnectorServiceClient is a client for the connector_iface.v1.ConnectorService service.
 type ConnectorServiceClient interface {
 	// Connect is the long-lived outbound stream from a connector to the server.
-	// It MUST be public: the unary auth interceptor does not cover streaming
-	// RPCs, so this handler authenticates itself by checking ConnectRequest.token
-	// against the server's configured connector token.
+	// It is public + UNAUTHENTICATED by design: a connector connects freely (no
+	// token), suitable for a trusted single-shop LAN. The unary auth interceptor
+	// does not cover streams anyway.
 	Connect(context.Context, *connect.Request[v1.ConnectRequest]) (*connect.ServerStreamForClient[v1.ServerEvent], error)
 	// ListConnectors returns the connectors currently connected + their printers,
-	// for the Settings ▸ Printing picker. Read-only, manager-tier.
+	// for the Settings ▸ Printing picker AND the POS receipt printer picker. Open
+	// to every POS role (returns only device + printer names, nothing sensitive).
 	ListConnectors(context.Context, *connect.Request[v1.ListConnectorsRequest]) (*connect.Response[v1.ListConnectorsResponse], error)
 }
 
@@ -98,12 +99,13 @@ func (c *connectorServiceClient) ListConnectors(ctx context.Context, req *connec
 // ConnectorServiceHandler is an implementation of the connector_iface.v1.ConnectorService service.
 type ConnectorServiceHandler interface {
 	// Connect is the long-lived outbound stream from a connector to the server.
-	// It MUST be public: the unary auth interceptor does not cover streaming
-	// RPCs, so this handler authenticates itself by checking ConnectRequest.token
-	// against the server's configured connector token.
+	// It is public + UNAUTHENTICATED by design: a connector connects freely (no
+	// token), suitable for a trusted single-shop LAN. The unary auth interceptor
+	// does not cover streams anyway.
 	Connect(context.Context, *connect.Request[v1.ConnectRequest], *connect.ServerStream[v1.ServerEvent]) error
 	// ListConnectors returns the connectors currently connected + their printers,
-	// for the Settings ▸ Printing picker. Read-only, manager-tier.
+	// for the Settings ▸ Printing picker AND the POS receipt printer picker. Open
+	// to every POS role (returns only device + printer names, nothing sensitive).
 	ListConnectors(context.Context, *connect.Request[v1.ListConnectorsRequest]) (*connect.Response[v1.ListConnectorsResponse], error)
 }
 

@@ -709,3 +709,167 @@ export class SetPrintTargetResponse extends Message<SetPrintTargetResponse> {
   }
 }
 
+/**
+ * @generated from message settings_iface.v1.GetReceiptSettingsRequest
+ */
+export class GetReceiptSettingsRequest extends Message<GetReceiptSettingsRequest> {
+  constructor(data?: PartialMessage<GetReceiptSettingsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetReceiptSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetReceiptSettingsRequest {
+    return new GetReceiptSettingsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetReceiptSettingsRequest {
+    return new GetReceiptSettingsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetReceiptSettingsRequest {
+    return new GetReceiptSettingsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetReceiptSettingsRequest | PlainMessage<GetReceiptSettingsRequest> | undefined, b: GetReceiptSettingsRequest | PlainMessage<GetReceiptSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(GetReceiptSettingsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetReceiptSettingsResponse
+ */
+export class GetReceiptSettingsResponse extends Message<GetReceiptSettingsResponse> {
+  /**
+   * receipt header lines (one per text line)
+   *
+   * @generated from field: string header = 1;
+   */
+  header = "";
+
+  /**
+   * receipt footer lines (one per text line)
+   *
+   * @generated from field: string footer = 2;
+   */
+  footer = "";
+
+  constructor(data?: PartialMessage<GetReceiptSettingsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetReceiptSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "header", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "footer", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetReceiptSettingsResponse {
+    return new GetReceiptSettingsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetReceiptSettingsResponse {
+    return new GetReceiptSettingsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetReceiptSettingsResponse {
+    return new GetReceiptSettingsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetReceiptSettingsResponse | PlainMessage<GetReceiptSettingsResponse> | undefined, b: GetReceiptSettingsResponse | PlainMessage<GetReceiptSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(GetReceiptSettingsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetReceiptSettingsRequest
+ */
+export class SetReceiptSettingsRequest extends Message<SetReceiptSettingsRequest> {
+  /**
+   * @generated from field: string header = 1;
+   */
+  header = "";
+
+  /**
+   * @generated from field: string footer = 2;
+   */
+  footer = "";
+
+  constructor(data?: PartialMessage<SetReceiptSettingsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetReceiptSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "header", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "footer", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetReceiptSettingsRequest {
+    return new SetReceiptSettingsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetReceiptSettingsRequest {
+    return new SetReceiptSettingsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetReceiptSettingsRequest {
+    return new SetReceiptSettingsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetReceiptSettingsRequest | PlainMessage<SetReceiptSettingsRequest> | undefined, b: SetReceiptSettingsRequest | PlainMessage<SetReceiptSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(SetReceiptSettingsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetReceiptSettingsResponse
+ */
+export class SetReceiptSettingsResponse extends Message<SetReceiptSettingsResponse> {
+  /**
+   * @generated from field: string header = 1;
+   */
+  header = "";
+
+  /**
+   * @generated from field: string footer = 2;
+   */
+  footer = "";
+
+  constructor(data?: PartialMessage<SetReceiptSettingsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetReceiptSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "header", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "footer", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetReceiptSettingsResponse {
+    return new SetReceiptSettingsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetReceiptSettingsResponse {
+    return new SetReceiptSettingsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetReceiptSettingsResponse {
+    return new SetReceiptSettingsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetReceiptSettingsResponse | PlainMessage<SetReceiptSettingsResponse> | undefined, b: SetReceiptSettingsResponse | PlainMessage<SetReceiptSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(SetReceiptSettingsResponse, a, b);
+  }
+}
+

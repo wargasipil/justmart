@@ -24,7 +24,6 @@ const (
 
 type ConnectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`                                   // shared connector secret (verified in-handler)
 	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`             // persisted uuid from connector-identity.json
 	DeviceName    string                 `protobuf:"bytes,3,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`       // the connector host's name
 	PrinterNames  []string               `protobuf:"bytes,4,rep,name=printer_names,json=printerNames,proto3" json:"printer_names,omitempty"` // Windows printers the connector can target
@@ -60,13 +59,6 @@ func (x *ConnectRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ConnectRequest.ProtoReflect.Descriptor instead.
 func (*ConnectRequest) Descriptor() ([]byte, []int) {
 	return file_connector_iface_v1_connector_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ConnectRequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
 }
 
 func (x *ConnectRequest) GetDeviceId() string {
@@ -422,13 +414,12 @@ var File_connector_iface_v1_connector_proto protoreflect.FileDescriptor
 
 const file_connector_iface_v1_connector_proto_rawDesc = "" +
 	"\n" +
-	"\"connector_iface/v1/connector.proto\x12\x12connector_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\x89\x01\n" +
-	"\x0eConnectRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1b\n" +
+	"\"connector_iface/v1/connector.proto\x12\x12connector_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"y\n" +
+	"\x0eConnectRequest\x12\x1b\n" +
 	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\x12\x1f\n" +
 	"\vdevice_name\x18\x03 \x01(\tR\n" +
 	"deviceName\x12#\n" +
-	"\rprinter_names\x18\x04 \x03(\tR\fprinterNames\"\x95\x01\n" +
+	"\rprinter_names\x18\x04 \x03(\tR\fprinterNamesJ\x04\b\x01\x10\x02\"\x95\x01\n" +
 	"\vServerEvent\x12@\n" +
 	"\n" +
 	"registered\x18\x01 \x01(\v2\x1e.connector_iface.v1.RegisteredH\x00R\n" +
@@ -451,10 +442,10 @@ const file_connector_iface_v1_connector_proto_rawDesc = "" +
 	"\x16ListConnectorsResponse\x12=\n" +
 	"\n" +
 	"connectors\x18\x01 \x03(\v2\x1d.connector_iface.v1.ConnectorR\n" +
-	"connectors2\xdb\x01\n" +
+	"connectors2\xdd\x01\n" +
 	"\x10ConnectorService\x12V\n" +
-	"\aConnect\x12\".connector_iface.v1.ConnectRequest\x1a\x1f.connector_iface.v1.ServerEvent\"\x04\x80\xb5\x18\x010\x01\x12o\n" +
-	"\x0eListConnectors\x12).connector_iface.v1.ListConnectorsRequest\x1a*.connector_iface.v1.ListConnectorsResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/connector_iface/v1;connectorifacev1b\x06proto3"
+	"\aConnect\x12\".connector_iface.v1.ConnectRequest\x1a\x1f.connector_iface.v1.ServerEvent\"\x04\x80\xb5\x18\x010\x01\x12q\n" +
+	"\x0eListConnectors\x12).connector_iface.v1.ListConnectorsRequest\x1a*.connector_iface.v1.ListConnectorsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04BEZCgithub.com/justmart/backend/gen/connector_iface/v1;connectorifacev1b\x06proto3"
 
 var (
 	file_connector_iface_v1_connector_proto_rawDescOnce sync.Once

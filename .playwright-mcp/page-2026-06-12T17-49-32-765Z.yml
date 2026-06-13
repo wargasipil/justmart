@@ -1,0 +1,94 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - paragraph [ref=e11]: Justmart
+      - generic [ref=e12]:
+        - link "Dashboard" [ref=e13] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e14]:
+            - img [ref=e15]
+            - paragraph [ref=e20]: Dashboard
+        - link "Analytics" [ref=e21] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e22]:
+            - img [ref=e23]
+            - paragraph [ref=e25]: Analytics
+        - link "POS" [ref=e26] [cursor=pointer]:
+          - /url: /pos
+          - generic [ref=e27]:
+            - img [ref=e28]
+            - paragraph [ref=e32]: POS
+        - link "Products" [ref=e33] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e34]:
+            - img [ref=e35]
+            - paragraph [ref=e39]: Products
+        - button "Inventory" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - paragraph [ref=e46]: Inventory
+          - img [ref=e48]
+        - link "Customers" [ref=e50] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e51]:
+            - img [ref=e52]
+            - paragraph [ref=e55]: Customers
+        - link "Order history" [ref=e56] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - paragraph [ref=e61]: Order history
+        - link "Warehouses" [ref=e62] [cursor=pointer]:
+          - /url: /warehouses
+          - generic [ref=e63]:
+            - img [ref=e64]
+            - paragraph [ref=e67]: Warehouses
+        - link "Users" [ref=e68] [cursor=pointer]:
+          - /url: /users
+          - generic [ref=e69]:
+            - img [ref=e70]
+            - paragraph [ref=e75]: Users
+        - link "Settings" [ref=e76] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e77]:
+            - img [ref=e78]
+            - paragraph [ref=e81]: Settings
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - paragraph [ref=e84]: Owner
+          - paragraph [ref=e85]: owner@justmart.local
+        - button "Sign out" [ref=e86] [cursor=pointer]:
+          - img [ref=e87]
+          - paragraph [ref=e90]: Sign out
+        - button "toggle sidebar" [ref=e91] [cursor=pointer]:
+          - img [ref=e92]
+    - generic [ref=e95]:
+      - banner [ref=e96]:
+        - generic [ref=e98]:
+          - button "Notifications" [ref=e99] [cursor=pointer]:
+            - img [ref=e100]
+          - button "language" [ref=e103] [cursor=pointer]:
+            - generic [ref=e104]:
+              - img [ref=e105]
+              - paragraph [ref=e109]: ID
+          - button "toggle theme" [ref=e110] [cursor=pointer]:
+            - img [ref=e111]
+          - button "user menu" [ref=e113] [cursor=pointer]:
+            - generic [ref=e114]: O
+      - main [ref=e115]:
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - paragraph [ref=e120]: Settings
+                - img [ref=e121]
+              - paragraph [ref=e124]: Printing
+            - heading "Settings" [level=2] [ref=e127]
+          - tablist [ref=e130]:
+            - tab "General" [ref=e131] [cursor=pointer]
+            - tab "Units" [ref=e132] [cursor=pointer]
+            - tab "License" [ref=e133] [cursor=pointer]
+            - tab "Printing" [selected] [ref=e134] [cursor=pointer]
+            - tab "Backups" [ref=e135] [cursor=pointer]
+  - region "Notifications, top-end (alt+T)"

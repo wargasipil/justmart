@@ -14,23 +14,26 @@ option go_package = "github.com/justmart/backend/gen/connector_iface/v1;connecto
 // (printer.Render) and pushes them down the stream — the connector only spools.
 service ConnectorService {
   // Connect is the long-lived outbound stream from a connector to the server.
-  // It MUST be public: the unary auth interceptor does not cover streaming
-  // RPCs, so this handler authenticates itself by checking ConnectRequest.token
-  // against the server's configured connector token.
+  // It is public + UNAUTHENTICATED by design: a connector connects freely (no
+  // token), suitable for a trusted single-shop LAN. The unary auth interceptor
+  // does not cover streams anyway.
   rpc Connect(ConnectRequest) returns (stream ServerEvent) {
     option (auth_iface.v1.public) = true;
   }
 
   // ListConnectors returns the connectors currently connected + their printers,
-  // for the Settings ▸ Printing picker. Read-only, manager-tier.
+  // for the Settings ▸ Printing picker AND the POS receipt printer picker. Open
+  // to every POS role (returns only device + printer names, nothing sensitive).
   rpc ListConnectors(ListConnectorsRequest) returns (ListConnectorsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
 }
 
 message ConnectRequest {
-  string token = 1;                  // shared connector secret (verified in-handler)
+  reserved 1;                        // removed: token (connectors connect without auth)
   string device_id = 2;              // persisted uuid from connector-identity.json
   string device_name = 3;            // the connector host's name
   repeated string printer_names = 4; // Windows printers the connector can target

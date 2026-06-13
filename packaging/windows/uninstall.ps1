@@ -27,6 +27,14 @@ Stop-Service justmart-postgres -Force
 # Firewall rule
 netsh advfirewall firewall delete rule name="Justmart Server" | Out-Null
 
+# Stop a running connector (not a service) + remove its shortcuts.
+Stop-Process -Name justmart-connector -Force -ErrorAction SilentlyContinue
+foreach ($dir in @(
+    [Environment]::GetFolderPath("CommonDesktopDirectory"),
+    (Join-Path $env:ProgramData "Microsoft\Windows\Start Menu\Programs"))) {
+  Remove-Item -Force (Join-Path $dir "Justmart Connector.lnk") -ErrorAction SilentlyContinue
+}
+
 if ($PurgeData -eq 1) {
   Remove-Item -Recurse -Force $DataDir
   Write-Host "Removed all Justmart data: $DataDir"

@@ -62,6 +62,18 @@ service SettingsService {
   rpc SetPrintTarget(SetPrintTargetRequest) returns (SetPrintTargetResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
   }
+
+  // GetReceiptSettings / SetReceiptSettings store the printed-receipt header
+  // (shop name/address lines) + footer (closing lines). Multi-line strings, one
+  // receipt line per text line. Seeded at boot from config.yaml printer.header/
+  // footer. Get is manager-tier; Set is owner-only.
+  rpc GetReceiptSettings(GetReceiptSettingsRequest) returns (GetReceiptSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SetReceiptSettings(SetReceiptSettingsRequest) returns (SetReceiptSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
 }
 
 enum BussinessType {
@@ -123,4 +135,18 @@ message SetPrintTargetRequest {
 message SetPrintTargetResponse {
   string connector_device_id = 1;
   string printer_name = 2;
+}
+
+message GetReceiptSettingsRequest {}
+message GetReceiptSettingsResponse {
+  string header = 1; // receipt header lines (one per text line)
+  string footer = 2; // receipt footer lines (one per text line)
+}
+message SetReceiptSettingsRequest {
+  string header = 1;
+  string footer = 2;
+}
+message SetReceiptSettingsResponse {
+  string header = 1;
+  string footer = 2;
 }

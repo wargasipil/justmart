@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -31,6 +32,12 @@ const (
 	// SaleService.PrintReceipt uses when the request carries no explicit target.
 	SettingKeyPrintConnectorDevice  = "print_connector_device"
 	SettingKeyPrintConnectorPrinter = "print_connector_printer"
+
+	// Printed-receipt header (shop name/address) + footer (closing lines), stored
+	// as multi-line strings (one receipt line per text line). Seeded at boot from
+	// config.yaml printer.header/footer; editable in Settings ▸ Printing.
+	SettingKeyReceiptHeader = "receipt_header"
+	SettingKeyReceiptFooter = "receipt_footer"
 
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
@@ -117,6 +124,61 @@ func SetPrintTarget(ctx context.Context, db *gorm.DB, deviceID, printerName stri
 		return err
 	}
 	return setSetting(ctx, db, SettingKeyPrintConnectorPrinter, printerName)
+}
+
+// GetReceiptText returns the stored receipt header + footer (multi-line strings,
+// "" when unset). The boot seed populates them from config defaults, so a booted
+// server returns the effective values.
+func GetReceiptText(ctx context.Context, db *gorm.DB) (header, footer string, err error) {
+	header, err = getSetting(ctx, db, SettingKeyReceiptHeader)
+	if err != nil {
+		return "", "", err
+	}
+	footer, err = getSetting(ctx, db, SettingKeyReceiptFooter)
+	if err != nil {
+		return "", "", err
+	}
+	return header, footer, nil
+}
+
+// SetReceiptText persists the receipt header + footer (multi-line strings).
+func SetReceiptText(ctx context.Context, db *gorm.DB, header, footer string) error {
+	if err := setSetting(ctx, db, SettingKeyReceiptHeader, header); err != nil {
+		return err
+	}
+	return setSetting(ctx, db, SettingKeyReceiptFooter, footer)
+}
+
+// ReceiptLines splits a stored multi-line header/footer string into receipt
+// lines: normalizes CRLF, trims leading/trailing blank lines, keeps interior
+// ones. Empty input → no lines.
+func ReceiptLines(s string) []string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.Trim(s, "\n")
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, "\n")
+}
+
+// SeedReceiptDefaults writes the config-derived header/footer into app_settings
+// ONLY when no row exists yet — so an existing config.yaml-based shop keeps its
+// header on first boot, and a user's later edit (incl. clearing it) is never
+// overwritten on subsequent boots.
+func SeedReceiptDefaults(ctx context.Context, db *gorm.DB, defHeader, defFooter []string) error {
+	if err := seedIfAbsent(ctx, db, SettingKeyReceiptHeader, strings.Join(defHeader, "\n")); err != nil {
+		return err
+	}
+	return seedIfAbsent(ctx, db, SettingKeyReceiptFooter, strings.Join(defFooter, "\n"))
+}
+
+func seedIfAbsent(ctx context.Context, db *gorm.DB, key, value string) error {
+	var row model.AppSetting
+	err := db.WithContext(ctx).Where("key = ?", key).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return setSetting(ctx, db, key, value)
+	}
+	return err
 }
 
 // getSetting reads a single app_settings value ("" when the row is absent).
