@@ -145,6 +145,44 @@ func (s *SaleService) loadFull(ctx context.Context, id string) (*model.Sale, err
 	return &sale, nil
 }
 
+const (
+	discountFixed   = "FIXED"
+	discountPercent = "PERCENT"
+)
+
+// resolveDiscount returns the RESOLVED discount amount (minor units) off `base`
+// and the normalized discount type. value is minor units when FIXED, basis points
+// (percent*100, so 12.5% = 1250) when PERCENT. The amount is clamped to [0, base]
+// so the net is never negative; PERCENT rounds half-up like PPN. Mirrors the
+// purchasing module's lineNetSubtotal so the two domains stay consistent.
+func resolveDiscount(base int64, discType string, value int64) (amount int64, normType string, err error) {
+	if value < 0 {
+		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_value must be >= 0"))
+	}
+	normType = discType
+	if normType == "" {
+		normType = discountFixed
+	}
+	switch normType {
+	case discountFixed:
+		amount = value
+	case discountPercent:
+		if value > 10000 { // 100.00%
+			return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("percent discount must be within 0..10000 basis points"))
+		}
+		amount = (base*value + 5000) / 10000 // round half up
+	default:
+		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_type must be FIXED or PERCENT"))
+	}
+	if amount < 0 {
+		amount = 0
+	}
+	if amount > base {
+		amount = base
+	}
+	return amount, normType, nil
+}
+
 func recomputeSaleTotals(tx *gorm.DB, saleID string) error {
 	var subtotal int64
 	if err := tx.Model(&model.SaleItem{}).
@@ -157,25 +195,36 @@ func recomputeSaleTotals(tx *gorm.DB, saleID string) error {
 	if err := tx.Where("id = ?", saleID).First(&current).Error; err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
+	// Resolve the cart-level discount off the items subtotal (PERCENT re-resolves
+	// as the subtotal changes). The resolved amount is persisted to cart_discount
+	// so analytics / order-history read it unchanged.
+	cartDiscount, _, err := resolveDiscount(subtotal, current.CartDiscountType, current.CartDiscountValue)
+	if err != nil {
+		return err
+	}
 	// total = items subtotal − cart discount + biaya jasa (service fee). The fee
 	// is a sale-level charge snapshotted from the attached resep (editable at POS).
-	total := subtotal - current.CartDiscount + current.BiayaJasa
+	total := subtotal - cartDiscount + current.BiayaJasa
 	if total < 0 {
 		total = 0
 	}
 	return tx.Model(&current).Updates(map[string]any{
-		"subtotal": subtotal,
-		"total":    total,
+		"subtotal":      subtotal,
+		"cart_discount": cartDiscount,
+		"total":         total,
 	}).Error
 }
 
-func computeLineTotal(qty int32, unitPrice, lineDiscount int64) int64 {
+// computeLineTotal resolves the line's discount off its gross (qty × unitPrice)
+// and returns (resolvedDiscount, lineTotal). PERCENT re-resolves whenever qty or
+// price changes. Caller persists both line_discount + line_total.
+func computeLineTotal(qty int32, unitPrice int64, discType string, discValue int64) (lineDiscount, lineTotal int64, err error) {
 	gross := int64(qty) * unitPrice
-	net := gross - lineDiscount
-	if net < 0 {
-		return 0
+	lineDiscount, _, err = resolveDiscount(gross, discType, discValue)
+	if err != nil {
+		return 0, 0, err
 	}
-	return net
+	return lineDiscount, gross - lineDiscount, nil
 }
 
 func assignSaleNo(tx *gorm.DB, now time.Time) (string, error) {

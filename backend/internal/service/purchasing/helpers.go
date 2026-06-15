@@ -9,11 +9,77 @@ import (
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	purchasingifacev1 "github.com/justmart/backend/gen/purchasing_iface/v1"
 	"github.com/justmart/backend/internal/model"
 	"github.com/justmart/backend/internal/service/common"
 )
+
+// restockEntry is one product's restock on a receipt line, fed to recordRestock.
+type restockEntry struct {
+	WarehouseID   string
+	ProductID     string
+	SupplierID    string
+	Price         int64 // NET unit cost per base unit
+	Qty           int64 // base units received
+	DiscountType  string
+	DiscountValue int64
+	CreatedAt     time.Time // PO (restock order) created
+	ArrivedAt     time.Time // receipt received_at
+	ReceiptID     string
+}
+
+// recordRestock upserts the last-value restock row for (warehouse, product,
+// supplier) and appends an immutable log row. Called per receipt line inside
+// CreateReceipt's tx (both engines via clause.OnConflict on the unique index).
+func recordRestock(tx *gorm.DB, e restockEntry) error {
+	discType := e.DiscountType
+	if discType == "" {
+		discType = discountFixed
+	}
+	last := model.ProductLastRestock{
+		WarehouseID:       e.WarehouseID,
+		ProductID:         e.ProductID,
+		SupplierID:        e.SupplierID,
+		LastPrice:         e.Price,
+		LastQty:           e.Qty,
+		LastDiscountType:  discType,
+		LastDiscountValue: e.DiscountValue,
+		LastCreatedAt:     e.CreatedAt,
+		LastArrivedAt:     e.ArrivedAt,
+		UpdatedAt:         e.ArrivedAt,
+	}
+	if err := tx.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "warehouse_id"}, {Name: "product_id"}, {Name: "supplier_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"last_price", "last_qty", "last_discount_type", "last_discount_value",
+			"last_created_at", "last_arrived_at", "updated_at",
+		}),
+	}).Create(&last).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("record last restock: %w", err))
+	}
+
+	logRow := model.ProductRestockLog{
+		WarehouseID:      e.WarehouseID,
+		ProductID:        e.ProductID,
+		SupplierID:       e.SupplierID,
+		Price:            e.Price,
+		Qty:              e.Qty,
+		DiscountType:     discType,
+		DiscountValue:    e.DiscountValue,
+		RestockCreatedAt: e.CreatedAt,
+		RestockArrivedAt: e.ArrivedAt,
+	}
+	if e.ReceiptID != "" {
+		rid := e.ReceiptID
+		logRow.ReceiptID = &rid
+	}
+	if err := tx.Create(&logRow).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("record restock log: %w", err))
+	}
+	return nil
+}
 
 const (
 	discountFixed   = "FIXED"

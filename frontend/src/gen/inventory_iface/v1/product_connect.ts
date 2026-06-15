@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
+import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -84,6 +84,18 @@ export const ProductService = {
       name: "ListProductUnitPrices",
       I: ListProductUnitPricesRequest,
       O: ListProductUnitPricesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ListProductRestockLogs returns the restock history (append-only log) for a
+     * product in the caller's active warehouse, newest-arrival first, paginated.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.ListProductRestockLogs
+     */
+    listProductRestockLogs: {
+      name: "ListProductRestockLogs",
+      I: ListProductRestockLogsRequest,
+      O: ListProductRestockLogsResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -38,6 +38,23 @@ func defaultWarehouseID(t *testing.T, db *gorm.DB) string {
 	return w.ID
 }
 
+// seedRestockLast inserts a product_last_restocks row (one per warehouse+product
+// +supplier) so ListProducts' last_restock enrich + supplier-detail reads have data.
+func seedRestockLast(t *testing.T, db *gorm.DB, warehouseID, productID, supplierID string, price, qty int64, arrived time.Time) {
+	t.Helper()
+	require.NoError(t, db.Create(&model.ProductLastRestock{
+		WarehouseID:      warehouseID,
+		ProductID:        productID,
+		SupplierID:       supplierID,
+		LastPrice:        price,
+		LastQty:          qty,
+		LastDiscountType: "FIXED",
+		LastCreatedAt:    arrived.Add(-48 * time.Hour),
+		LastArrivedAt:    arrived,
+		UpdatedAt:        arrived,
+	}).Error)
+}
+
 // seedBatchWithStock inserts a batch for the product plus one PURCHASE stock
 // movement of `qty` base units in the given warehouse, so stock-aggregating
 // reads (GetProduct, ListLowStock) see real on-hand quantity. Returns batch id.

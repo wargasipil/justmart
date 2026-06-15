@@ -114,7 +114,15 @@ export default function OrderDetail() {
         <Section title={t("orders.detail.totals")}>
           <Grid templateColumns={{ base: "1fr 1fr", md: "repeat(6, 1fr)" }} gap={3}>
             <MoneyTile label={t("orders.detail.subtotal")} value={Number(sale.subtotal)} />
-            <MoneyTile label={t("orders.detail.cartDiscount")} value={Number(sale.cartDiscount)} />
+            <MoneyTile
+              label={
+                t("orders.detail.cartDiscount") +
+                (sale.cartDiscountType === "PERCENT"
+                  ? ` (${Number(sale.cartDiscountValue) / 100}%)`
+                  : "")
+              }
+              value={Number(sale.cartDiscount)}
+            />
             {Number(sale.biayaJasa) > 0 && (
               <MoneyTile label={t("prescriptions.biayaJasa")} value={Number(sale.biayaJasa)} />
             )}
@@ -150,6 +158,11 @@ export default function OrderDetail() {
                       </Table.Cell>
                       <Table.Cell textAlign="end" fontFamily="mono">
                         {formatMoney(Number(it.lineDiscount))}
+                        {it.discountType === "PERCENT" && Number(it.discountValue) > 0 && (
+                          <Text as="span" fontSize="xs" color="fg.muted">
+                            {" "}({Number(it.discountValue) / 100}%)
+                          </Text>
+                        )}
                       </Table.Cell>
                       <Table.Cell textAlign="end" fontFamily="mono">
                         {formatMoney(Number(it.lineTotal))}

@@ -8,6 +8,8 @@ import type {
   CompleteSaleRequest,
   DetachPrescriptionRequest,
   SetServiceFeeRequest,
+  SetLineDiscountRequest,
+  SetCartDiscountRequest,
   GetSalesSummaryRequest,
   ListSalesRequest,
   RemoveItemRequest,
@@ -100,6 +102,28 @@ export function useSetServiceFeeMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<SetServiceFeeRequest>) =>
       saleClient.setServiceFee(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+  });
+}
+
+export function useSetLineDiscountMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<SetLineDiscountRequest>) =>
+      saleClient.setLineDiscount(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+  });
+}
+
+export function useSetCartDiscountMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<SetCartDiscountRequest>) =>
+      saleClient.setCartDiscount(req),
     onSuccess: (res) => {
       if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
     },

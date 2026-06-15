@@ -23,6 +23,7 @@ func gooseDialect(driver string) string {
 // Run applies all pending migrations embedded in the binary for the given
 // driver ("postgres" or "sqlite"). Idempotent: a fully-migrated DB is a no-op.
 func Run(sqlDB *sql.DB, driver string) error {
+	migrations.SetActiveDriver(driver) // lets Go migrations (00040) branch on engine
 	goose.SetBaseFS(migrations.FS(driver))
 	if err := goose.SetDialect(gooseDialect(driver)); err != nil {
 		return fmt.Errorf("goose dialect: %w", err)

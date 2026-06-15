@@ -29,6 +29,9 @@ func (s *UserService) CreateUser(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	if err := s.validateRoleForMode(ctx, roleStr); err != nil {
+		return nil, err
+	}
 
 	hash, err := auth.HashPassword(m.Password)
 	if err != nil {

@@ -71,6 +71,7 @@ func runMigrate(ctx context.Context, cmd *cli.Command) error {
 	if err := goose.SetDialect(dialect); err != nil {
 		return err
 	}
+	migrations.SetActiveDriver(driver) // lets Go migrations (00040) branch on engine
 
 	// `create` writes a new .sql file to the on-disk per-engine migrations dir
 	// (relative to backend/ — the Makefile sets that CWD). Every other command

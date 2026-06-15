@@ -37,7 +37,11 @@ func (s *SaleService) SetItemQuantity(
 		}
 		item.Qty = req.Msg.Qty
 		item.BaseQty = req.Msg.Qty * int32(factor)
-		item.LineTotal = computeLineTotal(item.Qty, item.UnitPriceSnapshot, item.LineDiscount)
+		// Re-resolve the line discount off the new gross (PERCENT tracks qty).
+		item.LineDiscount, item.LineTotal, err = computeLineTotal(item.Qty, item.UnitPriceSnapshot, item.DiscountType, item.DiscountValue)
+		if err != nil {
+			return err
+		}
 		if err := tx.Save(&item).Error; err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}

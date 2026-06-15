@@ -41,3 +41,16 @@ func engineFS(sub string) embed.FS {
 	}
 	return postgresFS
 }
+
+// activeDriver records the engine the current goose run is targeting. Go
+// migrations (which only receive a *sql.Tx, not a dialect) read it to branch.
+// Set by the boot path (dbmigrate.Run) and the CLI path (cmd/server migrate)
+// before invoking goose. One process runs a single driver, so no locking.
+var activeDriver string
+
+// SetActiveDriver records the engine for the upcoming goose run ("postgres" or
+// "sqlite"). Must be called before goose.Up / goose.RunContext.
+func SetActiveDriver(driver string) { activeDriver = driver }
+
+// ActiveDriver returns the driver set by SetActiveDriver (empty if unset).
+func ActiveDriver() string { return activeDriver }

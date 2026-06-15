@@ -86,6 +86,9 @@ func (s *ProductService) ListProducts(
 	if err := s.enrichLastStocktake(ctx, caller, out); err != nil {
 		return nil, err
 	}
+	if err := s.enrichLastRestock(ctx, caller, out); err != nil {
+		return nil, err
+	}
 	if err := s.attachUnits(ctx, out); err != nil {
 		return nil, err
 	}

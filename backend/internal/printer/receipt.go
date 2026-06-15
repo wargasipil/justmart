@@ -14,10 +14,11 @@ type Receipt struct {
 	CompletedAt time.Time
 	Cashier     string
 	Customer    string // optional; empty = walk-in
-	Items       []ReceiptLine
-	Subtotal    int64
-	BiayaJasa   int64 // service fee (pharmacy resep); 0 = not applicable
-	Total       int64
+	Items        []ReceiptLine
+	Subtotal     int64
+	CartDiscount int64 // subtotal-level discount (resolved amount); 0 = none
+	BiayaJasa    int64 // service fee (pharmacy resep); 0 = not applicable
+	Total        int64
 	Paid        int64
 	Payment     string // "CASH" | "NON_CASH"
 	Change      int64
@@ -93,6 +94,9 @@ func Render(r Receipt, s Settings) []byte {
 
 	// Totals.
 	b.Line(twoCol(s.Width, "Subtotal", formatIDR(r.Subtotal)))
+	if r.CartDiscount > 0 {
+		b.Line(twoCol(s.Width, "Diskon", formatIDR(-r.CartDiscount)))
+	}
 	if r.BiayaJasa > 0 {
 		b.Line(twoCol(s.Width, "Biaya jasa", formatIDR(r.BiayaJasa)))
 	}

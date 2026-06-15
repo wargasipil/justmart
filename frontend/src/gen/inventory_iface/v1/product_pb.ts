@@ -120,6 +120,58 @@ export class Product extends Message<Product> {
    */
   lastStocktakeVariance = protoInt64.zero;
 
+  /**
+   * Latest restock across suppliers in the active warehouse (ListProducts enrich;
+   * from product_last_restocks). All 0/empty until a receipt records one.
+   *
+   * NET unit cost per base unit
+   *
+   * @generated from field: int64 last_restock_price = 20;
+   */
+  lastRestockPrice = protoInt64.zero;
+
+  /**
+   * base units received
+   *
+   * @generated from field: int64 last_restock_qty = 21;
+   */
+  lastRestockQty = protoInt64.zero;
+
+  /**
+   * FIXED | PERCENT
+   *
+   * @generated from field: string last_restock_discount_type = 22;
+   */
+  lastRestockDiscountType = "";
+
+  /**
+   * FIXED minor units | PERCENT basis points
+   *
+   * @generated from field: int64 last_restock_discount_value = 23;
+   */
+  lastRestockDiscountValue = protoInt64.zero;
+
+  /**
+   * unix; PO (restock order) created
+   *
+   * @generated from field: int64 last_restock_created_at = 24;
+   */
+  lastRestockCreatedAt = protoInt64.zero;
+
+  /**
+   * unix; receipt received_at
+   *
+   * @generated from field: int64 last_restock_arrived_at = 25;
+   */
+  lastRestockArrivedAt = protoInt64.zero;
+
+  /**
+   * resolve to name via ResolveSuppliers
+   *
+   * @generated from field: string last_restock_supplier_id = 26;
+   */
+  lastRestockSupplierId = "";
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -146,6 +198,13 @@ export class Product extends Message<Product> {
     { no: 17, name: "reference_cost", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 18, name: "last_stocktake_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 19, name: "last_stocktake_variance", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 20, name: "last_restock_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 21, name: "last_restock_qty", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 22, name: "last_restock_discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 23, name: "last_restock_discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 24, name: "last_restock_created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 25, name: "last_restock_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 26, name: "last_restock_supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {
@@ -495,6 +554,100 @@ export class ProductUnitPrice extends Message<ProductUnitPrice> {
 
   static equals(a: ProductUnitPrice | PlainMessage<ProductUnitPrice> | undefined, b: ProductUnitPrice | PlainMessage<ProductUnitPrice> | undefined): boolean {
     return proto3.util.equals(ProductUnitPrice, a, b);
+  }
+}
+
+/**
+ * One restock event from the append-only log (product-detail restock history).
+ * Supplier resolved to a name via ResolveSuppliers on the client.
+ *
+ * @generated from message inventory_iface.v1.ProductRestockLog
+ */
+export class ProductRestockLog extends Message<ProductRestockLog> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string supplier_id = 2;
+   */
+  supplierId = "";
+
+  /**
+   * NET unit cost per base unit
+   *
+   * @generated from field: int64 price = 3;
+   */
+  price = protoInt64.zero;
+
+  /**
+   * base units received
+   *
+   * @generated from field: int64 qty = 4;
+   */
+  qty = protoInt64.zero;
+
+  /**
+   * FIXED | PERCENT
+   *
+   * @generated from field: string discount_type = 5;
+   */
+  discountType = "";
+
+  /**
+   * FIXED minor units | PERCENT basis points
+   *
+   * @generated from field: int64 discount_value = 6;
+   */
+  discountValue = protoInt64.zero;
+
+  /**
+   * unix; PO (restock order) created
+   *
+   * @generated from field: int64 restock_created_at = 7;
+   */
+  restockCreatedAt = protoInt64.zero;
+
+  /**
+   * unix; receipt received_at
+   *
+   * @generated from field: int64 restock_arrived_at = 8;
+   */
+  restockArrivedAt = protoInt64.zero;
+
+  constructor(data?: PartialMessage<ProductRestockLog>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ProductRestockLog";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "qty", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 7, name: "restock_created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "restock_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProductRestockLog {
+    return new ProductRestockLog().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProductRestockLog {
+    return new ProductRestockLog().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProductRestockLog {
+    return new ProductRestockLog().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ProductRestockLog | PlainMessage<ProductRestockLog> | undefined, b: ProductRestockLog | PlainMessage<ProductRestockLog> | undefined): boolean {
+    return proto3.util.equals(ProductRestockLog, a, b);
   }
 }
 
@@ -1200,6 +1353,98 @@ export class ListProductUnitPricesResponse extends Message<ListProductUnitPrices
 
   static equals(a: ListProductUnitPricesResponse | PlainMessage<ListProductUnitPricesResponse> | undefined, b: ListProductUnitPricesResponse | PlainMessage<ListProductUnitPricesResponse> | undefined): boolean {
     return proto3.util.equals(ListProductUnitPricesResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ListProductRestockLogsRequest
+ */
+export class ListProductRestockLogsRequest extends Message<ListProductRestockLogsRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
+  constructor(data?: PartialMessage<ListProductRestockLogsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ListProductRestockLogsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductRestockLogsRequest {
+    return new ListProductRestockLogsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListProductRestockLogsRequest {
+    return new ListProductRestockLogsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListProductRestockLogsRequest {
+    return new ListProductRestockLogsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListProductRestockLogsRequest | PlainMessage<ListProductRestockLogsRequest> | undefined, b: ListProductRestockLogsRequest | PlainMessage<ListProductRestockLogsRequest> | undefined): boolean {
+    return proto3.util.equals(ListProductRestockLogsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ListProductRestockLogsResponse
+ */
+export class ListProductRestockLogsResponse extends Message<ListProductRestockLogsResponse> {
+  /**
+   * @generated from field: repeated inventory_iface.v1.ProductRestockLog logs = 1;
+   */
+  logs: ProductRestockLog[] = [];
+
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
+  constructor(data?: PartialMessage<ListProductRestockLogsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ListProductRestockLogsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "logs", kind: "message", T: ProductRestockLog, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductRestockLogsResponse {
+    return new ListProductRestockLogsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListProductRestockLogsResponse {
+    return new ListProductRestockLogsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListProductRestockLogsResponse {
+    return new ListProductRestockLogsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListProductRestockLogsResponse | PlainMessage<ListProductRestockLogsResponse> | undefined, b: ListProductRestockLogsResponse | PlainMessage<ListProductRestockLogsResponse> | undefined): boolean {
+    return proto3.util.equals(ListProductRestockLogsResponse, a, b);
   }
 }
 

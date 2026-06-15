@@ -26,6 +26,26 @@ func TestAttachPrescription_HappyPathAutoFillsCustomer(t *testing.T) {
 	require.Equal(t, custID, resp.Msg.Sale.CustomerId) // auto-filled from the Rx
 }
 
+// Attaching a prescription is NOT pharmacy-gated — it works under an explicit
+// retail mode too (only the Rx coverage *enforcement* on add is mode-gated).
+func TestAttachPrescription_RetailMode(t *testing.T) {
+	t.Parallel()
+	svc, ctx, db, ownerID := newSaleSvc(t)
+	setRetailMode(t, db)
+	prodID := seedRxProduct(t, db, "AMOX", "Amoxicillin", 1000)
+	custID := seedCustomer(t, db, "Budi")
+	rxID := seedPrescription(t, db, custID, ownerID, prodID, 10)
+	saleID := startDraft(t, svc, ctx)
+
+	resp, err := svc.AttachPrescription(ctx, connect.NewRequest(&posifacev1.AttachPrescriptionRequest{
+		SaleId:         saleID,
+		PrescriptionId: rxID,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, rxID, resp.Msg.Sale.PrescriptionId)
+	require.Equal(t, custID, resp.Msg.Sale.CustomerId)
+}
+
 func TestAttachPrescription_CustomerMismatch(t *testing.T) {
 	t.Parallel()
 	svc, ctx, db, ownerID := newSaleSvc(t)

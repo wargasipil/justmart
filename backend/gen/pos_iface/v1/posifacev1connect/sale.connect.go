@@ -58,6 +58,12 @@ const (
 	// SaleServiceSetServiceFeeProcedure is the fully-qualified name of the SaleService's SetServiceFee
 	// RPC.
 	SaleServiceSetServiceFeeProcedure = "/pos_iface.v1.SaleService/SetServiceFee"
+	// SaleServiceSetLineDiscountProcedure is the fully-qualified name of the SaleService's
+	// SetLineDiscount RPC.
+	SaleServiceSetLineDiscountProcedure = "/pos_iface.v1.SaleService/SetLineDiscount"
+	// SaleServiceSetCartDiscountProcedure is the fully-qualified name of the SaleService's
+	// SetCartDiscount RPC.
+	SaleServiceSetCartDiscountProcedure = "/pos_iface.v1.SaleService/SetCartDiscount"
 	// SaleServiceCompleteSaleProcedure is the fully-qualified name of the SaleService's CompleteSale
 	// RPC.
 	SaleServiceCompleteSaleProcedure = "/pos_iface.v1.SaleService/CompleteSale"
@@ -94,6 +100,12 @@ type SaleServiceClient interface {
 	// value defaults from the attached resep on AttachPrescription; this lets the
 	// cashier adjust it. DRAFT only.
 	SetServiceFee(context.Context, *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error)
+	// SetLineDiscount sets a per-item discount (FIXED amount or PERCENT) on a cart
+	// line and recomputes the line + sale totals. DRAFT only.
+	SetLineDiscount(context.Context, *connect.Request[v1.SetLineDiscountRequest]) (*connect.Response[v1.SetLineDiscountResponse], error)
+	// SetCartDiscount sets a subtotal-level discount (FIXED amount or PERCENT) on
+	// the sale and recomputes the total. DRAFT only.
+	SetCartDiscount(context.Context, *connect.Request[v1.SetCartDiscountRequest]) (*connect.Response[v1.SetCartDiscountResponse], error)
 	CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error)
 	VoidSale(context.Context, *connect.Request[v1.VoidSaleRequest]) (*connect.Response[v1.VoidSaleResponse], error)
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
@@ -175,6 +187,18 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(saleServiceMethods.ByName("SetServiceFee")),
 			connect.WithClientOptions(opts...),
 		),
+		setLineDiscount: connect.NewClient[v1.SetLineDiscountRequest, v1.SetLineDiscountResponse](
+			httpClient,
+			baseURL+SaleServiceSetLineDiscountProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("SetLineDiscount")),
+			connect.WithClientOptions(opts...),
+		),
+		setCartDiscount: connect.NewClient[v1.SetCartDiscountRequest, v1.SetCartDiscountResponse](
+			httpClient,
+			baseURL+SaleServiceSetCartDiscountProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("SetCartDiscount")),
+			connect.WithClientOptions(opts...),
+		),
 		completeSale: connect.NewClient[v1.CompleteSaleRequest, v1.CompleteSaleResponse](
 			httpClient,
 			baseURL+SaleServiceCompleteSaleProcedure,
@@ -226,6 +250,8 @@ type saleServiceClient struct {
 	attachPrescription *connect.Client[v1.AttachPrescriptionRequest, v1.AttachPrescriptionResponse]
 	detachPrescription *connect.Client[v1.DetachPrescriptionRequest, v1.DetachPrescriptionResponse]
 	setServiceFee      *connect.Client[v1.SetServiceFeeRequest, v1.SetServiceFeeResponse]
+	setLineDiscount    *connect.Client[v1.SetLineDiscountRequest, v1.SetLineDiscountResponse]
+	setCartDiscount    *connect.Client[v1.SetCartDiscountRequest, v1.SetCartDiscountResponse]
 	completeSale       *connect.Client[v1.CompleteSaleRequest, v1.CompleteSaleResponse]
 	voidSale           *connect.Client[v1.VoidSaleRequest, v1.VoidSaleResponse]
 	discardSale        *connect.Client[v1.DiscardSaleRequest, v1.DiscardSaleResponse]
@@ -284,6 +310,16 @@ func (c *saleServiceClient) SetServiceFee(ctx context.Context, req *connect.Requ
 	return c.setServiceFee.CallUnary(ctx, req)
 }
 
+// SetLineDiscount calls pos_iface.v1.SaleService.SetLineDiscount.
+func (c *saleServiceClient) SetLineDiscount(ctx context.Context, req *connect.Request[v1.SetLineDiscountRequest]) (*connect.Response[v1.SetLineDiscountResponse], error) {
+	return c.setLineDiscount.CallUnary(ctx, req)
+}
+
+// SetCartDiscount calls pos_iface.v1.SaleService.SetCartDiscount.
+func (c *saleServiceClient) SetCartDiscount(ctx context.Context, req *connect.Request[v1.SetCartDiscountRequest]) (*connect.Response[v1.SetCartDiscountResponse], error) {
+	return c.setCartDiscount.CallUnary(ctx, req)
+}
+
 // CompleteSale calls pos_iface.v1.SaleService.CompleteSale.
 func (c *saleServiceClient) CompleteSale(ctx context.Context, req *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error) {
 	return c.completeSale.CallUnary(ctx, req)
@@ -332,6 +368,12 @@ type SaleServiceHandler interface {
 	// value defaults from the attached resep on AttachPrescription; this lets the
 	// cashier adjust it. DRAFT only.
 	SetServiceFee(context.Context, *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error)
+	// SetLineDiscount sets a per-item discount (FIXED amount or PERCENT) on a cart
+	// line and recomputes the line + sale totals. DRAFT only.
+	SetLineDiscount(context.Context, *connect.Request[v1.SetLineDiscountRequest]) (*connect.Response[v1.SetLineDiscountResponse], error)
+	// SetCartDiscount sets a subtotal-level discount (FIXED amount or PERCENT) on
+	// the sale and recomputes the total. DRAFT only.
+	SetCartDiscount(context.Context, *connect.Request[v1.SetCartDiscountRequest]) (*connect.Response[v1.SetCartDiscountResponse], error)
 	CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error)
 	VoidSale(context.Context, *connect.Request[v1.VoidSaleRequest]) (*connect.Response[v1.VoidSaleResponse], error)
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
@@ -409,6 +451,18 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(saleServiceMethods.ByName("SetServiceFee")),
 		connect.WithHandlerOptions(opts...),
 	)
+	saleServiceSetLineDiscountHandler := connect.NewUnaryHandler(
+		SaleServiceSetLineDiscountProcedure,
+		svc.SetLineDiscount,
+		connect.WithSchema(saleServiceMethods.ByName("SetLineDiscount")),
+		connect.WithHandlerOptions(opts...),
+	)
+	saleServiceSetCartDiscountHandler := connect.NewUnaryHandler(
+		SaleServiceSetCartDiscountProcedure,
+		svc.SetCartDiscount,
+		connect.WithSchema(saleServiceMethods.ByName("SetCartDiscount")),
+		connect.WithHandlerOptions(opts...),
+	)
 	saleServiceCompleteSaleHandler := connect.NewUnaryHandler(
 		SaleServiceCompleteSaleProcedure,
 		svc.CompleteSale,
@@ -467,6 +521,10 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 			saleServiceDetachPrescriptionHandler.ServeHTTP(w, r)
 		case SaleServiceSetServiceFeeProcedure:
 			saleServiceSetServiceFeeHandler.ServeHTTP(w, r)
+		case SaleServiceSetLineDiscountProcedure:
+			saleServiceSetLineDiscountHandler.ServeHTTP(w, r)
+		case SaleServiceSetCartDiscountProcedure:
+			saleServiceSetCartDiscountHandler.ServeHTTP(w, r)
 		case SaleServiceCompleteSaleProcedure:
 			saleServiceCompleteSaleHandler.ServeHTTP(w, r)
 		case SaleServiceVoidSaleProcedure:
@@ -526,6 +584,14 @@ func (UnimplementedSaleServiceHandler) DetachPrescription(context.Context, *conn
 
 func (UnimplementedSaleServiceHandler) SetServiceFee(context.Context, *connect.Request[v1.SetServiceFeeRequest]) (*connect.Response[v1.SetServiceFeeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetServiceFee is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) SetLineDiscount(context.Context, *connect.Request[v1.SetLineDiscountRequest]) (*connect.Response[v1.SetLineDiscountResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetLineDiscount is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) SetCartDiscount(context.Context, *connect.Request[v1.SetCartDiscountRequest]) (*connect.Response[v1.SetCartDiscountResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetCartDiscount is not implemented"))
 }
 
 func (UnimplementedSaleServiceHandler) CompleteSale(context.Context, *connect.Request[v1.CompleteSaleRequest]) (*connect.Response[v1.CompleteSaleResponse], error) {

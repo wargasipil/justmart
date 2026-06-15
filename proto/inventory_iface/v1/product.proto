@@ -27,6 +27,15 @@ message Product {
   int64 reference_cost = 17;          // latest batch cost_price, per base unit (GetProduct only; 0 if none)
   string last_stocktake_date = 18;    // YYYY-MM-DD of most recent COMPLETED stocktake touching this product in the active warehouse (GetProduct only; empty if none)
   int64 last_stocktake_variance = 19; // signed sum(counted_qty − expected_qty) for this product's lines in that session, BASE units (GetProduct only)
+  // Latest restock across suppliers in the active warehouse (ListProducts enrich;
+  // from product_last_restocks). All 0/empty until a receipt records one.
+  int64 last_restock_price = 20;            // NET unit cost per base unit
+  int64 last_restock_qty = 21;              // base units received
+  string last_restock_discount_type = 22;  // FIXED | PERCENT
+  int64 last_restock_discount_value = 23;   // FIXED minor units | PERCENT basis points
+  int64 last_restock_created_at = 24;       // unix; PO (restock order) created
+  int64 last_restock_arrived_at = 25;       // unix; receipt received_at
+  string last_restock_supplier_id = 26;     // resolve to name via ResolveSuppliers
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -76,6 +85,19 @@ message ProductUnitPrice {
   string changed_by = 7;
 }
 
+// One restock event from the append-only log (product-detail restock history).
+// Supplier resolved to a name via ResolveSuppliers on the client.
+message ProductRestockLog {
+  string id = 1;
+  string supplier_id = 2;
+  int64 price = 3;              // NET unit cost per base unit
+  int64 qty = 4;               // base units received
+  string discount_type = 5;    // FIXED | PERCENT
+  int64 discount_value = 6;     // FIXED minor units | PERCENT basis points
+  int64 restock_created_at = 7; // unix; PO (restock order) created
+  int64 restock_arrived_at = 8; // unix; receipt received_at
+}
+
 service ProductService {
   rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
@@ -111,6 +133,12 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
   rpc ListProductUnitPrices(ListProductUnitPricesRequest) returns (ListProductUnitPricesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // ListProductRestockLogs returns the restock history (append-only log) for a
+  // product in the caller's active warehouse, newest-arrival first, paginated.
+  rpc ListProductRestockLogs(ListProductRestockLogsRequest) returns (ListProductRestockLogsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
@@ -193,6 +221,16 @@ message ListProductPricesResponse {
 message ListProductUnitPricesRequest { string product_id = 1; }
 message ListProductUnitPricesResponse {
   repeated ProductUnitPrice prices = 1;
+}
+
+message ListProductRestockLogsRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListProductRestockLogsResponse {
+  repeated ProductRestockLog logs = 1;
+  int32 total = 2;
 }
 
 message SearchProductsRequest {

@@ -21,13 +21,14 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import ExpiryBadge from "../../components/ExpiryBadge";
 import PageHeader from "../../components/PageHeader";
 import { MovementType } from "../../gen/inventory_iface/v1/stock_pb";
-import { formatMoney, formatUnix } from "../../lib/format";
+import { formatDiscount, formatMoney, formatUnix } from "../../lib/format";
 import { marginPct } from "../../lib/pricing";
 import { ALL_LIMIT } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
 import { useBatchesQuery } from "../../queries/batches";
 import {
   useArchiveProductMutation,
+  useProductRestockLogsQuery,
   useProductUnitPricesQuery,
   useProductQuery,
   useUnarchiveProductMutation,
@@ -83,6 +84,13 @@ export default function ProductDetail() {
     ),
   );
   const movementsQ = useMovementsQuery({ productId: id, pageSize: 10 });
+  const restockQ = useProductRestockLogsQuery(id, { pageSize: 50, enabled: !!id });
+  const restockSupplierRefs = useSupplierRefs(
+    useMemo(
+      () => Array.from(new Set((restockQ.rows ?? []).map((r) => r.supplierId).filter(Boolean))),
+      [restockQ.rows],
+    ),
+  );
 
   if (medQ.isLoading) {
     return (
@@ -247,7 +255,8 @@ export default function ProductDetail() {
         <Tabs.Root defaultValue="batches" variant="line">
           <Tabs.List>
             <Tabs.Trigger value="batches">{t("inventory.products.batchesSection")}</Tabs.Trigger>
-            <Tabs.Trigger value="prices">{t("inventory.products.priceHistory")}</Tabs.Trigger>
+            <Tabs.Trigger value="prices">{t("inventory.products.soldPriceHistory")}</Tabs.Trigger>
+            <Tabs.Trigger value="restocks">{t("inventory.products.restockPriceHistory")}</Tabs.Trigger>
             <Tabs.Trigger value="movements">{t("inventory.products.movementsSection")}</Tabs.Trigger>
           </Tabs.List>
 
@@ -323,6 +332,39 @@ export default function ProductDetail() {
                         : t("inventory.products.priceCurrent")}
                     </Table.Cell>
                     <Table.Cell>{formatMoney(p.unitSellPrice)}</Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Root>
+          )}
+          </Tabs.Content>
+
+          <Tabs.Content value="restocks">
+          {restockQ.rows.length === 0 ? (
+            <Text fontSize="sm" color="fg.muted">
+              {t("inventory.products.restockHistoryEmpty")}
+            </Text>
+          ) : (
+            <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+                  <Table.ColumnHeader>{t("inventory.products.restockSupplier")}</Table.ColumnHeader>
+                  <Table.ColumnHeader textAlign="end">{t("inventory.products.restockPrice")}</Table.ColumnHeader>
+                  <Table.ColumnHeader textAlign="end">{t("inventory.products.restockQty")}</Table.ColumnHeader>
+                  <Table.ColumnHeader textAlign="end">{t("inventory.products.restockDiscount")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("inventory.products.restockCreated")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("inventory.products.restockArrived")}</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {restockQ.rows.map((r) => (
+                  <Table.Row key={r.id}>
+                    <Table.Cell>{restockSupplierRefs.get(r.supplierId)?.name ?? "—"}</Table.Cell>
+                    <Table.Cell textAlign="end">{formatMoney(r.price)}</Table.Cell>
+                    <Table.Cell textAlign="end">{r.qty.toString()}</Table.Cell>
+                    <Table.Cell textAlign="end">{formatDiscount(r.discountType, r.discountValue)}</Table.Cell>
+                    <Table.Cell>{r.restockCreatedAt > 0n ? formatUnix(r.restockCreatedAt) : "—"}</Table.Cell>
+                    <Table.Cell>{r.restockArrivedAt > 0n ? formatUnix(r.restockArrivedAt) : "—"}</Table.Cell>
                   </Table.Row>
                 ))}
               </Table.Body>

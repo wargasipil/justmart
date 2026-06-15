@@ -16,6 +16,9 @@ func (s *UserService) UpdateUserRole(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	if err := s.validateRoleForMode(ctx, roleStr); err != nil {
+		return nil, err
+	}
 
 	user, err := s.loadByID(ctx, req.Msg.UserId)
 	if err != nil {

@@ -40,6 +40,11 @@ message Sale {
   string warehouse_id = 17;
   string customer_name = 18;   // denormalized for the order-history list
   int64 biaya_jasa = 19;       // service fee (minor units); added to total, default from the attached resep
+  // Cart-level discount. cart_discount (field 8) is the RESOLVED amount (minor
+  // units); these carry the persisted "info": cart_discount_value is minor units
+  // when FIXED, basis points (percent*100) when PERCENT (empty type => FIXED).
+  string cart_discount_type = 20;
+  int64 cart_discount_value = 21;
 }
 
 message SaleItem {
@@ -56,6 +61,12 @@ message SaleItem {
   string unit_name = 11;       // selling unit name (e.g. "box")
   int64 unit_factor = 12;      // base units per selling unit
   int32 base_qty = 13;         // qty × factor (base units consumed)
+  // Per-line discount. line_discount (field 7) is the RESOLVED amount (minor
+  // units); these carry the persisted "info": discount_value is minor units when
+  // FIXED, basis points (percent*100, e.g. 12.5% = 1250) when PERCENT (empty
+  // type => FIXED).
+  string discount_type = 14;
+  int64 discount_value = 15;
 }
 
 service SaleService {
@@ -120,6 +131,22 @@ service SaleService {
   // value defaults from the attached resep on AttachPrescription; this lets the
   // cashier adjust it. DRAFT only.
   rpc SetServiceFee(SetServiceFeeRequest) returns (SetServiceFeeResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // SetLineDiscount sets a per-item discount (FIXED amount or PERCENT) on a cart
+  // line and recomputes the line + sale totals. DRAFT only.
+  rpc SetLineDiscount(SetLineDiscountRequest) returns (SetLineDiscountResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // SetCartDiscount sets a subtotal-level discount (FIXED amount or PERCENT) on
+  // the sale and recomputes the total. DRAFT only.
+  rpc SetCartDiscount(SetCartDiscountRequest) returns (SetCartDiscountResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
@@ -227,6 +254,21 @@ message SetServiceFeeRequest {
   int64 biaya_jasa = 2; // service fee in minor units (>= 0)
 }
 message SetServiceFeeResponse { Sale sale = 1; }
+
+message SetLineDiscountRequest {
+  string sale_id = 1;
+  string item_id = 2;
+  string discount_type = 3;   // 'FIXED' (default) | 'PERCENT'
+  int64 discount_value = 4;   // FIXED=minor units; PERCENT=basis points (percent*100); >= 0
+}
+message SetLineDiscountResponse { Sale sale = 1; }
+
+message SetCartDiscountRequest {
+  string sale_id = 1;
+  string discount_type = 2;   // 'FIXED' (default) | 'PERCENT'
+  int64 discount_value = 3;   // FIXED=minor units; PERCENT=basis points (percent*100); >= 0
+}
+message SetCartDiscountResponse { Sale sale = 1; }
 
 message CompleteSaleRequest {
   string sale_id = 1;

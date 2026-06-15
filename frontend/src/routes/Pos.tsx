@@ -14,16 +14,18 @@ import {
   HStack,
   IconButton,
   Input,
+  Popover,
   Portal,
   RadioGroup,
   Stack,
   Text,
 } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, Lock, LogOut, Minus, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
+import { FileText, Lock, LogOut, Minus, Percent, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import DiscountField, { type DiscountType } from "../components/DiscountField";
 import EnumSelect from "../components/EnumSelect";
 import MoneyInput from "../components/MoneyInput";
 import NumberInput from "../components/NumberInput";
@@ -53,7 +55,9 @@ import {
   useDetachPrescriptionMutation,
   usePrintReceiptMutation,
   useRemoveItemMutation,
+  useSetCartDiscountMutation,
   useSetItemQuantityMutation,
+  useSetLineDiscountMutation,
   useSetSaleCustomerMutation,
   useSetServiceFeeMutation,
   useStartSaleMutation,
@@ -90,6 +94,90 @@ function releaseModalBodyLock() {
   document.getElementById("root")?.removeAttribute("aria-hidden");
 }
 
+// LineDiscountPopover is the per-cart-line discount affordance: a small button
+// (highlighted when a discount is set) that opens a popover with the shared
+// <DiscountField> + Apply/Clear. Draft state is local; Apply commits via the
+// passed handler. Kept always-mounted, controlled by `open` (Ark body-lock rule).
+function LineDiscountPopover({
+  item,
+  onApply,
+}: {
+  item: SaleItem;
+  onApply: (type: DiscountType, human: number) => void | Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const seed = (): { type: DiscountType; value: number } => {
+    const type = (item.discountType || "FIXED") as DiscountType;
+    const raw = Number(item.discountValue);
+    return { type, value: type === "PERCENT" ? raw / 100 : raw };
+  };
+  const [draft, setDraft] = useState(seed);
+  const hasDiscount = Number(item.lineDiscount) > 0;
+
+  return (
+    <Popover.Root
+      open={open}
+      onOpenChange={(e) => {
+        setOpen(e.open);
+        if (e.open) setDraft(seed());
+      }}
+      positioning={{ placement: "bottom-end" }}
+    >
+      <Popover.Trigger asChild>
+        <IconButton
+          aria-label={t("pos.lineDiscount")}
+          size="xs"
+          variant={hasDiscount ? "subtle" : "ghost"}
+          colorPalette={hasDiscount ? "blue" : undefined}
+        >
+          <Percent size={14} />
+        </IconButton>
+      </Popover.Trigger>
+      <Portal>
+        <Popover.Positioner>
+          <Popover.Content width="auto">
+            <Popover.Body>
+              <Stack gap={2}>
+                <Text fontSize="xs" color="fg.muted">
+                  {t("pos.lineDiscount")}
+                </Text>
+                <DiscountField
+                  type={draft.type}
+                  value={draft.value}
+                  onChange={(type, value) => setDraft({ type, value })}
+                />
+                <HStack justify="flex-end" gap={2}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => {
+                      void onApply("FIXED", 0);
+                      setOpen(false);
+                    }}
+                  >
+                    {t("pos.discountClear")}
+                  </Button>
+                  <Button
+                    size="xs"
+                    colorPalette="blue"
+                    onClick={() => {
+                      void onApply(draft.type, draft.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {t("pos.discountApply")}
+                  </Button>
+                </HStack>
+              </Stack>
+            </Popover.Body>
+          </Popover.Content>
+        </Popover.Positioner>
+      </Portal>
+    </Popover.Root>
+  );
+}
+
 export default function Pos() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -108,6 +196,8 @@ export default function Pos() {
   const attachPrescription = useAttachPrescriptionMutation();
   const detachPrescription = useDetachPrescriptionMutation();
   const setServiceFee = useSetServiceFeeMutation();
+  const setLineDiscount = useSetLineDiscountMutation();
+  const setCartDiscount = useSetCartDiscountMutation();
   const completeSale = useCompleteSaleMutation();
 
   const [sale, setSale] = useState<Sale | null>(null);
@@ -125,6 +215,13 @@ export default function Pos() {
   // Local input state committed on blur via SetServiceFee (avoids an RPC per
   // keystroke); kept in sync whenever the sale's fee changes (e.g. attach).
   const [feeInput, setFeeInput] = useState("0");
+  // Cart-level discount — Rp/% toggle + value, committed on blur / type change
+  // via SetCartDiscount. value is human (minor units for FIXED, plain % for
+  // PERCENT); kept in sync with the sale (the backend re-resolves PERCENT).
+  const [cartDisc, setCartDisc] = useState<{ type: DiscountType; value: number }>({
+    type: "FIXED",
+    value: 0,
+  });
 
   const ensureSale = useCallback(async (): Promise<Sale | null> => {
     if (sale) return sale;
@@ -620,6 +717,49 @@ export default function Pos() {
     }
   };
 
+  // Keep the cart-discount inputs mirrored to the sale. The sale stores the raw
+  // value (basis points when PERCENT); convert back to human percent here.
+  useEffect(() => {
+    const type = (sale?.cartDiscountType || "FIXED") as DiscountType;
+    const raw = Number(sale?.cartDiscountValue ?? 0n);
+    setCartDisc({ type, value: type === "PERCENT" ? raw / 100 : raw });
+  }, [sale?.id, sale?.cartDiscountType, sale?.cartDiscountValue]);
+
+  const commitCartDiscount = async (type: DiscountType, human: number) => {
+    if (!sale) return;
+    // PERCENT goes to the backend as basis points (×100); FIXED as minor units.
+    const wire = type === "PERCENT" ? Math.round(human * 100) : Math.round(human);
+    if (type === (sale.cartDiscountType || "FIXED") && wire === Number(sale.cartDiscountValue)) {
+      return;
+    }
+    try {
+      const res = await setCartDiscount.mutateAsync({
+        saleId: sale.id,
+        discountType: type,
+        discountValue: BigInt(Math.max(0, wire)),
+      });
+      if (res.sale) setSale(res.sale);
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
+  const commitLineDiscount = async (itemId: string, type: DiscountType, human: number) => {
+    if (!sale) return;
+    const wire = type === "PERCENT" ? Math.round(human * 100) : Math.round(human);
+    try {
+      const res = await setLineDiscount.mutateAsync({
+        saleId: sale.id,
+        itemId,
+        discountType: type,
+        discountValue: BigInt(Math.max(0, wire)),
+      });
+      if (res.sale) setSale(res.sale);
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
   const total = Number(sale?.total ?? 0n);
   const paidNum = Number(paidAmount || "0") || 0;
   const change = paidNum - total;
@@ -887,9 +1027,23 @@ export default function Pos() {
                         {it.unitName || med?.unit}
                       </Text>
                     )}
-                    <Text fontSize="sm" fontFamily="mono" w="80px" textAlign="right">
-                      {formatMoney(it.lineTotal)}
-                    </Text>
+                    <LineDiscountPopover
+                      item={it}
+                      onApply={(type, human) => commitLineDiscount(it.id, type, human)}
+                    />
+                    <Stack gap={0} w="80px" align="flex-end">
+                      <Text fontSize="sm" fontFamily="mono">
+                        {formatMoney(it.lineTotal)}
+                      </Text>
+                      {Number(it.lineDiscount) > 0 && (
+                        <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
+                          -{formatMoney(Number(it.lineDiscount))}
+                          {it.discountType === "PERCENT"
+                            ? ` (${Number(it.discountValue) / 100}%)`
+                            : ""}
+                        </Text>
+                      )}
+                    </Stack>
                     <IconButton
                       aria-label="remove"
                       size="xs"
@@ -913,6 +1067,27 @@ export default function Pos() {
                   {formatMoney(Number(sale?.subtotal ?? 0n))}
                 </Text>
               </Flex>
+              <Flex justify="space-between" align="center">
+                <Text fontSize="sm" color="fg.muted">{t("pos.discount")}</Text>
+                <DiscountField
+                  type={cartDisc.type}
+                  value={cartDisc.value}
+                  onChange={(type, value) => {
+                    const typeChanged = type !== cartDisc.type;
+                    setCartDisc({ type, value });
+                    if (typeChanged) void commitCartDiscount(type, value);
+                  }}
+                  onBlur={() => void commitCartDiscount(cartDisc.type, cartDisc.value)}
+                  valueWidth="120px"
+                />
+              </Flex>
+              {Number(sale?.cartDiscount ?? 0n) > 0 && (
+                <Flex justify="flex-end">
+                  <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
+                    -{formatMoney(Number(sale?.cartDiscount ?? 0n))}
+                  </Text>
+                </Flex>
+              )}
               {isPharmacy && (
                 <Flex justify="space-between" align="center">
                   <Text fontSize="sm" color="fg.muted">{t("prescriptions.biayaJasa")}</Text>
@@ -1382,6 +1557,12 @@ function ReceiptDialog({
                     <Text fontSize="sm">{t("pos.subtotal")}</Text>
                     <Text fontSize="sm">{formatMoney(Number(sale.subtotal))}</Text>
                   </Flex>
+                  {Number(sale.cartDiscount) > 0 && (
+                    <Flex justify="space-between">
+                      <Text fontSize="sm">{t("pos.discount")}</Text>
+                      <Text fontSize="sm">-{formatMoney(Number(sale.cartDiscount))}</Text>
+                    </Flex>
+                  )}
                   {Number(sale.biayaJasa) > 0 && (
                     <Flex justify="space-between">
                       <Text fontSize="sm">{t("prescriptions.biayaJasa")}</Text>

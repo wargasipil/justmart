@@ -9,7 +9,9 @@ type Sale struct {
 	CashierUserID  string     `gorm:"not null;type:uuid;column:cashier_user_id"`
 	PaymentSource  *string    `gorm:"column:payment_source"`
 	Subtotal       int64      `gorm:"not null;default:0"`
-	CartDiscount   int64      `gorm:"not null;default:0;column:cart_discount"`
+	CartDiscount   int64      `gorm:"not null;default:0;column:cart_discount"` // RESOLVED amount (minor units)
+	CartDiscountType  string  `gorm:"not null;default:'FIXED';column:cart_discount_type"`  // FIXED | PERCENT
+	CartDiscountValue int64   `gorm:"not null;default:0;column:cart_discount_value"`       // FIXED=minor units; PERCENT=basis points
 	Total          int64      `gorm:"not null;default:0"`
 	PaidAmount     int64      `gorm:"not null;default:0;column:paid_amount"`
 	Status         string     `gorm:"not null;default:'DRAFT'"`
@@ -33,7 +35,9 @@ type SaleItem struct {
 	BatchID           *string `gorm:"type:uuid;column:batch_id"`
 	Qty               int32   `gorm:"not null"` // qty in the selling unit
 	UnitPriceSnapshot int64   `gorm:"not null;default:0;column:unit_price_snapshot"`
-	LineDiscount      int64   `gorm:"not null;default:0;column:line_discount"`
+	LineDiscount      int64   `gorm:"not null;default:0;column:line_discount"` // RESOLVED amount (minor units)
+	DiscountType      string  `gorm:"not null;default:'FIXED';column:discount_type"`  // FIXED | PERCENT
+	DiscountValue     int64   `gorm:"not null;default:0;column:discount_value"`       // FIXED=minor units; PERCENT=basis points
 	LineTotal         int64   `gorm:"not null;default:0;column:line_total"`
 	BranchID          *string `gorm:"type:uuid;column:branch_id"`
 	ProductUnitID    *string `gorm:"type:uuid;column:product_unit_id"`

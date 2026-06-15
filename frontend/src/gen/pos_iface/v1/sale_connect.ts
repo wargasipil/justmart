@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
+import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -108,6 +108,30 @@ export const SaleService = {
       name: "SetServiceFee",
       I: SetServiceFeeRequest,
       O: SetServiceFeeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetLineDiscount sets a per-item discount (FIXED amount or PERCENT) on a cart
+     * line and recomputes the line + sale totals. DRAFT only.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.SetLineDiscount
+     */
+    setLineDiscount: {
+      name: "SetLineDiscount",
+      I: SetLineDiscountRequest,
+      O: SetLineDiscountResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetCartDiscount sets a subtotal-level discount (FIXED amount or PERCENT) on
+     * the sale and recomputes the total. DRAFT only.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.SetCartDiscount
+     */
+    setCartDiscount: {
+      name: "SetCartDiscount",
+      I: SetCartDiscountRequest,
+      O: SetCartDiscountResponse,
       kind: MethodKind.Unary,
     },
     /**

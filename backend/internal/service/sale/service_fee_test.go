@@ -79,6 +79,22 @@ func TestSetServiceFee(t *testing.T) {
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
+// The service fee is NOT pharmacy-gated: SetServiceFee + total math work under an
+// explicit retail mode too (a retail shop can still charge a flat service fee).
+func TestSetServiceFee_RetailMode(t *testing.T) {
+	t.Parallel()
+	svc, ctx, db, _ := newSaleSvc(t)
+	setRetailMode(t, db)
+	saleID := startDraft(t, svc, ctx)
+
+	resp, err := svc.SetServiceFee(ctx, connect.NewRequest(&posifacev1.SetServiceFeeRequest{
+		SaleId: saleID, BiayaJasa: 3000,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int64(3000), resp.Msg.Sale.BiayaJasa)
+	require.Equal(t, int64(3000), resp.Msg.Sale.Total)
+}
+
 // CompleteSale carries the service fee into the finalized total.
 func TestCompleteSale_IncludesServiceFee(t *testing.T) {
 	t.Parallel()

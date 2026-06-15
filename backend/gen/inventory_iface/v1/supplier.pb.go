@@ -983,6 +983,212 @@ func (x *ResolveSuppliersResponse) GetSuppliers() []*SupplierRef {
 	return nil
 }
 
+// One product's last restock from a supplier (product_last_restocks). Product
+// resolved to a name via ResolveProducts on the client.
+type SupplierProductRestock struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ProductId         string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	LastPrice         int64                  `protobuf:"varint,2,opt,name=last_price,json=lastPrice,proto3" json:"last_price,omitempty"`                           // NET unit cost per base unit
+	LastQty           int64                  `protobuf:"varint,3,opt,name=last_qty,json=lastQty,proto3" json:"last_qty,omitempty"`                                 // base units received
+	LastDiscountType  string                 `protobuf:"bytes,4,opt,name=last_discount_type,json=lastDiscountType,proto3" json:"last_discount_type,omitempty"`     // FIXED | PERCENT
+	LastDiscountValue int64                  `protobuf:"varint,5,opt,name=last_discount_value,json=lastDiscountValue,proto3" json:"last_discount_value,omitempty"` // FIXED minor units | PERCENT basis points
+	LastCreatedAt     int64                  `protobuf:"varint,6,opt,name=last_created_at,json=lastCreatedAt,proto3" json:"last_created_at,omitempty"`             // unix; PO (restock order) created
+	LastArrivedAt     int64                  `protobuf:"varint,7,opt,name=last_arrived_at,json=lastArrivedAt,proto3" json:"last_arrived_at,omitempty"`             // unix; receipt received_at
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SupplierProductRestock) Reset() {
+	*x = SupplierProductRestock{}
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SupplierProductRestock) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SupplierProductRestock) ProtoMessage() {}
+
+func (x *SupplierProductRestock) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SupplierProductRestock.ProtoReflect.Descriptor instead.
+func (*SupplierProductRestock) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SupplierProductRestock) GetProductId() string {
+	if x != nil {
+		return x.ProductId
+	}
+	return ""
+}
+
+func (x *SupplierProductRestock) GetLastPrice() int64 {
+	if x != nil {
+		return x.LastPrice
+	}
+	return 0
+}
+
+func (x *SupplierProductRestock) GetLastQty() int64 {
+	if x != nil {
+		return x.LastQty
+	}
+	return 0
+}
+
+func (x *SupplierProductRestock) GetLastDiscountType() string {
+	if x != nil {
+		return x.LastDiscountType
+	}
+	return ""
+}
+
+func (x *SupplierProductRestock) GetLastDiscountValue() int64 {
+	if x != nil {
+		return x.LastDiscountValue
+	}
+	return 0
+}
+
+func (x *SupplierProductRestock) GetLastCreatedAt() int64 {
+	if x != nil {
+		return x.LastCreatedAt
+	}
+	return 0
+}
+
+func (x *SupplierProductRestock) GetLastArrivedAt() int64 {
+	if x != nil {
+		return x.LastArrivedAt
+	}
+	return 0
+}
+
+type ListSupplierRestocksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SupplierId    string                 `protobuf:"bytes,1,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSupplierRestocksRequest) Reset() {
+	*x = ListSupplierRestocksRequest{}
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSupplierRestocksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSupplierRestocksRequest) ProtoMessage() {}
+
+func (x *ListSupplierRestocksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSupplierRestocksRequest.ProtoReflect.Descriptor instead.
+func (*ListSupplierRestocksRequest) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListSupplierRestocksRequest) GetSupplierId() string {
+	if x != nil {
+		return x.SupplierId
+	}
+	return ""
+}
+
+func (x *ListSupplierRestocksRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListSupplierRestocksRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListSupplierRestocksResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Restocks      []*SupplierProductRestock `protobuf:"bytes,1,rep,name=restocks,proto3" json:"restocks,omitempty"`
+	Total         int32                     `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSupplierRestocksResponse) Reset() {
+	*x = ListSupplierRestocksResponse{}
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSupplierRestocksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSupplierRestocksResponse) ProtoMessage() {}
+
+func (x *ListSupplierRestocksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSupplierRestocksResponse.ProtoReflect.Descriptor instead.
+func (*ListSupplierRestocksResponse) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListSupplierRestocksResponse) GetRestocks() []*SupplierProductRestock {
+	if x != nil {
+		return x.Restocks
+	}
+	return nil
+}
+
+func (x *ListSupplierRestocksResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 var File_inventory_iface_v1_supplier_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
@@ -1053,7 +1259,25 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x17ResolveSuppliersRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"Y\n" +
 	"\x18ResolveSuppliersResponse\x12=\n" +
-	"\tsuppliers\x18\x01 \x03(\v2\x1f.inventory_iface.v1.SupplierRefR\tsuppliers2\xa8\x06\n" +
+	"\tsuppliers\x18\x01 \x03(\v2\x1f.inventory_iface.v1.SupplierRefR\tsuppliers\"\x9f\x02\n" +
+	"\x16SupplierProductRestock\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1d\n" +
+	"\n" +
+	"last_price\x18\x02 \x01(\x03R\tlastPrice\x12\x19\n" +
+	"\blast_qty\x18\x03 \x01(\x03R\alastQty\x12,\n" +
+	"\x12last_discount_type\x18\x04 \x01(\tR\x10lastDiscountType\x12.\n" +
+	"\x13last_discount_value\x18\x05 \x01(\x03R\x11lastDiscountValue\x12&\n" +
+	"\x0flast_created_at\x18\x06 \x01(\x03R\rlastCreatedAt\x12&\n" +
+	"\x0flast_arrived_at\x18\a \x01(\x03R\rlastArrivedAt\"l\n" +
+	"\x1bListSupplierRestocksRequest\x12\x1f\n" +
+	"\vsupplier_id\x18\x01 \x01(\tR\n" +
+	"supplierId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"|\n" +
+	"\x1cListSupplierRestocksResponse\x12F\n" +
+	"\brestocks\x18\x01 \x03(\v2*.inventory_iface.v1.SupplierProductRestockR\brestocks\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xac\a\n" +
 	"\x0fSupplierService\x12l\n" +
 	"\rListSuppliers\x12(.inventory_iface.v1.ListSuppliersRequest\x1a).inventory_iface.v1.ListSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
 	"\vGetSupplier\x12&.inventory_iface.v1.GetSupplierRequest\x1a'.inventory_iface.v1.GetSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
@@ -1061,7 +1285,8 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x0eUpdateSupplier\x12).inventory_iface.v1.UpdateSupplierRequest\x1a*.inventory_iface.v1.UpdateSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12r\n" +
 	"\x0fArchiveSupplier\x12*.inventory_iface.v1.ArchiveSupplierRequest\x1a+.inventory_iface.v1.ArchiveSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12r\n" +
 	"\x0fSearchSuppliers\x12*.inventory_iface.v1.SearchSuppliersRequest\x1a+.inventory_iface.v1.SearchSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12u\n" +
-	"\x10ResolveSuppliers\x12+.inventory_iface.v1.ResolveSuppliersRequest\x1a,.inventory_iface.v1.ResolveSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
+	"\x10ResolveSuppliers\x12+.inventory_iface.v1.ResolveSuppliersRequest\x1a,.inventory_iface.v1.ResolveSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x81\x01\n" +
+	"\x14ListSupplierRestocks\x12/.inventory_iface.v1.ListSupplierRestocksRequest\x1a0.inventory_iface.v1.ListSupplierRestocksResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
 
 var (
 	file_inventory_iface_v1_supplier_proto_rawDescOnce sync.Once
@@ -1075,24 +1300,27 @@ func file_inventory_iface_v1_supplier_proto_rawDescGZIP() []byte {
 	return file_inventory_iface_v1_supplier_proto_rawDescData
 }
 
-var file_inventory_iface_v1_supplier_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_inventory_iface_v1_supplier_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_inventory_iface_v1_supplier_proto_goTypes = []any{
-	(*Supplier)(nil),                 // 0: inventory_iface.v1.Supplier
-	(*ListSuppliersRequest)(nil),     // 1: inventory_iface.v1.ListSuppliersRequest
-	(*ListSuppliersResponse)(nil),    // 2: inventory_iface.v1.ListSuppliersResponse
-	(*GetSupplierRequest)(nil),       // 3: inventory_iface.v1.GetSupplierRequest
-	(*GetSupplierResponse)(nil),      // 4: inventory_iface.v1.GetSupplierResponse
-	(*CreateSupplierRequest)(nil),    // 5: inventory_iface.v1.CreateSupplierRequest
-	(*CreateSupplierResponse)(nil),   // 6: inventory_iface.v1.CreateSupplierResponse
-	(*UpdateSupplierRequest)(nil),    // 7: inventory_iface.v1.UpdateSupplierRequest
-	(*UpdateSupplierResponse)(nil),   // 8: inventory_iface.v1.UpdateSupplierResponse
-	(*ArchiveSupplierRequest)(nil),   // 9: inventory_iface.v1.ArchiveSupplierRequest
-	(*ArchiveSupplierResponse)(nil),  // 10: inventory_iface.v1.ArchiveSupplierResponse
-	(*SearchSuppliersRequest)(nil),   // 11: inventory_iface.v1.SearchSuppliersRequest
-	(*SearchSuppliersResponse)(nil),  // 12: inventory_iface.v1.SearchSuppliersResponse
-	(*SupplierRef)(nil),              // 13: inventory_iface.v1.SupplierRef
-	(*ResolveSuppliersRequest)(nil),  // 14: inventory_iface.v1.ResolveSuppliersRequest
-	(*ResolveSuppliersResponse)(nil), // 15: inventory_iface.v1.ResolveSuppliersResponse
+	(*Supplier)(nil),                     // 0: inventory_iface.v1.Supplier
+	(*ListSuppliersRequest)(nil),         // 1: inventory_iface.v1.ListSuppliersRequest
+	(*ListSuppliersResponse)(nil),        // 2: inventory_iface.v1.ListSuppliersResponse
+	(*GetSupplierRequest)(nil),           // 3: inventory_iface.v1.GetSupplierRequest
+	(*GetSupplierResponse)(nil),          // 4: inventory_iface.v1.GetSupplierResponse
+	(*CreateSupplierRequest)(nil),        // 5: inventory_iface.v1.CreateSupplierRequest
+	(*CreateSupplierResponse)(nil),       // 6: inventory_iface.v1.CreateSupplierResponse
+	(*UpdateSupplierRequest)(nil),        // 7: inventory_iface.v1.UpdateSupplierRequest
+	(*UpdateSupplierResponse)(nil),       // 8: inventory_iface.v1.UpdateSupplierResponse
+	(*ArchiveSupplierRequest)(nil),       // 9: inventory_iface.v1.ArchiveSupplierRequest
+	(*ArchiveSupplierResponse)(nil),      // 10: inventory_iface.v1.ArchiveSupplierResponse
+	(*SearchSuppliersRequest)(nil),       // 11: inventory_iface.v1.SearchSuppliersRequest
+	(*SearchSuppliersResponse)(nil),      // 12: inventory_iface.v1.SearchSuppliersResponse
+	(*SupplierRef)(nil),                  // 13: inventory_iface.v1.SupplierRef
+	(*ResolveSuppliersRequest)(nil),      // 14: inventory_iface.v1.ResolveSuppliersRequest
+	(*ResolveSuppliersResponse)(nil),     // 15: inventory_iface.v1.ResolveSuppliersResponse
+	(*SupplierProductRestock)(nil),       // 16: inventory_iface.v1.SupplierProductRestock
+	(*ListSupplierRestocksRequest)(nil),  // 17: inventory_iface.v1.ListSupplierRestocksRequest
+	(*ListSupplierRestocksResponse)(nil), // 18: inventory_iface.v1.ListSupplierRestocksResponse
 }
 var file_inventory_iface_v1_supplier_proto_depIdxs = []int32{
 	0,  // 0: inventory_iface.v1.ListSuppliersResponse.suppliers:type_name -> inventory_iface.v1.Supplier
@@ -1102,25 +1330,28 @@ var file_inventory_iface_v1_supplier_proto_depIdxs = []int32{
 	0,  // 4: inventory_iface.v1.ArchiveSupplierResponse.supplier:type_name -> inventory_iface.v1.Supplier
 	0,  // 5: inventory_iface.v1.SearchSuppliersResponse.suppliers:type_name -> inventory_iface.v1.Supplier
 	13, // 6: inventory_iface.v1.ResolveSuppliersResponse.suppliers:type_name -> inventory_iface.v1.SupplierRef
-	1,  // 7: inventory_iface.v1.SupplierService.ListSuppliers:input_type -> inventory_iface.v1.ListSuppliersRequest
-	3,  // 8: inventory_iface.v1.SupplierService.GetSupplier:input_type -> inventory_iface.v1.GetSupplierRequest
-	5,  // 9: inventory_iface.v1.SupplierService.CreateSupplier:input_type -> inventory_iface.v1.CreateSupplierRequest
-	7,  // 10: inventory_iface.v1.SupplierService.UpdateSupplier:input_type -> inventory_iface.v1.UpdateSupplierRequest
-	9,  // 11: inventory_iface.v1.SupplierService.ArchiveSupplier:input_type -> inventory_iface.v1.ArchiveSupplierRequest
-	11, // 12: inventory_iface.v1.SupplierService.SearchSuppliers:input_type -> inventory_iface.v1.SearchSuppliersRequest
-	14, // 13: inventory_iface.v1.SupplierService.ResolveSuppliers:input_type -> inventory_iface.v1.ResolveSuppliersRequest
-	2,  // 14: inventory_iface.v1.SupplierService.ListSuppliers:output_type -> inventory_iface.v1.ListSuppliersResponse
-	4,  // 15: inventory_iface.v1.SupplierService.GetSupplier:output_type -> inventory_iface.v1.GetSupplierResponse
-	6,  // 16: inventory_iface.v1.SupplierService.CreateSupplier:output_type -> inventory_iface.v1.CreateSupplierResponse
-	8,  // 17: inventory_iface.v1.SupplierService.UpdateSupplier:output_type -> inventory_iface.v1.UpdateSupplierResponse
-	10, // 18: inventory_iface.v1.SupplierService.ArchiveSupplier:output_type -> inventory_iface.v1.ArchiveSupplierResponse
-	12, // 19: inventory_iface.v1.SupplierService.SearchSuppliers:output_type -> inventory_iface.v1.SearchSuppliersResponse
-	15, // 20: inventory_iface.v1.SupplierService.ResolveSuppliers:output_type -> inventory_iface.v1.ResolveSuppliersResponse
-	14, // [14:21] is the sub-list for method output_type
-	7,  // [7:14] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	16, // 7: inventory_iface.v1.ListSupplierRestocksResponse.restocks:type_name -> inventory_iface.v1.SupplierProductRestock
+	1,  // 8: inventory_iface.v1.SupplierService.ListSuppliers:input_type -> inventory_iface.v1.ListSuppliersRequest
+	3,  // 9: inventory_iface.v1.SupplierService.GetSupplier:input_type -> inventory_iface.v1.GetSupplierRequest
+	5,  // 10: inventory_iface.v1.SupplierService.CreateSupplier:input_type -> inventory_iface.v1.CreateSupplierRequest
+	7,  // 11: inventory_iface.v1.SupplierService.UpdateSupplier:input_type -> inventory_iface.v1.UpdateSupplierRequest
+	9,  // 12: inventory_iface.v1.SupplierService.ArchiveSupplier:input_type -> inventory_iface.v1.ArchiveSupplierRequest
+	11, // 13: inventory_iface.v1.SupplierService.SearchSuppliers:input_type -> inventory_iface.v1.SearchSuppliersRequest
+	14, // 14: inventory_iface.v1.SupplierService.ResolveSuppliers:input_type -> inventory_iface.v1.ResolveSuppliersRequest
+	17, // 15: inventory_iface.v1.SupplierService.ListSupplierRestocks:input_type -> inventory_iface.v1.ListSupplierRestocksRequest
+	2,  // 16: inventory_iface.v1.SupplierService.ListSuppliers:output_type -> inventory_iface.v1.ListSuppliersResponse
+	4,  // 17: inventory_iface.v1.SupplierService.GetSupplier:output_type -> inventory_iface.v1.GetSupplierResponse
+	6,  // 18: inventory_iface.v1.SupplierService.CreateSupplier:output_type -> inventory_iface.v1.CreateSupplierResponse
+	8,  // 19: inventory_iface.v1.SupplierService.UpdateSupplier:output_type -> inventory_iface.v1.UpdateSupplierResponse
+	10, // 20: inventory_iface.v1.SupplierService.ArchiveSupplier:output_type -> inventory_iface.v1.ArchiveSupplierResponse
+	12, // 21: inventory_iface.v1.SupplierService.SearchSuppliers:output_type -> inventory_iface.v1.SearchSuppliersResponse
+	15, // 22: inventory_iface.v1.SupplierService.ResolveSuppliers:output_type -> inventory_iface.v1.ResolveSuppliersResponse
+	18, // 23: inventory_iface.v1.SupplierService.ListSupplierRestocks:output_type -> inventory_iface.v1.ListSupplierRestocksResponse
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_inventory_iface_v1_supplier_proto_init() }
@@ -1134,7 +1365,7 @@ func file_inventory_iface_v1_supplier_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_inventory_iface_v1_supplier_proto_rawDesc), len(file_inventory_iface_v1_supplier_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -29,6 +29,8 @@ export const productKeys = {
     [...productKeys.all, "prices", productId] as const,
   unitPrices: (productId: string) =>
     [...productKeys.all, "unitPrices", productId] as const,
+  restockLogs: (productId: string, page: number, pageSize: number) =>
+    [...productKeys.all, "restockLogs", productId, page, pageSize] as const,
   search: (query: string) => [...productKeys.all, "search", query] as const,
 };
 
@@ -141,6 +143,29 @@ export function useProductUnitPricesQuery(productId: string, enabled = true) {
     },
     enabled: enabled && !!productId,
   });
+}
+
+// Append-only restock history for a product in the active warehouse (newest
+// first). Server-paginated; returns { rows, total }. Drives the product-detail
+// "restock price history" tab. Warehouse-scoped via the X-Warehouse-Id header.
+export function useProductRestockLogsQuery(
+  productId: string,
+  opts: { page?: number; pageSize?: number; enabled?: boolean } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
+  const q = useQuery({
+    queryKey: productKeys.restockLogs(productId, page, pageSize),
+    queryFn: async () => {
+      const res = await productClient.listProductRestockLogs({
+        productId,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.logs, total: res.total };
+    },
+    enabled: enabled && !!productId,
+  });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }
 
 export function useCreateProductMutation() {

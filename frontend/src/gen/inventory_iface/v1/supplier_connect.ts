@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveSupplierRequest, ArchiveSupplierResponse, CreateSupplierRequest, CreateSupplierResponse, GetSupplierRequest, GetSupplierResponse, ListSuppliersRequest, ListSuppliersResponse, ResolveSuppliersRequest, ResolveSuppliersResponse, SearchSuppliersRequest, SearchSuppliersResponse, UpdateSupplierRequest, UpdateSupplierResponse } from "./supplier_pb.js";
+import { ArchiveSupplierRequest, ArchiveSupplierResponse, CreateSupplierRequest, CreateSupplierResponse, GetSupplierRequest, GetSupplierResponse, ListSupplierRestocksRequest, ListSupplierRestocksResponse, ListSuppliersRequest, ListSuppliersResponse, ResolveSuppliersRequest, ResolveSuppliersResponse, SearchSuppliersRequest, SearchSuppliersResponse, UpdateSupplierRequest, UpdateSupplierResponse } from "./supplier_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -76,6 +76,19 @@ export const SupplierService = {
       name: "ResolveSuppliers",
       I: ResolveSuppliersRequest,
       O: ResolveSuppliersResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ListSupplierRestocks returns the last restock of each product from this
+     * supplier in the caller's active warehouse (from product_last_restocks),
+     * newest-arrival first, paginated. Backs the supplier-detail page.
+     *
+     * @generated from rpc inventory_iface.v1.SupplierService.ListSupplierRestocks
+     */
+    listSupplierRestocks: {
+      name: "ListSupplierRestocks",
+      I: ListSupplierRestocksRequest,
+      O: ListSupplierRestocksResponse,
       kind: MethodKind.Unary,
     },
   }

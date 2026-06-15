@@ -51,6 +51,13 @@ service SupplierService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // ListSupplierRestocks returns the last restock of each product from this
+  // supplier in the caller's active warehouse (from product_last_restocks),
+  // newest-arrival first, paginated. Backs the supplier-detail page.
+  rpc ListSupplierRestocks(ListSupplierRestocksRequest) returns (ListSupplierRestocksResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 message ListSuppliersRequest {
@@ -111,3 +118,24 @@ message SupplierRef {
 }
 message ResolveSuppliersRequest { repeated string ids = 1; }
 message ResolveSuppliersResponse { repeated SupplierRef suppliers = 1; }
+
+// One product's last restock from a supplier (product_last_restocks). Product
+// resolved to a name via ResolveProducts on the client.
+message SupplierProductRestock {
+  string product_id = 1;
+  int64 last_price = 2;              // NET unit cost per base unit
+  int64 last_qty = 3;               // base units received
+  string last_discount_type = 4;    // FIXED | PERCENT
+  int64 last_discount_value = 5;     // FIXED minor units | PERCENT basis points
+  int64 last_created_at = 6;         // unix; PO (restock order) created
+  int64 last_arrived_at = 7;         // unix; receipt received_at
+}
+message ListSupplierRestocksRequest {
+  string supplier_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListSupplierRestocksResponse {
+  repeated SupplierProductRestock restocks = 1;
+  int32 total = 2;
+}

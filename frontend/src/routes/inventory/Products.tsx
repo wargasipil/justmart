@@ -1,22 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Box, Button, HStack, Input, Spinner, Stack, Table, Tabs, Text } from "@chakra-ui/react";
 import { Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import ColumnsPopover, { type GroupSpec } from "../../components/ColumnsPopover";
 import DatePickerField from "../../components/DatePicker";
 import ExportButton from "../../components/ExportButton";
 import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { downloadCsv } from "../../lib/csv";
-import { formatMoney } from "../../lib/format";
+import { formatDiscount, formatMoney, formatUnixOrDash } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { formatStock, unitGroupsFromCatalog } from "../../lib/stockUnit";
 import { fetchProductsForExport, useProductsQuery } from "../../queries/products";
+import { useSupplierRefs } from "../../queries/refs";
 import { useBusinessMode } from "../../queries/settings";
 import { useUnitBasesQuery } from "../../queries/units";
-import { usePreferencesStore } from "../../stores/preferences";
+import { DEFAULT_PRODUCT_COLUMNS, usePreferencesStore } from "../../stores/preferences";
 import { CreateProductDialog } from "./productDrawers";
 
 export default function Products() {
@@ -43,11 +46,112 @@ export default function Products() {
   const productsQ = useProductsQuery({ query, opnameBefore, onlyArchived, page, pageSize });
   const stockUnitsByBase = usePreferencesStore((s) => s.productStockUnitsByBase);
   const setStockUnitByBase = usePreferencesStore((s) => s.setProductStockUnitByBase);
+  const visibleCols = usePreferencesStore((s) => s.productListColumns);
+  const setVisibleCols = usePreferencesStore((s) => s.setProductListColumns);
+  const visibleSet = useMemo(() => new Set(visibleCols), [visibleCols]);
   const unitsQ = useUnitBasesQuery();
   const stockUnitGroups = useMemo(
     () => unitGroupsFromCatalog(unitsQ.data ?? [], productsQ.rows),
     [unitsQ.data, productsQ.rows],
   );
+
+  // Resolve the "last supplier that restocked" names for the page's rows.
+  const supplierRefs = useSupplierRefs(
+    useMemo(
+      () =>
+        Array.from(
+          new Set(productsQ.rows.map((m) => m.lastRestockSupplierId).filter(Boolean)),
+        ),
+      [productsQ.rows],
+    ),
+  );
+
+  const stockCell = (qty: bigint, m: Product) =>
+    formatStock(qty, m.units, m.unit, stockUnitsByBase);
+
+  // Column registry, in display order. `always` columns ignore the visibility
+  // toggle (name = identity). Restock columns render "—" until a receipt records
+  // one (lastRestockArrivedAt is the "has restock" sentinel).
+  type Col = { id: string; header: string; alignEnd?: boolean; always?: boolean; render: (m: Product) => ReactNode };
+  const allCols: Col[] = [
+    { id: "sku", header: t("inventory.products.sku"), render: (m) => <Text fontFamily="mono">{m.sku}</Text> },
+    { id: "name", header: t("inventory.products.name"), always: true, render: (m) => m.name },
+    { id: "unit", header: t("inventory.products.unit"), render: (m) => m.unit },
+    { id: "unitPrice", header: t("inventory.products.unitPrice"), render: (m) => formatMoney(m.unitPrice) },
+    { id: "ready", header: t("inventory.products.readyStock"), alignEnd: true, render: (m) => stockCell(m.readyStock, m) },
+    {
+      id: "onOrder",
+      header: t("inventory.products.onOrder"),
+      alignEnd: true,
+      render: (m) => (m.onOrderStock > 0n ? stockCell(m.onOrderStock, m) : "—"),
+    },
+    { id: "lastStocktake", header: t("inventory.products.lastStocktake"), render: (m) => m.lastStocktakeDate || "—" },
+    {
+      id: "lastRestockPrice",
+      header: t("inventory.products.lastRestockPrice"),
+      alignEnd: true,
+      render: (m) => (m.lastRestockArrivedAt > 0n ? formatMoney(m.lastRestockPrice) : "—"),
+    },
+    {
+      id: "lastRestockQty",
+      header: t("inventory.products.lastRestockQty"),
+      alignEnd: true,
+      render: (m) => (m.lastRestockArrivedAt > 0n ? m.lastRestockQty.toString() : "—"),
+    },
+    {
+      id: "lastRestockDiscount",
+      header: t("inventory.products.lastRestockDiscount"),
+      alignEnd: true,
+      render: (m) =>
+        m.lastRestockArrivedAt > 0n
+          ? formatDiscount(m.lastRestockDiscountType, m.lastRestockDiscountValue)
+          : "—",
+    },
+    {
+      id: "lastRestockCreated",
+      header: t("inventory.products.lastRestockCreated"),
+      render: (m) => formatUnixOrDash(m.lastRestockCreatedAt),
+    },
+    {
+      id: "lastRestockArrived",
+      header: t("inventory.products.lastRestockArrived"),
+      render: (m) => formatUnixOrDash(m.lastRestockArrivedAt),
+    },
+    {
+      id: "lastSupplier",
+      header: t("inventory.products.lastSupplier"),
+      render: (m) =>
+        m.lastRestockSupplierId ? supplierRefs.get(m.lastRestockSupplierId)?.name ?? "—" : "—",
+    },
+  ];
+  const cols = allCols.filter((c) => c.always || visibleSet.has(c.id));
+
+  const columnGroups: GroupSpec[] = [
+    {
+      id: "standard",
+      label: t("inventory.products.colGroupStandard"),
+      fields: [
+        { id: "sku", label: t("inventory.products.sku") },
+        { id: "unit", label: t("inventory.products.unit") },
+        { id: "unitPrice", label: t("inventory.products.unitPrice") },
+        { id: "ready", label: t("inventory.products.readyStock") },
+        { id: "onOrder", label: t("inventory.products.onOrder") },
+        { id: "lastStocktake", label: t("inventory.products.lastStocktake") },
+      ],
+    },
+    {
+      id: "restock",
+      label: t("inventory.products.colGroupRestock"),
+      fields: [
+        { id: "lastRestockPrice", label: t("inventory.products.lastRestockPrice") },
+        { id: "lastRestockQty", label: t("inventory.products.lastRestockQty") },
+        { id: "lastRestockDiscount", label: t("inventory.products.lastRestockDiscount") },
+        { id: "lastRestockCreated", label: t("inventory.products.lastRestockCreated") },
+        { id: "lastRestockArrived", label: t("inventory.products.lastRestockArrived") },
+        { id: "lastSupplier", label: t("inventory.products.lastSupplier") },
+      ],
+    },
+  ];
 
   const onExport = async () => {
     const rows = await fetchProductsForExport({ query, opnameBefore, onlyArchived });
@@ -61,6 +165,16 @@ export default function Products() {
         ready: Number(m.readyStock),
         onOrder: Number(m.onOrderStock),
         lastOpname: m.lastStocktakeDate || "",
+        lastRestockPrice: m.lastRestockArrivedAt > 0n ? Number(m.lastRestockPrice) : "",
+        lastRestockQty: m.lastRestockArrivedAt > 0n ? Number(m.lastRestockQty) : "",
+        lastRestockDiscount:
+          m.lastRestockArrivedAt > 0n
+            ? formatDiscount(m.lastRestockDiscountType, m.lastRestockDiscountValue)
+            : "",
+        lastRestockArrived: formatUnixOrDash(m.lastRestockArrivedAt),
+        lastSupplier: m.lastRestockSupplierId
+          ? supplierRefs.get(m.lastRestockSupplierId)?.name ?? ""
+          : "",
       })),
       [
         { key: "sku", header: t("inventory.products.sku") },
@@ -70,6 +184,11 @@ export default function Products() {
         { key: "ready", header: t("inventory.products.readyStock") },
         { key: "onOrder", header: t("inventory.products.onOrder") },
         { key: "lastOpname", header: t("inventory.products.lastStocktake") },
+        { key: "lastRestockPrice", header: t("inventory.products.lastRestockPrice") },
+        { key: "lastRestockQty", header: t("inventory.products.lastRestockQty") },
+        { key: "lastRestockDiscount", header: t("inventory.products.lastRestockDiscount") },
+        { key: "lastRestockArrived", header: t("inventory.products.lastRestockArrived") },
+        { key: "lastSupplier", header: t("inventory.products.lastSupplier") },
       ],
     );
   };
@@ -119,6 +238,12 @@ export default function Products() {
               onChangeBase={setStockUnitByBase}
               groups={stockUnitGroups}
             />
+            <ColumnsPopover
+              value={visibleSet}
+              onChange={(next) => setVisibleCols(Array.from(next))}
+              groups={columnGroups}
+              defaults={new Set(DEFAULT_PRODUCT_COLUMNS)}
+            />
             <ExportButton onExport={onExport} />
             <Button size="sm" colorPalette="blue" onClick={() => setCreateOpen(true)}>
               <Plus size={16} />
@@ -132,54 +257,44 @@ export default function Products() {
             <Spinner />
           </Box>
         ) : (
-          <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-            <Table.Header bg="bg.muted">
-              <Table.Row>
-                <Table.ColumnHeader>{t("inventory.products.sku")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.products.name")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.products.unit")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.products.unitPrice")}</Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">{t("inventory.products.readyStock")}</Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">{t("inventory.products.onOrder")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.products.lastStocktake")}</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {productsQ.rows.map((m) => (
-                <Table.Row
-                  key={m.id}
-                  cursor="pointer"
-                  _hover={{ bg: "bg.muted" }}
-                  onClick={() => navigate(`/products/${m.id}`)}
-                >
-                  <Table.Cell fontFamily="mono">{m.sku}</Table.Cell>
-                  <Table.Cell>{m.name}</Table.Cell>
-                  <Table.Cell>{m.unit}</Table.Cell>
-                  <Table.Cell>{formatMoney(m.unitPrice)}</Table.Cell>
-                  <Table.Cell textAlign="end">
-                    {formatStock(m.readyStock, m.units, m.unit, stockUnitsByBase)}
-                  </Table.Cell>
-                  <Table.Cell textAlign="end" color="fg.muted">
-                    {m.onOrderStock > 0n
-                      ? formatStock(m.onOrderStock, m.units, m.unit, stockUnitsByBase)
-                      : "—"}
-                  </Table.Cell>
-                  <Table.Cell color={m.lastStocktakeDate ? "fg" : "fg.muted"}>
-                    {m.lastStocktakeDate || "—"}
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-              {productsQ.rows.length === 0 && (
+          <Box overflowX="auto">
+            <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+              <Table.Header bg="bg.muted">
                 <Table.Row>
-                  <Table.Cell colSpan={8}>
-                    <Text color="fg.muted" textAlign="center" py={4}>
-                      {t("common.noResults")}
-                    </Text>
-                  </Table.Cell>
+                  {cols.map((c) => (
+                    <Table.ColumnHeader key={c.id} textAlign={c.alignEnd ? "end" : undefined}>
+                      {c.header}
+                    </Table.ColumnHeader>
+                  ))}
                 </Table.Row>
-              )}
-            </Table.Body>
-          </Table.Root>
+              </Table.Header>
+              <Table.Body>
+                {productsQ.rows.map((m) => (
+                  <Table.Row
+                    key={m.id}
+                    cursor="pointer"
+                    _hover={{ bg: "bg.muted" }}
+                    onClick={() => navigate(`/products/${m.id}`)}
+                  >
+                    {cols.map((c) => (
+                      <Table.Cell key={c.id} textAlign={c.alignEnd ? "end" : undefined}>
+                        {c.render(m)}
+                      </Table.Cell>
+                    ))}
+                  </Table.Row>
+                ))}
+                {productsQ.rows.length === 0 && (
+                  <Table.Row>
+                    <Table.Cell colSpan={cols.length}>
+                      <Text color="fg.muted" textAlign="center" py={4}>
+                        {t("common.noResults")}
+                      </Text>
+                    </Table.Cell>
+                  </Table.Row>
+                )}
+              </Table.Body>
+            </Table.Root>
+          </Box>
         )}
 
         <Pagination

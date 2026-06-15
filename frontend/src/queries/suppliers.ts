@@ -21,8 +21,46 @@ export const supplierKeys = {
   all: ["suppliers"] as const,
   list: (opts: Required<SuppliersQueryOpts>) =>
     [...supplierKeys.all, "list", opts] as const,
+  one: (id: string) => [...supplierKeys.all, "one", id] as const,
+  restocks: (id: string, page: number, pageSize: number) =>
+    [...supplierKeys.all, "restocks", id, page, pageSize] as const,
   search: (query: string) => [...supplierKeys.all, "search", query] as const,
 };
+
+// Single supplier (detail page).
+export function useSupplierQuery(id: string, enabled = true) {
+  return useQuery({
+    queryKey: supplierKeys.one(id),
+    queryFn: async () => {
+      const res = await supplierClient.getSupplier({ id });
+      return res.supplier;
+    },
+    enabled: enabled && !!id,
+  });
+}
+
+// Last restock of each product from this supplier in the active warehouse
+// (newest first). Server-paginated; returns { rows, total }. Backs the supplier
+// detail page. Warehouse-scoped via the X-Warehouse-Id header.
+export function useSupplierRestocksQuery(
+  supplierId: string,
+  opts: { page?: number; pageSize?: number; enabled?: boolean } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
+  const q = useQuery({
+    queryKey: supplierKeys.restocks(supplierId, page, pageSize),
+    queryFn: async () => {
+      const res = await supplierClient.listSupplierRestocks({
+        supplierId,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.restocks, total: res.total };
+    },
+    enabled: enabled && !!supplierId,
+  });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
+}
 
 // Server-paginated. Returns { rows, total }. For page-level name maps /
 // preload selects pass { pageSize: ALL_LIMIT } or use useAllSuppliersQuery.

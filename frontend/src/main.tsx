@@ -28,6 +28,7 @@ import Pos from "./routes/Pos";
 import Products from "./routes/inventory/Products";
 import ProductDetail from "./routes/inventory/ProductDetail";
 import Suppliers from "./routes/inventory/Suppliers";
+import SupplierDetail from "./routes/inventory/SupplierDetail";
 import Batches from "./routes/inventory/Batches";
 import Movements from "./routes/inventory/Movements";
 import Stocktake from "./routes/inventory/Stocktake";
@@ -114,6 +115,7 @@ const router = createBrowserRouter([
               // Moved to the top-level /products route; keep a redirect for old links.
               { path: "products", element: <Navigate to="/products" replace /> },
               { path: "suppliers", element: <Suppliers /> },
+              { path: "suppliers/:id", element: <SupplierDetail /> },
               { path: "batches", element: <Batches /> },
               { path: "movements", element: <Movements /> },
               { path: "stocktake", element: <Stocktake /> },

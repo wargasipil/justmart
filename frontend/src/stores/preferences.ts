@@ -4,6 +4,19 @@ import { persist } from "zustand/middleware";
 export type Theme = "light" | "dark";
 export type Locale = "id" | "en";
 
+// Default-visible product-list columns. The restock columns (lastRestock*,
+// lastSupplier) are intentionally OFF by default to keep the table uncluttered;
+// the user opts in via the Columns selector (persisted in productListColumns).
+// `name` is always shown (identity) and is not part of this toggle set.
+export const DEFAULT_PRODUCT_COLUMNS = [
+  "sku",
+  "unit",
+  "unitPrice",
+  "ready",
+  "onOrder",
+  "lastStocktake",
+];
+
 type PreferencesState = {
   theme: Theme;
   locale: Locale;
@@ -13,11 +26,15 @@ type PreferencesState = {
   // ("" = base / raw count). Rows whose product's base unit isn't in the map
   // render in their base unit by default.
   productStockUnitsByBase: Record<string, string>;
+  // Visible product-list columns (ids; see DEFAULT_PRODUCT_COLUMNS). Persisted so
+  // the user's column choice sticks across sessions.
+  productListColumns: string[];
   setTheme: (t: Theme) => void;
   setLocale: (l: Locale) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (c: boolean) => void;
   setProductStockUnitByBase: (baseName: string, deriv: string) => void;
+  setProductListColumns: (cols: string[]) => void;
 };
 
 // Flip Chakra's default semantic tokens between light/dark by toggling the
@@ -36,6 +53,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       locale: "id",
       sidebarCollapsed: false,
       productStockUnitsByBase: {},
+      productListColumns: DEFAULT_PRODUCT_COLUMNS,
       setTheme: (theme) => {
         applyTheme(theme);
         set({ theme });
@@ -50,6 +68,7 @@ export const usePreferencesStore = create<PreferencesState>()(
             [baseName]: deriv,
           },
         }),
+      setProductListColumns: (productListColumns) => set({ productListColumns }),
     }),
     {
       name: "justmart_preferences",

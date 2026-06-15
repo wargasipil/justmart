@@ -69,8 +69,12 @@ func (s *SaleService) AddItem(
 				Qty:               req.Msg.Qty,
 				BaseQty:           req.Msg.Qty * int32(unit.Factor),
 				UnitPriceSnapshot: unit.SellPrice,
+				DiscountType:      discountFixed,
 			}
-			item.LineTotal = computeLineTotal(item.Qty, item.UnitPriceSnapshot, item.LineDiscount)
+			item.LineDiscount, item.LineTotal, err = computeLineTotal(item.Qty, item.UnitPriceSnapshot, item.DiscountType, item.DiscountValue)
+			if err != nil {
+				return err
+			}
 			if err := tx.Create(&item).Error; err != nil {
 				return connect.NewError(connect.CodeInternal, err)
 			}
@@ -80,7 +84,10 @@ func (s *SaleService) AddItem(
 			existing.UnitName = unit.Name
 			existing.UnitFactor = unit.Factor
 			existing.UnitPriceSnapshot = unit.SellPrice
-			existing.LineTotal = computeLineTotal(existing.Qty, existing.UnitPriceSnapshot, existing.LineDiscount)
+			existing.LineDiscount, existing.LineTotal, err = computeLineTotal(existing.Qty, existing.UnitPriceSnapshot, existing.DiscountType, existing.DiscountValue)
+			if err != nil {
+				return err
+			}
 			if err := tx.Save(&existing).Error; err != nil {
 				return connect.NewError(connect.CodeInternal, err)
 			}

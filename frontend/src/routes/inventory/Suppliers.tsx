@@ -13,6 +13,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Archive, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -137,9 +138,14 @@ export default function Suppliers() {
 
 function Row({ supplier }: { supplier: Supplier }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const archive = useArchiveSupplierMutation();
   return (
-    <Table.Row>
+    <Table.Row
+      cursor="pointer"
+      _hover={{ bg: "bg.muted" }}
+      onClick={() => navigate(`/inventory/suppliers/${supplier.id}`)}
+    >
       <Table.Cell fontFamily="mono">{supplier.code}</Table.Cell>
       <Table.Cell>{supplier.name}</Table.Cell>
       <Table.Cell>{supplier.contactEmail}</Table.Cell>
@@ -151,7 +157,10 @@ function Row({ supplier }: { supplier: Supplier }) {
           <Button
             size="xs"
             variant="ghost"
-            onClick={() => archive.mutate({ id: supplier.id })}
+            onClick={(e) => {
+              e.stopPropagation();
+              archive.mutate({ id: supplier.id });
+            }}
           >
             <Archive size={14} />
             {t("common.archive")}

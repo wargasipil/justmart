@@ -105,6 +105,93 @@ func TestCreateReceipt_DiscountedCostFlowsToBatch(t *testing.T) {
 	require.Equal(t, int64(875), batch.CostPrice) // 8750 / 10 — discount reflected in COGS
 }
 
+// TestRestock_CreateAndAccept is the end-to-end spec check (inventory > Restock:
+// "ensure can create and accept restock"): create a restock order (PO), send it,
+// then ACCEPT the full quantity (receipt) — the PO becomes RECEIVED and the stock
+// actually lands (a batch + a PURCHASE movement for the accepted qty).
+// Engine-agnostic → runs on both SQLite and Postgres via make test-unit-all.
+func TestRestock_CreateAndAccept(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-RSTK", "Restock supplier")
+	prodID := e.seedProduct(t, "rstk-sku", "Restock product", 1000)
+
+	// Create the restock order — DRAFT, numbered, with the line.
+	po := e.createPO(t, supID, prodID, 10, 800)
+	require.NotEmpty(t, po.PoNo)
+	require.Equal(t, purchasingifacev1.POStatus_PO_STATUS_DRAFT, po.Status)
+	require.Len(t, po.Items, 1)
+
+	// Send, then ACCEPT the full ordered quantity.
+	e.sendPO(t, po.Id)
+	e.receiveFull(t, po.Id, po.Items[0].Id, 10, "RSTK-B1")
+
+	// Fully accepted: PO is RECEIVED and received_qty matches ordered.
+	got, err := e.pos.GetPurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.GetPurchaseOrderRequest{Id: po.Id}))
+	require.NoError(t, err)
+	require.Equal(t, purchasingifacev1.POStatus_PO_STATUS_RECEIVED, got.Msg.Order.Status)
+	require.Equal(t, int32(10), got.Msg.Order.Items[0].ReceivedQty)
+
+	// Stock landed: one batch + a PURCHASE movement summing to the accepted qty.
+	var batchCount int64
+	require.NoError(t, e.db.Model(&model.Batch{}).Where("product_id = ?", prodID).Count(&batchCount).Error)
+	require.Equal(t, int64(1), batchCount)
+	var onHand int64
+	require.NoError(t, e.db.Model(&model.StockMovement{}).
+		Joins("JOIN batches b ON b.id = stock_movements.batch_id").
+		Where("b.product_id = ?", prodID).
+		Select("COALESCE(SUM(stock_movements.qty), 0)").Scan(&onHand).Error)
+	require.Equal(t, int64(10), onHand)
+}
+
+// TestCreateReceipt_RecordsRestock proves a receipt upserts the last-value
+// restock row and appends a log row, with the NET unit cost + the PO line's
+// discount; a second receipt updates the single last row and appends a 2nd log.
+func TestCreateReceipt_RecordsRestock(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-RS", "Restock supplier")
+	prodID := e.seedProduct(t, "rs-sku", "Restock product", 1000)
+
+	// 10 × 1000 gross, 10% (1000 bps) line discount → net 9000 → net unit 900.
+	poResp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000, DiscountType: "PERCENT", DiscountValue: 1000},
+		},
+	}))
+	require.NoError(t, err)
+	po := poResp.Msg.Order
+	e.sendPO(t, po.Id)
+
+	e.receiveFull(t, po.Id, po.Items[0].Id, 4, "RS-B1") // receive 4 of 10
+
+	var lasts []model.ProductLastRestock
+	require.NoError(t, e.db.Where("product_id = ? AND supplier_id = ?", prodID, supID).Find(&lasts).Error)
+	require.Len(t, lasts, 1)
+	require.Equal(t, int64(900), lasts[0].LastPrice) // NET per base unit
+	require.Equal(t, int64(4), lasts[0].LastQty)
+	require.Equal(t, "PERCENT", lasts[0].LastDiscountType)
+	require.Equal(t, int64(1000), lasts[0].LastDiscountValue)
+	require.False(t, lasts[0].LastArrivedAt.IsZero())
+	require.False(t, lasts[0].LastCreatedAt.IsZero())
+
+	var logs []model.ProductRestockLog
+	require.NoError(t, e.db.Where("product_id = ?", prodID).Find(&logs).Error)
+	require.Len(t, logs, 1)
+	require.Equal(t, int64(900), logs[0].Price)
+	require.Equal(t, int64(4), logs[0].Qty)
+	require.NotNil(t, logs[0].ReceiptID)
+
+	// Second receipt: last-value stays ONE row (updated qty), log appends → 2.
+	e.receiveFull(t, po.Id, po.Items[0].Id, 6, "RS-B2")
+	require.NoError(t, e.db.Where("product_id = ? AND supplier_id = ?", prodID, supID).Find(&lasts).Error)
+	require.Len(t, lasts, 1)
+	require.Equal(t, int64(6), lasts[0].LastQty) // updated to the latest receipt
+	require.NoError(t, e.db.Where("product_id = ?", prodID).Find(&logs).Error)
+	require.Len(t, logs, 2)
+}
+
 func TestCreateReceipt_OverReceiveRejected(t *testing.T) {
 	t.Parallel()
 	e := newPOEnv(t)

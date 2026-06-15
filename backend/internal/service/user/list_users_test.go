@@ -9,6 +9,7 @@ import (
 
 	authifacev1 "github.com/justmart/backend/gen/auth_iface/v1"
 	userifacev1 "github.com/justmart/backend/gen/user_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 	usersvc "github.com/justmart/backend/internal/service/user"
 	"github.com/justmart/backend/internal/service/servicetest"
 )
@@ -38,6 +39,37 @@ func TestListUsers_ReturnsCreated(t *testing.T) {
 	}
 	require.True(t, emails[servicetest.OwnerEmail])
 	require.True(t, emails["pharma@test.local"])
+}
+
+// An APOTEKER user created in pharmacy mode stays visible after switching to
+// retail — the mode-switch doesn't auto-downgrade or hide existing users; only
+// NEW assignment of a pharmacy-only role is blocked. (Read path is mode-agnostic.)
+func TestListUsers_ExistingApotekerVisibleInRetail(t *testing.T) {
+	t.Parallel()
+	db := servicetest.NewDB(t, servicetest.NewConfig(t))
+	svc := usersvc.NewUserService(db)
+
+	require.NoError(t, common.SetBussinessType(context.Background(), db, common.BussinessTypePharmacyShop))
+	_, err := svc.CreateUser(context.Background(), connect.NewRequest(&userifacev1.CreateUserRequest{
+		Email:    "apoteker@test.local",
+		Password: "supersecret",
+		Role:     authifacev1.Role_ROLE_APOTEKER,
+	}))
+	require.NoError(t, err)
+
+	// Shop switches to retail; the APOTEKER user must still list with its role.
+	require.NoError(t, common.SetBussinessType(context.Background(), db, common.BussinessTypeRetail))
+	resp, err := svc.ListUsers(context.Background(), connect.NewRequest(&userifacev1.ListUsersRequest{}))
+	require.NoError(t, err)
+	var found *authifacev1.Role
+	for _, u := range resp.Msg.Users {
+		if u.Email == "apoteker@test.local" {
+			r := u.Role
+			found = &r
+		}
+	}
+	require.NotNil(t, found, "existing APOTEKER user should still be listed in retail")
+	require.Equal(t, authifacev1.Role_ROLE_APOTEKER, *found)
 }
 
 func TestListUsers_EmptyDB(t *testing.T) {

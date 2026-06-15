@@ -57,6 +57,9 @@ const (
 	// ProductServiceListProductUnitPricesProcedure is the fully-qualified name of the ProductService's
 	// ListProductUnitPrices RPC.
 	ProductServiceListProductUnitPricesProcedure = "/inventory_iface.v1.ProductService/ListProductUnitPrices"
+	// ProductServiceListProductRestockLogsProcedure is the fully-qualified name of the ProductService's
+	// ListProductRestockLogs RPC.
+	ProductServiceListProductRestockLogsProcedure = "/inventory_iface.v1.ProductService/ListProductRestockLogs"
 	// ProductServiceSearchProductsProcedure is the fully-qualified name of the ProductService's
 	// SearchProducts RPC.
 	ProductServiceSearchProductsProcedure = "/inventory_iface.v1.ProductService/SearchProducts"
@@ -79,6 +82,9 @@ type ProductServiceClient interface {
 	UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error)
 	ListProductPrices(context.Context, *connect.Request[v1.ListProductPricesRequest]) (*connect.Response[v1.ListProductPricesResponse], error)
 	ListProductUnitPrices(context.Context, *connect.Request[v1.ListProductUnitPricesRequest]) (*connect.Response[v1.ListProductUnitPricesResponse], error)
+	// ListProductRestockLogs returns the restock history (append-only log) for a
+	// product in the caller's active warehouse, newest-arrival first, paginated.
+	ListProductRestockLogs(context.Context, *connect.Request[v1.ListProductRestockLogsRequest]) (*connect.Response[v1.ListProductRestockLogsResponse], error)
 	SearchProducts(context.Context, *connect.Request[v1.SearchProductsRequest]) (*connect.Response[v1.SearchProductsResponse], error)
 	// ResolveProducts returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
@@ -148,6 +154,12 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(productServiceMethods.ByName("ListProductUnitPrices")),
 			connect.WithClientOptions(opts...),
 		),
+		listProductRestockLogs: connect.NewClient[v1.ListProductRestockLogsRequest, v1.ListProductRestockLogsResponse](
+			httpClient,
+			baseURL+ProductServiceListProductRestockLogsProcedure,
+			connect.WithSchema(productServiceMethods.ByName("ListProductRestockLogs")),
+			connect.WithClientOptions(opts...),
+		),
 		searchProducts: connect.NewClient[v1.SearchProductsRequest, v1.SearchProductsResponse](
 			httpClient,
 			baseURL+ProductServiceSearchProductsProcedure,
@@ -171,17 +183,18 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // productServiceClient implements ProductServiceClient.
 type productServiceClient struct {
-	listProducts          *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
-	getProduct            *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
-	createProduct         *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
-	updateProduct         *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
-	archiveProduct        *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
-	unarchiveProduct      *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
-	listProductPrices     *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
-	listProductUnitPrices *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
-	searchProducts        *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
-	resolveProducts       *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
-	listLowStock          *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
+	listProducts           *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
+	getProduct             *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
+	createProduct          *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
+	updateProduct          *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
+	archiveProduct         *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
+	unarchiveProduct       *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
+	listProductPrices      *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
+	listProductUnitPrices  *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
+	listProductRestockLogs *connect.Client[v1.ListProductRestockLogsRequest, v1.ListProductRestockLogsResponse]
+	searchProducts         *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
+	resolveProducts        *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
+	listLowStock           *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
 }
 
 // ListProducts calls inventory_iface.v1.ProductService.ListProducts.
@@ -224,6 +237,11 @@ func (c *productServiceClient) ListProductUnitPrices(ctx context.Context, req *c
 	return c.listProductUnitPrices.CallUnary(ctx, req)
 }
 
+// ListProductRestockLogs calls inventory_iface.v1.ProductService.ListProductRestockLogs.
+func (c *productServiceClient) ListProductRestockLogs(ctx context.Context, req *connect.Request[v1.ListProductRestockLogsRequest]) (*connect.Response[v1.ListProductRestockLogsResponse], error) {
+	return c.listProductRestockLogs.CallUnary(ctx, req)
+}
+
 // SearchProducts calls inventory_iface.v1.ProductService.SearchProducts.
 func (c *productServiceClient) SearchProducts(ctx context.Context, req *connect.Request[v1.SearchProductsRequest]) (*connect.Response[v1.SearchProductsResponse], error) {
 	return c.searchProducts.CallUnary(ctx, req)
@@ -250,6 +268,9 @@ type ProductServiceHandler interface {
 	UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error)
 	ListProductPrices(context.Context, *connect.Request[v1.ListProductPricesRequest]) (*connect.Response[v1.ListProductPricesResponse], error)
 	ListProductUnitPrices(context.Context, *connect.Request[v1.ListProductUnitPricesRequest]) (*connect.Response[v1.ListProductUnitPricesResponse], error)
+	// ListProductRestockLogs returns the restock history (append-only log) for a
+	// product in the caller's active warehouse, newest-arrival first, paginated.
+	ListProductRestockLogs(context.Context, *connect.Request[v1.ListProductRestockLogsRequest]) (*connect.Response[v1.ListProductRestockLogsResponse], error)
 	SearchProducts(context.Context, *connect.Request[v1.SearchProductsRequest]) (*connect.Response[v1.SearchProductsResponse], error)
 	// ResolveProducts returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
@@ -315,6 +336,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		connect.WithSchema(productServiceMethods.ByName("ListProductUnitPrices")),
 		connect.WithHandlerOptions(opts...),
 	)
+	productServiceListProductRestockLogsHandler := connect.NewUnaryHandler(
+		ProductServiceListProductRestockLogsProcedure,
+		svc.ListProductRestockLogs,
+		connect.WithSchema(productServiceMethods.ByName("ListProductRestockLogs")),
+		connect.WithHandlerOptions(opts...),
+	)
 	productServiceSearchProductsHandler := connect.NewUnaryHandler(
 		ProductServiceSearchProductsProcedure,
 		svc.SearchProducts,
@@ -351,6 +378,8 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceListProductPricesHandler.ServeHTTP(w, r)
 		case ProductServiceListProductUnitPricesProcedure:
 			productServiceListProductUnitPricesHandler.ServeHTTP(w, r)
+		case ProductServiceListProductRestockLogsProcedure:
+			productServiceListProductRestockLogsHandler.ServeHTTP(w, r)
 		case ProductServiceSearchProductsProcedure:
 			productServiceSearchProductsHandler.ServeHTTP(w, r)
 		case ProductServiceResolveProductsProcedure:
@@ -396,6 +425,10 @@ func (UnimplementedProductServiceHandler) ListProductPrices(context.Context, *co
 
 func (UnimplementedProductServiceHandler) ListProductUnitPrices(context.Context, *connect.Request[v1.ListProductUnitPricesRequest]) (*connect.Response[v1.ListProductUnitPricesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ListProductUnitPrices is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) ListProductRestockLogs(context.Context, *connect.Request[v1.ListProductRestockLogsRequest]) (*connect.Response[v1.ListProductRestockLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ListProductRestockLogs is not implemented"))
 }
 
 func (UnimplementedProductServiceHandler) SearchProducts(context.Context, *connect.Request[v1.SearchProductsRequest]) (*connect.Response[v1.SearchProductsResponse], error) {

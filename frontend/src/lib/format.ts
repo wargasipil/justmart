@@ -67,3 +67,16 @@ export function formatDateTime(input: Date | string | number): string {
 export function formatUnix(sec: number | bigint): string {
   return formatDateTime(Number(sec) * 1000);
 }
+
+// For a unix-seconds timestamp that may be 0 (= absent) — renders an em dash.
+export function formatUnixOrDash(sec: number | bigint): string {
+  return Number(sec) > 0 ? formatUnix(sec) : "—";
+}
+
+// Renders a stored discount (type+value): PERCENT -> "10%" (value is basis
+// points), FIXED -> money. "—" when no discount. Shared by the restock surfaces
+// (product detail/list, supplier detail) + matches the purchasing/POS convention.
+export function formatDiscount(type: string, value: number | bigint): string {
+  if (Number(value) === 0) return "—";
+  return type === "PERCENT" ? `${Number(value) / 100}%` : formatMoney(value);
+}

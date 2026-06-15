@@ -29,6 +29,28 @@ func TestDetachPrescription_HappyPath(t *testing.T) {
 	require.Empty(t, resp.Msg.Sale.PrescriptionId)
 }
 
+// Detach succeeds under an explicit retail mode when no Rx-required items are in
+// the cart (detach itself is not pharmacy-gated).
+func TestDetachPrescription_RetailMode(t *testing.T) {
+	t.Parallel()
+	svc, ctx, db, ownerID := newSaleSvc(t)
+	setRetailMode(t, db)
+	prodID := seedRxProduct(t, db, "AMOX", "Amoxicillin", 1000)
+	custID := seedCustomer(t, db, "Budi")
+	rxID := seedPrescription(t, db, custID, ownerID, prodID, 10)
+	saleID := startDraft(t, svc, ctx)
+	_, err := svc.AttachPrescription(ctx, connect.NewRequest(&posifacev1.AttachPrescriptionRequest{
+		SaleId: saleID, PrescriptionId: rxID,
+	}))
+	require.NoError(t, err)
+
+	resp, err := svc.DetachPrescription(ctx, connect.NewRequest(&posifacev1.DetachPrescriptionRequest{
+		SaleId: saleID,
+	}))
+	require.NoError(t, err)
+	require.Empty(t, resp.Msg.Sale.PrescriptionId)
+}
+
 func TestDetachPrescription_BlockedWithRxItemInCart(t *testing.T) {
 	t.Parallel()
 	svc, ctx, db, ownerID := newSaleSvc(t)

@@ -29,13 +29,27 @@ import {
   useUpdateUserRoleMutation,
   useUsersQuery,
 } from "../queries/users";
+import { useBusinessMode } from "../queries/settings";
 
 const ROLE_OPTIONS: { value: Role; key: string }[] = [
   { value: Role.OWNER, key: "owner" },
-  { value: Role.PHARMACIST, key: "pharmacist" },
-  { value: Role.APOTEKER, key: "apoteker" },
+  { value: Role.PHARMACIST, key: "pharmacist" }, // labeled "Admin" (manager tier, both modes)
+  { value: Role.APOTEKER, key: "apoteker" }, // pharmacy-only
   { value: Role.CASHIER, key: "cashier" },
 ];
+
+// useRoleOptions returns the assignable roles for the current business mode:
+// APOTEKER (the Rx-authority role) is pharmacy-only — kept out of retail to stop
+// roles mixing across modes (mirrors the backend rolesByMode). `include` forces a
+// role to remain even when filtered, so an existing out-of-mode user's current
+// role still renders in their row instead of showing blank.
+function useRoleOptions(include?: Role): { value: string; label: string }[] {
+  const { t } = useTranslation();
+  const { isPharmacy } = useBusinessMode();
+  return ROLE_OPTIONS.filter(
+    (o) => o.value !== Role.APOTEKER || isPharmacy || o.value === include,
+  ).map((o) => ({ value: String(o.value), label: t(`dashboard.roles.${o.key}`) }));
+}
 
 const CreateSchema = z.object({
   email: z.string().email(),
@@ -104,6 +118,9 @@ function UserRow({ user }: { user: User }) {
   const setActive = useSetUserActiveMutation();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const canChangePw = me?.role === Role.OWNER && me?.id !== user.id;
+  // Keep this user's current role visible even if it's out-of-mode (e.g. an
+  // existing APOTEKER while in retail) so the select shows it, not a blank.
+  const roleItems = useRoleOptions(user.role);
 
   return (
     <Table.Row>
@@ -120,10 +137,7 @@ function UserRow({ user }: { user: User }) {
               setRole.mutate({ userId: user.id, role: next });
             }
           }}
-          items={ROLE_OPTIONS.map((o) => ({
-            value: String(o.value),
-            label: t(`dashboard.roles.${o.key}`),
-          }))}
+          items={roleItems}
           itemToString={(o) => o.label}
           itemToValue={(o) => o.value}
         />
@@ -226,6 +240,7 @@ function CreateUserDrawer({ open, onClose }: { open: boolean; onClose: () => voi
 function RoleSelect({ form }: { form: ReturnType<typeof useForm<CreateValues>> }) {
   const { t } = useTranslation();
   const value = form.watch("role");
+  const roleItems = useRoleOptions(); // new user → no out-of-mode role to force-include
   return (
     <Stack gap={1}>
       <Text fontSize="sm" fontWeight="medium" color="fg.muted">
@@ -234,10 +249,7 @@ function RoleSelect({ form }: { form: ReturnType<typeof useForm<CreateValues>> }
       <EnumSelect
         value={String(value)}
         onChange={(v) => form.setValue("role", Number(v))}
-        items={ROLE_OPTIONS.map((o) => ({
-          value: String(o.value),
-          label: t(`dashboard.roles.${o.key}`),
-        }))}
+        items={roleItems}
         itemToString={(o) => o.label}
         itemToValue={(o) => o.value}
       />

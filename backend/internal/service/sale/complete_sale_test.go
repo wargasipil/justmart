@@ -36,6 +36,52 @@ func TestCompleteSale_HappyPath(t *testing.T) {
 	require.NotZero(t, sale.CompletedAt)
 }
 
+// A sale with a per-line discount + a cart discount completes on the discounted
+// total, and the cash guard is driven by that discounted total.
+func TestCompleteSale_WithDiscounts(t *testing.T) {
+	t.Parallel()
+	svc, ctx, db, ownerID := newSaleSvc(t)
+	productID := seedProduct(t, db, "cs-disc", "Vitamin C", 1000)
+	seedStock(t, db, productID, ownerID, 50)
+	saleID := startDraft(t, svc, ctx)
+	add, err := svc.AddItem(ctx, connect.NewRequest(&posifacev1.AddItemRequest{
+		SaleId: saleID, ProductId: productID, Qty: 2, // gross 2000
+	}))
+	require.NoError(t, err)
+	itemID := add.Msg.Sale.Items[0].Id
+
+	// Line discount: FIXED 200 → line_total 1800, subtotal 1800.
+	_, err = svc.SetLineDiscount(ctx, connect.NewRequest(&posifacev1.SetLineDiscountRequest{
+		SaleId: saleID, ItemId: itemID, DiscountType: "FIXED", DiscountValue: 200,
+	}))
+	require.NoError(t, err)
+	// Cart discount: PERCENT 10% of 1800 → 180 → total 1620.
+	cd, err := svc.SetCartDiscount(ctx, connect.NewRequest(&posifacev1.SetCartDiscountRequest{
+		SaleId: saleID, DiscountType: "PERCENT", DiscountValue: 1000,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int64(1800), cd.Msg.Sale.Subtotal)
+	require.Equal(t, int64(180), cd.Msg.Sale.CartDiscount)
+	require.Equal(t, int64(1620), cd.Msg.Sale.Total)
+
+	// Underpaying the discounted total is rejected.
+	_, err = svc.CompleteSale(ctx, connect.NewRequest(&posifacev1.CompleteSaleRequest{
+		SaleId: saleID, PaymentSource: posifacev1.PaymentSource_PAYMENT_SOURCE_CASH, PaidAmount: 1000,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+
+	// Paying the discounted total completes.
+	res, err := svc.CompleteSale(ctx, connect.NewRequest(&posifacev1.CompleteSaleRequest{
+		SaleId: saleID, PaymentSource: posifacev1.PaymentSource_PAYMENT_SOURCE_CASH, PaidAmount: 2000,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, posifacev1.SaleStatus_SALE_STATUS_COMPLETED, res.Msg.Sale.Status)
+	require.Equal(t, int64(1620), res.Msg.Sale.Total)
+	require.Equal(t, int64(180), res.Msg.Sale.CartDiscount)
+	require.Equal(t, int64(200), res.Msg.Sale.Items[0].LineDiscount)
+}
+
 func TestCompleteSale_EmptyCart(t *testing.T) {
 	t.Parallel()
 	svc, ctx, _, _ := newSaleSvc(t)

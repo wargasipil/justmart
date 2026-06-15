@@ -166,6 +166,20 @@ export class Sale extends Message<Sale> {
    */
   biayaJasa = protoInt64.zero;
 
+  /**
+   * Cart-level discount. cart_discount (field 8) is the RESOLVED amount (minor
+   * units); these carry the persisted "info": cart_discount_value is minor units
+   * when FIXED, basis points (percent*100) when PERCENT (empty type => FIXED).
+   *
+   * @generated from field: string cart_discount_type = 20;
+   */
+  cartDiscountType = "";
+
+  /**
+   * @generated from field: int64 cart_discount_value = 21;
+   */
+  cartDiscountValue = protoInt64.zero;
+
   constructor(data?: PartialMessage<Sale>) {
     super();
     proto3.util.initPartial(data, this);
@@ -192,6 +206,8 @@ export class Sale extends Message<Sale> {
     { no: 17, name: "warehouse_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 18, name: "customer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 19, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 20, name: "cart_discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 21, name: "cart_discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Sale {
@@ -292,6 +308,21 @@ export class SaleItem extends Message<SaleItem> {
    */
   baseQty = 0;
 
+  /**
+   * Per-line discount. line_discount (field 7) is the RESOLVED amount (minor
+   * units); these carry the persisted "info": discount_value is minor units when
+   * FIXED, basis points (percent*100, e.g. 12.5% = 1250) when PERCENT (empty
+   * type => FIXED).
+   *
+   * @generated from field: string discount_type = 14;
+   */
+  discountType = "";
+
+  /**
+   * @generated from field: int64 discount_value = 15;
+   */
+  discountValue = protoInt64.zero;
+
   constructor(data?: PartialMessage<SaleItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -313,6 +344,8 @@ export class SaleItem extends Message<SaleItem> {
     { no: 11, name: "unit_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 12, name: "unit_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 13, name: "base_qty", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 14, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 15, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaleItem {
@@ -1161,6 +1194,192 @@ export class SetServiceFeeResponse extends Message<SetServiceFeeResponse> {
 
   static equals(a: SetServiceFeeResponse | PlainMessage<SetServiceFeeResponse> | undefined, b: SetServiceFeeResponse | PlainMessage<SetServiceFeeResponse> | undefined): boolean {
     return proto3.util.equals(SetServiceFeeResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetLineDiscountRequest
+ */
+export class SetLineDiscountRequest extends Message<SetLineDiscountRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * @generated from field: string item_id = 2;
+   */
+  itemId = "";
+
+  /**
+   * 'FIXED' (default) | 'PERCENT'
+   *
+   * @generated from field: string discount_type = 3;
+   */
+  discountType = "";
+
+  /**
+   * FIXED=minor units; PERCENT=basis points (percent*100); >= 0
+   *
+   * @generated from field: int64 discount_value = 4;
+   */
+  discountValue = protoInt64.zero;
+
+  constructor(data?: PartialMessage<SetLineDiscountRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetLineDiscountRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "item_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetLineDiscountRequest {
+    return new SetLineDiscountRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetLineDiscountRequest {
+    return new SetLineDiscountRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetLineDiscountRequest {
+    return new SetLineDiscountRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetLineDiscountRequest | PlainMessage<SetLineDiscountRequest> | undefined, b: SetLineDiscountRequest | PlainMessage<SetLineDiscountRequest> | undefined): boolean {
+    return proto3.util.equals(SetLineDiscountRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetLineDiscountResponse
+ */
+export class SetLineDiscountResponse extends Message<SetLineDiscountResponse> {
+  /**
+   * @generated from field: pos_iface.v1.Sale sale = 1;
+   */
+  sale?: Sale;
+
+  constructor(data?: PartialMessage<SetLineDiscountResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetLineDiscountResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale", kind: "message", T: Sale },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetLineDiscountResponse {
+    return new SetLineDiscountResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetLineDiscountResponse {
+    return new SetLineDiscountResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetLineDiscountResponse {
+    return new SetLineDiscountResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetLineDiscountResponse | PlainMessage<SetLineDiscountResponse> | undefined, b: SetLineDiscountResponse | PlainMessage<SetLineDiscountResponse> | undefined): boolean {
+    return proto3.util.equals(SetLineDiscountResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetCartDiscountRequest
+ */
+export class SetCartDiscountRequest extends Message<SetCartDiscountRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * 'FIXED' (default) | 'PERCENT'
+   *
+   * @generated from field: string discount_type = 2;
+   */
+  discountType = "";
+
+  /**
+   * FIXED=minor units; PERCENT=basis points (percent*100); >= 0
+   *
+   * @generated from field: int64 discount_value = 3;
+   */
+  discountValue = protoInt64.zero;
+
+  constructor(data?: PartialMessage<SetCartDiscountRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetCartDiscountRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetCartDiscountRequest {
+    return new SetCartDiscountRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetCartDiscountRequest {
+    return new SetCartDiscountRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetCartDiscountRequest {
+    return new SetCartDiscountRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetCartDiscountRequest | PlainMessage<SetCartDiscountRequest> | undefined, b: SetCartDiscountRequest | PlainMessage<SetCartDiscountRequest> | undefined): boolean {
+    return proto3.util.equals(SetCartDiscountRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetCartDiscountResponse
+ */
+export class SetCartDiscountResponse extends Message<SetCartDiscountResponse> {
+  /**
+   * @generated from field: pos_iface.v1.Sale sale = 1;
+   */
+  sale?: Sale;
+
+  constructor(data?: PartialMessage<SetCartDiscountResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetCartDiscountResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale", kind: "message", T: Sale },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetCartDiscountResponse {
+    return new SetCartDiscountResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetCartDiscountResponse {
+    return new SetCartDiscountResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetCartDiscountResponse {
+    return new SetCartDiscountResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetCartDiscountResponse | PlainMessage<SetCartDiscountResponse> | undefined, b: SetCartDiscountResponse | PlainMessage<SetCartDiscountResponse> | undefined): boolean {
+    return proto3.util.equals(SetCartDiscountResponse, a, b);
   }
 }
 

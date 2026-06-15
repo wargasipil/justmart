@@ -123,6 +123,56 @@ func (s *ProductService) enrichLastStocktake(
 	return nil
 }
 
+// enrichLastRestock fills the last_restock_* fields for a page of products: the
+// single most-recent restock across all suppliers for the product in the active
+// warehouse, from product_last_restocks. Empty until a receipt records one.
+func (s *ProductService) enrichLastRestock(
+	ctx context.Context,
+	caller auth.Principal,
+	meds []*inventoryifacev1.Product,
+) error {
+	if len(meds) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(meds))
+	for _, md := range meds {
+		ids = append(ids, md.Id)
+	}
+	warehouseID, err := common.ResolveWarehouse(ctx, s.db, caller)
+	if err != nil {
+		return err
+	}
+	var rows []model.ProductLastRestock
+	if err := s.db.WithContext(ctx).
+		Where("warehouse_id = ? AND product_id IN ?", warehouseID, ids).
+		Order("last_arrived_at DESC, updated_at DESC").
+		Find(&rows).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	// Rows are newest-first; keep the first (= latest) seen per product.
+	byID := make(map[string]*model.ProductLastRestock, len(rows))
+	for i := range rows {
+		r := &rows[i]
+		if _, ok := byID[r.ProductID]; !ok {
+			byID[r.ProductID] = r
+		}
+	}
+	for _, md := range meds {
+		r, ok := byID[md.Id]
+		if !ok {
+			continue
+		}
+		md.LastRestockPrice = r.LastPrice
+		md.LastRestockQty = r.LastQty
+		md.LastRestockDiscountType = r.LastDiscountType
+		md.LastRestockDiscountValue = r.LastDiscountValue
+		md.LastRestockCreatedAt = r.LastCreatedAt.Unix()
+		md.LastRestockArrivedAt = r.LastArrivedAt.Unix()
+		md.LastRestockSupplierId = r.SupplierID
+	}
+	return nil
+}
+
 // attachUnits batch-loads each product's active units (base first, then by
 // factor) and sets them on the protos. No N+1.
 func (s *ProductService) attachUnits(ctx context.Context, meds []*inventoryifacev1.Product) error {

@@ -250,7 +250,7 @@
     "pingApi": "Ping API",
     "roles": {
       "owner": "Owner",
-      "pharmacist": "Manager",
+      "pharmacist": "Admin",
       "apoteker": "Apoteker",
       "cashier": "Cashier",
       "unknown": "Unknown"
@@ -366,6 +366,10 @@
     "paymentNonCash": "Non-cash",
     "paid": "Paid",
     "change": "Change",
+    "discount": "Discount",
+    "lineDiscount": "Item discount",
+    "discountApply": "Apply",
+    "discountClear": "Clear",
     "exactAmount": "Exact",
     "complete": "Complete (F8)",
     "cancel": "Cancel sale",
@@ -551,7 +555,24 @@
       "markup": "Markup",
       "lastCost": "Last cost",
       "costLabel": "Cost",
-      "marginPct": "{{pct}}% margin"
+      "marginPct": "{{pct}}% margin",
+      "soldPriceHistory": "Sold price history",
+      "restockPriceHistory": "Restock price history",
+      "restockHistoryEmpty": "No restocks recorded yet.",
+      "restockSupplier": "Supplier",
+      "restockPrice": "Price",
+      "restockQty": "Qty",
+      "restockDiscount": "Discount",
+      "restockCreated": "Created",
+      "restockArrived": "Arrived",
+      "lastRestockPrice": "Restock price",
+      "lastRestockQty": "Restock qty",
+      "lastRestockDiscount": "Restock discount",
+      "lastRestockCreated": "Restock created",
+      "lastRestockArrived": "Restock arrived",
+      "lastSupplier": "Last supplier",
+      "colGroupStandard": "Standard",
+      "colGroupRestock": "Restock"
     },
     "suppliers": {
       "title": "Suppliers",
@@ -565,7 +586,11 @@
       "bankName": "Bank",
       "bankAccountNumber": "Account number",
       "bankAccountHolder": "Account holder",
-      "searchPlaceholder": "Search by code / name…"
+      "searchPlaceholder": "Search by code / name…",
+      "infoSection": "Information",
+      "restockSection": "Products & restock",
+      "restockProduct": "Product",
+      "restockEmpty": "No restocks recorded in this warehouse yet."
     },
     "batches": {
       "title": "Batches",

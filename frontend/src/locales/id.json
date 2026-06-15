@@ -250,7 +250,7 @@
     "pingApi": "Ping API",
     "roles": {
       "owner": "Pemilik",
-      "pharmacist": "Manajer",
+      "pharmacist": "Admin",
       "apoteker": "Apoteker",
       "cashier": "Kasir",
       "unknown": "Tidak diketahui"
@@ -366,6 +366,10 @@
     "paymentNonCash": "Non-tunai",
     "paid": "Dibayar",
     "change": "Kembalian",
+    "discount": "Diskon",
+    "lineDiscount": "Diskon item",
+    "discountApply": "Terapkan",
+    "discountClear": "Hapus",
     "exactAmount": "Uang pas",
     "complete": "Selesaikan (F8)",
     "cancel": "Batalkan transaksi",
@@ -551,7 +555,24 @@
       "markup": "Markup",
       "lastCost": "Harga modal terakhir",
       "costLabel": "Modal",
-      "marginPct": "margin {{pct}}%"
+      "marginPct": "margin {{pct}}%",
+      "soldPriceHistory": "Riwayat harga jual",
+      "restockPriceHistory": "Riwayat harga restok",
+      "restockHistoryEmpty": "Belum ada restok.",
+      "restockSupplier": "Pemasok",
+      "restockPrice": "Harga",
+      "restockQty": "Qty",
+      "restockDiscount": "Diskon",
+      "restockCreated": "Dibuat",
+      "restockArrived": "Tiba",
+      "lastRestockPrice": "Harga restok",
+      "lastRestockQty": "Qty restok",
+      "lastRestockDiscount": "Diskon restok",
+      "lastRestockCreated": "Restok dibuat",
+      "lastRestockArrived": "Restok tiba",
+      "lastSupplier": "Pemasok terakhir",
+      "colGroupStandard": "Standar",
+      "colGroupRestock": "Restok"
     },
     "suppliers": {
       "title": "Pemasok",
@@ -565,7 +586,11 @@
       "bankName": "Bank",
       "bankAccountNumber": "No. Rekening",
       "bankAccountHolder": "Atas Nama",
-      "searchPlaceholder": "Cari kode / nama…"
+      "searchPlaceholder": "Cari kode / nama…",
+      "infoSection": "Informasi",
+      "restockSection": "Produk & restok",
+      "restockProduct": "Produk",
+      "restockEmpty": "Belum ada restok di gudang ini."
     },
     "batches": {
       "title": "Batch",
