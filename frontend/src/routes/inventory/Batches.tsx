@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,6 +21,7 @@ import DateRangeFilter, { resolveRange, type DateRange } from "../../components/
 import EnumSelect from "../../components/EnumSelect";
 import EntityDrawer from "../../components/EntityDrawer";
 import ExpiryBadge from "../../components/ExpiryBadge";
+import ImportStockDialog from "./ImportStockDialog";
 import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -46,6 +47,7 @@ type FormValues = z.infer<typeof Schema>;
 export default function Batches() {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   useEffect(() => {
@@ -140,10 +142,16 @@ export default function Batches() {
             />
           </Box>
         </HStack>
-        <Button size="sm" colorPalette="blue" onClick={() => setDrawerOpen(true)}>
-          <Plus size={16} />
-          {t("inventory.batches.addTitle")}
-        </Button>
+        <HStack gap={2}>
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload size={16} />
+            {t("inventory.batches.importTitle")}
+          </Button>
+          <Button size="sm" colorPalette="blue" onClick={() => setDrawerOpen(true)}>
+            <Plus size={16} />
+            {t("inventory.batches.addTitle")}
+          </Button>
+        </HStack>
       </HStack>
 
       {batchesQ.isLoading ? (
@@ -219,6 +227,7 @@ export default function Batches() {
       />
 
       <CreateDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <ImportStockDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </Stack>
   );
 }

@@ -1,0 +1,213 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e5]:
+        - img [ref=e7]
+        - paragraph [ref=e11]: Justmart
+      - generic [ref=e12]:
+        - link "Dashboard" [ref=e13] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e14]:
+            - img [ref=e15]
+            - paragraph [ref=e20]: Dashboard
+        - link "Analytics" [ref=e56] [cursor=pointer]:
+          - /url: /analytics
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - paragraph [ref=e60]: Analytics
+        - link "POS" [ref=e21] [cursor=pointer]:
+          - /url: /pos
+          - generic [ref=e22]:
+            - img [ref=e23]
+            - paragraph [ref=e27]: POS
+        - link "Products" [ref=e61] [cursor=pointer]:
+          - /url: /products
+          - generic [ref=e62]:
+            - img [ref=e63]
+            - paragraph [ref=e67]: Products
+        - generic [ref=e68]:
+          - button "Inventory" [ref=e69] [cursor=pointer]:
+            - img [ref=e70]
+            - paragraph [ref=e74]: Inventory
+            - img [ref=e76]
+          - generic [ref=e78]:
+            - link "Restock" [ref=e79] [cursor=pointer]:
+              - /url: /purchasing
+              - generic [ref=e80]:
+                - img [ref=e81]
+                - paragraph [ref=e86]: Restock
+            - link "Suppliers" [ref=e87] [cursor=pointer]:
+              - /url: /inventory/suppliers
+              - generic [ref=e88]:
+                - img [ref=e89]
+                - paragraph [ref=e93]: Suppliers
+            - link "Batches" [ref=e94] [cursor=pointer]:
+              - /url: /inventory/batches
+              - generic [ref=e95]:
+                - img [ref=e96]
+                - paragraph [ref=e106]: Batches
+            - link "Movements" [ref=e107] [cursor=pointer]:
+              - /url: /inventory/movements
+              - generic [ref=e108]:
+                - img [ref=e109]
+                - paragraph [ref=e112]: Movements
+            - link "Stocktake" [ref=e113] [cursor=pointer]:
+              - /url: /inventory/stocktake
+              - generic [ref=e114]:
+                - img [ref=e115]
+                - paragraph [ref=e118]: Stocktake
+            - link "Transfers" [ref=e119] [cursor=pointer]:
+              - /url: /inventory/transfers
+              - generic [ref=e120]:
+                - img [ref=e121]
+                - paragraph [ref=e126]: Transfers
+        - link "Customers" [ref=e28] [cursor=pointer]:
+          - /url: /customers
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - paragraph [ref=e33]: Customers
+        - link "Order history" [ref=e127] [cursor=pointer]:
+          - /url: /orders
+          - generic [ref=e128]:
+            - img [ref=e129]
+            - paragraph [ref=e132]: Order history
+        - link "Warehouses" [ref=e133] [cursor=pointer]:
+          - /url: /warehouses
+          - generic [ref=e134]:
+            - img [ref=e135]
+            - paragraph [ref=e138]: Warehouses
+        - link "Users" [ref=e139] [cursor=pointer]:
+          - /url: /users
+          - generic [ref=e140]:
+            - img [ref=e141]
+            - paragraph [ref=e146]: Users
+        - link "Settings" [ref=e147] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e148]:
+            - img [ref=e149]
+            - paragraph [ref=e152]: Settings
+      - generic [ref=e34]:
+        - generic [ref=e153]:
+          - paragraph [ref=e154]: Owner
+          - paragraph [ref=e155]: owner@justmart.local
+        - button "Sign out" [ref=e156] [cursor=pointer]:
+          - img [ref=e157]
+          - paragraph [ref=e160]: Sign out
+        - button "toggle sidebar" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+    - generic [ref=e39]:
+      - banner [ref=e40]:
+        - generic [ref=e42]:
+          - generic [ref=e161]:
+            - img [ref=e162]
+            - paragraph [ref=e165]: MAIN · Gudang Utama
+          - button "Notifications" [ref=e166] [cursor=pointer]:
+            - img [ref=e167]
+            - generic [ref=e170]: "3"
+          - button "language" [ref=e43] [cursor=pointer]:
+            - generic [ref=e44]:
+              - img [ref=e45]
+              - paragraph [ref=e49]: ID
+          - button "toggle theme" [ref=e50] [cursor=pointer]:
+            - img [ref=e51]
+          - button "user menu" [ref=e171] [cursor=pointer]:
+            - generic [ref=e172]: O
+      - main [ref=e53]:
+        - generic [ref=e173]:
+          - generic [ref=e174]:
+            - generic [ref=e175]:
+              - generic [ref=e176]:
+                - paragraph [ref=e177]: Inventory
+                - img [ref=e178]
+              - paragraph [ref=e181]: Batches
+            - heading "Inventory" [level=2] [ref=e184]
+          - generic [ref=e186]:
+            - generic [ref=e187]:
+              - generic [ref=e188]:
+                - generic [ref=e189]:
+                  - img [ref=e191]
+                  - textbox "Search product / batch no…" [ref=e194]
+                - generic [ref=e195]:
+                  - combobox [ref=e196]
+                  - generic [ref=e197]:
+                    - combobox [ref=e198]:
+                      - generic [ref=e199]: Any date
+                    - generic:
+                      - generic:
+                        - img
+                - generic [ref=e202]:
+                  - combobox "Supplier" [ref=e203]
+                  - button "Toggle suggestions" [ref=e205]:
+                    - img [ref=e206]
+              - generic [ref=e208]:
+                - button "Import stock" [active] [ref=e209] [cursor=pointer]:
+                  - img [ref=e210]
+                  - text: Import stock
+                - button "Receive batch" [ref=e213] [cursor=pointer]:
+                  - img [ref=e214]
+                  - text: Receive batch
+            - table [ref=e215]:
+              - rowgroup [ref=e216]:
+                - 'row "Product Batch # Supplier Expiry date Cost Qty PO" [ref=e217]':
+                  - columnheader "Product" [ref=e218]
+                  - 'columnheader "Batch #" [ref=e219]'
+                  - columnheader "Supplier" [ref=e220]
+                  - columnheader "Expiry date" [ref=e221]
+                  - columnheader "Cost" [ref=e222]
+                  - columnheader "Qty" [ref=e223]
+                  - columnheader "PO" [ref=e224]
+              - rowgroup [ref=e225]:
+                - row "Amoxicillin 500mg — — 2027-06-30 in over a year IDR 1,200 500 —" [ref=e362]:
+                  - cell "Amoxicillin 500mg" [ref=e363]
+                  - cell "—" [ref=e364]
+                  - cell "—" [ref=e365]
+                  - cell "2027-06-30 in over a year" [ref=e366]:
+                    - generic [ref=e367]:
+                      - paragraph [ref=e368]: 2027-06-30
+                      - generic [ref=e369]: in over a year
+                  - cell "IDR 1,200" [ref=e370]
+                  - cell "500" [ref=e371]
+                  - cell "—" [ref=e372]:
+                    - paragraph [ref=e373]: —
+                - row "Paracetamol 500mg B-2026-01 — 2027-12-31 in over a year IDR 400 200 —" [ref=e374]:
+                  - cell "Paracetamol 500mg" [ref=e375]
+                  - cell "B-2026-01" [ref=e376]
+                  - cell "—" [ref=e377]
+                  - cell "2027-12-31 in over a year" [ref=e378]:
+                    - generic [ref=e379]:
+                      - paragraph [ref=e380]: 2027-12-31
+                      - generic [ref=e381]: in over a year
+                  - cell "IDR 400" [ref=e382]
+                  - cell "200" [ref=e383]
+                  - cell "—" [ref=e384]:
+                    - paragraph [ref=e385]: —
+                - row "Garam Dapur — — 2099-12-31 in over a year IDR 100 50 —" [ref=e386]:
+                  - cell "Garam Dapur" [ref=e387]
+                  - cell "—" [ref=e388]
+                  - cell "—" [ref=e389]
+                  - cell "2099-12-31 in over a year" [ref=e390]:
+                    - generic [ref=e391]:
+                      - paragraph [ref=e392]: 2099-12-31
+                      - generic [ref=e393]: in over a year
+                  - cell "IDR 100" [ref=e394]
+                  - cell "50" [ref=e395]
+                  - cell "—" [ref=e396]:
+                    - paragraph [ref=e397]: —
+            - generic [ref=e229]:
+              - paragraph [ref=e230]: Showing 1–3 of 3
+              - generic [ref=e231]:
+                - generic [ref=e232]:
+                  - combobox [ref=e233]
+                  - generic [ref=e234]:
+                    - combobox [ref=e235]:
+                      - generic [ref=e236]: 25 / page
+                    - generic:
+                      - generic:
+                        - img
+                - button "Prev" [disabled] [ref=e237]:
+                  - img [ref=e238]
+                  - text: Prev
+                - button "Next" [disabled] [ref=e240]:
+                  - text: Next
+                  - img [ref=e241]
+  - region "Notifications, top-end (alt+T)"

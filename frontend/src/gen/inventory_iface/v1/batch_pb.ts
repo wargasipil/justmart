@@ -8,6 +8,44 @@ import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { ProductUnit } from "./product_pb.js";
 
 /**
+ * Per-row outcome of a stock import.
+ *
+ * @generated from enum inventory_iface.v1.ImportStockStatus
+ */
+export enum ImportStockStatus {
+  /**
+   * @generated from enum value: IMPORT_STOCK_STATUS_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: IMPORT_STOCK_STATUS_CREATED = 1;
+   */
+  CREATED = 1,
+
+  /**
+   * a batch with that (product, batch_number) already exists
+   *
+   * @generated from enum value: IMPORT_STOCK_STATUS_SKIPPED_EXISTS = 2;
+   */
+  SKIPPED_EXISTS = 2,
+
+  /**
+   * validation / lookup / DB error (see message)
+   *
+   * @generated from enum value: IMPORT_STOCK_STATUS_ERROR = 3;
+   */
+  ERROR = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ImportStockStatus)
+proto3.util.setEnumType(ImportStockStatus, "inventory_iface.v1.ImportStockStatus", [
+  { no: 0, name: "IMPORT_STOCK_STATUS_UNSPECIFIED" },
+  { no: 1, name: "IMPORT_STOCK_STATUS_CREATED" },
+  { no: 2, name: "IMPORT_STOCK_STATUS_SKIPPED_EXISTS" },
+  { no: 3, name: "IMPORT_STOCK_STATUS_ERROR" },
+]);
+
+/**
  * @generated from message inventory_iface.v1.Batch
  */
 export class Batch extends Message<Batch> {
@@ -445,6 +483,246 @@ export class CreateBatchResponse extends Message<CreateBatchResponse> {
 
   static equals(a: CreateBatchResponse | PlainMessage<CreateBatchResponse> | undefined, b: CreateBatchResponse | PlainMessage<CreateBatchResponse> | undefined): boolean {
     return proto3.util.equals(CreateBatchResponse, a, b);
+  }
+}
+
+/**
+ * One opening-stock row (CSV), keyed by SKU. The server resolves the product.
+ *
+ * @generated from message inventory_iface.v1.ImportStockRow
+ */
+export class ImportStockRow extends Message<ImportStockRow> {
+  /**
+   * @generated from field: string sku = 1;
+   */
+  sku = "";
+
+  /**
+   * in `unit` if set, else base units; must be > 0
+   *
+   * @generated from field: int64 quantity = 2;
+   */
+  quantity = protoInt64.zero;
+
+  /**
+   * optional pack name (resolved to a product unit → ×factor)
+   *
+   * @generated from field: string unit = 3;
+   */
+  unit = "";
+
+  /**
+   * per BASE unit, minor units; optional (default 0)
+   *
+   * @generated from field: int64 cost_price = 4;
+   */
+  costPrice = protoInt64.zero;
+
+  /**
+   * optional
+   *
+   * @generated from field: string batch_number = 5;
+   */
+  batchNumber = "";
+
+  /**
+   * optional YYYY-MM-DD; blank => far-future (non-expiring)
+   *
+   * @generated from field: string expiry_date = 6;
+   */
+  expiryDate = "";
+
+  constructor(data?: PartialMessage<ImportStockRow>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ImportStockRow";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sku", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "quantity", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: "batch_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportStockRow {
+    return new ImportStockRow().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ImportStockRow {
+    return new ImportStockRow().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ImportStockRow {
+    return new ImportStockRow().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ImportStockRow | PlainMessage<ImportStockRow> | undefined, b: ImportStockRow | PlainMessage<ImportStockRow> | undefined): boolean {
+    return proto3.util.equals(ImportStockRow, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ImportStockResult
+ */
+export class ImportStockResult extends Message<ImportStockResult> {
+  /**
+   * 0-based index into the request rows
+   *
+   * @generated from field: int32 row = 1;
+   */
+  row = 0;
+
+  /**
+   * @generated from field: string sku = 2;
+   */
+  sku = "";
+
+  /**
+   * @generated from field: inventory_iface.v1.ImportStockStatus status = 3;
+   */
+  status = ImportStockStatus.UNSPECIFIED;
+
+  /**
+   * set when CREATED
+   *
+   * @generated from field: string batch_id = 4;
+   */
+  batchId = "";
+
+  /**
+   * reason when ERROR
+   *
+   * @generated from field: string message = 5;
+   */
+  message = "";
+
+  constructor(data?: PartialMessage<ImportStockResult>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ImportStockResult";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "row", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "sku", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "status", kind: "enum", T: proto3.getEnumType(ImportStockStatus) },
+    { no: 4, name: "batch_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportStockResult {
+    return new ImportStockResult().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ImportStockResult {
+    return new ImportStockResult().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ImportStockResult {
+    return new ImportStockResult().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ImportStockResult | PlainMessage<ImportStockResult> | undefined, b: ImportStockResult | PlainMessage<ImportStockResult> | undefined): boolean {
+    return proto3.util.equals(ImportStockResult, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ImportStockRequest
+ */
+export class ImportStockRequest extends Message<ImportStockRequest> {
+  /**
+   * @generated from field: repeated inventory_iface.v1.ImportStockRow rows = 1;
+   */
+  rows: ImportStockRow[] = [];
+
+  constructor(data?: PartialMessage<ImportStockRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ImportStockRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "rows", kind: "message", T: ImportStockRow, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportStockRequest {
+    return new ImportStockRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ImportStockRequest {
+    return new ImportStockRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ImportStockRequest {
+    return new ImportStockRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ImportStockRequest | PlainMessage<ImportStockRequest> | undefined, b: ImportStockRequest | PlainMessage<ImportStockRequest> | undefined): boolean {
+    return proto3.util.equals(ImportStockRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ImportStockResponse
+ */
+export class ImportStockResponse extends Message<ImportStockResponse> {
+  /**
+   * one per input row, in order
+   *
+   * @generated from field: repeated inventory_iface.v1.ImportStockResult results = 1;
+   */
+  results: ImportStockResult[] = [];
+
+  /**
+   * @generated from field: int32 created = 2;
+   */
+  created = 0;
+
+  /**
+   * @generated from field: int32 skipped = 3;
+   */
+  skipped = 0;
+
+  /**
+   * @generated from field: int32 errored = 4;
+   */
+  errored = 0;
+
+  constructor(data?: PartialMessage<ImportStockResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ImportStockResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "results", kind: "message", T: ImportStockResult, repeated: true },
+    { no: 2, name: "created", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "skipped", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "errored", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportStockResponse {
+    return new ImportStockResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ImportStockResponse {
+    return new ImportStockResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ImportStockResponse {
+    return new ImportStockResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ImportStockResponse | PlainMessage<ImportStockResponse> | undefined, b: ImportStockResponse | PlainMessage<ImportStockResponse> | undefined): boolean {
+    return proto3.util.equals(ImportStockResponse, a, b);
   }
 }
 

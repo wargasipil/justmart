@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
+import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -37,6 +37,19 @@ export const ProductService = {
       name: "CreateProduct",
       I: CreateProductRequest,
       O: CreateProductResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ImportProducts bulk-creates products from a parsed CSV (first-time offline
+     * data migration). Best-effort, per-row results: existing SKUs are skipped,
+     * invalid rows reported, valid rows created — one bad row never blocks the rest.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.ImportProducts
+     */
+    importProducts: {
+      name: "ImportProducts",
+      I: ImportProductsRequest,
+      O: ImportProductsResponse,
       kind: MethodKind.Unary,
     },
     /**

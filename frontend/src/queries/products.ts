@@ -5,6 +5,7 @@ import { productClient } from "../lib/clients";
 import type {
   ArchiveProductRequest,
   CreateProductRequest,
+  ImportProductsRequest,
   UnarchiveProductRequest,
   UpdateProductRequest,
 } from "../gen/inventory_iface/v1/product_pb";
@@ -173,6 +174,17 @@ export function useCreateProductMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<CreateProductRequest>) =>
       productClient.createProduct(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+// Bulk CSV import (create-only; existing SKUs skipped). Invalidates the list so
+// the newly-imported products appear.
+export function useImportProductsMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<ImportProductsRequest>) =>
+      productClient.importProducts(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }

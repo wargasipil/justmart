@@ -4,6 +4,7 @@ import type { PartialMessage } from "@bufbuild/protobuf";
 import { batchClient } from "../lib/clients";
 import type {
   CreateBatchRequest,
+  ImportStockRequest,
   UpdateBatchRequest,
 } from "../gen/inventory_iface/v1/batch_pb";
 
@@ -120,5 +121,19 @@ export function useUpdateBatchMutation() {
     mutationFn: (req: PartialMessage<UpdateBatchRequest>) =>
       batchClient.updateBatch(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: batchKeys.all }),
+  });
+}
+
+// Bulk opening-stock import (first-time offline migration). Invalidates the
+// batches list + any stock-level reads so the active-warehouse qty refreshes.
+export function useImportStockMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<ImportStockRequest>) =>
+      batchClient.importStock(req),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: batchKeys.all });
+      qc.invalidateQueries({ queryKey: ["stock"] });
+    },
   });
 }

@@ -23,43 +23,17 @@ func (s *ProductService) CreateProduct(
 	if err != nil {
 		return nil, err
 	}
-
-	sku := strings.TrimSpace(req.Msg.Sku)
-	name := strings.TrimSpace(req.Msg.Name)
-	unit := strings.TrimSpace(req.Msg.Unit)
-	if sku == "" || name == "" || unit == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("sku, name, unit required"))
-	}
-	if req.Msg.UnitPrice < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unit_price must be >= 0"))
+	if err := validateCreate(req.Msg); err != nil {
+		return nil, err
 	}
 
-	med := model.Product{
-		SKU:                  sku,
-		Name:                 name,
-		Unit:                 unit,
-		UnitPrice:            req.Msg.UnitPrice,
-		PrescriptionRequired: req.Msg.PrescriptionRequired,
-		Active:               true,
-	}
-
+	var med *model.Product
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&med).Error; err != nil {
-			return fmt.Errorf("create product: %w", err)
-		}
-		price := model.ProductPrice{
-			ProductID:     med.ID,
-			UnitPrice:     med.UnitPrice,
-			EffectiveFrom: time.Now(),
-			ChangedBy:     caller.UserID,
-		}
-		if err := tx.Create(&price).Error; err != nil {
-			return fmt.Errorf("create initial price: %w", err)
-		}
-		// Base unit (factor 1) + any additional units supplied.
-		if err := syncProductUnits(tx, &med, req.Msg.Units, caller.UserID); err != nil {
+		m, err := createProductTx(tx, req.Msg, caller.UserID)
+		if err != nil {
 			return err
 		}
+		med = m
 		return nil
 	})
 	if err != nil {
@@ -69,9 +43,53 @@ func (s *ProductService) CreateProduct(
 		}
 		return nil, connect.NewError(connect.CodeAlreadyExists, err) // likely dup SKU
 	}
-	out := productToProto(&med)
+	out := productToProto(med)
 	if err := s.attachUnits(ctx, []*inventoryifacev1.Product{out}); err != nil {
 		return nil, err
 	}
 	return connect.NewResponse(&inventoryifacev1.CreateProductResponse{Product: out}), nil
+}
+
+// validateCreate checks the shared CreateProduct field rules (sku/name/unit
+// required, unit_price >= 0). Used by both CreateProduct and ImportProducts so
+// validation is identical. Returns InvalidArgument with a clear message.
+func validateCreate(msg *inventoryifacev1.CreateProductRequest) error {
+	if strings.TrimSpace(msg.Sku) == "" || strings.TrimSpace(msg.Name) == "" || strings.TrimSpace(msg.Unit) == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("sku, name, unit required"))
+	}
+	if msg.UnitPrice < 0 {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("unit_price must be >= 0"))
+	}
+	return nil
+}
+
+// createProductTx creates the product row + initial price-version + units inside
+// tx. Assumes validateCreate already passed. Returns the created product. Shared
+// by CreateProduct (one tx) and ImportProducts (one tx per row).
+func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, userID string) (*model.Product, error) {
+	med := &model.Product{
+		SKU:                  strings.TrimSpace(msg.Sku),
+		Name:                 strings.TrimSpace(msg.Name),
+		Unit:                 strings.TrimSpace(msg.Unit),
+		UnitPrice:            msg.UnitPrice,
+		PrescriptionRequired: msg.PrescriptionRequired,
+		Active:               true,
+	}
+	if err := tx.Create(med).Error; err != nil {
+		return nil, fmt.Errorf("create product: %w", err)
+	}
+	price := model.ProductPrice{
+		ProductID:     med.ID,
+		UnitPrice:     med.UnitPrice,
+		EffectiveFrom: time.Now(),
+		ChangedBy:     userID,
+	}
+	if err := tx.Create(&price).Error; err != nil {
+		return nil, fmt.Errorf("create initial price: %w", err)
+	}
+	// Base unit (factor 1) + any additional units supplied.
+	if err := syncProductUnits(tx, med, msg.Units, userID); err != nil {
+		return nil, err
+	}
+	return med, nil
 }

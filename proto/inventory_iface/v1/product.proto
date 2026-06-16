@@ -115,6 +115,13 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // ImportProducts bulk-creates products from a parsed CSV (first-time offline
+  // data migration). Best-effort, per-row results: existing SKUs are skipped,
+  // invalid rows reported, valid rows created — one bad row never blocks the rest.
+  rpc ImportProducts(ImportProductsRequest) returns (ImportProductsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -194,6 +201,29 @@ message CreateProductRequest {
   repeated ProductUnitInput units = 7;  // optional; if empty, a base unit is created from unit/unit_price
 }
 message CreateProductResponse { Product product = 1; }
+
+// Per-row outcome of a CSV import.
+enum ImportProductStatus {
+  IMPORT_PRODUCT_STATUS_UNSPECIFIED = 0;
+  IMPORT_PRODUCT_STATUS_CREATED = 1;
+  IMPORT_PRODUCT_STATUS_SKIPPED_DUPLICATE = 2; // a product with that SKU already exists
+  IMPORT_PRODUCT_STATUS_ERROR = 3;             // validation / DB error (see message)
+}
+message ImportProductResult {
+  int32 row = 1;                 // 0-based index into the request's products
+  string sku = 2;
+  ImportProductStatus status = 3;
+  string product_id = 4;         // set when CREATED
+  string message = 5;            // reason when ERROR
+}
+// Reuses CreateProductRequest as the row type — the client builds one per CSV row.
+message ImportProductsRequest { repeated CreateProductRequest products = 1; }
+message ImportProductsResponse {
+  repeated ImportProductResult results = 1; // one per input row, in order
+  int32 created = 2;
+  int32 skipped = 3;
+  int32 errored = 4;
+}
 
 message UpdateProductRequest {
   reserved 3;

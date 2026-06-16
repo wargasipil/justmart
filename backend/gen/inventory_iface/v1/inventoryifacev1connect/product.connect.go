@@ -42,6 +42,9 @@ const (
 	// ProductServiceCreateProductProcedure is the fully-qualified name of the ProductService's
 	// CreateProduct RPC.
 	ProductServiceCreateProductProcedure = "/inventory_iface.v1.ProductService/CreateProduct"
+	// ProductServiceImportProductsProcedure is the fully-qualified name of the ProductService's
+	// ImportProducts RPC.
+	ProductServiceImportProductsProcedure = "/inventory_iface.v1.ProductService/ImportProducts"
 	// ProductServiceUpdateProductProcedure is the fully-qualified name of the ProductService's
 	// UpdateProduct RPC.
 	ProductServiceUpdateProductProcedure = "/inventory_iface.v1.ProductService/UpdateProduct"
@@ -76,6 +79,10 @@ type ProductServiceClient interface {
 	ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error)
 	GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error)
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
+	// ImportProducts bulk-creates products from a parsed CSV (first-time offline
+	// data migration). Best-effort, per-row results: existing SKUs are skipped,
+	// invalid rows reported, valid rows created — one bad row never blocks the rest.
+	ImportProducts(context.Context, *connect.Request[v1.ImportProductsRequest]) (*connect.Response[v1.ImportProductsResponse], error)
 	UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error)
 	ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error)
 	// UnarchiveProduct restores a soft-deleted product (active=false -> true).
@@ -122,6 +129,12 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+ProductServiceCreateProductProcedure,
 			connect.WithSchema(productServiceMethods.ByName("CreateProduct")),
+			connect.WithClientOptions(opts...),
+		),
+		importProducts: connect.NewClient[v1.ImportProductsRequest, v1.ImportProductsResponse](
+			httpClient,
+			baseURL+ProductServiceImportProductsProcedure,
+			connect.WithSchema(productServiceMethods.ByName("ImportProducts")),
 			connect.WithClientOptions(opts...),
 		),
 		updateProduct: connect.NewClient[v1.UpdateProductRequest, v1.UpdateProductResponse](
@@ -186,6 +199,7 @@ type productServiceClient struct {
 	listProducts           *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
 	getProduct             *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
 	createProduct          *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
+	importProducts         *connect.Client[v1.ImportProductsRequest, v1.ImportProductsResponse]
 	updateProduct          *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
 	archiveProduct         *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
 	unarchiveProduct       *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
@@ -210,6 +224,11 @@ func (c *productServiceClient) GetProduct(ctx context.Context, req *connect.Requ
 // CreateProduct calls inventory_iface.v1.ProductService.CreateProduct.
 func (c *productServiceClient) CreateProduct(ctx context.Context, req *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error) {
 	return c.createProduct.CallUnary(ctx, req)
+}
+
+// ImportProducts calls inventory_iface.v1.ProductService.ImportProducts.
+func (c *productServiceClient) ImportProducts(ctx context.Context, req *connect.Request[v1.ImportProductsRequest]) (*connect.Response[v1.ImportProductsResponse], error) {
+	return c.importProducts.CallUnary(ctx, req)
 }
 
 // UpdateProduct calls inventory_iface.v1.ProductService.UpdateProduct.
@@ -262,6 +281,10 @@ type ProductServiceHandler interface {
 	ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error)
 	GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error)
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
+	// ImportProducts bulk-creates products from a parsed CSV (first-time offline
+	// data migration). Best-effort, per-row results: existing SKUs are skipped,
+	// invalid rows reported, valid rows created — one bad row never blocks the rest.
+	ImportProducts(context.Context, *connect.Request[v1.ImportProductsRequest]) (*connect.Response[v1.ImportProductsResponse], error)
 	UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error)
 	ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error)
 	// UnarchiveProduct restores a soft-deleted product (active=false -> true).
@@ -304,6 +327,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		ProductServiceCreateProductProcedure,
 		svc.CreateProduct,
 		connect.WithSchema(productServiceMethods.ByName("CreateProduct")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productServiceImportProductsHandler := connect.NewUnaryHandler(
+		ProductServiceImportProductsProcedure,
+		svc.ImportProducts,
+		connect.WithSchema(productServiceMethods.ByName("ImportProducts")),
 		connect.WithHandlerOptions(opts...),
 	)
 	productServiceUpdateProductHandler := connect.NewUnaryHandler(
@@ -368,6 +397,8 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceGetProductHandler.ServeHTTP(w, r)
 		case ProductServiceCreateProductProcedure:
 			productServiceCreateProductHandler.ServeHTTP(w, r)
+		case ProductServiceImportProductsProcedure:
+			productServiceImportProductsHandler.ServeHTTP(w, r)
 		case ProductServiceUpdateProductProcedure:
 			productServiceUpdateProductHandler.ServeHTTP(w, r)
 		case ProductServiceArchiveProductProcedure:
@@ -405,6 +436,10 @@ func (UnimplementedProductServiceHandler) GetProduct(context.Context, *connect.R
 
 func (UnimplementedProductServiceHandler) CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.CreateProduct is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) ImportProducts(context.Context, *connect.Request[v1.ImportProductsRequest]) (*connect.Response[v1.ImportProductsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ImportProducts is not implemented"))
 }
 
 func (UnimplementedProductServiceHandler) UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error) {

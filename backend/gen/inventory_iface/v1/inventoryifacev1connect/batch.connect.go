@@ -41,6 +41,9 @@ const (
 	// BatchServiceCreateBatchProcedure is the fully-qualified name of the BatchService's CreateBatch
 	// RPC.
 	BatchServiceCreateBatchProcedure = "/inventory_iface.v1.BatchService/CreateBatch"
+	// BatchServiceImportStockProcedure is the fully-qualified name of the BatchService's ImportStock
+	// RPC.
+	BatchServiceImportStockProcedure = "/inventory_iface.v1.BatchService/ImportStock"
 	// BatchServiceUpdateBatchProcedure is the fully-qualified name of the BatchService's UpdateBatch
 	// RPC.
 	BatchServiceUpdateBatchProcedure = "/inventory_iface.v1.BatchService/UpdateBatch"
@@ -57,6 +60,10 @@ type BatchServiceClient interface {
 	ListBatches(context.Context, *connect.Request[v1.ListBatchesRequest]) (*connect.Response[v1.ListBatchesResponse], error)
 	GetBatch(context.Context, *connect.Request[v1.GetBatchRequest]) (*connect.Response[v1.GetBatchResponse], error)
 	CreateBatch(context.Context, *connect.Request[v1.CreateBatchRequest]) (*connect.Response[v1.CreateBatchResponse], error)
+	// ImportStock bulk-creates opening-stock batches from a parsed CSV (first-time
+	// offline inventory migration). SKU-keyed, best-effort, per-row results; each
+	// row creates one batch + a PURCHASE movement into the active warehouse.
+	ImportStock(context.Context, *connect.Request[v1.ImportStockRequest]) (*connect.Response[v1.ImportStockResponse], error)
 	UpdateBatch(context.Context, *connect.Request[v1.UpdateBatchRequest]) (*connect.Response[v1.UpdateBatchResponse], error)
 	SearchBatches(context.Context, *connect.Request[v1.SearchBatchesRequest]) (*connect.Response[v1.SearchBatchesResponse], error)
 	// ResolveBatches returns minimal display refs for a set of ids (batch
@@ -93,6 +100,12 @@ func NewBatchServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(batchServiceMethods.ByName("CreateBatch")),
 			connect.WithClientOptions(opts...),
 		),
+		importStock: connect.NewClient[v1.ImportStockRequest, v1.ImportStockResponse](
+			httpClient,
+			baseURL+BatchServiceImportStockProcedure,
+			connect.WithSchema(batchServiceMethods.ByName("ImportStock")),
+			connect.WithClientOptions(opts...),
+		),
 		updateBatch: connect.NewClient[v1.UpdateBatchRequest, v1.UpdateBatchResponse](
 			httpClient,
 			baseURL+BatchServiceUpdateBatchProcedure,
@@ -119,6 +132,7 @@ type batchServiceClient struct {
 	listBatches    *connect.Client[v1.ListBatchesRequest, v1.ListBatchesResponse]
 	getBatch       *connect.Client[v1.GetBatchRequest, v1.GetBatchResponse]
 	createBatch    *connect.Client[v1.CreateBatchRequest, v1.CreateBatchResponse]
+	importStock    *connect.Client[v1.ImportStockRequest, v1.ImportStockResponse]
 	updateBatch    *connect.Client[v1.UpdateBatchRequest, v1.UpdateBatchResponse]
 	searchBatches  *connect.Client[v1.SearchBatchesRequest, v1.SearchBatchesResponse]
 	resolveBatches *connect.Client[v1.ResolveBatchesRequest, v1.ResolveBatchesResponse]
@@ -137,6 +151,11 @@ func (c *batchServiceClient) GetBatch(ctx context.Context, req *connect.Request[
 // CreateBatch calls inventory_iface.v1.BatchService.CreateBatch.
 func (c *batchServiceClient) CreateBatch(ctx context.Context, req *connect.Request[v1.CreateBatchRequest]) (*connect.Response[v1.CreateBatchResponse], error) {
 	return c.createBatch.CallUnary(ctx, req)
+}
+
+// ImportStock calls inventory_iface.v1.BatchService.ImportStock.
+func (c *batchServiceClient) ImportStock(ctx context.Context, req *connect.Request[v1.ImportStockRequest]) (*connect.Response[v1.ImportStockResponse], error) {
+	return c.importStock.CallUnary(ctx, req)
 }
 
 // UpdateBatch calls inventory_iface.v1.BatchService.UpdateBatch.
@@ -159,6 +178,10 @@ type BatchServiceHandler interface {
 	ListBatches(context.Context, *connect.Request[v1.ListBatchesRequest]) (*connect.Response[v1.ListBatchesResponse], error)
 	GetBatch(context.Context, *connect.Request[v1.GetBatchRequest]) (*connect.Response[v1.GetBatchResponse], error)
 	CreateBatch(context.Context, *connect.Request[v1.CreateBatchRequest]) (*connect.Response[v1.CreateBatchResponse], error)
+	// ImportStock bulk-creates opening-stock batches from a parsed CSV (first-time
+	// offline inventory migration). SKU-keyed, best-effort, per-row results; each
+	// row creates one batch + a PURCHASE movement into the active warehouse.
+	ImportStock(context.Context, *connect.Request[v1.ImportStockRequest]) (*connect.Response[v1.ImportStockResponse], error)
 	UpdateBatch(context.Context, *connect.Request[v1.UpdateBatchRequest]) (*connect.Response[v1.UpdateBatchResponse], error)
 	SearchBatches(context.Context, *connect.Request[v1.SearchBatchesRequest]) (*connect.Response[v1.SearchBatchesResponse], error)
 	// ResolveBatches returns minimal display refs for a set of ids (batch
@@ -191,6 +214,12 @@ func NewBatchServiceHandler(svc BatchServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(batchServiceMethods.ByName("CreateBatch")),
 		connect.WithHandlerOptions(opts...),
 	)
+	batchServiceImportStockHandler := connect.NewUnaryHandler(
+		BatchServiceImportStockProcedure,
+		svc.ImportStock,
+		connect.WithSchema(batchServiceMethods.ByName("ImportStock")),
+		connect.WithHandlerOptions(opts...),
+	)
 	batchServiceUpdateBatchHandler := connect.NewUnaryHandler(
 		BatchServiceUpdateBatchProcedure,
 		svc.UpdateBatch,
@@ -217,6 +246,8 @@ func NewBatchServiceHandler(svc BatchServiceHandler, opts ...connect.HandlerOpti
 			batchServiceGetBatchHandler.ServeHTTP(w, r)
 		case BatchServiceCreateBatchProcedure:
 			batchServiceCreateBatchHandler.ServeHTTP(w, r)
+		case BatchServiceImportStockProcedure:
+			batchServiceImportStockHandler.ServeHTTP(w, r)
 		case BatchServiceUpdateBatchProcedure:
 			batchServiceUpdateBatchHandler.ServeHTTP(w, r)
 		case BatchServiceSearchBatchesProcedure:
@@ -242,6 +273,10 @@ func (UnimplementedBatchServiceHandler) GetBatch(context.Context, *connect.Reque
 
 func (UnimplementedBatchServiceHandler) CreateBatch(context.Context, *connect.Request[v1.CreateBatchRequest]) (*connect.Response[v1.CreateBatchResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.BatchService.CreateBatch is not implemented"))
+}
+
+func (UnimplementedBatchServiceHandler) ImportStock(context.Context, *connect.Request[v1.ImportStockRequest]) (*connect.Response[v1.ImportStockResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.BatchService.ImportStock is not implemented"))
 }
 
 func (UnimplementedBatchServiceHandler) UpdateBatch(context.Context, *connect.Request[v1.UpdateBatchRequest]) (*connect.Response[v1.UpdateBatchResponse], error) {

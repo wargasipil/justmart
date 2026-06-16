@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Box, Button, HStack, Input, Spinner, Stack, Table, Tabs, Text } from "@chakra-ui/react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -21,6 +21,7 @@ import { useBusinessMode } from "../../queries/settings";
 import { useUnitBasesQuery } from "../../queries/units";
 import { DEFAULT_PRODUCT_COLUMNS, usePreferencesStore } from "../../stores/preferences";
 import { CreateProductDialog } from "./productDrawers";
+import ImportProductsDialog from "./ImportProductsDialog";
 
 export default function Products() {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export default function Products() {
   const { isPharmacy } = useBusinessMode();
   const catalogLabel = isPharmacy ? t("nav.medicines") : t("nav.products");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [opnameBefore, setOpnameBefore] = useState("");
@@ -245,6 +247,10 @@ export default function Products() {
               defaults={new Set(DEFAULT_PRODUCT_COLUMNS)}
             />
             <ExportButton onExport={onExport} />
+            <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload size={16} />
+              {t("inventory.products.importTitle")}
+            </Button>
             <Button size="sm" colorPalette="blue" onClick={() => setCreateOpen(true)}>
               <Plus size={16} />
               {t("inventory.products.addTitle")}
@@ -306,6 +312,7 @@ export default function Products() {
         />
 
         <CreateProductDialog open={createOpen} onClose={() => setCreateOpen(false)} />
+        <ImportProductsDialog open={importOpen} onClose={() => setImportOpen(false)} />
       </Stack>
     </Box>
   );

@@ -1,0 +1,281 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - img
+          - paragraph: Justmart
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - paragraph: Dashboard
+          - link:
+            - /url: /analytics
+            - generic:
+              - img
+              - paragraph: Analytics
+          - link:
+            - /url: /pos
+            - generic:
+              - img
+              - paragraph: POS
+          - link:
+            - /url: /products
+            - generic:
+              - img
+              - paragraph: Products
+          - generic:
+            - button:
+              - img
+              - paragraph: Inventory
+              - img
+            - generic:
+              - link:
+                - /url: /purchasing
+                - generic:
+                  - img
+                  - paragraph: Restock
+              - link:
+                - /url: /inventory/suppliers
+                - generic:
+                  - img
+                  - paragraph: Suppliers
+              - link:
+                - /url: /inventory/batches
+                - generic:
+                  - img
+                  - paragraph: Batches
+              - link:
+                - /url: /inventory/movements
+                - generic:
+                  - img
+                  - paragraph: Movements
+              - link:
+                - /url: /inventory/stocktake
+                - generic:
+                  - img
+                  - paragraph: Stocktake
+              - link:
+                - /url: /inventory/transfers
+                - generic:
+                  - img
+                  - paragraph: Transfers
+          - link:
+            - /url: /customers
+            - generic:
+              - img
+              - paragraph: Customers
+          - link:
+            - /url: /orders
+            - generic:
+              - img
+              - paragraph: Order history
+          - link:
+            - /url: /warehouses
+            - generic:
+              - img
+              - paragraph: Warehouses
+          - link:
+            - /url: /users
+            - generic:
+              - img
+              - paragraph: Users
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - paragraph: Settings
+        - generic:
+          - generic:
+            - paragraph: Owner
+            - paragraph: owner@justmart.local
+          - button:
+            - img
+            - paragraph: Sign out
+          - button:
+            - img
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - paragraph: MAIN · Gudang Utama
+              - button:
+                - img
+                - generic: "3"
+              - button:
+                - generic:
+                  - img
+                  - paragraph: ID
+              - button:
+                - img
+              - button:
+                - generic: O
+        - main:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Inventory
+                  - img
+                - generic:
+                  - paragraph: Batches
+              - generic:
+                - generic:
+                  - heading [level=2]: Inventory
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic:
+                        - img
+                      - textbox:
+                        - /placeholder: Search product / batch no…
+                    - generic:
+                      - combobox
+                      - generic:
+                        - combobox:
+                          - generic: Any date
+                        - generic:
+                          - generic:
+                            - img
+                    - generic:
+                      - generic:
+                        - generic:
+                          - combobox
+                          - generic:
+                            - button:
+                              - img
+                  - generic:
+                    - button:
+                      - img
+                      - text: Import stock
+                    - button:
+                      - img
+                      - text: Receive batch
+                - table:
+                  - rowgroup:
+                    - row:
+                      - columnheader: Product
+                      - columnheader: "Batch #"
+                      - columnheader: Supplier
+                      - columnheader: Expiry date
+                      - columnheader: Cost
+                      - columnheader: Qty
+                      - columnheader: PO
+                  - rowgroup:
+                    - row:
+                      - cell:
+                        - paragraph: No results
+                - generic:
+                  - paragraph: Showing 0–0 of 0
+                  - generic:
+                    - generic:
+                      - combobox
+                      - generic:
+                        - combobox:
+                          - generic: 25 / page
+                        - generic:
+                          - generic:
+                            - img
+                    - button [disabled]:
+                      - img
+                      - text: Prev
+                    - button [disabled]:
+                      - text: Next
+                      - img
+  - region "Notifications, top-end (alt+T)"
+  - dialog [ref=e244]:
+    - generic [ref=e246]:
+      - heading "Import stock" [level=2] [ref=e247]
+      - button "close" [ref=e248] [cursor=pointer]:
+        - img [ref=e249]
+    - generic [ref=e254]:
+      - generic [ref=e255]:
+        - button "Choose CSV file" [active] [ref=e256] [cursor=pointer]:
+          - img [ref=e257]
+          - text: Choose CSV file
+        - paragraph [ref=e275]: opening-stock.csv
+      - paragraph [ref=e261]: "Columns: sku, quantity, unit (optional pack name), cost (per base unit, whole rupiah), batch_number (optional), expiry_date (YYYY-MM-DD; blank = non-expiring). Imported into the active warehouse. Rows with a batch number that already exists are skipped; rows without one are added on every run."
+      - generic [ref=e276]:
+        - paragraph [ref=e277]: 5 ready to import
+        - paragraph [ref=e278]: 1 invalid (skipped)
+      - table [ref=e280]:
+        - rowgroup [ref=e281]:
+          - 'row "# SKU Qty Cost Batch # Expiry date Status" [ref=e282]':
+            - columnheader "#" [ref=e283]
+            - columnheader "SKU" [ref=e284]
+            - columnheader "Qty" [ref=e285]
+            - columnheader "Cost" [ref=e286]
+            - 'columnheader "Batch #" [ref=e287]'
+            - columnheader "Expiry date" [ref=e288]
+            - columnheader "Status" [ref=e289]
+        - rowgroup [ref=e290]:
+          - row "1 PARA500 200 IDR 400 B-2026-01 2027-12-31 OK" [ref=e291]:
+            - cell "1" [ref=e292]
+            - cell "PARA500" [ref=e293]
+            - cell "200" [ref=e294]
+            - cell "IDR 400" [ref=e295]
+            - cell "B-2026-01" [ref=e296]
+            - cell "2027-12-31" [ref=e297]
+            - cell "OK" [ref=e298]:
+              - generic [ref=e299]: OK
+          - row "2 AMOX500 5 box IDR 1,200 — 2027-06-30 OK" [ref=e300]:
+            - cell "2" [ref=e301]
+            - cell "AMOX500" [ref=e302]
+            - cell "5 box" [ref=e303]
+            - cell "IDR 1,200" [ref=e304]
+            - cell "—" [ref=e305]
+            - cell "2027-06-30" [ref=e306]
+            - cell "OK" [ref=e307]:
+              - generic [ref=e308]: OK
+          - row "3 SALT 50 IDR 100 — — OK" [ref=e309]:
+            - cell "3" [ref=e310]
+            - cell "SALT" [ref=e311]
+            - cell "50" [ref=e312]
+            - cell "IDR 100" [ref=e313]
+            - cell "—" [ref=e314]
+            - cell "—" [ref=e315]
+            - cell "OK" [ref=e316]:
+              - generic [ref=e317]: OK
+          - row "4 NOPE 10 IDR 0 — — OK" [ref=e318]:
+            - cell "4" [ref=e319]
+            - cell "NOPE" [ref=e320]
+            - cell "10" [ref=e321]
+            - cell "IDR 0" [ref=e322]
+            - cell "—" [ref=e323]
+            - cell "—" [ref=e324]
+            - cell "OK" [ref=e325]:
+              - generic [ref=e326]: OK
+          - row "5 PARA500 0 IDR 0 — — quantity must be a whole number > 0" [ref=e327]:
+            - cell "5" [ref=e328]
+            - cell "PARA500" [ref=e329]
+            - cell "0" [ref=e330]
+            - cell "IDR 0" [ref=e331]
+            - cell "—" [ref=e332]
+            - cell "—" [ref=e333]
+            - cell "quantity must be a whole number > 0" [ref=e334]:
+              - generic "quantity must be a whole number > 0" [ref=e335]
+          - row "6 AMOX500 3 crate IDR 0 — — OK" [ref=e336]:
+            - cell "6" [ref=e337]
+            - cell "AMOX500" [ref=e338]
+            - cell "3 crate" [ref=e339]
+            - cell "IDR 0" [ref=e340]
+            - cell "—" [ref=e341]
+            - cell "—" [ref=e342]
+            - cell "OK" [ref=e343]:
+              - generic [ref=e344]: OK
+    - generic [ref=e264]:
+      - button "Download template" [ref=e265] [cursor=pointer]:
+        - img [ref=e266]
+        - text: Download template
+      - generic [ref=e269]:
+        - button "Cancel" [ref=e270] [cursor=pointer]
+        - button "Import 5" [ref=e345] [cursor=pointer]:
+          - img [ref=e272]
+          - text: Import 5

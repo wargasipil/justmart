@@ -1,0 +1,226 @@
+- generic:
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - img
+          - paragraph: Justmart
+        - generic:
+          - link:
+            - /url: /
+            - generic:
+              - img
+              - paragraph: Dashboard
+          - link:
+            - /url: /analytics
+            - generic:
+              - img
+              - paragraph: Analytics
+          - link:
+            - /url: /pos
+            - generic:
+              - img
+              - paragraph: POS
+          - link:
+            - /url: /products
+            - generic:
+              - img
+              - paragraph: Products
+          - generic:
+            - button:
+              - img
+              - paragraph: Inventory
+              - img
+          - link:
+            - /url: /customers
+            - generic:
+              - img
+              - paragraph: Customers
+          - link:
+            - /url: /orders
+            - generic:
+              - img
+              - paragraph: Order history
+          - link:
+            - /url: /warehouses
+            - generic:
+              - img
+              - paragraph: Warehouses
+          - link:
+            - /url: /users
+            - generic:
+              - img
+              - paragraph: Users
+          - link:
+            - /url: /settings
+            - generic:
+              - img
+              - paragraph: Settings
+        - generic:
+          - generic:
+            - paragraph: Owner
+            - paragraph: owner@justmart.local
+          - button:
+            - img
+            - paragraph: Sign out
+          - button:
+            - img
+      - generic:
+        - banner:
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - paragraph: MAIN · Gudang Utama
+              - button:
+                - img
+              - button:
+                - generic:
+                  - img
+                  - paragraph: ID
+              - button:
+                - img
+              - button:
+                - generic: O
+        - main:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - paragraph: Products
+              - generic:
+                - generic:
+                  - heading [level=2]: Products
+            - generic:
+              - generic:
+                - tablist:
+                  - tab [selected]: Active products
+                  - tab: Archived products
+              - generic:
+                - generic:
+                  - generic:
+                    - img
+                  - textbox:
+                    - /placeholder: Search name or SKU…
+                - generic:
+                  - paragraph: Opname before
+                  - generic:
+                    - generic:
+                      - generic:
+                        - textbox:
+                          - /placeholder: mm/dd/yyyy
+                        - generic:
+                          - button:
+                            - img
+                  - button:
+                    - img
+                    - text: Units
+                  - button:
+                    - img
+                    - text: Columns
+                    - generic: 6 / 12
+                  - button:
+                    - img
+                    - text: Export CSV
+                  - button:
+                    - img
+                    - text: Import CSV
+                  - button:
+                    - img
+                    - text: Add product
+              - generic:
+                - table:
+                  - rowgroup:
+                    - row:
+                      - columnheader: SKU
+                      - columnheader: Name
+                      - columnheader: Unit
+                      - columnheader: Unit price (IDR)
+                      - columnheader: Ready
+                      - columnheader: Ongoing
+                      - columnheader: Last opname
+                  - rowgroup:
+                    - row:
+                      - cell:
+                        - paragraph: No results
+              - generic:
+                - paragraph: Showing 0–0 of 0
+                - generic:
+                  - generic:
+                    - combobox
+                    - generic:
+                      - combobox:
+                        - generic: 25 / page
+                      - generic:
+                        - generic:
+                          - img
+                  - button [disabled]:
+                    - img
+                    - text: Prev
+                  - button [disabled]:
+                    - text: Next
+                    - img
+  - region "Notifications, top-end (alt+T)"
+  - dialog [ref=e57]:
+    - generic [ref=e59]:
+      - heading "Import CSV" [level=2] [ref=e60]
+      - button "close" [ref=e61] [cursor=pointer]:
+        - img [ref=e62]
+    - generic [ref=e67]:
+      - generic [ref=e68]:
+        - button "Choose CSV file" [active] [ref=e69] [cursor=pointer]:
+          - img [ref=e70]
+          - text: Choose CSV file
+        - paragraph [ref=e88]: products-units.csv
+      - paragraph [ref=e74]: "Columns: sku, name, unit, unit_price (whole rupiah), prescription_required (yes/no), units (optional packs as name:factor:price;…). Existing SKUs are skipped."
+      - generic [ref=e89]:
+        - paragraph [ref=e90]: 2 ready to import
+        - paragraph [ref=e91]: 1 invalid (skipped)
+      - table [ref=e93]:
+        - rowgroup [ref=e94]:
+          - row "# SKU Name Unit Unit price (IDR) Units Status" [ref=e95]:
+            - columnheader "#" [ref=e96]
+            - columnheader "SKU" [ref=e97]
+            - columnheader "Name" [ref=e98]
+            - columnheader "Unit" [ref=e99]
+            - columnheader "Unit price (IDR)" [ref=e100]
+            - columnheader "Units" [ref=e101]
+            - columnheader "Status" [ref=e102]
+        - rowgroup [ref=e103]:
+          - row "1 MU-A Amoxicillin 500 tablet IDR 1,000 box×100 · strip×10 OK" [ref=e104]:
+            - cell "1" [ref=e105]
+            - cell "MU-A" [ref=e106]
+            - cell "Amoxicillin 500" [ref=e107]
+            - cell "tablet" [ref=e108]
+            - cell "IDR 1,000" [ref=e109]
+            - cell "box×100 · strip×10" [ref=e110]
+            - cell "OK" [ref=e111]:
+              - generic [ref=e112]: OK
+          - row "2 MU-B Vitamin C tablet IDR 500 — OK" [ref=e113]:
+            - cell "2" [ref=e114]
+            - cell "MU-B" [ref=e115]
+            - cell "Vitamin C" [ref=e116]
+            - cell "tablet" [ref=e117]
+            - cell "IDR 500" [ref=e118]
+            - cell "—" [ref=e119]
+            - cell "OK" [ref=e120]:
+              - generic [ref=e121]: OK
+          - 'row "3 MU-BAD Bad Pack tablet IDR 800 — unit \"box\": factor must be > 1" [ref=e122]':
+            - cell "3" [ref=e123]
+            - cell "MU-BAD" [ref=e124]
+            - cell "Bad Pack" [ref=e125]
+            - cell "tablet" [ref=e126]
+            - cell "IDR 800" [ref=e127]
+            - cell "—" [ref=e128]
+            - 'cell "unit \"box\": factor must be > 1" [ref=e129]':
+              - 'generic "unit \"box\": factor must be > 1" [ref=e130]'
+    - generic [ref=e77]:
+      - button "Download template" [ref=e78] [cursor=pointer]:
+        - img [ref=e79]
+        - text: Download template
+      - generic [ref=e82]:
+        - button "Cancel" [ref=e83] [cursor=pointer]
+        - button "Import 2" [ref=e131] [cursor=pointer]:
+          - img [ref=e85]
+          - text: Import 2

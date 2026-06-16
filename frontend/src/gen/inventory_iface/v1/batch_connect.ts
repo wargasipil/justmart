@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateBatchRequest, CreateBatchResponse, GetBatchRequest, GetBatchResponse, ListBatchesRequest, ListBatchesResponse, ResolveBatchesRequest, ResolveBatchesResponse, SearchBatchesRequest, SearchBatchesResponse, UpdateBatchRequest, UpdateBatchResponse } from "./batch_pb.js";
+import { CreateBatchRequest, CreateBatchResponse, GetBatchRequest, GetBatchResponse, ImportStockRequest, ImportStockResponse, ListBatchesRequest, ListBatchesResponse, ResolveBatchesRequest, ResolveBatchesResponse, SearchBatchesRequest, SearchBatchesResponse, UpdateBatchRequest, UpdateBatchResponse } from "./batch_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -37,6 +37,19 @@ export const BatchService = {
       name: "CreateBatch",
       I: CreateBatchRequest,
       O: CreateBatchResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ImportStock bulk-creates opening-stock batches from a parsed CSV (first-time
+     * offline inventory migration). SKU-keyed, best-effort, per-row results; each
+     * row creates one batch + a PURCHASE movement into the active warehouse.
+     *
+     * @generated from rpc inventory_iface.v1.BatchService.ImportStock
+     */
+    importStock: {
+      name: "ImportStock",
+      I: ImportStockRequest,
+      O: ImportStockResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -47,6 +47,13 @@ service BatchService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // ImportStock bulk-creates opening-stock batches from a parsed CSV (first-time
+  // offline inventory migration). SKU-keyed, best-effort, per-row results; each
+  // row creates one batch + a PURCHASE movement into the active warehouse.
+  rpc ImportStock(ImportStockRequest) returns (ImportStockResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc UpdateBatch(UpdateBatchRequest) returns (UpdateBatchResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -96,6 +103,37 @@ message CreateBatchRequest {
   int64 initial_quantity = 7;
 }
 message CreateBatchResponse { Batch batch = 1; }
+
+// One opening-stock row (CSV), keyed by SKU. The server resolves the product.
+message ImportStockRow {
+  string sku = 1;
+  int64 quantity = 2;       // in `unit` if set, else base units; must be > 0
+  string unit = 3;          // optional pack name (resolved to a product unit → ×factor)
+  int64 cost_price = 4;     // per BASE unit, minor units; optional (default 0)
+  string batch_number = 5;  // optional
+  string expiry_date = 6;   // optional YYYY-MM-DD; blank => far-future (non-expiring)
+}
+// Per-row outcome of a stock import.
+enum ImportStockStatus {
+  IMPORT_STOCK_STATUS_UNSPECIFIED = 0;
+  IMPORT_STOCK_STATUS_CREATED = 1;
+  IMPORT_STOCK_STATUS_SKIPPED_EXISTS = 2; // a batch with that (product, batch_number) already exists
+  IMPORT_STOCK_STATUS_ERROR = 3;          // validation / lookup / DB error (see message)
+}
+message ImportStockResult {
+  int32 row = 1;                 // 0-based index into the request rows
+  string sku = 2;
+  ImportStockStatus status = 3;
+  string batch_id = 4;           // set when CREATED
+  string message = 5;            // reason when ERROR
+}
+message ImportStockRequest { repeated ImportStockRow rows = 1; }
+message ImportStockResponse {
+  repeated ImportStockResult results = 1; // one per input row, in order
+  int32 created = 2;
+  int32 skipped = 3;
+  int32 errored = 4;
+}
 
 message UpdateBatchRequest {
   string id = 1;

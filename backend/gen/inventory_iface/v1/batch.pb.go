@@ -22,6 +22,59 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Per-row outcome of a stock import.
+type ImportStockStatus int32
+
+const (
+	ImportStockStatus_IMPORT_STOCK_STATUS_UNSPECIFIED    ImportStockStatus = 0
+	ImportStockStatus_IMPORT_STOCK_STATUS_CREATED        ImportStockStatus = 1
+	ImportStockStatus_IMPORT_STOCK_STATUS_SKIPPED_EXISTS ImportStockStatus = 2 // a batch with that (product, batch_number) already exists
+	ImportStockStatus_IMPORT_STOCK_STATUS_ERROR          ImportStockStatus = 3 // validation / lookup / DB error (see message)
+)
+
+// Enum value maps for ImportStockStatus.
+var (
+	ImportStockStatus_name = map[int32]string{
+		0: "IMPORT_STOCK_STATUS_UNSPECIFIED",
+		1: "IMPORT_STOCK_STATUS_CREATED",
+		2: "IMPORT_STOCK_STATUS_SKIPPED_EXISTS",
+		3: "IMPORT_STOCK_STATUS_ERROR",
+	}
+	ImportStockStatus_value = map[string]int32{
+		"IMPORT_STOCK_STATUS_UNSPECIFIED":    0,
+		"IMPORT_STOCK_STATUS_CREATED":        1,
+		"IMPORT_STOCK_STATUS_SKIPPED_EXISTS": 2,
+		"IMPORT_STOCK_STATUS_ERROR":          3,
+	}
+)
+
+func (x ImportStockStatus) Enum() *ImportStockStatus {
+	p := new(ImportStockStatus)
+	*p = x
+	return p
+}
+
+func (x ImportStockStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ImportStockStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_inventory_iface_v1_batch_proto_enumTypes[0].Descriptor()
+}
+
+func (ImportStockStatus) Type() protoreflect.EnumType {
+	return &file_inventory_iface_v1_batch_proto_enumTypes[0]
+}
+
+func (x ImportStockStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ImportStockStatus.Descriptor instead.
+func (ImportStockStatus) EnumDescriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{0}
+}
+
 type Batch struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -553,6 +606,279 @@ func (x *CreateBatchResponse) GetBatch() *Batch {
 	return nil
 }
 
+// One opening-stock row (CSV), keyed by SKU. The server resolves the product.
+type ImportStockRow struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sku           string                 `protobuf:"bytes,1,opt,name=sku,proto3" json:"sku,omitempty"`
+	Quantity      int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`                         // in `unit` if set, else base units; must be > 0
+	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`                                  // optional pack name (resolved to a product unit → ×factor)
+	CostPrice     int64                  `protobuf:"varint,4,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`      // per BASE unit, minor units; optional (default 0)
+	BatchNumber   string                 `protobuf:"bytes,5,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"` // optional
+	ExpiryDate    string                 `protobuf:"bytes,6,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`    // optional YYYY-MM-DD; blank => far-future (non-expiring)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportStockRow) Reset() {
+	*x = ImportStockRow{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportStockRow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportStockRow) ProtoMessage() {}
+
+func (x *ImportStockRow) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportStockRow.ProtoReflect.Descriptor instead.
+func (*ImportStockRow) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ImportStockRow) GetSku() string {
+	if x != nil {
+		return x.Sku
+	}
+	return ""
+}
+
+func (x *ImportStockRow) GetQuantity() int64 {
+	if x != nil {
+		return x.Quantity
+	}
+	return 0
+}
+
+func (x *ImportStockRow) GetUnit() string {
+	if x != nil {
+		return x.Unit
+	}
+	return ""
+}
+
+func (x *ImportStockRow) GetCostPrice() int64 {
+	if x != nil {
+		return x.CostPrice
+	}
+	return 0
+}
+
+func (x *ImportStockRow) GetBatchNumber() string {
+	if x != nil {
+		return x.BatchNumber
+	}
+	return ""
+}
+
+func (x *ImportStockRow) GetExpiryDate() string {
+	if x != nil {
+		return x.ExpiryDate
+	}
+	return ""
+}
+
+type ImportStockResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Row           int32                  `protobuf:"varint,1,opt,name=row,proto3" json:"row,omitempty"` // 0-based index into the request rows
+	Sku           string                 `protobuf:"bytes,2,opt,name=sku,proto3" json:"sku,omitempty"`
+	Status        ImportStockStatus      `protobuf:"varint,3,opt,name=status,proto3,enum=inventory_iface.v1.ImportStockStatus" json:"status,omitempty"`
+	BatchId       string                 `protobuf:"bytes,4,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"` // set when CREATED
+	Message       string                 `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`                // reason when ERROR
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportStockResult) Reset() {
+	*x = ImportStockResult{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportStockResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportStockResult) ProtoMessage() {}
+
+func (x *ImportStockResult) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportStockResult.ProtoReflect.Descriptor instead.
+func (*ImportStockResult) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ImportStockResult) GetRow() int32 {
+	if x != nil {
+		return x.Row
+	}
+	return 0
+}
+
+func (x *ImportStockResult) GetSku() string {
+	if x != nil {
+		return x.Sku
+	}
+	return ""
+}
+
+func (x *ImportStockResult) GetStatus() ImportStockStatus {
+	if x != nil {
+		return x.Status
+	}
+	return ImportStockStatus_IMPORT_STOCK_STATUS_UNSPECIFIED
+}
+
+func (x *ImportStockResult) GetBatchId() string {
+	if x != nil {
+		return x.BatchId
+	}
+	return ""
+}
+
+func (x *ImportStockResult) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type ImportStockRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rows          []*ImportStockRow      `protobuf:"bytes,1,rep,name=rows,proto3" json:"rows,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportStockRequest) Reset() {
+	*x = ImportStockRequest{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportStockRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportStockRequest) ProtoMessage() {}
+
+func (x *ImportStockRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportStockRequest.ProtoReflect.Descriptor instead.
+func (*ImportStockRequest) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ImportStockRequest) GetRows() []*ImportStockRow {
+	if x != nil {
+		return x.Rows
+	}
+	return nil
+}
+
+type ImportStockResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*ImportStockResult   `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"` // one per input row, in order
+	Created       int32                  `protobuf:"varint,2,opt,name=created,proto3" json:"created,omitempty"`
+	Skipped       int32                  `protobuf:"varint,3,opt,name=skipped,proto3" json:"skipped,omitempty"`
+	Errored       int32                  `protobuf:"varint,4,opt,name=errored,proto3" json:"errored,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportStockResponse) Reset() {
+	*x = ImportStockResponse{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportStockResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportStockResponse) ProtoMessage() {}
+
+func (x *ImportStockResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportStockResponse.ProtoReflect.Descriptor instead.
+func (*ImportStockResponse) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ImportStockResponse) GetResults() []*ImportStockResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *ImportStockResponse) GetCreated() int32 {
+	if x != nil {
+		return x.Created
+	}
+	return 0
+}
+
+func (x *ImportStockResponse) GetSkipped() int32 {
+	if x != nil {
+		return x.Skipped
+	}
+	return 0
+}
+
+func (x *ImportStockResponse) GetErrored() int32 {
+	if x != nil {
+		return x.Errored
+	}
+	return 0
+}
+
 type UpdateBatchRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -567,7 +893,7 @@ type UpdateBatchRequest struct {
 
 func (x *UpdateBatchRequest) Reset() {
 	*x = UpdateBatchRequest{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[7]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +905,7 @@ func (x *UpdateBatchRequest) String() string {
 func (*UpdateBatchRequest) ProtoMessage() {}
 
 func (x *UpdateBatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[7]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +918,7 @@ func (x *UpdateBatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateBatchRequest.ProtoReflect.Descriptor instead.
 func (*UpdateBatchRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{7}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateBatchRequest) GetId() string {
@@ -646,7 +972,7 @@ type UpdateBatchResponse struct {
 
 func (x *UpdateBatchResponse) Reset() {
 	*x = UpdateBatchResponse{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[8]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -658,7 +984,7 @@ func (x *UpdateBatchResponse) String() string {
 func (*UpdateBatchResponse) ProtoMessage() {}
 
 func (x *UpdateBatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[8]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -671,7 +997,7 @@ func (x *UpdateBatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateBatchResponse.ProtoReflect.Descriptor instead.
 func (*UpdateBatchResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{8}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdateBatchResponse) GetBatch() *Batch {
@@ -694,7 +1020,7 @@ type SearchBatchesRequest struct {
 
 func (x *SearchBatchesRequest) Reset() {
 	*x = SearchBatchesRequest{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[9]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -706,7 +1032,7 @@ func (x *SearchBatchesRequest) String() string {
 func (*SearchBatchesRequest) ProtoMessage() {}
 
 func (x *SearchBatchesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[9]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -719,7 +1045,7 @@ func (x *SearchBatchesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchBatchesRequest.ProtoReflect.Descriptor instead.
 func (*SearchBatchesRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{9}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SearchBatchesRequest) GetQuery() string {
@@ -766,7 +1092,7 @@ type SearchBatchesResponse struct {
 
 func (x *SearchBatchesResponse) Reset() {
 	*x = SearchBatchesResponse{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[10]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -778,7 +1104,7 @@ func (x *SearchBatchesResponse) String() string {
 func (*SearchBatchesResponse) ProtoMessage() {}
 
 func (x *SearchBatchesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[10]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -791,7 +1117,7 @@ func (x *SearchBatchesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchBatchesResponse.ProtoReflect.Descriptor instead.
 func (*SearchBatchesResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{10}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SearchBatchesResponse) GetBatches() []*Batch {
@@ -814,7 +1140,7 @@ type BatchRef struct {
 
 func (x *BatchRef) Reset() {
 	*x = BatchRef{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[11]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -826,7 +1152,7 @@ func (x *BatchRef) String() string {
 func (*BatchRef) ProtoMessage() {}
 
 func (x *BatchRef) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[11]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -839,7 +1165,7 @@ func (x *BatchRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRef.ProtoReflect.Descriptor instead.
 func (*BatchRef) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{11}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *BatchRef) GetId() string {
@@ -879,7 +1205,7 @@ type ResolveBatchesRequest struct {
 
 func (x *ResolveBatchesRequest) Reset() {
 	*x = ResolveBatchesRequest{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[12]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +1217,7 @@ func (x *ResolveBatchesRequest) String() string {
 func (*ResolveBatchesRequest) ProtoMessage() {}
 
 func (x *ResolveBatchesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[12]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +1230,7 @@ func (x *ResolveBatchesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveBatchesRequest.ProtoReflect.Descriptor instead.
 func (*ResolveBatchesRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{12}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ResolveBatchesRequest) GetIds() []string {
@@ -923,7 +1249,7 @@ type ResolveBatchesResponse struct {
 
 func (x *ResolveBatchesResponse) Reset() {
 	*x = ResolveBatchesResponse{}
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[13]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -935,7 +1261,7 @@ func (x *ResolveBatchesResponse) String() string {
 func (*ResolveBatchesResponse) ProtoMessage() {}
 
 func (x *ResolveBatchesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_batch_proto_msgTypes[13]
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -948,7 +1274,7 @@ func (x *ResolveBatchesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveBatchesResponse.ProtoReflect.Descriptor instead.
 func (*ResolveBatchesResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{13}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ResolveBatchesResponse) GetBatches() []*BatchRef {
@@ -1018,7 +1344,29 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"receivedAt\x12)\n" +
 	"\x10initial_quantity\x18\a \x01(\x03R\x0finitialQuantity\"F\n" +
 	"\x13CreateBatchResponse\x12/\n" +
-	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xc9\x01\n" +
+	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xb5\x01\n" +
+	"\x0eImportStockRow\x12\x10\n" +
+	"\x03sku\x18\x01 \x01(\tR\x03sku\x12\x1a\n" +
+	"\bquantity\x18\x02 \x01(\x03R\bquantity\x12\x12\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\x12\x1d\n" +
+	"\n" +
+	"cost_price\x18\x04 \x01(\x03R\tcostPrice\x12!\n" +
+	"\fbatch_number\x18\x05 \x01(\tR\vbatchNumber\x12\x1f\n" +
+	"\vexpiry_date\x18\x06 \x01(\tR\n" +
+	"expiryDate\"\xab\x01\n" +
+	"\x11ImportStockResult\x12\x10\n" +
+	"\x03row\x18\x01 \x01(\x05R\x03row\x12\x10\n" +
+	"\x03sku\x18\x02 \x01(\tR\x03sku\x12=\n" +
+	"\x06status\x18\x03 \x01(\x0e2%.inventory_iface.v1.ImportStockStatusR\x06status\x12\x19\n" +
+	"\bbatch_id\x18\x04 \x01(\tR\abatchId\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\"L\n" +
+	"\x12ImportStockRequest\x126\n" +
+	"\x04rows\x18\x01 \x03(\v2\".inventory_iface.v1.ImportStockRowR\x04rows\"\xa4\x01\n" +
+	"\x13ImportStockResponse\x12?\n" +
+	"\aresults\x18\x01 \x03(\v2%.inventory_iface.v1.ImportStockResultR\aresults\x12\x18\n" +
+	"\acreated\x18\x02 \x01(\x05R\acreated\x12\x18\n" +
+	"\askipped\x18\x03 \x01(\x05R\askipped\x12\x18\n" +
+	"\aerrored\x18\x04 \x01(\x05R\aerrored\"\xc9\x01\n" +
 	"\x12UpdateBatchRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vsupplier_id\x18\x02 \x01(\tR\n" +
@@ -1050,11 +1398,17 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x15ResolveBatchesRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"P\n" +
 	"\x16ResolveBatchesResponse\x126\n" +
-	"\abatches\x18\x01 \x03(\v2\x1c.inventory_iface.v1.BatchRefR\abatches2\x8c\x05\n" +
+	"\abatches\x18\x01 \x03(\v2\x1c.inventory_iface.v1.BatchRefR\abatches*\xa0\x01\n" +
+	"\x11ImportStockStatus\x12#\n" +
+	"\x1fIMPORT_STOCK_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bIMPORT_STOCK_STATUS_CREATED\x10\x01\x12&\n" +
+	"\"IMPORT_STOCK_STATUS_SKIPPED_EXISTS\x10\x02\x12\x1d\n" +
+	"\x19IMPORT_STOCK_STATUS_ERROR\x10\x032\xf4\x05\n" +
 	"\fBatchService\x12h\n" +
 	"\vListBatches\x12&.inventory_iface.v1.ListBatchesRequest\x1a'.inventory_iface.v1.ListBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12_\n" +
 	"\bGetBatch\x12#.inventory_iface.v1.GetBatchRequest\x1a$.inventory_iface.v1.GetBatchResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12f\n" +
 	"\vCreateBatch\x12&.inventory_iface.v1.CreateBatchRequest\x1a'.inventory_iface.v1.CreateBatchResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
+	"\vImportStock\x12&.inventory_iface.v1.ImportStockRequest\x1a'.inventory_iface.v1.ImportStockResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
 	"\vUpdateBatch\x12&.inventory_iface.v1.UpdateBatchRequest\x1a'.inventory_iface.v1.UpdateBatchResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12n\n" +
 	"\rSearchBatches\x12(.inventory_iface.v1.SearchBatchesRequest\x1a).inventory_iface.v1.SearchBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
 	"\x0eResolveBatches\x12).inventory_iface.v1.ResolveBatchesRequest\x1a*.inventory_iface.v1.ResolveBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
@@ -1071,49 +1425,60 @@ func file_inventory_iface_v1_batch_proto_rawDescGZIP() []byte {
 	return file_inventory_iface_v1_batch_proto_rawDescData
 }
 
-var file_inventory_iface_v1_batch_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_inventory_iface_v1_batch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_inventory_iface_v1_batch_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_inventory_iface_v1_batch_proto_goTypes = []any{
-	(*Batch)(nil),                  // 0: inventory_iface.v1.Batch
-	(*ListBatchesRequest)(nil),     // 1: inventory_iface.v1.ListBatchesRequest
-	(*ListBatchesResponse)(nil),    // 2: inventory_iface.v1.ListBatchesResponse
-	(*GetBatchRequest)(nil),        // 3: inventory_iface.v1.GetBatchRequest
-	(*GetBatchResponse)(nil),       // 4: inventory_iface.v1.GetBatchResponse
-	(*CreateBatchRequest)(nil),     // 5: inventory_iface.v1.CreateBatchRequest
-	(*CreateBatchResponse)(nil),    // 6: inventory_iface.v1.CreateBatchResponse
-	(*UpdateBatchRequest)(nil),     // 7: inventory_iface.v1.UpdateBatchRequest
-	(*UpdateBatchResponse)(nil),    // 8: inventory_iface.v1.UpdateBatchResponse
-	(*SearchBatchesRequest)(nil),   // 9: inventory_iface.v1.SearchBatchesRequest
-	(*SearchBatchesResponse)(nil),  // 10: inventory_iface.v1.SearchBatchesResponse
-	(*BatchRef)(nil),               // 11: inventory_iface.v1.BatchRef
-	(*ResolveBatchesRequest)(nil),  // 12: inventory_iface.v1.ResolveBatchesRequest
-	(*ResolveBatchesResponse)(nil), // 13: inventory_iface.v1.ResolveBatchesResponse
-	(*ProductUnit)(nil),            // 14: inventory_iface.v1.ProductUnit
+	(ImportStockStatus)(0),         // 0: inventory_iface.v1.ImportStockStatus
+	(*Batch)(nil),                  // 1: inventory_iface.v1.Batch
+	(*ListBatchesRequest)(nil),     // 2: inventory_iface.v1.ListBatchesRequest
+	(*ListBatchesResponse)(nil),    // 3: inventory_iface.v1.ListBatchesResponse
+	(*GetBatchRequest)(nil),        // 4: inventory_iface.v1.GetBatchRequest
+	(*GetBatchResponse)(nil),       // 5: inventory_iface.v1.GetBatchResponse
+	(*CreateBatchRequest)(nil),     // 6: inventory_iface.v1.CreateBatchRequest
+	(*CreateBatchResponse)(nil),    // 7: inventory_iface.v1.CreateBatchResponse
+	(*ImportStockRow)(nil),         // 8: inventory_iface.v1.ImportStockRow
+	(*ImportStockResult)(nil),      // 9: inventory_iface.v1.ImportStockResult
+	(*ImportStockRequest)(nil),     // 10: inventory_iface.v1.ImportStockRequest
+	(*ImportStockResponse)(nil),    // 11: inventory_iface.v1.ImportStockResponse
+	(*UpdateBatchRequest)(nil),     // 12: inventory_iface.v1.UpdateBatchRequest
+	(*UpdateBatchResponse)(nil),    // 13: inventory_iface.v1.UpdateBatchResponse
+	(*SearchBatchesRequest)(nil),   // 14: inventory_iface.v1.SearchBatchesRequest
+	(*SearchBatchesResponse)(nil),  // 15: inventory_iface.v1.SearchBatchesResponse
+	(*BatchRef)(nil),               // 16: inventory_iface.v1.BatchRef
+	(*ResolveBatchesRequest)(nil),  // 17: inventory_iface.v1.ResolveBatchesRequest
+	(*ResolveBatchesResponse)(nil), // 18: inventory_iface.v1.ResolveBatchesResponse
+	(*ProductUnit)(nil),            // 19: inventory_iface.v1.ProductUnit
 }
 var file_inventory_iface_v1_batch_proto_depIdxs = []int32{
-	14, // 0: inventory_iface.v1.Batch.units:type_name -> inventory_iface.v1.ProductUnit
-	0,  // 1: inventory_iface.v1.ListBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
-	0,  // 2: inventory_iface.v1.GetBatchResponse.batch:type_name -> inventory_iface.v1.Batch
-	0,  // 3: inventory_iface.v1.CreateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
-	0,  // 4: inventory_iface.v1.UpdateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
-	0,  // 5: inventory_iface.v1.SearchBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
-	11, // 6: inventory_iface.v1.ResolveBatchesResponse.batches:type_name -> inventory_iface.v1.BatchRef
-	1,  // 7: inventory_iface.v1.BatchService.ListBatches:input_type -> inventory_iface.v1.ListBatchesRequest
-	3,  // 8: inventory_iface.v1.BatchService.GetBatch:input_type -> inventory_iface.v1.GetBatchRequest
-	5,  // 9: inventory_iface.v1.BatchService.CreateBatch:input_type -> inventory_iface.v1.CreateBatchRequest
-	7,  // 10: inventory_iface.v1.BatchService.UpdateBatch:input_type -> inventory_iface.v1.UpdateBatchRequest
-	9,  // 11: inventory_iface.v1.BatchService.SearchBatches:input_type -> inventory_iface.v1.SearchBatchesRequest
-	12, // 12: inventory_iface.v1.BatchService.ResolveBatches:input_type -> inventory_iface.v1.ResolveBatchesRequest
-	2,  // 13: inventory_iface.v1.BatchService.ListBatches:output_type -> inventory_iface.v1.ListBatchesResponse
-	4,  // 14: inventory_iface.v1.BatchService.GetBatch:output_type -> inventory_iface.v1.GetBatchResponse
-	6,  // 15: inventory_iface.v1.BatchService.CreateBatch:output_type -> inventory_iface.v1.CreateBatchResponse
-	8,  // 16: inventory_iface.v1.BatchService.UpdateBatch:output_type -> inventory_iface.v1.UpdateBatchResponse
-	10, // 17: inventory_iface.v1.BatchService.SearchBatches:output_type -> inventory_iface.v1.SearchBatchesResponse
-	13, // 18: inventory_iface.v1.BatchService.ResolveBatches:output_type -> inventory_iface.v1.ResolveBatchesResponse
-	13, // [13:19] is the sub-list for method output_type
-	7,  // [7:13] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	19, // 0: inventory_iface.v1.Batch.units:type_name -> inventory_iface.v1.ProductUnit
+	1,  // 1: inventory_iface.v1.ListBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
+	1,  // 2: inventory_iface.v1.GetBatchResponse.batch:type_name -> inventory_iface.v1.Batch
+	1,  // 3: inventory_iface.v1.CreateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
+	0,  // 4: inventory_iface.v1.ImportStockResult.status:type_name -> inventory_iface.v1.ImportStockStatus
+	8,  // 5: inventory_iface.v1.ImportStockRequest.rows:type_name -> inventory_iface.v1.ImportStockRow
+	9,  // 6: inventory_iface.v1.ImportStockResponse.results:type_name -> inventory_iface.v1.ImportStockResult
+	1,  // 7: inventory_iface.v1.UpdateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
+	1,  // 8: inventory_iface.v1.SearchBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
+	16, // 9: inventory_iface.v1.ResolveBatchesResponse.batches:type_name -> inventory_iface.v1.BatchRef
+	2,  // 10: inventory_iface.v1.BatchService.ListBatches:input_type -> inventory_iface.v1.ListBatchesRequest
+	4,  // 11: inventory_iface.v1.BatchService.GetBatch:input_type -> inventory_iface.v1.GetBatchRequest
+	6,  // 12: inventory_iface.v1.BatchService.CreateBatch:input_type -> inventory_iface.v1.CreateBatchRequest
+	10, // 13: inventory_iface.v1.BatchService.ImportStock:input_type -> inventory_iface.v1.ImportStockRequest
+	12, // 14: inventory_iface.v1.BatchService.UpdateBatch:input_type -> inventory_iface.v1.UpdateBatchRequest
+	14, // 15: inventory_iface.v1.BatchService.SearchBatches:input_type -> inventory_iface.v1.SearchBatchesRequest
+	17, // 16: inventory_iface.v1.BatchService.ResolveBatches:input_type -> inventory_iface.v1.ResolveBatchesRequest
+	3,  // 17: inventory_iface.v1.BatchService.ListBatches:output_type -> inventory_iface.v1.ListBatchesResponse
+	5,  // 18: inventory_iface.v1.BatchService.GetBatch:output_type -> inventory_iface.v1.GetBatchResponse
+	7,  // 19: inventory_iface.v1.BatchService.CreateBatch:output_type -> inventory_iface.v1.CreateBatchResponse
+	11, // 20: inventory_iface.v1.BatchService.ImportStock:output_type -> inventory_iface.v1.ImportStockResponse
+	13, // 21: inventory_iface.v1.BatchService.UpdateBatch:output_type -> inventory_iface.v1.UpdateBatchResponse
+	15, // 22: inventory_iface.v1.BatchService.SearchBatches:output_type -> inventory_iface.v1.SearchBatchesResponse
+	18, // 23: inventory_iface.v1.BatchService.ResolveBatches:output_type -> inventory_iface.v1.ResolveBatchesResponse
+	17, // [17:24] is the sub-list for method output_type
+	10, // [10:17] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_inventory_iface_v1_batch_proto_init() }
@@ -1127,13 +1492,14 @@ func file_inventory_iface_v1_batch_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_inventory_iface_v1_batch_proto_rawDesc), len(file_inventory_iface_v1_batch_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      1,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_inventory_iface_v1_batch_proto_goTypes,
 		DependencyIndexes: file_inventory_iface_v1_batch_proto_depIdxs,
+		EnumInfos:         file_inventory_iface_v1_batch_proto_enumTypes,
 		MessageInfos:      file_inventory_iface_v1_batch_proto_msgTypes,
 	}.Build()
 	File_inventory_iface_v1_batch_proto = out.File

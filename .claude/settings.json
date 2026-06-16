@@ -251,7 +251,23 @@
       "Bash(go -C backend test ./internal/service/supplier/ -count=1)",
       "Bash(go -C backend vet ./internal/service/purchasing/)",
       "Bash(go -C backend build ./cmd/server)",
-      "Bash(go -C backend vet ./cmd/server)"
+      "Bash(go -C backend vet ./cmd/server)",
+      "Bash(echo \"TSC DONE \\(exit $?\\)\")",
+      "Bash(docker run *)",
+      "Bash(docker exec *)",
+      "Bash(break)",
+      "Bash(docker info *)",
+      "Bash(docker start *)",
+      "Bash(rm -f imp.db imp.db-wal imp.db-shm)",
+      "Bash(cat)",
+      "Bash(JUSTMART_CONFIG=d:/tmp/imp-config.yaml ./dist/justmart)",
+      "Bash(tee d:/tmp/imp-server.log)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8090/healthz)",
+      "Bash(JUSTMART_CONFIG=d:/tmp/imp-config.yaml /d/research/justmart/dist/justmart)",
+      "mcp__plugin_playwright_playwright__browser_file_upload",
+      "Bash(JUSTMART_TEST_DB_DRIVER=postgres JUSTMART_DB_HOST=localhost JUSTMART_DB_PORT=5433 JUSTMART_DB_USER=justmart JUSTMART_DB_PASSWORD=justmart JUSTMART_DB_NAME=justmart JUSTMART_DB_SSLMODE=disable go test ./internal/service/... ./internal/dbmigrate/ -count=1 -p 1 -parallel 4)",
+      "Bash(echo \"TSC OK \\(exit $?\\)\")",
+      "Bash(JUSTMART_TEST_DB_DRIVER=postgres JUSTMART_DB_HOST=localhost JUSTMART_DB_PORT=5433 JUSTMART_DB_USER=justmart JUSTMART_DB_PASSWORD=justmart JUSTMART_DB_NAME=justmart JUSTMART_DB_SSLMODE=disable go test ./internal/service/product/ -count=1 -p 1 -parallel 4)"
     ],
     "additionalDirectories": [
       "\\tmp"
