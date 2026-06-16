@@ -46,6 +46,9 @@ frontend/tests/e2e/.auth/
 frontend/test-results/
 frontend/playwright-report/
 
+# Playwright MCP browser-tool scratch output (snapshots, console logs, upload staging)
+.playwright-mcp/
+
 # Windows installer build artifacts (assembled payload + cached downloads)
 packaging/windows/payload/
 packaging/windows/.cache/
