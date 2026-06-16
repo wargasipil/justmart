@@ -251,7 +251,9 @@
       "Bash(go -C backend test ./internal/service/supplier/ -count=1)",
       "Bash(go -C backend vet ./internal/service/purchasing/)",
       "Bash(go -C backend build ./cmd/server)",
-      "Bash(go -C backend vet ./cmd/server)"
+      "Bash(go -C backend vet ./cmd/server)",
+      "Bash(buf lint *)",
+      "Bash(rm -rf definitions)"
     ],
     "additionalDirectories": [
       "\\tmp"

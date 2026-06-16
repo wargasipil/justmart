@@ -1,0 +1,12 @@
+version: v2
+modules:
+  - path: protos
+    name: buf.build/wargasipil/warga_collections
+deps:
+  - buf.build/bufbuild/protovalidate
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

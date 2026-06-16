@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package event_iface.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/wargasipil/warga_collections/definitions/event_iface/v1;event_ifacev1";
+
+service EventService {
+  rpc Pull(PullRequest) returns (stream PullResponse);
+  rpc Send(SendRequest) returns (SendResponse);
+  rpc Ack(AckRequest) returns (AckResponse);
+  rpc TopicList(TopicListRequest) returns (TopicListResponse);
+  rpc SubscriptionList(SubscriptionListRequest) returns (SubscriptionListResponse);
+
+  rpc Maintain(MaintainRequest) returns (stream MaintainResponse);
+}
+
+message AckRequest {
+  string subscription = 1 [(buf.validate.field).string.min_len = 1];
+  // Opaque ack ids taken from delivered Event.ack_id. Unknown/foreign ids are
+  // ignored.
+  repeated string ack_ids = 2 [(buf.validate.field).repeated.min_items = 1];
+}
+message AckResponse {
+  // Number of deliveries actually acknowledged by this call.
+  int64 acked = 1;
+}
+
+// Topic is a named channel messages are published to.
+message Topic {
+  string name = 1;
+  google.protobuf.Timestamp create_time = 2;
+}
+
+// Subscription is a durable consumer bound to a single topic. Each
+// subscription receives its own copy of every message published to the topic
+// after the subscription was created.
+message Subscription {
+  string name = 1;
+  string topic = 2;
+  google.protobuf.Timestamp create_time = 3;
+}
+
+message MaintainRequest {}
+message MaintainResponse {
+  // Number of acknowledged, past-retention messages reclaimed in this pass.
+  int64 deleted = 1;
+  google.protobuf.Timestamp time = 2;
+}
+
+message TopicListRequest {}
+message TopicListResponse {
+  repeated Topic topics = 1;
+}
+
+message SubscriptionListRequest {}
+message SubscriptionListResponse {
+  repeated Subscription subscriptions = 1;
+}
+
+message PullRequest {
+  string subscription = 1 [(buf.validate.field).string.min_len = 1];
+  // Topic to bind the subscription to when it does not yet exist. Ignored for
+  // an existing subscription.
+  string topic = 2;
+}
+
+message Message {
+  bytes data = 1;
+  string message_id = 2;
+  google.protobuf.Timestamp publish_time = 3;
+  map<string, string> attributes = 4;
+}
+
+message Event {
+  string subscription = 1;
+  Message message = 2;
+  // Opaque, per-delivery handle the consumer echoes back via Ack to confirm
+  // receipt. Until acked (or the ack deadline lapses) the message is redelivered.
+  string ack_id = 3;
+}
+
+message Ping {}
+
+message PullResponse {
+  oneof d {
+    Ping ping = 1;
+    Event event = 2;
+  }
+}
+
+message SendRequest {
+  string topic = 1 [(buf.validate.field).string.min_len = 1];
+  Message message = 2 [(buf.validate.field).required = true];
+}
+
+message SendResponse {
+  // Server-assigned id of the published message (echoes message.message_id when
+  // the caller supplied one).
+  string message_id = 1;
+}
