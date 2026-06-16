@@ -1082,6 +1082,7 @@ type ListSupplierRestocksRequest struct {
 	SupplierId    string                 `protobuf:"bytes,1,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	Query         string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"` // optional ILIKE product name / sku
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1135,6 +1136,13 @@ func (x *ListSupplierRestocksRequest) GetOffset() int32 {
 		return x.Offset
 	}
 	return 0
+}
+
+func (x *ListSupplierRestocksRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
 }
 
 type ListSupplierRestocksResponse struct {
@@ -1269,12 +1277,13 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x12last_discount_type\x18\x04 \x01(\tR\x10lastDiscountType\x12.\n" +
 	"\x13last_discount_value\x18\x05 \x01(\x03R\x11lastDiscountValue\x12&\n" +
 	"\x0flast_created_at\x18\x06 \x01(\x03R\rlastCreatedAt\x12&\n" +
-	"\x0flast_arrived_at\x18\a \x01(\x03R\rlastArrivedAt\"l\n" +
+	"\x0flast_arrived_at\x18\a \x01(\x03R\rlastArrivedAt\"\x82\x01\n" +
 	"\x1bListSupplierRestocksRequest\x12\x1f\n" +
 	"\vsupplier_id\x18\x01 \x01(\tR\n" +
 	"supplierId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x03 \x01(\x05R\x06offset\"|\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x14\n" +
+	"\x05query\x18\x04 \x01(\tR\x05query\"|\n" +
 	"\x1cListSupplierRestocksResponse\x12F\n" +
 	"\brestocks\x18\x01 \x03(\v2*.inventory_iface.v1.SupplierProductRestockR\brestocks\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total2\xac\a\n" +

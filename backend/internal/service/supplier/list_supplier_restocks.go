@@ -3,6 +3,7 @@ package supplier
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -35,8 +36,19 @@ func (s *SupplierService) ListSupplierRestocks(
 	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
 
 	scope := func() *gorm.DB {
-		return s.db.WithContext(ctx).Model(&model.ProductLastRestock{}).
+		q := s.db.WithContext(ctx).Model(&model.ProductLastRestock{}).
 			Where("supplier_id = ? AND warehouse_id = ?", req.Msg.SupplierId, warehouseID)
+		// Optional product name/sku search. product_last_restocks.product_id
+		// FK-references products.id, so an id-IN subquery filters both the count
+		// and the page consistently without a join (mirrors ListBatches).
+		if query := strings.TrimSpace(req.Msg.Query); query != "" {
+			pattern := "%" + query + "%"
+			like := common.LikeOp(s.db)
+			sub := s.db.Model(&model.Product{}).Select("id").
+				Where("name "+like+" ? OR sku "+like+" ?", pattern, pattern)
+			q = q.Where("product_id IN (?)", sub)
+		}
+		return q
 	}
 
 	var total int64

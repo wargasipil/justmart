@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { Badge, Box, Heading, SimpleGrid, Spinner, Stack, Table, Text } from "@chakra-ui/react";
+import { useEffect, useMemo, useState } from "react";
+import { Badge, Box, Heading, HStack, Input, SimpleGrid, Spinner, Stack, Table, Text } from "@chakra-ui/react";
+import { Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
@@ -15,8 +16,15 @@ export default function SupplierDetail() {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const supQ = useSupplierQuery(id);
-  const { page, setPage, pageSize, setPageSize } = usePageState(id);
-  const restocksQ = useSupplierRestocksQuery(id, { page, pageSize, enabled: !!id });
+  const [searchInput, setSearchInput] = useState("");
+  const [query, setQuery] = useState("");
+  // Debounce the search box (250ms) into the query that drives the request.
+  useEffect(() => {
+    const h = setTimeout(() => setQuery(searchInput.trim()), 250);
+    return () => clearTimeout(h);
+  }, [searchInput]);
+  const { page, setPage, pageSize, setPageSize } = usePageState(`${id}|${query}`);
+  const restocksQ = useSupplierRestocksQuery(id, { query, page, pageSize, enabled: !!id });
   const productRefs = useProductRefs(
     useMemo(() => restocksQ.rows.map((r) => r.productId), [restocksQ.rows]),
   );
@@ -70,9 +78,22 @@ export default function SupplierDetail() {
         </Box>
 
         <Box>
-          <Heading size="sm" mb={3}>
-            {t("inventory.suppliers.restockSection")}
-          </Heading>
+          <HStack justify="space-between" mb={3} wrap="wrap" gap={2}>
+            <Heading size="sm">{t("inventory.suppliers.restockSection")}</Heading>
+            <Box position="relative">
+              <Box position="absolute" left={2} top="50%" transform="translateY(-50%)" color="fg.muted">
+                <Search size={14} />
+              </Box>
+              <Input
+                size="sm"
+                pl={7}
+                width="240px"
+                placeholder={t("inventory.suppliers.restockSearchPlaceholder")}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </Box>
+          </HStack>
           <Box overflowX="auto">
             <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
               <Table.Header bg="bg.muted">

@@ -610,7 +610,8 @@
       "infoSection": "Informasi",
       "restockSection": "Produk & restok",
       "restockProduct": "Produk",
-      "restockEmpty": "Belum ada restok di gudang ini."
+      "restockEmpty": "Belum ada restok di gudang ini.",
+      "restockSearchPlaceholder": "Cari $t(glossary.product)…"
     },
     "batches": {
       "title": "Batch",

@@ -22,8 +22,8 @@ export const supplierKeys = {
   list: (opts: Required<SuppliersQueryOpts>) =>
     [...supplierKeys.all, "list", opts] as const,
   one: (id: string) => [...supplierKeys.all, "one", id] as const,
-  restocks: (id: string, page: number, pageSize: number) =>
-    [...supplierKeys.all, "restocks", id, page, pageSize] as const,
+  restocks: (id: string, query: string, page: number, pageSize: number) =>
+    [...supplierKeys.all, "restocks", id, query, page, pageSize] as const,
   search: (query: string) => [...supplierKeys.all, "search", query] as const,
 };
 
@@ -44,14 +44,15 @@ export function useSupplierQuery(id: string, enabled = true) {
 // detail page. Warehouse-scoped via the X-Warehouse-Id header.
 export function useSupplierRestocksQuery(
   supplierId: string,
-  opts: { page?: number; pageSize?: number; enabled?: boolean } = {},
+  opts: { query?: string; page?: number; pageSize?: number; enabled?: boolean } = {},
 ) {
-  const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
+  const { query = "", page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
-    queryKey: supplierKeys.restocks(supplierId, page, pageSize),
+    queryKey: supplierKeys.restocks(supplierId, query, page, pageSize),
     queryFn: async () => {
       const res = await supplierClient.listSupplierRestocks({
         supplierId,
+        query,
         limit: pageSize,
         offset: page * pageSize,
       });

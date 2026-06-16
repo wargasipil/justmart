@@ -49,6 +49,49 @@ func TestListSupplierRestocks_WarehouseScopedPerProduct(t *testing.T) {
 	require.Equal(t, p1, resp.Msg.Restocks[1].ProductId)
 }
 
+func TestListSupplierRestocks_QueryFiltersByProductNameOrSku(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := suppliersvc.NewSupplierService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	mainWH := defaultWarehouseID(t, gormDB)
+	sup := seedSupplier(t, svc, "SRQ-SUP", "SRQ supplier")
+	p1 := productRow(t, gormDB, "sr-p1", "Prod 1")
+	p2 := productRow(t, gormDB, "sr-p2", "Prod 2")
+	lastRestockRow(t, gormDB, mainWH, p1, sup.Id, 900, 5, restockDate(2026, 1, 3))
+	lastRestockRow(t, gormDB, mainWH, p2, sup.Id, 700, 8, restockDate(2026, 2, 3))
+
+	// Match by product name.
+	byName, err := svc.ListSupplierRestocks(ctx, connect.NewRequest(&inventoryifacev1.ListSupplierRestocksRequest{
+		SupplierId: sup.Id,
+		Query:      "Prod 2",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), byName.Msg.Total)
+	require.Len(t, byName.Msg.Restocks, 1)
+	require.Equal(t, p2, byName.Msg.Restocks[0].ProductId)
+
+	// Match by sku.
+	bySku, err := svc.ListSupplierRestocks(ctx, connect.NewRequest(&inventoryifacev1.ListSupplierRestocksRequest{
+		SupplierId: sup.Id,
+		Query:      "sr-p1",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), bySku.Msg.Total)
+	require.Equal(t, p1, bySku.Msg.Restocks[0].ProductId)
+
+	// No match.
+	none, err := svc.ListSupplierRestocks(ctx, connect.NewRequest(&inventoryifacev1.ListSupplierRestocksRequest{
+		SupplierId: sup.Id,
+		Query:      "zzz",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(0), none.Msg.Total)
+	require.Empty(t, none.Msg.Restocks)
+}
+
 func TestListSupplierRestocks_SupplierIDRequired(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)

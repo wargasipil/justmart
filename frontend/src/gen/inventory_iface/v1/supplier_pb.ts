@@ -911,6 +911,13 @@ export class ListSupplierRestocksRequest extends Message<ListSupplierRestocksReq
    */
   offset = 0;
 
+  /**
+   * optional ILIKE product name / sku
+   *
+   * @generated from field: string query = 4;
+   */
+  query = "";
+
   constructor(data?: PartialMessage<ListSupplierRestocksRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -922,6 +929,7 @@ export class ListSupplierRestocksRequest extends Message<ListSupplierRestocksReq
     { no: 1, name: "supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListSupplierRestocksRequest {

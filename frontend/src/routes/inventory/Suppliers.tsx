@@ -102,6 +102,7 @@ export default function Suppliers() {
               <Table.ColumnHeader>{t("inventory.suppliers.email")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("inventory.suppliers.phone")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("inventory.suppliers.address")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("inventory.suppliers.bankInfo")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
             </Table.Row>
@@ -112,7 +113,7 @@ export default function Suppliers() {
             ))}
             {suppliersQ.rows.length === 0 && (
               <Table.Row>
-                <Table.Cell colSpan={7}>
+                <Table.Cell colSpan={8}>
                   <Text color="fg.muted" textAlign="center" py={4}>
                     {t("common.noResults")}
                   </Text>
@@ -151,6 +152,9 @@ function Row({ supplier }: { supplier: Supplier }) {
       <Table.Cell>{supplier.contactEmail}</Table.Cell>
       <Table.Cell>{supplier.phone}</Table.Cell>
       <Table.Cell>{supplier.address}</Table.Cell>
+      <Table.Cell>
+        <RekeningCell supplier={supplier} />
+      </Table.Cell>
       <Table.Cell>{supplier.active ? t("common.yes") : t("common.no")}</Table.Cell>
       <Table.Cell>
         {supplier.active && (
@@ -168,6 +172,26 @@ function Row({ supplier }: { supplier: Supplier }) {
         )}
       </Table.Cell>
     </Table.Row>
+  );
+}
+
+// Combined "Rekening" cell: bank · account number on the first line, account
+// holder muted below. Degrades gracefully — joins only the present values, and
+// shows a single "—" when no bank info exists at all.
+function RekeningCell({ supplier }: { supplier: Supplier }) {
+  const top = [supplier.bankName, supplier.bankAccountNumber].filter(Boolean).join(" · ");
+  if (!top && !supplier.bankAccountHolder) {
+    return <Text color="fg.muted">—</Text>;
+  }
+  return (
+    <Stack gap={0}>
+      {top && <Text>{top}</Text>}
+      {supplier.bankAccountHolder && (
+        <Text fontSize="xs" color="fg.muted">
+          {supplier.bankAccountHolder}
+        </Text>
+      )}
+    </Stack>
   );
 }
 

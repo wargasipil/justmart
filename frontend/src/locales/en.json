@@ -610,7 +610,8 @@
       "infoSection": "Information",
       "restockSection": "Products & restock",
       "restockProduct": "Product",
-      "restockEmpty": "No restocks recorded in this warehouse yet."
+      "restockEmpty": "No restocks recorded in this warehouse yet.",
+      "restockSearchPlaceholder": "Search $t(glossary.product)…"
     },
     "batches": {
       "title": "Batches",
