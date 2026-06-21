@@ -6,7 +6,22 @@ export const connectorKeys = {
   all: ["connectors"] as const,
   list: () => [...connectorKeys.all, "list"] as const,
   target: () => [...connectorKeys.all, "print-target"] as const,
+  printingInfo: () => [...connectorKeys.all, "printing-info"] as const,
 };
+
+// Active print mode (config connector.mode) + the server host's local printers
+// (usb mode only; empty off-Windows). Drives the mode-aware Printing panel.
+export function usePrintingInfoQuery(enabled = true) {
+  return useQuery({
+    queryKey: connectorKeys.printingInfo(),
+    queryFn: async () => {
+      const res = await settingsClient.getPrintingInfo({});
+      return { mode: res.mode, localPrinters: res.localPrinters };
+    },
+    enabled,
+    staleTime: 30_000,
+  });
+}
 
 // Live list of connected print connectors + their printers. Polls every 5s so
 // the Settings ▸ Printing picker reflects a connector coming/going. Manager-tier
@@ -47,13 +62,14 @@ export function useSetPrintTargetMutation() {
   });
 }
 
-// Printed-receipt header (shop name/address) + footer (closing lines).
+// Printed-receipt header (shop name/address) + footer (closing lines) + paper
+// width (chars per line: 32 = 58mm, 48 = 80mm).
 export function useReceiptSettingsQuery(enabled = true) {
   return useQuery({
     queryKey: [...connectorKeys.all, "receipt"],
     queryFn: async () => {
       const res = await settingsClient.getReceiptSettings({});
-      return { header: res.header, footer: res.footer };
+      return { header: res.header, footer: res.footer, width: res.width };
     },
     enabled,
     staleTime: 30_000,
@@ -63,7 +79,7 @@ export function useReceiptSettingsQuery(enabled = true) {
 export function useSetReceiptSettingsMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (req: { header: string; footer: string }) =>
+    mutationFn: (req: { header: string; footer: string; width: number }) =>
       settingsClient.setReceiptSettings(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: [...connectorKeys.all, "receipt"] }),
   });

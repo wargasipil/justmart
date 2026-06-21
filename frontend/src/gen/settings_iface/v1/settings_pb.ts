@@ -758,6 +758,13 @@ export class GetReceiptSettingsResponse extends Message<GetReceiptSettingsRespon
    */
   footer = "";
 
+  /**
+   * chars per line: 32 = 58mm paper, 48 = 80mm paper
+   *
+   * @generated from field: int32 width = 3;
+   */
+  width = 0;
+
   constructor(data?: PartialMessage<GetReceiptSettingsResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -768,6 +775,7 @@ export class GetReceiptSettingsResponse extends Message<GetReceiptSettingsRespon
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "header", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "footer", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "width", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetReceiptSettingsResponse {
@@ -801,6 +809,13 @@ export class SetReceiptSettingsRequest extends Message<SetReceiptSettingsRequest
    */
   footer = "";
 
+  /**
+   * chars per line: 32 = 58mm paper, 48 = 80mm paper
+   *
+   * @generated from field: int32 width = 3;
+   */
+  width = 0;
+
   constructor(data?: PartialMessage<SetReceiptSettingsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -811,6 +826,7 @@ export class SetReceiptSettingsRequest extends Message<SetReceiptSettingsRequest
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "header", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "footer", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "width", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetReceiptSettingsRequest {
@@ -844,6 +860,11 @@ export class SetReceiptSettingsResponse extends Message<SetReceiptSettingsRespon
    */
   footer = "";
 
+  /**
+   * @generated from field: int32 width = 3;
+   */
+  width = 0;
+
   constructor(data?: PartialMessage<SetReceiptSettingsResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -854,6 +875,7 @@ export class SetReceiptSettingsResponse extends Message<SetReceiptSettingsRespon
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "header", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "footer", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "width", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetReceiptSettingsResponse {
@@ -870,6 +892,84 @@ export class SetReceiptSettingsResponse extends Message<SetReceiptSettingsRespon
 
   static equals(a: SetReceiptSettingsResponse | PlainMessage<SetReceiptSettingsResponse> | undefined, b: SetReceiptSettingsResponse | PlainMessage<SetReceiptSettingsResponse> | undefined): boolean {
     return proto3.util.equals(SetReceiptSettingsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetPrintingInfoRequest
+ */
+export class GetPrintingInfoRequest extends Message<GetPrintingInfoRequest> {
+  constructor(data?: PartialMessage<GetPrintingInfoRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetPrintingInfoRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPrintingInfoRequest {
+    return new GetPrintingInfoRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPrintingInfoRequest {
+    return new GetPrintingInfoRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPrintingInfoRequest {
+    return new GetPrintingInfoRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetPrintingInfoRequest | PlainMessage<GetPrintingInfoRequest> | undefined, b: GetPrintingInfoRequest | PlainMessage<GetPrintingInfoRequest> | undefined): boolean {
+    return proto3.util.equals(GetPrintingInfoRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetPrintingInfoResponse
+ */
+export class GetPrintingInfoResponse extends Message<GetPrintingInfoResponse> {
+  /**
+   * "tcp" | "connector" | "usb"
+   *
+   * @generated from field: string mode = 1;
+   */
+  mode = "";
+
+  /**
+   * server-host printers (usb mode; empty off-Windows)
+   *
+   * @generated from field: repeated string local_printers = 2;
+   */
+  localPrinters: string[] = [];
+
+  constructor(data?: PartialMessage<GetPrintingInfoResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetPrintingInfoResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "mode", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "local_printers", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPrintingInfoResponse {
+    return new GetPrintingInfoResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPrintingInfoResponse {
+    return new GetPrintingInfoResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPrintingInfoResponse {
+    return new GetPrintingInfoResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetPrintingInfoResponse | PlainMessage<GetPrintingInfoResponse> | undefined, b: GetPrintingInfoResponse | PlainMessage<GetPrintingInfoResponse> | undefined): boolean {
+    return proto3.util.equals(GetPrintingInfoResponse, a, b);
   }
 }
 

@@ -121,6 +121,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	warehousesSvc := warehouse.NewWarehouseService(gormDB)
 	transfersSvc := transfer.NewTransferService(gormDB)
 	settingsSvc := settings.NewSettingsService(gormDB)
+	settingsSvc.SetConnectorMode(cfg.Connector.Mode)
 	unitsSvc := unit.NewUnitService(gormDB)
 	backupSvc := backup.NewBackupService(gormDB, cfg)
 
@@ -133,6 +134,11 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	// Printing while existing config-based shops keep their values.
 	if err := common.SeedReceiptDefaults(context.Background(), gormDB, cfg.Printer.Header, cfg.Printer.Footer); err != nil {
 		slog.Warn("could not seed receipt defaults", "error", err)
+	}
+	// Seed the receipt paper width from config.yaml printer.width (set-if-absent),
+	// so a config-based shop keeps its width and it's editable in Settings.
+	if err := common.SeedReceiptWidth(context.Background(), gormDB, cfg.Printer.Width); err != nil {
+		slog.Warn("could not seed receipt width", "error", err)
 	}
 
 	// License drives the business mode. Precedence: a config/env license

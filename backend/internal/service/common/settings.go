@@ -39,6 +39,12 @@ const (
 	SettingKeyReceiptHeader = "receipt_header"
 	SettingKeyReceiptFooter = "receipt_footer"
 
+	// Receipt paper width in characters per line (32 = 58mm paper, 48 = 80mm).
+	// Seeded at boot from config.yaml printer.width; editable in Settings ▸
+	// Printing. Defaults to 32 when unset/invalid.
+	SettingKeyReceiptWidth = "receipt_width"
+	DefaultReceiptWidth    = int32(32)
+
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
 	BussinessTypeUnspecified int32 = 0
@@ -147,6 +153,42 @@ func SetReceiptText(ctx context.Context, db *gorm.DB, header, footer string) err
 		return err
 	}
 	return setSetting(ctx, db, SettingKeyReceiptFooter, footer)
+}
+
+// GetReceiptWidth returns the configured receipt paper width (chars per line),
+// falling back to DefaultReceiptWidth (32) when unset or invalid. Read by
+// SaleService.PrintReceipt and SettingsService.GetReceiptSettings.
+func GetReceiptWidth(ctx context.Context, db *gorm.DB) (int32, error) {
+	v, err := getSetting(ctx, db, SettingKeyReceiptWidth)
+	if err != nil {
+		return 0, err
+	}
+	n, perr := strconv.ParseInt(strings.TrimSpace(v), 10, 32)
+	if perr != nil || n <= 0 {
+		return DefaultReceiptWidth, nil
+	}
+	return int32(n), nil
+}
+
+// SetReceiptWidth persists the receipt paper width (chars per line). Values <= 0
+// are coerced to DefaultReceiptWidth so a bad input can't produce an empty line.
+func SetReceiptWidth(ctx context.Context, db *gorm.DB, width int32) error {
+	if width <= 0 {
+		width = DefaultReceiptWidth
+	}
+	return setSetting(ctx, db, SettingKeyReceiptWidth, strconv.FormatInt(int64(width), 10))
+}
+
+// SeedReceiptWidth writes the config-derived paper width into app_settings ONLY
+// when no row exists yet (mirrors SeedReceiptDefaults), so a config.yaml-based
+// shop keeps its width and a later edit is never overwritten on reboot. A
+// non-positive config width seeds the default.
+func SeedReceiptWidth(ctx context.Context, db *gorm.DB, width int) error {
+	w := int32(width)
+	if w <= 0 {
+		w = DefaultReceiptWidth
+	}
+	return seedIfAbsent(ctx, db, SettingKeyReceiptWidth, strconv.FormatInt(int64(w), 10))
 }
 
 // ReceiptLines splits a stored multi-line header/footer string into receipt

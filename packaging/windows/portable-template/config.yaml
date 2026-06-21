@@ -37,12 +37,19 @@ printer:
   footer:
     - "Thank you!"
 
-# Print connector (optional) - print to a USB / locally-installed printer via
-# the bundled connector program. Full steps: connector\CONNECTOR-SETUP.txt.
-# To enable: change mode below to "connector", restart, then run
-# connector\"Start Connector.bat". The connector connects freely (no token).
+# Receipt printing mode. Pick ONE:
+#   tcp       - network thermal printer (uses the printer.address above)
+#   usb       - print straight to a USB / locally-installed Windows printer on
+#               THIS PC via the Windows print spooler. No extra program to run -
+#               simplest for a single-PC shop with a USB receipt printer.
+#   connector - push to the bundled connector program (e.g. the printer is on a
+#               different PC). Full steps: connector\CONNECTOR-SETUP.txt; after
+#               setting this, run connector\"Start Connector.bat".
 connector:
-  mode: tcp                # "tcp" = network printer (above) | "connector" = bundled connector
+  mode: tcp
+  # For mode: usb - the Windows printer to print to, exactly as it appears in
+  # Windows "Printers & scanners". Leave blank to use this PC's default printer.
+  printer_name: ""
 
 # In-app backups (OWNER -> Settings -> Backups) are written here, next to the
 # exe. SQLite backups use VACUUM INTO (a consistent snapshot, no external tools).

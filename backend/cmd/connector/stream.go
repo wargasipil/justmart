@@ -13,6 +13,7 @@ import (
 
 	connectorifacev1 "github.com/justmart/backend/gen/connector_iface/v1"
 	"github.com/justmart/backend/gen/connector_iface/v1/connectorifacev1connect"
+	"github.com/justmart/backend/internal/spooler"
 )
 
 // h2cClient returns an http.Client that speaks HTTP/2 over cleartext (h2c) so
@@ -53,7 +54,7 @@ func run(cfg config, id identity) error {
 
 // connectOnce opens one stream, registers, and prints jobs until it closes.
 func connectOnce(client connectorifacev1connect.ConnectorServiceClient, cfg config, id identity) error {
-	printers, err := readPrinterNames()
+	printers, err := spooler.ReadNames()
 	if err != nil {
 		slog.Warn("could not list printers", "error", err)
 	}
@@ -75,7 +76,7 @@ func connectOnce(client connectorifacev1connect.ConnectorServiceClient, cfg conf
 			if name == "" {
 				name = cfg.DefaultPrinter
 			}
-			if perr := printToSpooler(name, job.Payload, job.JobId); perr != nil {
+			if perr := spooler.Print(name, job.Payload, job.JobId); perr != nil {
 				slog.Error("print failed", "job_id", job.JobId, "printer", name, "error", perr)
 			} else {
 				slog.Info("printed", "job_id", job.JobId, "printer", name, "bytes", len(job.Payload))

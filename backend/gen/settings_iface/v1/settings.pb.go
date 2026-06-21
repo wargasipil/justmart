@@ -887,6 +887,7 @@ type GetReceiptSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Header        string                 `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"` // receipt header lines (one per text line)
 	Footer        string                 `protobuf:"bytes,2,opt,name=footer,proto3" json:"footer,omitempty"` // receipt footer lines (one per text line)
+	Width         int32                  `protobuf:"varint,3,opt,name=width,proto3" json:"width,omitempty"`  // chars per line: 32 = 58mm paper, 48 = 80mm paper
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -935,10 +936,18 @@ func (x *GetReceiptSettingsResponse) GetFooter() string {
 	return ""
 }
 
+func (x *GetReceiptSettingsResponse) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
 type SetReceiptSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Header        string                 `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Footer        string                 `protobuf:"bytes,2,opt,name=footer,proto3" json:"footer,omitempty"`
+	Width         int32                  `protobuf:"varint,3,opt,name=width,proto3" json:"width,omitempty"` // chars per line: 32 = 58mm paper, 48 = 80mm paper
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -987,10 +996,18 @@ func (x *SetReceiptSettingsRequest) GetFooter() string {
 	return ""
 }
 
+func (x *SetReceiptSettingsRequest) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
 type SetReceiptSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Header        string                 `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
 	Footer        string                 `protobuf:"bytes,2,opt,name=footer,proto3" json:"footer,omitempty"`
+	Width         int32                  `protobuf:"varint,3,opt,name=width,proto3" json:"width,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1039,6 +1056,101 @@ func (x *SetReceiptSettingsResponse) GetFooter() string {
 	return ""
 }
 
+func (x *SetReceiptSettingsResponse) GetWidth() int32 {
+	if x != nil {
+		return x.Width
+	}
+	return 0
+}
+
+type GetPrintingInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPrintingInfoRequest) Reset() {
+	*x = GetPrintingInfoRequest{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPrintingInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPrintingInfoRequest) ProtoMessage() {}
+
+func (x *GetPrintingInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPrintingInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetPrintingInfoRequest) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{21}
+}
+
+type GetPrintingInfoResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mode          string                 `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`                                        // "tcp" | "connector" | "usb"
+	LocalPrinters []string               `protobuf:"bytes,2,rep,name=local_printers,json=localPrinters,proto3" json:"local_printers,omitempty"` // server-host printers (usb mode; empty off-Windows)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPrintingInfoResponse) Reset() {
+	*x = GetPrintingInfoResponse{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPrintingInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPrintingInfoResponse) ProtoMessage() {}
+
+func (x *GetPrintingInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPrintingInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetPrintingInfoResponse) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetPrintingInfoResponse) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *GetPrintingInfoResponse) GetLocalPrinters() []string {
+	if x != nil {
+		return x.LocalPrinters
+	}
+	return nil
+}
+
 var File_settings_iface_v1_settings_proto protoreflect.FileDescriptor
 
 const file_settings_iface_v1_settings_proto_rawDesc = "" +
@@ -1082,20 +1194,28 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\x16SetPrintTargetResponse\x12.\n" +
 	"\x13connector_device_id\x18\x01 \x01(\tR\x11connectorDeviceId\x12!\n" +
 	"\fprinter_name\x18\x02 \x01(\tR\vprinterName\"\x1b\n" +
-	"\x19GetReceiptSettingsRequest\"L\n" +
+	"\x19GetReceiptSettingsRequest\"b\n" +
 	"\x1aGetReceiptSettingsResponse\x12\x16\n" +
 	"\x06header\x18\x01 \x01(\tR\x06header\x12\x16\n" +
-	"\x06footer\x18\x02 \x01(\tR\x06footer\"K\n" +
+	"\x06footer\x18\x02 \x01(\tR\x06footer\x12\x14\n" +
+	"\x05width\x18\x03 \x01(\x05R\x05width\"a\n" +
 	"\x19SetReceiptSettingsRequest\x12\x16\n" +
 	"\x06header\x18\x01 \x01(\tR\x06header\x12\x16\n" +
-	"\x06footer\x18\x02 \x01(\tR\x06footer\"L\n" +
+	"\x06footer\x18\x02 \x01(\tR\x06footer\x12\x14\n" +
+	"\x05width\x18\x03 \x01(\x05R\x05width\"b\n" +
 	"\x1aSetReceiptSettingsResponse\x12\x16\n" +
 	"\x06header\x18\x01 \x01(\tR\x06header\x12\x16\n" +
-	"\x06footer\x18\x02 \x01(\tR\x06footer*l\n" +
+	"\x06footer\x18\x02 \x01(\tR\x06footer\x12\x14\n" +
+	"\x05width\x18\x03 \x01(\x05R\x05width\"\x18\n" +
+	"\x16GetPrintingInfoRequest\"T\n" +
+	"\x17GetPrintingInfoResponse\x12\x12\n" +
+	"\x04mode\x18\x01 \x01(\tR\x04mode\x12%\n" +
+	"\x0elocal_printers\x18\x02 \x03(\tR\rlocalPrinters*l\n" +
 	"\rBussinessType\x12\x1e\n" +
 	"\x1aBUSSINESS_TYPE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cBUSSINESS_TYPE_PHARMACY_SHOP\x10\x01\x12\x19\n" +
-	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\x94\t\n" +
+	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\x86\n" +
+	"\n" +
 	"\x0fSettingsService\x12d\n" +
 	"\vGetSettings\x12%.settings_iface.v1.GetSettingsRequest\x1a&.settings_iface.v1.GetSettingsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
 	"\x0eUpdateSettings\x12(.settings_iface.v1.UpdateSettingsRequest\x1a).settings_iface.v1.UpdateSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12\x81\x01\n" +
@@ -1106,7 +1226,8 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\x0eGetPrintTarget\x12(.settings_iface.v1.GetPrintTargetRequest\x1a).settings_iface.v1.GetPrintTargetResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
 	"\x0eSetPrintTarget\x12(.settings_iface.v1.SetPrintTargetRequest\x1a).settings_iface.v1.SetPrintTargetResponse\"\x05\x8a\xb5\x18\x01\x01\x12y\n" +
 	"\x12GetReceiptSettings\x12,.settings_iface.v1.GetReceiptSettingsRequest\x1a-.settings_iface.v1.GetReceiptSettingsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12x\n" +
-	"\x12SetReceiptSettings\x12,.settings_iface.v1.SetReceiptSettingsRequest\x1a-.settings_iface.v1.SetReceiptSettingsResponse\"\x05\x8a\xb5\x18\x01\x01BCZAgithub.com/justmart/backend/gen/settings_iface/v1;settingsifacev1b\x06proto3"
+	"\x12SetReceiptSettings\x12,.settings_iface.v1.SetReceiptSettingsRequest\x1a-.settings_iface.v1.SetReceiptSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12p\n" +
+	"\x0fGetPrintingInfo\x12).settings_iface.v1.GetPrintingInfoRequest\x1a*.settings_iface.v1.GetPrintingInfoResponse\"\x06\x8a\xb5\x18\x02\x01\x02BCZAgithub.com/justmart/backend/gen/settings_iface/v1;settingsifacev1b\x06proto3"
 
 var (
 	file_settings_iface_v1_settings_proto_rawDescOnce sync.Once
@@ -1121,7 +1242,7 @@ func file_settings_iface_v1_settings_proto_rawDescGZIP() []byte {
 }
 
 var file_settings_iface_v1_settings_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_settings_iface_v1_settings_proto_goTypes = []any{
 	(BussinessType)(0),                   // 0: settings_iface.v1.BussinessType
 	(*Settings)(nil),                     // 1: settings_iface.v1.Settings
@@ -1145,6 +1266,8 @@ var file_settings_iface_v1_settings_proto_goTypes = []any{
 	(*GetReceiptSettingsResponse)(nil),   // 19: settings_iface.v1.GetReceiptSettingsResponse
 	(*SetReceiptSettingsRequest)(nil),    // 20: settings_iface.v1.SetReceiptSettingsRequest
 	(*SetReceiptSettingsResponse)(nil),   // 21: settings_iface.v1.SetReceiptSettingsResponse
+	(*GetPrintingInfoRequest)(nil),       // 22: settings_iface.v1.GetPrintingInfoRequest
+	(*GetPrintingInfoResponse)(nil),      // 23: settings_iface.v1.GetPrintingInfoResponse
 }
 var file_settings_iface_v1_settings_proto_depIdxs = []int32{
 	0,  // 0: settings_iface.v1.GetBussinessSettingsResponse.type:type_name -> settings_iface.v1.BussinessType
@@ -1164,18 +1287,20 @@ var file_settings_iface_v1_settings_proto_depIdxs = []int32{
 	16, // 14: settings_iface.v1.SettingsService.SetPrintTarget:input_type -> settings_iface.v1.SetPrintTargetRequest
 	18, // 15: settings_iface.v1.SettingsService.GetReceiptSettings:input_type -> settings_iface.v1.GetReceiptSettingsRequest
 	20, // 16: settings_iface.v1.SettingsService.SetReceiptSettings:input_type -> settings_iface.v1.SetReceiptSettingsRequest
-	11, // 17: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
-	13, // 18: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
-	3,  // 19: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
-	5,  // 20: settings_iface.v1.SettingsService.SetBussinessSettings:output_type -> settings_iface.v1.SetBussinessSettingsResponse
-	7,  // 21: settings_iface.v1.SettingsService.ApplyLicense:output_type -> settings_iface.v1.ApplyLicenseResponse
-	9,  // 22: settings_iface.v1.SettingsService.GetLicenseInfo:output_type -> settings_iface.v1.GetLicenseInfoResponse
-	15, // 23: settings_iface.v1.SettingsService.GetPrintTarget:output_type -> settings_iface.v1.GetPrintTargetResponse
-	17, // 24: settings_iface.v1.SettingsService.SetPrintTarget:output_type -> settings_iface.v1.SetPrintTargetResponse
-	19, // 25: settings_iface.v1.SettingsService.GetReceiptSettings:output_type -> settings_iface.v1.GetReceiptSettingsResponse
-	21, // 26: settings_iface.v1.SettingsService.SetReceiptSettings:output_type -> settings_iface.v1.SetReceiptSettingsResponse
-	17, // [17:27] is the sub-list for method output_type
-	7,  // [7:17] is the sub-list for method input_type
+	22, // 17: settings_iface.v1.SettingsService.GetPrintingInfo:input_type -> settings_iface.v1.GetPrintingInfoRequest
+	11, // 18: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
+	13, // 19: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
+	3,  // 20: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
+	5,  // 21: settings_iface.v1.SettingsService.SetBussinessSettings:output_type -> settings_iface.v1.SetBussinessSettingsResponse
+	7,  // 22: settings_iface.v1.SettingsService.ApplyLicense:output_type -> settings_iface.v1.ApplyLicenseResponse
+	9,  // 23: settings_iface.v1.SettingsService.GetLicenseInfo:output_type -> settings_iface.v1.GetLicenseInfoResponse
+	15, // 24: settings_iface.v1.SettingsService.GetPrintTarget:output_type -> settings_iface.v1.GetPrintTargetResponse
+	17, // 25: settings_iface.v1.SettingsService.SetPrintTarget:output_type -> settings_iface.v1.SetPrintTargetResponse
+	19, // 26: settings_iface.v1.SettingsService.GetReceiptSettings:output_type -> settings_iface.v1.GetReceiptSettingsResponse
+	21, // 27: settings_iface.v1.SettingsService.SetReceiptSettings:output_type -> settings_iface.v1.SetReceiptSettingsResponse
+	23, // 28: settings_iface.v1.SettingsService.GetPrintingInfo:output_type -> settings_iface.v1.GetPrintingInfoResponse
+	18, // [18:29] is the sub-list for method output_type
+	7,  // [7:18] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -1192,7 +1317,7 @@ func file_settings_iface_v1_settings_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_settings_iface_v1_settings_proto_rawDesc), len(file_settings_iface_v1_settings_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

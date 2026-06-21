@@ -51,11 +51,19 @@ http://localhost:<your-port>.
 
 PRINT RECEIPTS TO A USB / LOCAL PRINTER
 ---------------------------------------
-This folder includes a "connector" that prints to a printer attached to this PC
-(USB thermal printers, or any printer installed in Windows). Open the
+For a USB printer (or any printer installed in Windows) attached to THIS PC, the
+easiest way is "usb" mode - no extra program to run:
+  1. Open config.yaml.
+  2. Under "connector:", set   mode: usb
+  3. (Optional) set  printer_name:  to the printer's exact Windows name; leave
+     it blank to use this PC's default printer.
+  4. Save and restart Justmart. Receipts print straight to that printer.
+
+A network printer with its own IP does not need any of this - set
+"printer: enabled: true" + its address in config.yaml instead.
+
+If the printer is on a DIFFERENT PC, use the bundled "connector": open the
    connector\  folder and follow  connector\CONNECTOR-SETUP.txt.
-(A network printer with its own IP does not need the connector - set
-"printer: enabled: true" + its address in config.yaml instead.)
 
 
 USE FROM OTHER DEVICES ON THE NETWORK

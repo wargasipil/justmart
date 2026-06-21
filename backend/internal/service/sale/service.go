@@ -9,6 +9,7 @@ import (
 
 	"github.com/justmart/backend/internal/config"
 	"github.com/justmart/backend/internal/service/common"
+	"github.com/justmart/backend/internal/spooler"
 )
 
 const (
@@ -30,15 +31,21 @@ type ConnectorPusher interface {
 	Push(deviceID, printerName string, payload []byte) (jobID string, err error)
 }
 
+// SpoolFunc prints rendered receipt bytes to a locally-installed printer (the
+// usb-mode seam). Defaults to spooler.Print (Windows spooler; a no-op error off
+// Windows); tests inject a fake via SetSpooler.
+type SpoolFunc func(printerName string, payload []byte, jobID string) error
+
 type SaleService struct {
 	db           *gorm.DB
 	printer      config.Printer
 	connectorCfg config.Connector
 	connector    ConnectorPusher
+	spool        SpoolFunc
 }
 
 func NewSaleService(db *gorm.DB, printerCfg config.Printer) *SaleService {
-	return &SaleService{db: db, printer: printerCfg}
+	return &SaleService{db: db, printer: printerCfg, spool: spooler.Print}
 }
 
 // SetConnector wires the print-connector path. PrintReceipt routes to the
@@ -49,3 +56,7 @@ func (s *SaleService) SetConnector(connectorCfg config.Connector, pusher Connect
 	s.connectorCfg = connectorCfg
 	s.connector = pusher
 }
+
+// SetSpooler overrides the usb-mode local print function (tests inject a fake;
+// production uses the spooler.Print default set in NewSaleService).
+func (s *SaleService) SetSpooler(fn SpoolFunc) { s.spool = fn }

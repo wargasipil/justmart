@@ -63,6 +63,9 @@ const (
 	// SettingsServiceSetReceiptSettingsProcedure is the fully-qualified name of the SettingsService's
 	// SetReceiptSettings RPC.
 	SettingsServiceSetReceiptSettingsProcedure = "/settings_iface.v1.SettingsService/SetReceiptSettings"
+	// SettingsServiceGetPrintingInfoProcedure is the fully-qualified name of the SettingsService's
+	// GetPrintingInfo RPC.
+	SettingsServiceGetPrintingInfoProcedure = "/settings_iface.v1.SettingsService/GetPrintingInfo"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
@@ -93,6 +96,11 @@ type SettingsServiceClient interface {
 	// footer. Get is manager-tier; Set is owner-only.
 	GetReceiptSettings(context.Context, *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error)
 	SetReceiptSettings(context.Context, *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error)
+	// GetPrintingInfo reports the active print mode (config connector.mode) plus,
+	// in usb mode, the printers installed on the SERVER host (via the OS spooler;
+	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
+	// which picker to show and the usb local-printer options. Manager-tier.
+	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -166,6 +174,12 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("SetReceiptSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		getPrintingInfo: connect.NewClient[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse](
+			httpClient,
+			baseURL+SettingsServiceGetPrintingInfoProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -181,6 +195,7 @@ type settingsServiceClient struct {
 	setPrintTarget       *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
 	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
 	setReceiptSettings   *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
+	getPrintingInfo      *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -233,6 +248,11 @@ func (c *settingsServiceClient) SetReceiptSettings(ctx context.Context, req *con
 	return c.setReceiptSettings.CallUnary(ctx, req)
 }
 
+// GetPrintingInfo calls settings_iface.v1.SettingsService.GetPrintingInfo.
+func (c *settingsServiceClient) GetPrintingInfo(ctx context.Context, req *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error) {
+	return c.getPrintingInfo.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
@@ -261,6 +281,11 @@ type SettingsServiceHandler interface {
 	// footer. Get is manager-tier; Set is owner-only.
 	GetReceiptSettings(context.Context, *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error)
 	SetReceiptSettings(context.Context, *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error)
+	// GetPrintingInfo reports the active print mode (config connector.mode) plus,
+	// in usb mode, the printers installed on the SERVER host (via the OS spooler;
+	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
+	// which picker to show and the usb local-printer options. Manager-tier.
+	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -330,6 +355,12 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("SetReceiptSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetPrintingInfoHandler := connect.NewUnaryHandler(
+		SettingsServiceGetPrintingInfoProcedure,
+		svc.GetPrintingInfo,
+		connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
@@ -352,6 +383,8 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceGetReceiptSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceSetReceiptSettingsProcedure:
 			settingsServiceSetReceiptSettingsHandler.ServeHTTP(w, r)
+		case SettingsServiceGetPrintingInfoProcedure:
+			settingsServiceGetPrintingInfoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -399,4 +432,8 @@ func (UnimplementedSettingsServiceHandler) GetReceiptSettings(context.Context, *
 
 func (UnimplementedSettingsServiceHandler) SetReceiptSettings(context.Context, *connect.Request[v1.SetReceiptSettingsRequest]) (*connect.Response[v1.SetReceiptSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetReceiptSettings is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetPrintingInfo is not implemented"))
 }

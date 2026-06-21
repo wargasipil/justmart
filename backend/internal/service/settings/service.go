@@ -6,7 +6,13 @@ package settings
 import "gorm.io/gorm"
 
 type SettingsService struct {
-	db *gorm.DB
+	db   *gorm.DB
+	mode string // config connector.mode ("" => tcp); set via SetConnectorMode
 }
 
 func NewSettingsService(db *gorm.DB) *SettingsService { return &SettingsService{db: db} }
+
+// SetConnectorMode records the configured print mode (config connector.mode) so
+// GetPrintingInfo can report it to the Settings ▸ Printing panel. Called once
+// from serve.go; defaults to "" (treated as tcp) when unset.
+func (s *SettingsService) SetConnectorMode(mode string) { s.mode = mode }

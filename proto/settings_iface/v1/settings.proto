@@ -74,6 +74,15 @@ service SettingsService {
   rpc SetReceiptSettings(SetReceiptSettingsRequest) returns (SetReceiptSettingsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
   }
+
+  // GetPrintingInfo reports the active print mode (config connector.mode) plus,
+  // in usb mode, the printers installed on the SERVER host (via the OS spooler;
+  // empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
+  // which picker to show and the usb local-printer options. Manager-tier.
+  rpc GetPrintingInfo(GetPrintingInfoRequest) returns (GetPrintingInfoResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 enum BussinessType {
@@ -141,12 +150,21 @@ message GetReceiptSettingsRequest {}
 message GetReceiptSettingsResponse {
   string header = 1; // receipt header lines (one per text line)
   string footer = 2; // receipt footer lines (one per text line)
+  int32 width = 3;   // chars per line: 32 = 58mm paper, 48 = 80mm paper
 }
 message SetReceiptSettingsRequest {
   string header = 1;
   string footer = 2;
+  int32 width = 3;   // chars per line: 32 = 58mm paper, 48 = 80mm paper
 }
 message SetReceiptSettingsResponse {
   string header = 1;
   string footer = 2;
+  int32 width = 3;
+}
+
+message GetPrintingInfoRequest {}
+message GetPrintingInfoResponse {
+  string mode = 1;                    // "tcp" | "connector" | "usb"
+  repeated string local_printers = 2; // server-host printers (usb mode; empty off-Windows)
 }

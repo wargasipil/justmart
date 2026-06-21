@@ -17,10 +17,12 @@ func (s *SaleService) PrintReceipt(
 	ctx context.Context,
 	req *connect.Request[posifacev1.PrintReceiptRequest],
 ) (*connect.Response[posifacev1.PrintReceiptResponse], error) {
-	connectorMode := s.connectorCfg.Mode == "connector"
-	if !connectorMode && !s.printer.Enabled {
+	mode := s.connectorCfg.Mode
+	// tcp is the only mode that needs printer.enabled; connector/usb are gated by
+	// the mode itself.
+	if mode != "connector" && mode != "usb" && !s.printer.Enabled {
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("printing is not configured (set printer.enabled or connector.mode in config.yaml)"))
+			errors.New("printing is not configured (set printer.enabled, or connector.mode to connector/usb, in config.yaml)"))
 	}
 	sale, err := s.loadFull(ctx, req.Msg.SaleId)
 	if err != nil {
@@ -105,23 +107,28 @@ func (s *SaleService) PrintReceipt(
 		Payment:      paymentStr,
 		Change:       change,
 	}
-	// Header/footer come from app_settings (seeded at boot from config.yaml,
+	// Header/footer/width come from app_settings (seeded at boot from config.yaml,
 	// editable in Settings ▸ Printing); fall back to the config only if the
-	// lookup errors. Width + drawer stay hardware config.
+	// lookup errors. Drawer stays hardware config.
 	header, footer := s.printer.Header, s.printer.Footer
 	if h, f, err := common.GetReceiptText(ctx, s.db); err == nil {
 		header = common.ReceiptLines(h)
 		footer = common.ReceiptLines(f)
 	}
+	width := s.printer.Width
+	if w, err := common.GetReceiptWidth(ctx, s.db); err == nil {
+		width = int(w)
+	}
 	settings := printer.Settings{
-		Width:      s.printer.Width,
+		Width:      width,
 		Header:     header,
 		Footer:     footer,
 		OpenDrawer: s.printer.OpenDrawer,
 	}
 	payload := printer.Render(receipt, settings)
 
-	if connectorMode {
+	switch mode {
+	case "connector":
 		if s.connector == nil {
 			return nil, connect.NewError(connect.CodeFailedPrecondition,
 				errors.New("connector mode is on but no print connector registry is wired"))
@@ -143,8 +150,28 @@ func (s *SaleService) PrintReceipt(
 		if _, err := s.connector.Push(deviceID, printerName, payload); err != nil {
 			return nil, err // already a connect error (Unavailable)
 		}
-	} else if err := printer.DispatchTCP(s.printer.Address, payload, s.printer.Timeout); err != nil {
-		return nil, connect.NewError(connect.CodeUnavailable, err)
+	case "usb":
+		// Print straight to a locally-installed printer via the OS spooler
+		// (Windows only; the !windows spooler stub errors out). Printer precedence:
+		// request → saved Settings default → config.printer_name → "" (host default).
+		printerName := req.Msg.PrinterName
+		if printerName == "" {
+			_, saved, derr := common.GetPrintTarget(ctx, s.db)
+			if derr != nil {
+				return nil, connect.NewError(connect.CodeInternal, derr)
+			}
+			printerName = saved
+		}
+		if printerName == "" {
+			printerName = s.connectorCfg.PrinterName
+		}
+		if err := s.spool(printerName, payload, req.Msg.SaleId); err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		}
+	default: // "tcp"
+		if err := printer.DispatchTCP(s.printer.Address, payload, s.printer.Timeout); err != nil {
+			return nil, connect.NewError(connect.CodeUnavailable, err)
+		}
 	}
 	return connect.NewResponse(&posifacev1.PrintReceiptResponse{
 		BytesSent: int32(len(payload)),

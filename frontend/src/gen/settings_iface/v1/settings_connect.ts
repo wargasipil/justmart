@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -122,6 +122,20 @@ export const SettingsService = {
       name: "SetReceiptSettings",
       I: SetReceiptSettingsRequest,
       O: SetReceiptSettingsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetPrintingInfo reports the active print mode (config connector.mode) plus,
+     * in usb mode, the printers installed on the SERVER host (via the OS spooler;
+     * empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
+     * which picker to show and the usb local-printer options. Manager-tier.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetPrintingInfo
+     */
+    getPrintingInfo: {
+      name: "GetPrintingInfo",
+      I: GetPrintingInfoRequest,
+      O: GetPrintingInfoResponse,
       kind: MethodKind.Unary,
     },
   }

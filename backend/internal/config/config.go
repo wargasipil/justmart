@@ -101,12 +101,18 @@ type Backup struct {
 }
 
 // Connector controls how SaleService.PrintReceipt dispatches the rendered
-// receipt. Mode "tcp" (default) keeps the legacy raw-TCP-to-IP:9100 path
-// (printer.Address). Mode "connector" pushes the rendered bytes to a connected
-// print connector (a separate program by the printer; see cmd/connector).
-// Connectors connect freely (no auth) — suitable for a trusted single-shop LAN.
+// receipt. Three modes:
+//   - "tcp" (default): legacy raw-TCP-to-IP:9100 path (printer.Address).
+//   - "connector": push the rendered bytes to a connected print connector (a
+//     separate program by the printer; see cmd/connector). Connectors connect
+//     freely (no auth) — suitable for a trusted single-shop LAN.
+//   - "usb": print directly to a locally-installed printer via the OS spooler
+//     (Windows only; internal/spooler). For the single-PC turnkey deploy where
+//     the server runs on the same machine as a USB/local printer — no separate
+//     connector process. PrinterName picks the target ("" = the host default).
 type Connector struct {
-	Mode string `yaml:"mode"` // "tcp" (default) | "connector"
+	Mode        string `yaml:"mode"`         // "tcp" (default) | "connector" | "usb"
+	PrinterName string `yaml:"printer_name"` // usb mode: local printer to spool to ("" = host default)
 }
 
 type Config struct {

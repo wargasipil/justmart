@@ -20,9 +20,14 @@ func (s *SettingsService) GetReceiptSettings(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	width, err := common.GetReceiptWidth(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	return connect.NewResponse(&settingsifacev1.GetReceiptSettingsResponse{
 		Header: header,
 		Footer: footer,
+		Width:  width,
 	}), nil
 }
 
@@ -34,8 +39,16 @@ func (s *SettingsService) SetReceiptSettings(
 	if err := common.SetReceiptText(ctx, s.db, req.Msg.Header, req.Msg.Footer); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if err := common.SetReceiptWidth(ctx, s.db, req.Msg.Width); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	width, err := common.GetReceiptWidth(ctx, s.db) // echo the coerced value
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	return connect.NewResponse(&settingsifacev1.SetReceiptSettingsResponse{
 		Header: req.Msg.Header,
 		Footer: req.Msg.Footer,
+		Width:  width,
 	}), nil
 }
