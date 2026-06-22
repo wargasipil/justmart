@@ -41,6 +41,12 @@ func saleToProto(s *model.Sale) *posifacev1.Sale {
 	if s.CompletedAt != nil {
 		out.CompletedAt = s.CompletedAt.Unix()
 	}
+	if s.RefundedAt != nil {
+		out.RefundedAt = s.RefundedAt.Unix()
+	}
+	out.RefundAmount = s.RefundAmount
+	out.RefundReason = s.RefundReason
+	out.RefundRestocked = s.RefundRestocked
 	for i := range s.Items {
 		out.Items = append(out.Items, saleItemToProto(&s.Items[i]))
 	}
@@ -79,6 +85,8 @@ func saleStatusToString(s posifacev1.SaleStatus) string {
 		return saleStatusCompleted
 	case posifacev1.SaleStatus_SALE_STATUS_VOIDED:
 		return saleStatusVoided
+	case posifacev1.SaleStatus_SALE_STATUS_REFUNDED:
+		return saleStatusRefunded
 	default:
 		return ""
 	}
@@ -92,6 +100,8 @@ func saleStatusToProto(s string) posifacev1.SaleStatus {
 		return posifacev1.SaleStatus_SALE_STATUS_COMPLETED
 	case saleStatusVoided:
 		return posifacev1.SaleStatus_SALE_STATUS_VOIDED
+	case saleStatusRefunded:
+		return posifacev1.SaleStatus_SALE_STATUS_REFUNDED
 	default:
 		return posifacev1.SaleStatus_SALE_STATUS_UNSPECIFIED
 	}

@@ -288,9 +288,15 @@ func (StockMetricField) EnumDescriptor() ([]byte, []int) {
 }
 
 type Filter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FromUnix      int64                  `protobuf:"varint,1,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`
-	ToUnix        int64                  `protobuf:"varint,2,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"` // future: warehouse_id, supplier_id, payment_source — extend in place
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	FromUnix int64                  `protobuf:"varint,1,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`
+	ToUnix   int64                  `protobuf:"varint,2,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`
+	// Optional cashier-scope filter (OWNER/PHARMACIST only — those are the only
+	// roles that can reach these RPCs). When set, ORDER metrics (terjual/hpp/
+	// profit/avg_sold/last_order) are narrowed to that cashier's sales; STOCK
+	// metrics stay warehouse-wide (stock has no cashier dimension). Ignored by
+	// UserMetric (which is already the per-cashier breakdown).
+	CashierUserId string `protobuf:"bytes,3,opt,name=cashier_user_id,json=cashierUserId,proto3" json:"cashier_user_id,omitempty"` // future: warehouse_id, supplier_id, payment_source — extend in place
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -337,6 +343,13 @@ func (x *Filter) GetToUnix() int64 {
 		return x.ToUnix
 	}
 	return 0
+}
+
+func (x *Filter) GetCashierUserId() string {
+	if x != nil {
+		return x.CashierUserId
+	}
+	return ""
 }
 
 // Sort.field unset => sort by dimension key (chronological for Daily,
@@ -1087,10 +1100,11 @@ var File_analytics_iface_v1_analytics_proto protoreflect.FileDescriptor
 
 const file_analytics_iface_v1_analytics_proto_rawDesc = "" +
 	"\n" +
-	"\"analytics_iface/v1/analytics.proto\x12\x12analytics_iface.v1\x1a\x1aauth_iface/v1/policy.proto\">\n" +
+	"\"analytics_iface/v1/analytics.proto\x12\x12analytics_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"f\n" +
 	"\x06Filter\x12\x1b\n" +
 	"\tfrom_unix\x18\x01 \x01(\x03R\bfromUnix\x12\x17\n" +
-	"\ato_unix\x18\x02 \x01(\x03R\x06toUnix\"\xcc\x01\n" +
+	"\ato_unix\x18\x02 \x01(\x03R\x06toUnix\x12&\n" +
+	"\x0fcashier_user_id\x18\x03 \x01(\tR\rcashierUserId\"\xcc\x01\n" +
 	"\x04Sort\x12?\n" +
 	"\tdirection\x18\x01 \x01(\x0e2!.analytics_iface.v1.SortDirectionR\tdirection\x12<\n" +
 	"\x05order\x18\x02 \x01(\x0e2$.analytics_iface.v1.OrderMetricFieldH\x00R\x05order\x12<\n" +

@@ -17,6 +17,7 @@ enum SaleStatus {
   SALE_STATUS_DRAFT = 1;
   SALE_STATUS_COMPLETED = 2;
   SALE_STATUS_VOIDED = 3;
+  SALE_STATUS_REFUNDED = 4; // a completed order that was fully refunded
 }
 
 message Sale {
@@ -45,6 +46,11 @@ message Sale {
   // when FIXED, basis points (percent*100) when PERCENT (empty type => FIXED).
   string cart_discount_type = 20;
   int64 cart_discount_value = 21;
+  // Full-order refund (status REFUNDED). All zero/empty unless refunded.
+  int64 refunded_at = 22;       // unix; when the order was refunded
+  int64 refund_amount = 23;     // amount refunded (= total at refund time)
+  string refund_reason = 24;
+  bool refund_restocked = 25;   // true = goods returned to stock; false = money-only
 }
 
 message SaleItem {
@@ -172,6 +178,14 @@ service SaleService {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
+  // RefundSale fully refunds a COMPLETED order: flips it to REFUNDED, optionally
+  // returns its goods to stock (RETURN movements) and reverses pharmacy Rx
+  // dispensing, and records the refunded amount. Manager-tier (money + stock
+  // reversal) — OWNER + PHARMACIST only, unlike the DRAFT-only VoidSale.
+  rpc RefundSale(RefundSaleRequest) returns (RefundSaleResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc GetTodaySnapshot(GetTodaySnapshotRequest) returns (GetTodaySnapshotResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -181,6 +195,14 @@ service SaleService {
   rpc GetSalesSummary(GetSalesSummaryRequest) returns (GetSalesSummaryResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // GetMyPerformance returns the CALLER's own COMPLETED-sales metrics (revenue,
+  // sale count, items sold) bucketed over a date range. Always self-scoped from
+  // the principal — there is no cashier param — and it carries NO profit/COGS,
+  // so it can never leak cost basis or another cashier's data. Cashier-facing.
+  rpc GetMyPerformance(GetMyPerformanceRequest) returns (GetMyPerformanceResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
@@ -205,6 +227,10 @@ message ListSalesRequest {
   int32 limit = 4;
   int32 offset = 5;
   string query = 6;          // ILIKE sale_no / customer name / product name
+  // Optional cashier-scope filter. OWNER/PHARMACIST may set it to narrow to one
+  // cashier (empty = all). CASHIER/APOTEKER are forced to their own id
+  // server-side and may not request another's (InvalidArgument).
+  string cashier_user_id = 7;
 }
 message ListSalesResponse {
   repeated Sale sales = 1;
@@ -287,6 +313,13 @@ message DiscardSaleRequest {
 }
 message DiscardSaleResponse {}
 
+message RefundSaleRequest {
+  string sale_id = 1;
+  string reason = 2;   // optional free-text reason recorded on the sale
+  bool restock = 3;    // true = return goods to stock (RETURN movements) + reverse Rx; false = money-only
+}
+message RefundSaleResponse { Sale sale = 1; }
+
 message GetTodaySnapshotRequest {
   // Optional cashier-scope filter. Empty = include every cashier (OWNER /
   // PHARMACIST view). Set = only sales by that cashier (CASHIER view passes
@@ -312,11 +345,42 @@ message GetSalesSummaryRequest {
   int64 to_unix = 2;
   SaleStatus status = 3;
   string query = 4;          // ILIKE sale_no / customer name / product name
+  // Optional cashier-scope filter — same rules as ListSalesRequest.cashier_user_id.
+  string cashier_user_id = 5;
 }
 message GetSalesSummaryResponse {
   int64 sale_count = 1;
   int64 items_sold = 2;      // SUM(sale_items.qty)
   int64 revenue = 3;         // SUM(sales.total)
+}
+
+enum PerformanceGranularity {
+  PERFORMANCE_GRANULARITY_UNSPECIFIED = 0;  // treated as DAY
+  PERFORMANCE_GRANULARITY_DAY         = 1;
+  PERFORMANCE_GRANULARITY_WEEK        = 2;
+  PERFORMANCE_GRANULARITY_MONTH       = 3;
+}
+
+message GetMyPerformanceRequest {
+  int64 from_unix = 1;                        // completed_at >= from (default: now-30d)
+  int64 to_unix   = 2;                        // completed_at <  to (default: now)
+  PerformanceGranularity granularity = 3;
+}
+
+// One time bucket of the caller's own COMPLETED sales. Deliberately carries NO
+// profit/COGS field — there is nothing to populate, so cost can never leak.
+message PerformanceBucket {
+  string day_key     = 1;  // "YYYY-MM-DD" | "YYYY-Www" (ISO) | "YYYY-MM"
+  int64  revenue     = 2;  // SUM(sales.total)
+  int64  sales_count = 3;  // COUNT of COMPLETED sales
+  int64  items_sold  = 4;  // SUM(sale_items.base_qty) — base-unit qty
+}
+
+message GetMyPerformanceResponse {
+  repeated PerformanceBucket buckets = 1;     // chronological; empty buckets zeroed
+  int64 total_revenue     = 2;
+  int64 total_sales_count = 3;
+  int64 total_items_sold  = 4;
 }
 
 message PrintReceiptRequest {

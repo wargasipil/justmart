@@ -24,9 +24,13 @@ func (s *SaleService) ListSales(
 	if err != nil {
 		return nil, err
 	}
+	cashierID, err := resolveCashierFilter(caller, req.Msg.CashierUserId)
+	if err != nil {
+		return nil, err
+	}
 	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
 	applyFilters := func(q *gorm.DB) *gorm.DB {
-		return s.applySaleFilters(q, warehouseID, req.Msg.FromUnix, req.Msg.ToUnix, req.Msg.Status, req.Msg.Query)
+		return s.applySaleFilters(q, warehouseID, req.Msg.FromUnix, req.Msg.ToUnix, req.Msg.Status, req.Msg.Query, cashierID)
 	}
 
 	var total int64

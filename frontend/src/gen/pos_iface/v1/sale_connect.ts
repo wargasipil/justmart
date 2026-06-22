@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
+import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetMyPerformanceRequest, GetMyPerformanceResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RefundSaleRequest, RefundSaleResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -165,6 +165,20 @@ export const SaleService = {
       kind: MethodKind.Unary,
     },
     /**
+     * RefundSale fully refunds a COMPLETED order: flips it to REFUNDED, optionally
+     * returns its goods to stock (RETURN movements) and reverses pharmacy Rx
+     * dispensing, and records the refunded amount. Manager-tier (money + stock
+     * reversal) — OWNER + PHARMACIST only, unlike the DRAFT-only VoidSale.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.RefundSale
+     */
+    refundSale: {
+      name: "RefundSale",
+      I: RefundSaleRequest,
+      O: RefundSaleResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
      * @generated from rpc pos_iface.v1.SaleService.GetTodaySnapshot
      */
     getTodaySnapshot: {
@@ -180,6 +194,20 @@ export const SaleService = {
       name: "GetSalesSummary",
       I: GetSalesSummaryRequest,
       O: GetSalesSummaryResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetMyPerformance returns the CALLER's own COMPLETED-sales metrics (revenue,
+     * sale count, items sold) bucketed over a date range. Always self-scoped from
+     * the principal — there is no cashier param — and it carries NO profit/COGS,
+     * so it can never leak cost basis or another cashier's data. Cashier-facing.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.GetMyPerformance
+     */
+    getMyPerformance: {
+      name: "GetMyPerformance",
+      I: GetMyPerformanceRequest,
+      O: GetMyPerformanceResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -71,12 +71,17 @@ const (
 	SaleServiceVoidSaleProcedure = "/pos_iface.v1.SaleService/VoidSale"
 	// SaleServiceDiscardSaleProcedure is the fully-qualified name of the SaleService's DiscardSale RPC.
 	SaleServiceDiscardSaleProcedure = "/pos_iface.v1.SaleService/DiscardSale"
+	// SaleServiceRefundSaleProcedure is the fully-qualified name of the SaleService's RefundSale RPC.
+	SaleServiceRefundSaleProcedure = "/pos_iface.v1.SaleService/RefundSale"
 	// SaleServiceGetTodaySnapshotProcedure is the fully-qualified name of the SaleService's
 	// GetTodaySnapshot RPC.
 	SaleServiceGetTodaySnapshotProcedure = "/pos_iface.v1.SaleService/GetTodaySnapshot"
 	// SaleServiceGetSalesSummaryProcedure is the fully-qualified name of the SaleService's
 	// GetSalesSummary RPC.
 	SaleServiceGetSalesSummaryProcedure = "/pos_iface.v1.SaleService/GetSalesSummary"
+	// SaleServiceGetMyPerformanceProcedure is the fully-qualified name of the SaleService's
+	// GetMyPerformance RPC.
+	SaleServiceGetMyPerformanceProcedure = "/pos_iface.v1.SaleService/GetMyPerformance"
 	// SaleServicePrintReceiptProcedure is the fully-qualified name of the SaleService's PrintReceipt
 	// RPC.
 	SaleServicePrintReceiptProcedure = "/pos_iface.v1.SaleService/PrintReceipt"
@@ -111,8 +116,18 @@ type SaleServiceClient interface {
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
 	// POS carts so they leave no VOIDED trace. Only DRAFT sales are discardable.
 	DiscardSale(context.Context, *connect.Request[v1.DiscardSaleRequest]) (*connect.Response[v1.DiscardSaleResponse], error)
+	// RefundSale fully refunds a COMPLETED order: flips it to REFUNDED, optionally
+	// returns its goods to stock (RETURN movements) and reverses pharmacy Rx
+	// dispensing, and records the refunded amount. Manager-tier (money + stock
+	// reversal) — OWNER + PHARMACIST only, unlike the DRAFT-only VoidSale.
+	RefundSale(context.Context, *connect.Request[v1.RefundSaleRequest]) (*connect.Response[v1.RefundSaleResponse], error)
 	GetTodaySnapshot(context.Context, *connect.Request[v1.GetTodaySnapshotRequest]) (*connect.Response[v1.GetTodaySnapshotResponse], error)
 	GetSalesSummary(context.Context, *connect.Request[v1.GetSalesSummaryRequest]) (*connect.Response[v1.GetSalesSummaryResponse], error)
+	// GetMyPerformance returns the CALLER's own COMPLETED-sales metrics (revenue,
+	// sale count, items sold) bucketed over a date range. Always self-scoped from
+	// the principal — there is no cashier param — and it carries NO profit/COGS,
+	// so it can never leak cost basis or another cashier's data. Cashier-facing.
+	GetMyPerformance(context.Context, *connect.Request[v1.GetMyPerformanceRequest]) (*connect.Response[v1.GetMyPerformanceResponse], error)
 	PrintReceipt(context.Context, *connect.Request[v1.PrintReceiptRequest]) (*connect.Response[v1.PrintReceiptResponse], error)
 }
 
@@ -217,6 +232,12 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(saleServiceMethods.ByName("DiscardSale")),
 			connect.WithClientOptions(opts...),
 		),
+		refundSale: connect.NewClient[v1.RefundSaleRequest, v1.RefundSaleResponse](
+			httpClient,
+			baseURL+SaleServiceRefundSaleProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("RefundSale")),
+			connect.WithClientOptions(opts...),
+		),
 		getTodaySnapshot: connect.NewClient[v1.GetTodaySnapshotRequest, v1.GetTodaySnapshotResponse](
 			httpClient,
 			baseURL+SaleServiceGetTodaySnapshotProcedure,
@@ -227,6 +248,12 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+SaleServiceGetSalesSummaryProcedure,
 			connect.WithSchema(saleServiceMethods.ByName("GetSalesSummary")),
+			connect.WithClientOptions(opts...),
+		),
+		getMyPerformance: connect.NewClient[v1.GetMyPerformanceRequest, v1.GetMyPerformanceResponse](
+			httpClient,
+			baseURL+SaleServiceGetMyPerformanceProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("GetMyPerformance")),
 			connect.WithClientOptions(opts...),
 		),
 		printReceipt: connect.NewClient[v1.PrintReceiptRequest, v1.PrintReceiptResponse](
@@ -255,8 +282,10 @@ type saleServiceClient struct {
 	completeSale       *connect.Client[v1.CompleteSaleRequest, v1.CompleteSaleResponse]
 	voidSale           *connect.Client[v1.VoidSaleRequest, v1.VoidSaleResponse]
 	discardSale        *connect.Client[v1.DiscardSaleRequest, v1.DiscardSaleResponse]
+	refundSale         *connect.Client[v1.RefundSaleRequest, v1.RefundSaleResponse]
 	getTodaySnapshot   *connect.Client[v1.GetTodaySnapshotRequest, v1.GetTodaySnapshotResponse]
 	getSalesSummary    *connect.Client[v1.GetSalesSummaryRequest, v1.GetSalesSummaryResponse]
+	getMyPerformance   *connect.Client[v1.GetMyPerformanceRequest, v1.GetMyPerformanceResponse]
 	printReceipt       *connect.Client[v1.PrintReceiptRequest, v1.PrintReceiptResponse]
 }
 
@@ -335,6 +364,11 @@ func (c *saleServiceClient) DiscardSale(ctx context.Context, req *connect.Reques
 	return c.discardSale.CallUnary(ctx, req)
 }
 
+// RefundSale calls pos_iface.v1.SaleService.RefundSale.
+func (c *saleServiceClient) RefundSale(ctx context.Context, req *connect.Request[v1.RefundSaleRequest]) (*connect.Response[v1.RefundSaleResponse], error) {
+	return c.refundSale.CallUnary(ctx, req)
+}
+
 // GetTodaySnapshot calls pos_iface.v1.SaleService.GetTodaySnapshot.
 func (c *saleServiceClient) GetTodaySnapshot(ctx context.Context, req *connect.Request[v1.GetTodaySnapshotRequest]) (*connect.Response[v1.GetTodaySnapshotResponse], error) {
 	return c.getTodaySnapshot.CallUnary(ctx, req)
@@ -343,6 +377,11 @@ func (c *saleServiceClient) GetTodaySnapshot(ctx context.Context, req *connect.R
 // GetSalesSummary calls pos_iface.v1.SaleService.GetSalesSummary.
 func (c *saleServiceClient) GetSalesSummary(ctx context.Context, req *connect.Request[v1.GetSalesSummaryRequest]) (*connect.Response[v1.GetSalesSummaryResponse], error) {
 	return c.getSalesSummary.CallUnary(ctx, req)
+}
+
+// GetMyPerformance calls pos_iface.v1.SaleService.GetMyPerformance.
+func (c *saleServiceClient) GetMyPerformance(ctx context.Context, req *connect.Request[v1.GetMyPerformanceRequest]) (*connect.Response[v1.GetMyPerformanceResponse], error) {
+	return c.getMyPerformance.CallUnary(ctx, req)
 }
 
 // PrintReceipt calls pos_iface.v1.SaleService.PrintReceipt.
@@ -379,8 +418,18 @@ type SaleServiceHandler interface {
 	// DiscardSale hard-deletes a DRAFT sale (and its items). Used for abandoned
 	// POS carts so they leave no VOIDED trace. Only DRAFT sales are discardable.
 	DiscardSale(context.Context, *connect.Request[v1.DiscardSaleRequest]) (*connect.Response[v1.DiscardSaleResponse], error)
+	// RefundSale fully refunds a COMPLETED order: flips it to REFUNDED, optionally
+	// returns its goods to stock (RETURN movements) and reverses pharmacy Rx
+	// dispensing, and records the refunded amount. Manager-tier (money + stock
+	// reversal) — OWNER + PHARMACIST only, unlike the DRAFT-only VoidSale.
+	RefundSale(context.Context, *connect.Request[v1.RefundSaleRequest]) (*connect.Response[v1.RefundSaleResponse], error)
 	GetTodaySnapshot(context.Context, *connect.Request[v1.GetTodaySnapshotRequest]) (*connect.Response[v1.GetTodaySnapshotResponse], error)
 	GetSalesSummary(context.Context, *connect.Request[v1.GetSalesSummaryRequest]) (*connect.Response[v1.GetSalesSummaryResponse], error)
+	// GetMyPerformance returns the CALLER's own COMPLETED-sales metrics (revenue,
+	// sale count, items sold) bucketed over a date range. Always self-scoped from
+	// the principal — there is no cashier param — and it carries NO profit/COGS,
+	// so it can never leak cost basis or another cashier's data. Cashier-facing.
+	GetMyPerformance(context.Context, *connect.Request[v1.GetMyPerformanceRequest]) (*connect.Response[v1.GetMyPerformanceResponse], error)
 	PrintReceipt(context.Context, *connect.Request[v1.PrintReceiptRequest]) (*connect.Response[v1.PrintReceiptResponse], error)
 }
 
@@ -481,6 +530,12 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(saleServiceMethods.ByName("DiscardSale")),
 		connect.WithHandlerOptions(opts...),
 	)
+	saleServiceRefundSaleHandler := connect.NewUnaryHandler(
+		SaleServiceRefundSaleProcedure,
+		svc.RefundSale,
+		connect.WithSchema(saleServiceMethods.ByName("RefundSale")),
+		connect.WithHandlerOptions(opts...),
+	)
 	saleServiceGetTodaySnapshotHandler := connect.NewUnaryHandler(
 		SaleServiceGetTodaySnapshotProcedure,
 		svc.GetTodaySnapshot,
@@ -491,6 +546,12 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 		SaleServiceGetSalesSummaryProcedure,
 		svc.GetSalesSummary,
 		connect.WithSchema(saleServiceMethods.ByName("GetSalesSummary")),
+		connect.WithHandlerOptions(opts...),
+	)
+	saleServiceGetMyPerformanceHandler := connect.NewUnaryHandler(
+		SaleServiceGetMyPerformanceProcedure,
+		svc.GetMyPerformance,
+		connect.WithSchema(saleServiceMethods.ByName("GetMyPerformance")),
 		connect.WithHandlerOptions(opts...),
 	)
 	saleServicePrintReceiptHandler := connect.NewUnaryHandler(
@@ -531,10 +592,14 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 			saleServiceVoidSaleHandler.ServeHTTP(w, r)
 		case SaleServiceDiscardSaleProcedure:
 			saleServiceDiscardSaleHandler.ServeHTTP(w, r)
+		case SaleServiceRefundSaleProcedure:
+			saleServiceRefundSaleHandler.ServeHTTP(w, r)
 		case SaleServiceGetTodaySnapshotProcedure:
 			saleServiceGetTodaySnapshotHandler.ServeHTTP(w, r)
 		case SaleServiceGetSalesSummaryProcedure:
 			saleServiceGetSalesSummaryHandler.ServeHTTP(w, r)
+		case SaleServiceGetMyPerformanceProcedure:
+			saleServiceGetMyPerformanceHandler.ServeHTTP(w, r)
 		case SaleServicePrintReceiptProcedure:
 			saleServicePrintReceiptHandler.ServeHTTP(w, r)
 		default:
@@ -606,12 +671,20 @@ func (UnimplementedSaleServiceHandler) DiscardSale(context.Context, *connect.Req
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.DiscardSale is not implemented"))
 }
 
+func (UnimplementedSaleServiceHandler) RefundSale(context.Context, *connect.Request[v1.RefundSaleRequest]) (*connect.Response[v1.RefundSaleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.RefundSale is not implemented"))
+}
+
 func (UnimplementedSaleServiceHandler) GetTodaySnapshot(context.Context, *connect.Request[v1.GetTodaySnapshotRequest]) (*connect.Response[v1.GetTodaySnapshotResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.GetTodaySnapshot is not implemented"))
 }
 
 func (UnimplementedSaleServiceHandler) GetSalesSummary(context.Context, *connect.Request[v1.GetSalesSummaryRequest]) (*connect.Response[v1.GetSalesSummaryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.GetSalesSummary is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) GetMyPerformance(context.Context, *connect.Request[v1.GetMyPerformanceRequest]) (*connect.Response[v1.GetMyPerformanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.GetMyPerformance is not implemented"))
 }
 
 func (UnimplementedSaleServiceHandler) PrintReceipt(context.Context, *connect.Request[v1.PrintReceiptRequest]) (*connect.Response[v1.PrintReceiptResponse], error) {

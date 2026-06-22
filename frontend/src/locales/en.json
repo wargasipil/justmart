@@ -73,8 +73,24 @@
     "branches": "Branches",
     "warehouses": "Warehouses",
     "orders": "Order history",
+    "myPerformance": "My performance",
     "settings": "Settings",
     "signOut": "Sign out"
+  },
+  "filters": {
+    "cashierAll": "All cashiers"
+  },
+  "myPerformance": {
+    "title": "My performance",
+    "description": "Your own sales over time.",
+    "tiles": {
+      "revenue": "My revenue",
+      "sales": "My sales",
+      "items": "My items sold"
+    },
+    "trend": {
+      "revenue": "Revenue trend"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -819,7 +835,25 @@
       "completed": "Completed",
       "voided": "Voided",
       "draft": "Draft",
+      "refunded": "Refunded",
       "unspecified": "—"
+    },
+    "refund": {
+      "button": "Refund",
+      "dialogTitle": "Refund order",
+      "body": "Refund this whole order ({{total}})? This reverses the sale.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "e.g. customer changed mind",
+      "restockSwitch": "Return goods to stock",
+      "confirm": "Refund order",
+      "success": "Order refunded",
+      "infoTitle": "Refund",
+      "refundedAt": "Refunded at",
+      "amount": "Amount refunded",
+      "restockLabel": "Goods returned",
+      "restockedYes": "Returned to stock",
+      "restockedNo": "Not restocked",
+      "reason": "Reason"
     },
     "payments": {
       "cash": "Cash",

@@ -112,6 +112,83 @@ func TestDailyMetric_TerjualIncludesServiceFee(t *testing.T) {
 	require.Equal(t, int64(15_000), totalTerjual, "daily terjual must include the biaya_jasa service fee")
 }
 
+// TestDailyMetric_FilterByCashierNarrowsOrder proves the optional cashier filter
+// narrows BOTH revenue (terjual) AND COGS (hpp) — so profit = terjual - hpp stays
+// consistent. Two cashiers each have a COGS-bearing completed sale; filtering to
+// one excludes the other's revenue and its cost.
+func TestDailyMetric_FilterByCashierNarrowsOrder(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+	svc := analyticssvc.NewAnalyticsService(gormDB)
+
+	var wh model.Warehouse
+	require.NoError(t, gormDB.Where("is_default").First(&wh).Error)
+
+	// Second cashier (FK target for sales.cashier_user_id + movements.user_id).
+	cashierB := model.User{Email: "dm-b@x.test", Name: "B", PasswordHash: "x", Role: "CASHIER", Active: true}
+	require.NoError(t, gormDB.Create(&cashierB).Error)
+
+	// One product + a batch with cost 500 (the COGS basis).
+	prod := model.Product{SKU: "dm-cogs", Name: "Paracetamol", Unit: "tab", UnitPrice: 2000, Active: true}
+	require.NoError(t, gormDB.Create(&prod).Error)
+	batch := model.Batch{ProductID: prod.ID, BatchNumber: "B-1", CostPrice: 500,
+		ExpiryDate: time.Date(2099, 12, 31, 0, 0, 0, 0, time.UTC), ReceivedAt: time.Now()}
+	require.NoError(t, gormDB.Create(&batch).Error)
+
+	// seedSale completes a COGS-bearing sale for cashier: lineTotal revenue, qty
+	// base units consumed from batch (qty*500 COGS).
+	seedSale := func(cashierID string, lineTotal int64, qty int32) {
+		now := time.Now()
+		whID := wh.ID
+		sale := model.Sale{CashierUserID: cashierID, WarehouseID: &whID,
+			Subtotal: lineTotal, Total: lineTotal, PaidAmount: lineTotal,
+			Status: common.SaleStatusCompleted, CompletedAt: &now}
+		require.NoError(t, gormDB.Create(&sale).Error)
+		item := model.SaleItem{SaleID: sale.ID, ProductID: prod.ID, Qty: qty,
+			BaseQty: qty, UnitFactor: 1, LineTotal: lineTotal}
+		require.NoError(t, gormDB.Create(&item).Error)
+		mv := model.StockMovement{BatchID: batch.ID, Qty: -qty, Type: "SALE",
+			SaleItemID: &item.ID, UserID: cashierID, WarehouseID: wh.ID}
+		require.NoError(t, gormDB.Create(&mv).Error)
+	}
+	seedSale(ownerID, 6000, 3)   // owner: revenue 6000, COGS 1500
+	seedSale(cashierB.ID, 4000, 2) // B: revenue 4000, COGS 1000
+
+	now := time.Now()
+	sumOrder := func(cashierID string) (terjual, hpp, profit int64) {
+		resp, err := svc.DailyMetric(ctx, connect.NewRequest(&analyticsifacev1.DailyMetricRequest{
+			MetricTypes: []analyticsifacev1.MetricType{analyticsifacev1.MetricType_METRIC_TYPE_ORDER},
+			Granularity: analyticsifacev1.Granularity_GRANULARITY_DAY,
+			Filter: &analyticsifacev1.Filter{
+				FromUnix:      now.AddDate(0, 0, -1).Unix(),
+				ToUnix:        now.AddDate(0, 0, 1).Unix(),
+				CashierUserId: cashierID,
+			},
+		}))
+		require.NoError(t, err)
+		for _, o := range resp.Msg.Order.Data {
+			terjual += o.Terjual
+			hpp += o.Hpp
+			profit += o.Profit
+		}
+		return
+	}
+
+	// No filter: both cashiers' sales counted.
+	terjual, hpp, profit := sumOrder("")
+	require.Equal(t, int64(10000), terjual)
+	require.Equal(t, int64(2500), hpp)
+	require.Equal(t, int64(7500), profit)
+
+	// Filter to the owner: only the owner's revenue AND cost.
+	terjual, hpp, profit = sumOrder(ownerID)
+	require.Equal(t, int64(6000), terjual)
+	require.Equal(t, int64(1500), hpp, "COGS must be filtered by cashier too")
+	require.Equal(t, int64(4500), profit)
+}
+
 // TestDailyMetric_EmptyMetricTypes asserts the validation precondition: an empty
 // metric_types list is rejected with InvalidArgument (before any auth/DB work).
 func TestDailyMetric_EmptyMetricTypes(t *testing.T) {

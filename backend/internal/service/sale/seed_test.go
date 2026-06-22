@@ -71,6 +71,23 @@ func seedStock(t *testing.T, db *gorm.DB, productID, userID string, qty int32) s
 	return b.ID
 }
 
+// seedCashier inserts an active CASHIER user and returns its id. A cashier with
+// no explicit warehouse membership resolves to the migration-seeded MAIN
+// warehouse (common.ResolveWarehouse global-default fallback), the same place
+// seedStock posts stock — so sales by this cashier land in MAIN like the owner's.
+func seedCashier(t *testing.T, db *gorm.DB, email string) string {
+	t.Helper()
+	u := model.User{
+		Email:        email,
+		Name:         email,
+		PasswordHash: "x", // unused: tests inject the principal directly
+		Role:         "CASHIER",
+		Active:       true,
+	}
+	require.NoError(t, db.Create(&u).Error)
+	return u.ID
+}
+
 // newSaleSvc is the common setup: fresh DB, bootstrap owner, sale service.
 // Returns the service, an OWNER ctx, the gorm handle, and the owner id.
 func newSaleSvc(t *testing.T) (*salesvc.SaleService, context.Context, *gorm.DB, string) {

@@ -16,11 +16,13 @@ const (
 	saleStatusDraft     = common.SaleStatusDraft
 	saleStatusCompleted = common.SaleStatusCompleted
 	saleStatusVoided    = common.SaleStatusVoided
+	saleStatusRefunded  = common.SaleStatusRefunded
 
 	paymentCash    = common.PaymentCash
 	paymentNonCash = common.PaymentNonCash
 
-	movementTypeSale = common.MovementTypeSale
+	movementTypeSale   = common.MovementTypeSale
+	movementTypeReturn = common.MovementTypeReturn
 )
 
 // ConnectorPusher is the print-connector registry seam used by PrintReceipt

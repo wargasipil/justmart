@@ -26,6 +26,13 @@ const notBuilt = `<!doctype html><html><body style="font-family:sans-serif;paddi
 <p>Run <code>make build</code> to embed the SPA, or use the Vite dev server (<code>make web</code>).</p>
 </body></html>`
 
+// cacheControl is a deliberately SHORT browser cache: a few seconds absorbs the
+// burst of repeat requests on a page load / quick navigation, while bounding any
+// post-deploy staleness (a cached index.html pointing at a new build's assets)
+// to that same few-second window before the browser revalidates. A normal
+// same-build load is always self-consistent (Vite content-hashes asset names).
+const cacheControl = "public, max-age=5"
+
 // Handler serves the embedded SPA. Existing asset paths are served directly
 // (FileServer sets content-type + caching); unknown non-asset paths fall back
 // to index.html so client-side routes (createBrowserRouter) resolve on a hard
@@ -46,6 +53,7 @@ func Handler() http.Handler {
 		// Serve a real embedded file when it exists.
 		if f, ferr := dist.Open(upath); ferr == nil {
 			_ = f.Close()
+			w.Header().Set("Cache-Control", cacheControl)
 			fileServer.ServeHTTP(w, r)
 			return
 		}
@@ -55,6 +63,7 @@ func Handler() http.Handler {
 			return
 		}
 		// SPA fallback.
+		w.Header().Set("Cache-Control", cacheControl)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if indexErr != nil {
 			_, _ = w.Write([]byte(notBuilt))

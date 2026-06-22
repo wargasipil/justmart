@@ -22,6 +22,13 @@ type Sale struct {
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	CompletedAt    *time.Time `gorm:"column:completed_at"`
+	// Full-order refund (status REFUNDED). RefundedAt set at refund time;
+	// RefundAmount = the sale's total at refund; RefundRestocked records whether
+	// the goods were returned to stock (a RETURN movement) vs money-only.
+	RefundedAt      *time.Time `gorm:"column:refunded_at"`
+	RefundAmount    int64      `gorm:"not null;default:0;column:refund_amount"`
+	RefundReason    string     `gorm:"not null;default:'';column:refund_reason"`
+	RefundRestocked bool       `gorm:"not null;default:false;column:refund_restocked"`
 
 	Items []SaleItem `gorm:"foreignKey:SaleID"`
 }

@@ -46,9 +46,11 @@ func (a *AnalyticsService) DailyMetric(
 	}
 	var err error
 
+	cashierID := req.Msg.Filter.GetCashierUserId() // "" = all cashiers (warehouse-wide)
+
 	orderByKey := map[string]*analyticsifacev1.OrderItem{}
 	if wantOrder {
-		orderByKey, err = a.dailyOrderMetric(ctx, from, to, gran, warehouseID)
+		orderByKey, err = a.dailyOrderMetric(ctx, from, to, gran, warehouseID, cashierID)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -74,7 +76,8 @@ func (a *AnalyticsService) DailyMetric(
 	return connect.NewResponse(out), nil
 }
 
-func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.Time, gran, warehouseID string) (map[string]*analyticsifacev1.OrderItem, error) {
+func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.Time, gran, warehouseID, cashierID string) (map[string]*analyticsifacev1.OrderItem, error) {
+	cashierClause, cashierArgs := orderCashierClause("s.", cashierID)
 	out := map[string]*analyticsifacev1.OrderItem{}
 	accum := func(day string, addTerjual, addHpp int64) {
 		t, perr := time.ParseInLocation("2006-01-02", day, time.Local)
@@ -108,9 +111,9 @@ func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.T
 		       COALESCE(SUM(s.total), 0) AS terjual
 		FROM sales s
 		WHERE s.status = ? AND s.warehouse_id = ?
-		  AND s.completed_at >= ? AND s.completed_at < ?
+		  AND s.completed_at >= ? AND s.completed_at < ?`+cashierClause+`
 		GROUP BY day
-	`, common.SaleStatusCompleted, warehouseID, from, to).Scan(&revRows).Error; err != nil {
+	`, append([]any{common.SaleStatusCompleted, warehouseID, from, to}, cashierArgs...)...).Scan(&revRows).Error; err != nil {
 		return nil, err
 	}
 	for _, r := range revRows {
@@ -137,9 +140,9 @@ func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.T
 		  GROUP BY sm.sale_item_id
 		) c ON c.sale_item_id = si.id
 		WHERE s.status = ? AND s.warehouse_id = ?
-		  AND s.completed_at >= ? AND s.completed_at < ?
+		  AND s.completed_at >= ? AND s.completed_at < ?`+cashierClause+`
 		GROUP BY day
-	`, common.SaleStatusCompleted, warehouseID, from, to).Scan(&cogsRows).Error; err != nil {
+	`, append([]any{common.SaleStatusCompleted, warehouseID, from, to}, cashierArgs...)...).Scan(&cogsRows).Error; err != nil {
 		return nil, err
 	}
 	for _, r := range cogsRows {

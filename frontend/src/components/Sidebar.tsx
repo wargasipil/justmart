@@ -107,6 +107,14 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       icon: Receipt,
       roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER],
     },
+    {
+      // Self-scoped performance view for the till roles (own sales over time).
+      // OWNER/PHARMACIST get full Analytics instead, so they don't see this.
+      to: "/my-performance",
+      label: t("nav.myPerformance"),
+      icon: BarChart3,
+      roles: [Role.CASHIER, Role.APOTEKER],
+    },
     { to: "/warehouses", label: t("nav.warehouses"), icon: WarehouseIcon, roles: [Role.OWNER] },
     { to: "/users", label: t("nav.users"), icon: UsersIcon, roles: [Role.OWNER] },
     { to: "/settings", label: t("nav.settings"), icon: SettingsIcon, roles: [Role.OWNER] },

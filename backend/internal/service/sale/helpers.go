@@ -11,19 +11,40 @@ import (
 	"gorm.io/gorm"
 
 	posifacev1 "github.com/justmart/backend/gen/pos_iface/v1"
+	"github.com/justmart/backend/internal/auth"
 	"github.com/justmart/backend/internal/model"
 	"github.com/justmart/backend/internal/service/common"
 )
 
+// resolveCashierFilter returns the cashier_user_id to filter ListSales /
+// GetSalesSummary by, derived from the authenticated caller (never trusted from
+// the client alone). OWNER/PHARMACIST may filter to any cashier (empty = all);
+// CASHIER/APOTEKER are forced to their own id and may not request another's.
+func resolveCashierFilter(caller auth.Principal, requested string) (string, error) {
+	switch caller.Role {
+	case "OWNER", "PHARMACIST":
+		return requested, nil // "" = all warehouse sales, set = that cashier
+	default: // CASHIER, APOTEKER
+		if requested != "" && requested != caller.UserID {
+			return "", connect.NewError(connect.CodeInvalidArgument,
+				errors.New("can only view own sales"))
+		}
+		return caller.UserID, nil
+	}
+}
+
 // applySaleFilters applies the order-history filters (date range, status,
-// free-text search) shared by ListSales and GetSalesSummary so the paginated
-// list and its summary always agree. The caller's query root must be `sales`.
+// cashier scope, free-text search) shared by ListSales and GetSalesSummary so
+// the paginated list and its summary always agree. The caller's query root
+// must be `sales`. cashierID is the effective filter from resolveCashierFilter
+// ("" = all cashiers).
 func (s *SaleService) applySaleFilters(
 	q *gorm.DB,
 	warehouseID string,
 	fromUnix, toUnix int64,
 	status posifacev1.SaleStatus,
 	query string,
+	cashierID string,
 ) *gorm.DB {
 	if warehouseID != "" {
 		q = q.Where("warehouse_id = ?", warehouseID)
@@ -40,6 +61,9 @@ func (s *SaleService) applySaleFilters(
 		// "All" in order history means finalized orders only — in-progress
 		// carts (DRAFT) are never shown in history or its summary.
 		q = q.Where("status <> ?", saleStatusDraft)
+	}
+	if cashierID != "" {
+		q = q.Where("cashier_user_id = ?", cashierID)
 	}
 	if qstr := strings.TrimSpace(query); qstr != "" {
 		pattern := "%" + qstr + "%"

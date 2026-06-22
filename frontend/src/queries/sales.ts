@@ -12,6 +12,7 @@ import type {
   SetCartDiscountRequest,
   GetSalesSummaryRequest,
   ListSalesRequest,
+  RefundSaleRequest,
   RemoveItemRequest,
   SetItemQuantityRequest,
   SetSaleCustomerRequest,
@@ -147,6 +148,21 @@ export function useVoidSaleMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<VoidSaleRequest>) => saleClient.voidSale(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: saleKeys.all }),
+  });
+}
+
+// Full-order refund of a COMPLETED sale (OWNER/PHARMACIST). Invalidates sales +
+// stock reads so the order list/detail, summaries, dashboards, and inventory
+// reflect the reversal.
+export function useRefundSaleMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<RefundSaleRequest>) => saleClient.refundSale(req),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: saleKeys.all });
+      void qc.invalidateQueries({ queryKey: ["stock"] });
+      void qc.invalidateQueries({ queryKey: ["batches"] });
+    },
   });
 }
 

@@ -1,14 +1,19 @@
-import { Badge, Box, Grid, Heading, SimpleGrid, Spinner, Stack, Table, Text } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { Badge, Box, Button, Grid, HStack, Heading, Input, SimpleGrid, Spinner, Stack, Switch, Table, Text } from "@chakra-ui/react";
+import { useMemo, useState } from "react";
+import { RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
+import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
+import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { SaleStatus } from "../gen/pos_iface/v1/sale_pb";
+import { useAuth } from "../lib/auth";
 import { formatMoney, formatUnix } from "../lib/format";
+import { toast } from "../lib/toaster";
 import { useCustomerRefs, useProductRefs, useUserRefs } from "../queries/refs";
-import { useSaleQuery } from "../queries/sales";
+import { useRefundSaleMutation, useSaleQuery } from "../queries/sales";
 
 const PAYMENT_KEY: Record<number, string> = {
   0: "unspecified",
@@ -21,6 +26,7 @@ const STATUS_BADGE: Record<number, string> = {
   [SaleStatus.DRAFT]: "gray",
   [SaleStatus.COMPLETED]: "green",
   [SaleStatus.VOIDED]: "red",
+  [SaleStatus.REFUNDED]: "orange",
 };
 
 function statusKey(s: SaleStatus): string {
@@ -31,6 +37,8 @@ function statusKey(s: SaleStatus): string {
       return "completed";
     case SaleStatus.VOIDED:
       return "voided";
+    case SaleStatus.REFUNDED:
+      return "refunded";
     default:
       return "unspecified";
   }
@@ -39,7 +47,13 @@ function statusKey(s: SaleStatus): string {
 export default function OrderDetail() {
   const { t } = useTranslation();
   const { id = "" } = useParams();
+  const { user } = useAuth();
   const saleQ = useSaleQuery(id);
+  const refund = useRefundSaleMutation();
+
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundRestock, setRefundRestock] = useState(true);
 
   const sale = saleQ.data;
   const customerIds = useMemo(() => (sale?.customerId ? [sale.customerId] : []), [sale]);
@@ -79,6 +93,25 @@ export default function OrderDetail() {
   const paymentLabel = t(`orders.payments.${PAYMENT_KEY[sale.paymentSource] ?? "unspecified"}`);
   const change = Number(sale.paidAmount) - Number(sale.total);
 
+  // Refunds are time-boxed to 1 day after completion (mirrors the backend guard).
+  const withinRefundWindow =
+    sale.completedAt > 0n && Date.now() / 1000 - Number(sale.completedAt) <= 86400;
+  const canRefund =
+    sale.status === SaleStatus.COMPLETED &&
+    withinRefundWindow &&
+    (user?.role === Role.OWNER || user?.role === Role.PHARMACIST);
+
+  const onConfirmRefund = async () => {
+    try {
+      await refund.mutateAsync({ saleId: sale.id, reason: refundReason.trim(), restock: refundRestock });
+      toast.success(t("orders.refund.success"));
+      setRefundOpen(false);
+      setRefundReason("");
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
   return (
     <Box>
       <BackButton to="/orders" />
@@ -89,9 +122,17 @@ export default function OrderDetail() {
         ]}
         title={saleNo}
         actions={
-          <Badge colorPalette={STATUS_BADGE[sale.status] ?? "gray"} size="lg">
-            {t(`orders.states.${statusKey(sale.status)}`)}
-          </Badge>
+          <HStack gap={3}>
+            {canRefund && (
+              <Button size="sm" variant="outline" colorPalette="orange" onClick={() => setRefundOpen(true)}>
+                <RotateCcw size={14} />
+                {t("orders.refund.button")}
+              </Button>
+            )}
+            <Badge colorPalette={STATUS_BADGE[sale.status] ?? "gray"} size="lg">
+              {t(`orders.states.${statusKey(sale.status)}`)}
+            </Badge>
+          </HStack>
         }
       />
 
@@ -131,6 +172,29 @@ export default function OrderDetail() {
             <MoneyTile label={t("orders.detail.change")} value={change} />
           </Grid>
         </Section>
+
+        {sale.status === SaleStatus.REFUNDED && (
+          <Section title={t("orders.refund.infoTitle")}>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={4}>
+              <Field label={t("orders.refund.refundedAt")} value={sale.refundedAt > 0n ? formatUnix(sale.refundedAt) : "—"} />
+              <Box>
+                <Text fontSize="xs" color="fg.muted" mb={1}>
+                  {t("orders.refund.amount")}
+                </Text>
+                <Text fontFamily="mono">{formatMoney(Number(sale.refundAmount))}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="xs" color="fg.muted" mb={1}>
+                  {t("orders.refund.restockLabel")}
+                </Text>
+                <Badge colorPalette={sale.refundRestocked ? "green" : "gray"}>
+                  {sale.refundRestocked ? t("orders.refund.restockedYes") : t("orders.refund.restockedNo")}
+                </Badge>
+              </Box>
+              <Field label={t("orders.refund.reasonLabel")} value={sale.refundReason || "—"} />
+            </SimpleGrid>
+          </Section>
+        )}
 
         <Section title={t("orders.detail.items")}>
           <Box overflowX="auto">
@@ -184,6 +248,37 @@ export default function OrderDetail() {
           </Box>
         </Section>
       </Stack>
+
+      <ConfirmDialog
+        open={refundOpen}
+        title={t("orders.refund.dialogTitle")}
+        confirmLabel={t("orders.refund.confirm")}
+        confirmColorPalette="orange"
+        loading={refund.isPending}
+        onConfirm={onConfirmRefund}
+        onCancel={() => setRefundOpen(false)}
+        body={
+          <Stack gap={4}>
+            <Text fontSize="sm">{t("orders.refund.body", { total: formatMoney(Number(sale.total)) })}</Text>
+            <Stack gap={1}>
+              <Text fontSize="sm" fontWeight="medium">
+                {t("orders.refund.reasonLabel")}
+              </Text>
+              <Input
+                size="sm"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                placeholder={t("orders.refund.reasonPlaceholder")}
+              />
+            </Stack>
+            <Switch.Root checked={refundRestock} onCheckedChange={(d) => setRefundRestock(d.checked)}>
+              <Switch.HiddenInput />
+              <Switch.Control />
+              <Switch.Label>{t("orders.refund.restockSwitch")}</Switch.Label>
+            </Switch.Root>
+          </Stack>
+        }
+      />
     </Box>
   );
 }

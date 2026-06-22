@@ -37,7 +37,9 @@ func (a *AnalyticsService) ProductMetric(
 		return nil, connect.NewError(connect.CodeInternal, werr)
 	}
 
-	ids, total, err := a.productPageIDs(ctx, from, to, warehouseID, req.Msg.Sort, wantOrder, wantStock, limit, offset)
+	cashierID := req.Msg.Filter.GetCashierUserId() // "" = all cashiers (warehouse-wide)
+
+	ids, total, err := a.productPageIDs(ctx, from, to, warehouseID, cashierID, req.Msg.Sort, wantOrder, wantStock, limit, offset)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -51,7 +53,7 @@ func (a *AnalyticsService) ProductMetric(
 	}
 
 	if wantOrder {
-		om, err := a.productOrderForIDs(ctx, from, to, warehouseID, ids)
+		om, err := a.productOrderForIDs(ctx, from, to, warehouseID, cashierID, ids)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -72,11 +74,12 @@ func (a *AnalyticsService) ProductMetric(
 func (a *AnalyticsService) productPageIDs(
 	ctx context.Context,
 	from, to time.Time,
-	warehouseID string,
+	warehouseID, cashierID string,
 	sort *analyticsifacev1.Sort,
 	wantOrder, wantStock bool,
 	limit, offset int,
 ) ([]string, int64, error) {
+	cashierClause, cashierArgs := orderCashierClause("s.", cashierID)
 	var orderClause string
 	if sort != nil {
 		dir := sortDirSQL(sort.Direction)
@@ -108,7 +111,7 @@ func (a *AnalyticsService) productPageIDs(
 		    GROUP BY sm.sale_item_id
 		  ) c ON c.sale_item_id = si.id
 		  WHERE s.status = ? AND s.warehouse_id = ?
-		    AND s.completed_at >= ? AND s.completed_at < ?
+		    AND s.completed_at >= ? AND s.completed_at < ?%s
 		  GROUP BY si.product_id
 		),
 		stock_agg AS (
@@ -162,19 +165,22 @@ func (a *AnalyticsService) productPageIDs(
 		  LEFT JOIN expiring_agg e ON e.product_id = m.id
 		  WHERE m.active = true
 		)
-	`, common.EpochExpr(a.db, "MAX(s.completed_at)"), common.EpochExpr(a.db, "MAX(b.received_at)"), common.DateAddNowDays(a.db, 30))
+	`, common.EpochExpr(a.db, "MAX(s.completed_at)"), cashierClause, common.EpochExpr(a.db, "MAX(b.received_at)"), common.DateAddNowDays(a.db, 30))
 
 	days := int64(to.Sub(from) / (24 * time.Hour))
 	if days < 1 {
 		days = 1
 	}
 
+	// order_agg args (status, warehouse, from, to, [cashier]) then the three
+	// warehouse-scoped stock CTEs and the three avg_sold day args.
+	baseArgs := append([]any{common.SaleStatusCompleted, warehouseID, from, to}, cashierArgs...)
+	baseArgs = append(baseArgs, warehouseID, warehouseID, warehouseID, days, days, days)
+
 	var total int64
 	if err := a.db.WithContext(ctx).Raw(
 		combined+`SELECT COUNT(*) FROM combined`,
-		common.SaleStatusCompleted, warehouseID, from, to,
-		warehouseID, warehouseID, warehouseID,
-		days, days, days,
+		baseArgs...,
 	).Scan(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -183,10 +189,7 @@ func (a *AnalyticsService) productPageIDs(
 	var rows []idRow
 	err := a.db.WithContext(ctx).Raw(
 		combined+`SELECT id FROM combined m `+orderClause+` LIMIT ? OFFSET ?`,
-		common.SaleStatusCompleted, warehouseID, from, to,
-		warehouseID, warehouseID, warehouseID,
-		days, days, days,
-		limit, offset,
+		append(append([]any{}, baseArgs...), limit, offset)...,
 	).Scan(&rows).Error
 	if err != nil {
 		return nil, 0, err
@@ -203,7 +206,8 @@ func (a *AnalyticsService) productPageIDs(
 // intentionally EXCLUDED here: a fee attached to a whole sale isn't attributable
 // to any single product. (DailyMetric / UserMetric / GetSalesSummary count the
 // fee at the sale level; this per-product carve-out mirrors the on_order one.)
-func (a *AnalyticsService) productOrderForIDs(ctx context.Context, from, to time.Time, warehouseID string, ids []string) (map[string]*analyticsifacev1.OrderItem, error) {
+func (a *AnalyticsService) productOrderForIDs(ctx context.Context, from, to time.Time, warehouseID, cashierID string, ids []string) (map[string]*analyticsifacev1.OrderItem, error) {
+	cashierClause, cashierArgs := orderCashierClause("s.", cashierID)
 	type row struct {
 		ProductID     string `gorm:"column:product_id"`
 		Terjual       int64
@@ -212,6 +216,8 @@ func (a *AnalyticsService) productOrderForIDs(ctx context.Context, from, to time
 		LastOrderUnix int64 `gorm:"column:last_order_unix"`
 	}
 	var rows []row
+	args := append([]any{common.SaleStatusCompleted, warehouseID, from, to}, cashierArgs...)
+	args = append(args, ids)
 	err := a.db.WithContext(ctx).Raw(`
 		SELECT si.product_id,
 		       COALESCE(SUM(si.line_total), 0) AS terjual,
@@ -228,10 +234,10 @@ func (a *AnalyticsService) productOrderForIDs(ctx context.Context, from, to time
 		  GROUP BY sm.sale_item_id
 		) c ON c.sale_item_id = si.id
 		WHERE s.status = ? AND s.warehouse_id = ?
-		  AND s.completed_at >= ? AND s.completed_at < ?
+		  AND s.completed_at >= ? AND s.completed_at < ?`+cashierClause+`
 		  AND si.product_id IN ?
 		GROUP BY si.product_id
-	`, common.SaleStatusCompleted, warehouseID, from, to, ids).Scan(&rows).Error
+	`, args...).Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}

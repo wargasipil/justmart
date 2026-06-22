@@ -2,6 +2,7 @@ import { Box, HStack, Heading, Stack, Tabs } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import CashierFilterSelect from "../../components/CashierFilterSelect";
 import ColumnsPopover, { type GroupSpec } from "../../components/ColumnsPopover";
 import DateRangeFilter, {
   resolveRange,
@@ -22,6 +23,8 @@ export default function Daily() {
   const { t } = useTranslation();
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
   const [granularity, setGranularity] = useState<Granularity>(Granularity.DAY);
+  // Optional cashier scope (managers only reach this page). Empty = all cashiers.
+  const [cashierFilter, setCashierFilter] = useState("");
   // Controlled so the Graphs panel only mounts when its tab is active — Recharts'
   // ResponsiveContainer measures 0x0 (and warns) inside a display:none tab panel.
   const [tab, setTab] = useState("table");
@@ -42,7 +45,11 @@ export default function Daily() {
 
   const q = useDailyMetricQuery({
     metricTypes,
-    filter: { fromUnix: BigInt(range.fromUnix), toUnix: BigInt(range.toUnix) },
+    filter: {
+      fromUnix: BigInt(range.fromUnix),
+      toUnix: BigInt(range.toUnix),
+      cashierUserId: cashierFilter || undefined,
+    },
     sort,
     granularity,
   });
@@ -81,6 +88,7 @@ export default function Daily() {
             itemToString={(o) => o.label}
             itemToValue={(o) => o.value}
           />
+          <CashierFilterSelect value={cashierFilter} onChange={setCashierFilter} />
           <DateRangeFilter value={range} onChange={setRange} />
         </HStack>
       </HStack>

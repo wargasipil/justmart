@@ -186,11 +186,22 @@ export class Filter extends Message<Filter> {
   fromUnix = protoInt64.zero;
 
   /**
-   * future: warehouse_id, supplier_id, payment_source — extend in place
-   *
    * @generated from field: int64 to_unix = 2;
    */
   toUnix = protoInt64.zero;
+
+  /**
+   * Optional cashier-scope filter (OWNER/PHARMACIST only — those are the only
+   * roles that can reach these RPCs). When set, ORDER metrics (terjual/hpp/
+   * profit/avg_sold/last_order) are narrowed to that cashier's sales; STOCK
+   * metrics stay warehouse-wide (stock has no cashier dimension). Ignored by
+   * UserMetric (which is already the per-cashier breakdown).
+   *
+   * future: warehouse_id, supplier_id, payment_source — extend in place
+   *
+   * @generated from field: string cashier_user_id = 3;
+   */
+  cashierUserId = "";
 
   constructor(data?: PartialMessage<Filter>) {
     super();
@@ -202,6 +213,7 @@ export class Filter extends Message<Filter> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "from_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 2, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "cashier_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Filter {

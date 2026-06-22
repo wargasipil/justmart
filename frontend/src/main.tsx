@@ -20,6 +20,7 @@ import Dashboard from "./routes/Dashboard";
 import Users from "./routes/Users";
 import Customers from "./routes/Customers";
 import Orders from "./routes/Orders";
+import MyPerformance from "./routes/MyPerformance";
 import Prescriptions from "./routes/Prescriptions";
 import NewPrescription from "./routes/prescriptions/NewPrescription";
 import OrderDetail from "./routes/OrderDetail";
@@ -92,6 +93,12 @@ const router = createBrowserRouter([
           { path: "orders", element: <Orders /> },
           { path: "orders/:id", element: <OrderDetail /> },
         ],
+      },
+      {
+        // Self-scoped "My performance" — cashier-facing (own revenue/qty over
+        // time). OWNER/PHARMACIST have full analytics instead.
+        element: <ProtectedRoute requiredRoles={[Role.CASHIER, Role.APOTEKER]} />,
+        children: [{ path: "my-performance", element: <MyPerformance /> }],
       },
       {
         // Resep (prescriptions) — pharmacy mode. The Rx authority is OWNER +

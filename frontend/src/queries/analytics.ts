@@ -17,7 +17,9 @@ import type {
 // <MetricGraphs> unchanged. Names are NOT in the metric payload — resolve via
 // the existing Resolve<Domain>(ids) hooks (HARD RULE).
 
-type Filter = { fromUnix: bigint; toUnix: bigint };
+// cashierUserId is optional: OWNER/PHARMACIST may narrow ORDER metrics to one
+// cashier (empty = all). Ignored for STOCK metrics server-side.
+type Filter = { fromUnix: bigint; toUnix: bigint; cashierUserId?: string };
 
 type DailyOpts = {
   metricTypes: MetricType[];

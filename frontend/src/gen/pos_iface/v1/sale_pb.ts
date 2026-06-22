@@ -57,6 +57,13 @@ export enum SaleStatus {
    * @generated from enum value: SALE_STATUS_VOIDED = 3;
    */
   VOIDED = 3,
+
+  /**
+   * a completed order that was fully refunded
+   *
+   * @generated from enum value: SALE_STATUS_REFUNDED = 4;
+   */
+  REFUNDED = 4,
 }
 // Retrieve enum metadata with: proto3.getEnumType(SaleStatus)
 proto3.util.setEnumType(SaleStatus, "pos_iface.v1.SaleStatus", [
@@ -64,6 +71,41 @@ proto3.util.setEnumType(SaleStatus, "pos_iface.v1.SaleStatus", [
   { no: 1, name: "SALE_STATUS_DRAFT" },
   { no: 2, name: "SALE_STATUS_COMPLETED" },
   { no: 3, name: "SALE_STATUS_VOIDED" },
+  { no: 4, name: "SALE_STATUS_REFUNDED" },
+]);
+
+/**
+ * @generated from enum pos_iface.v1.PerformanceGranularity
+ */
+export enum PerformanceGranularity {
+  /**
+   * treated as DAY
+   *
+   * @generated from enum value: PERFORMANCE_GRANULARITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: PERFORMANCE_GRANULARITY_DAY = 1;
+   */
+  DAY = 1,
+
+  /**
+   * @generated from enum value: PERFORMANCE_GRANULARITY_WEEK = 2;
+   */
+  WEEK = 2,
+
+  /**
+   * @generated from enum value: PERFORMANCE_GRANULARITY_MONTH = 3;
+   */
+  MONTH = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(PerformanceGranularity)
+proto3.util.setEnumType(PerformanceGranularity, "pos_iface.v1.PerformanceGranularity", [
+  { no: 0, name: "PERFORMANCE_GRANULARITY_UNSPECIFIED" },
+  { no: 1, name: "PERFORMANCE_GRANULARITY_DAY" },
+  { no: 2, name: "PERFORMANCE_GRANULARITY_WEEK" },
+  { no: 3, name: "PERFORMANCE_GRANULARITY_MONTH" },
 ]);
 
 /**
@@ -180,6 +222,34 @@ export class Sale extends Message<Sale> {
    */
   cartDiscountValue = protoInt64.zero;
 
+  /**
+   * Full-order refund (status REFUNDED). All zero/empty unless refunded.
+   *
+   * unix; when the order was refunded
+   *
+   * @generated from field: int64 refunded_at = 22;
+   */
+  refundedAt = protoInt64.zero;
+
+  /**
+   * amount refunded (= total at refund time)
+   *
+   * @generated from field: int64 refund_amount = 23;
+   */
+  refundAmount = protoInt64.zero;
+
+  /**
+   * @generated from field: string refund_reason = 24;
+   */
+  refundReason = "";
+
+  /**
+   * true = goods returned to stock; false = money-only
+   *
+   * @generated from field: bool refund_restocked = 25;
+   */
+  refundRestocked = false;
+
   constructor(data?: PartialMessage<Sale>) {
     super();
     proto3.util.initPartial(data, this);
@@ -208,6 +278,10 @@ export class Sale extends Message<Sale> {
     { no: 19, name: "biaya_jasa", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 20, name: "cart_discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 21, name: "cart_discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 22, name: "refunded_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 23, name: "refund_amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 24, name: "refund_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 25, name: "refund_restocked", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Sale {
@@ -543,6 +617,15 @@ export class ListSalesRequest extends Message<ListSalesRequest> {
    */
   query = "";
 
+  /**
+   * Optional cashier-scope filter. OWNER/PHARMACIST may set it to narrow to one
+   * cashier (empty = all). CASHIER/APOTEKER are forced to their own id
+   * server-side and may not request another's (InvalidArgument).
+   *
+   * @generated from field: string cashier_user_id = 7;
+   */
+  cashierUserId = "";
+
   constructor(data?: PartialMessage<ListSalesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -557,6 +640,7 @@ export class ListSalesRequest extends Message<ListSalesRequest> {
     { no: 4, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 5, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 6, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "cashier_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListSalesRequest {
@@ -1612,6 +1696,96 @@ export class DiscardSaleResponse extends Message<DiscardSaleResponse> {
 }
 
 /**
+ * @generated from message pos_iface.v1.RefundSaleRequest
+ */
+export class RefundSaleRequest extends Message<RefundSaleRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * optional free-text reason recorded on the sale
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason = "";
+
+  /**
+   * true = return goods to stock (RETURN movements) + reverse Rx; false = money-only
+   *
+   * @generated from field: bool restock = 3;
+   */
+  restock = false;
+
+  constructor(data?: PartialMessage<RefundSaleRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.RefundSaleRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "restock", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefundSaleRequest {
+    return new RefundSaleRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefundSaleRequest {
+    return new RefundSaleRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefundSaleRequest {
+    return new RefundSaleRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefundSaleRequest | PlainMessage<RefundSaleRequest> | undefined, b: RefundSaleRequest | PlainMessage<RefundSaleRequest> | undefined): boolean {
+    return proto3.util.equals(RefundSaleRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.RefundSaleResponse
+ */
+export class RefundSaleResponse extends Message<RefundSaleResponse> {
+  /**
+   * @generated from field: pos_iface.v1.Sale sale = 1;
+   */
+  sale?: Sale;
+
+  constructor(data?: PartialMessage<RefundSaleResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.RefundSaleResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale", kind: "message", T: Sale },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RefundSaleResponse {
+    return new RefundSaleResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RefundSaleResponse {
+    return new RefundSaleResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RefundSaleResponse {
+    return new RefundSaleResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RefundSaleResponse | PlainMessage<RefundSaleResponse> | undefined, b: RefundSaleResponse | PlainMessage<RefundSaleResponse> | undefined): boolean {
+    return proto3.util.equals(RefundSaleResponse, a, b);
+  }
+}
+
+/**
  * @generated from message pos_iface.v1.GetTodaySnapshotRequest
  */
 export class GetTodaySnapshotRequest extends Message<GetTodaySnapshotRequest> {
@@ -1752,6 +1926,13 @@ export class GetSalesSummaryRequest extends Message<GetSalesSummaryRequest> {
    */
   query = "";
 
+  /**
+   * Optional cashier-scope filter — same rules as ListSalesRequest.cashier_user_id.
+   *
+   * @generated from field: string cashier_user_id = 5;
+   */
+  cashierUserId = "";
+
   constructor(data?: PartialMessage<GetSalesSummaryRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1764,6 +1945,7 @@ export class GetSalesSummaryRequest extends Message<GetSalesSummaryRequest> {
     { no: 2, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 3, name: "status", kind: "enum", T: proto3.getEnumType(SaleStatus) },
     { no: 4, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "cashier_user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSalesSummaryRequest {
@@ -1833,6 +2015,182 @@ export class GetSalesSummaryResponse extends Message<GetSalesSummaryResponse> {
 
   static equals(a: GetSalesSummaryResponse | PlainMessage<GetSalesSummaryResponse> | undefined, b: GetSalesSummaryResponse | PlainMessage<GetSalesSummaryResponse> | undefined): boolean {
     return proto3.util.equals(GetSalesSummaryResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.GetMyPerformanceRequest
+ */
+export class GetMyPerformanceRequest extends Message<GetMyPerformanceRequest> {
+  /**
+   * completed_at >= from (default: now-30d)
+   *
+   * @generated from field: int64 from_unix = 1;
+   */
+  fromUnix = protoInt64.zero;
+
+  /**
+   * completed_at <  to (default: now)
+   *
+   * @generated from field: int64 to_unix = 2;
+   */
+  toUnix = protoInt64.zero;
+
+  /**
+   * @generated from field: pos_iface.v1.PerformanceGranularity granularity = 3;
+   */
+  granularity = PerformanceGranularity.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetMyPerformanceRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.GetMyPerformanceRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "from_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 2, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "granularity", kind: "enum", T: proto3.getEnumType(PerformanceGranularity) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetMyPerformanceRequest {
+    return new GetMyPerformanceRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetMyPerformanceRequest {
+    return new GetMyPerformanceRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetMyPerformanceRequest {
+    return new GetMyPerformanceRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetMyPerformanceRequest | PlainMessage<GetMyPerformanceRequest> | undefined, b: GetMyPerformanceRequest | PlainMessage<GetMyPerformanceRequest> | undefined): boolean {
+    return proto3.util.equals(GetMyPerformanceRequest, a, b);
+  }
+}
+
+/**
+ * One time bucket of the caller's own COMPLETED sales. Deliberately carries NO
+ * profit/COGS field — there is nothing to populate, so cost can never leak.
+ *
+ * @generated from message pos_iface.v1.PerformanceBucket
+ */
+export class PerformanceBucket extends Message<PerformanceBucket> {
+  /**
+   * "YYYY-MM-DD" | "YYYY-Www" (ISO) | "YYYY-MM"
+   *
+   * @generated from field: string day_key = 1;
+   */
+  dayKey = "";
+
+  /**
+   * SUM(sales.total)
+   *
+   * @generated from field: int64 revenue = 2;
+   */
+  revenue = protoInt64.zero;
+
+  /**
+   * COUNT of COMPLETED sales
+   *
+   * @generated from field: int64 sales_count = 3;
+   */
+  salesCount = protoInt64.zero;
+
+  /**
+   * SUM(sale_items.base_qty) — base-unit qty
+   *
+   * @generated from field: int64 items_sold = 4;
+   */
+  itemsSold = protoInt64.zero;
+
+  constructor(data?: PartialMessage<PerformanceBucket>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.PerformanceBucket";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "day_key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "revenue", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "sales_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "items_sold", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PerformanceBucket {
+    return new PerformanceBucket().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PerformanceBucket {
+    return new PerformanceBucket().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PerformanceBucket {
+    return new PerformanceBucket().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PerformanceBucket | PlainMessage<PerformanceBucket> | undefined, b: PerformanceBucket | PlainMessage<PerformanceBucket> | undefined): boolean {
+    return proto3.util.equals(PerformanceBucket, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.GetMyPerformanceResponse
+ */
+export class GetMyPerformanceResponse extends Message<GetMyPerformanceResponse> {
+  /**
+   * chronological; empty buckets zeroed
+   *
+   * @generated from field: repeated pos_iface.v1.PerformanceBucket buckets = 1;
+   */
+  buckets: PerformanceBucket[] = [];
+
+  /**
+   * @generated from field: int64 total_revenue = 2;
+   */
+  totalRevenue = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 total_sales_count = 3;
+   */
+  totalSalesCount = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 total_items_sold = 4;
+   */
+  totalItemsSold = protoInt64.zero;
+
+  constructor(data?: PartialMessage<GetMyPerformanceResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.GetMyPerformanceResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "buckets", kind: "message", T: PerformanceBucket, repeated: true },
+    { no: 2, name: "total_revenue", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "total_sales_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "total_items_sold", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetMyPerformanceResponse {
+    return new GetMyPerformanceResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetMyPerformanceResponse {
+    return new GetMyPerformanceResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetMyPerformanceResponse {
+    return new GetMyPerformanceResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetMyPerformanceResponse | PlainMessage<GetMyPerformanceResponse> | undefined, b: GetMyPerformanceResponse | PlainMessage<GetMyPerformanceResponse> | undefined): boolean {
+    return proto3.util.equals(GetMyPerformanceResponse, a, b);
   }
 }
 

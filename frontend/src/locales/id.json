@@ -73,8 +73,24 @@
     "branches": "Cabang",
     "warehouses": "Gudang",
     "orders": "Riwayat order",
+    "myPerformance": "Performa saya",
     "settings": "Pengaturan",
     "signOut": "Keluar"
+  },
+  "filters": {
+    "cashierAll": "Semua kasir"
+  },
+  "myPerformance": {
+    "title": "Performa saya",
+    "description": "Penjualan Anda sendiri dari waktu ke waktu.",
+    "tiles": {
+      "revenue": "Pendapatan saya",
+      "sales": "Penjualan saya",
+      "items": "Item terjual saya"
+    },
+    "trend": {
+      "revenue": "Tren pendapatan"
+    }
   },
   "settings": {
     "title": "Pengaturan",
@@ -819,7 +835,25 @@
       "completed": "Selesai",
       "voided": "Dibatalkan",
       "draft": "Draf",
+      "refunded": "Dikembalikan",
       "unspecified": "—"
+    },
+    "refund": {
+      "button": "Refund",
+      "dialogTitle": "Refund pesanan",
+      "body": "Refund seluruh pesanan ini ({{total}})? Tindakan ini membatalkan penjualan.",
+      "reasonLabel": "Alasan",
+      "reasonPlaceholder": "mis. pelanggan berubah pikiran",
+      "restockSwitch": "Kembalikan barang ke stok",
+      "confirm": "Refund pesanan",
+      "success": "Pesanan di-refund",
+      "infoTitle": "Refund",
+      "refundedAt": "Waktu refund",
+      "amount": "Jumlah refund",
+      "restockLabel": "Barang dikembalikan",
+      "restockedYes": "Kembali ke stok",
+      "restockedNo": "Tidak dikembalikan",
+      "reason": "Alasan"
     },
     "payments": {
       "cash": "Tunai",

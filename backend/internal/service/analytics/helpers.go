@@ -95,6 +95,17 @@ func dayBucketKey(t time.Time, granularity string) string {
 	}
 }
 
+// orderCashierClause returns an optional "AND <alias>cashier_user_id = ?" SQL
+// fragment + its arg, used to narrow ORDER analytics (revenue/COGS/qty) to a
+// single cashier. Empty cashierID => no clause (warehouse-wide). STOCK metrics
+// never use this (stock has no cashier dimension).
+func orderCashierClause(alias, cashierID string) (string, []any) {
+	if cashierID == "" {
+		return "", nil
+	}
+	return " AND " + alias + "cashier_user_id = ?", []any{cashierID}
+}
+
 // containsMetric reports whether the metric types list includes the given type.
 func containsMetric(types []analyticsifacev1.MetricType, want analyticsifacev1.MetricType) bool {
 	for _, m := range types {

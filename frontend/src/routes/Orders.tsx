@@ -14,11 +14,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import CashierFilterSelect from "../components/CashierFilterSelect";
 import DateRangeFilter, { resolveRange, type DateRange } from "../components/DateRangeFilter";
 import ExportButton from "../components/ExportButton";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
+import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
+import { useAuth } from "../lib/auth";
 import { downloadCsv } from "../lib/csv";
 import { formatMoney, formatUnix } from "../lib/format";
 import { usePageState } from "../lib/pagination";
@@ -36,6 +39,7 @@ const STATUS_BADGE: Record<number, string> = {
   [SaleStatus.DRAFT]: "gray",
   [SaleStatus.COMPLETED]: "green",
   [SaleStatus.VOIDED]: "red",
+  [SaleStatus.REFUNDED]: "orange",
 };
 
 function statusKey(s: SaleStatus): string {
@@ -46,6 +50,8 @@ function statusKey(s: SaleStatus): string {
       return "completed";
     case SaleStatus.VOIDED:
       return "voided";
+    case SaleStatus.REFUNDED:
+      return "refunded";
     default:
       return "unspecified";
   }
@@ -54,11 +60,17 @@ function statusKey(s: SaleStatus): string {
 export default function Orders() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // OWNER/PHARMACIST see all orders and may filter to one cashier; CASHIER/
+  // APOTEKER are self-scoped server-side (no picker, "Created by" is redundant).
+  const isManager = user?.role === Role.OWNER || user?.role === Role.PHARMACIST;
 
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(String(SaleStatus.COMPLETED));
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
+  // Cashier-scope filter (managers only). Empty = all cashiers.
+  const [cashierFilter, setCashierFilter] = useState("");
 
   // Debounce the search box (250ms) into the query that drives the request.
   useEffect(() => {
@@ -71,20 +83,22 @@ export default function Orders() {
   const toUnix = BigInt(range.toUnix);
 
   const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${query}|${status}|${range.fromUnix}|${range.toUnix}`,
+    `${query}|${status}|${range.fromUnix}|${range.toUnix}|${cashierFilter}`,
   );
 
   // List is server-paginated (one page of rows). The summary is a SEPARATE
   // server-side aggregate over ALL matching rows — same filters, no page bound.
+  // cashierUserId is honored only for managers; cashiers are self-scoped server-side.
   const salesQ = useListSalesQuery({
     query,
     status,
     fromUnix,
     toUnix,
+    cashierUserId: cashierFilter,
     limit: pageSize,
     offset: page * pageSize,
   });
-  const summaryQ = useSalesSummaryQuery({ query, status, fromUnix, toUnix });
+  const summaryQ = useSalesSummaryQuery({ query, status, fromUnix, toUnix, cashierUserId: cashierFilter });
   const summary = summaryQ.data;
 
   // Resolve cashier names for the "Created by" column. Sale rows already carry
@@ -99,7 +113,7 @@ export default function Orders() {
     userRefs.get(cashierId)?.name || userRefs.get(cashierId)?.email || "—";
 
   const onExport = async () => {
-    const rows = await fetchSalesForExport({ query, status, fromUnix, toUnix });
+    const rows = await fetchSalesForExport({ query, status, fromUnix, toUnix, cashierUserId: cashierFilter });
     // Bulk-resolve cashier names for the export's rows (mirrors how the
     // page table resolves them, but imperative since this isn't a hook).
     const users = await resolveUserMap(rows.map((s) => s.cashierUserId).filter(Boolean));
@@ -147,6 +161,7 @@ export default function Orders() {
         <Tabs.List>
           <Tabs.Trigger value={String(SaleStatus.UNSPECIFIED)}>{t("orders.statusAll")}</Tabs.Trigger>
           <Tabs.Trigger value={String(SaleStatus.COMPLETED)}>{t("orders.states.completed")}</Tabs.Trigger>
+          <Tabs.Trigger value={String(SaleStatus.REFUNDED)}>{t("orders.states.refunded")}</Tabs.Trigger>
           <Tabs.Trigger value={String(SaleStatus.VOIDED)}>{t("orders.states.voided")}</Tabs.Trigger>
         </Tabs.List>
       </Tabs.Root>
@@ -167,6 +182,9 @@ export default function Orders() {
           />
         </Box>
         <DateRangeFilter value={range} onChange={setRange} />
+        {isManager && (
+          <CashierFilterSelect value={cashierFilter} onChange={setCashierFilter} />
+        )}
         <ExportButton onExport={onExport} />
       </HStack>
 
@@ -196,7 +214,7 @@ export default function Orders() {
             <Table.Row>
               <Table.ColumnHeader>{t("orders.saleNo")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("orders.date")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("orders.createdBy")}</Table.ColumnHeader>
+              {isManager && <Table.ColumnHeader>{t("orders.createdBy")}</Table.ColumnHeader>}
               <Table.ColumnHeader>{t("orders.customer")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("orders.items")}</Table.ColumnHeader>
               <Table.ColumnHeader>{t("orders.payment")}</Table.ColumnHeader>
@@ -214,7 +232,7 @@ export default function Orders() {
               >
                 <Table.Cell fontFamily="mono">{s.saleNo || s.id.slice(0, 8)}</Table.Cell>
                 <Table.Cell>{formatUnix(s.createdAt)}</Table.Cell>
-                <Table.Cell>{createdByLabel(s.cashierUserId)}</Table.Cell>
+                {isManager && <Table.Cell>{createdByLabel(s.cashierUserId)}</Table.Cell>}
                 <Table.Cell>{s.customerName || "—"}</Table.Cell>
                 <Table.Cell>
                   <ItemsSummary items={s.items} moreLabel={t("orders.itemsMore")} />
@@ -230,7 +248,7 @@ export default function Orders() {
             ))}
             {salesQ.rows.length === 0 && (
               <Table.Row>
-                <Table.Cell colSpan={8}>
+                <Table.Cell colSpan={isManager ? 8 : 7}>
                   <Text color="fg.muted" textAlign="center" py={4}>
                     {t("common.noResults")}
                   </Text>

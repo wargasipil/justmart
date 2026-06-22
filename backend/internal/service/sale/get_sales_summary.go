@@ -26,9 +26,13 @@ func (s *SaleService) GetSalesSummary(
 	if err != nil {
 		return nil, err
 	}
+	cashierID, err := resolveCashierFilter(caller, req.Msg.CashierUserId)
+	if err != nil {
+		return nil, err
+	}
 	scope := func() *gorm.DB {
 		return s.applySaleFilters(s.db.WithContext(ctx).Model(&model.Sale{}),
-			warehouseID, req.Msg.FromUnix, req.Msg.ToUnix, req.Msg.Status, req.Msg.Query)
+			warehouseID, req.Msg.FromUnix, req.Msg.ToUnix, req.Msg.Status, req.Msg.Query, cashierID)
 	}
 
 	var saleCount int64
@@ -43,7 +47,7 @@ func (s *SaleService) GetSalesSummary(
 
 	// items_sold = SUM(base_qty) over sale_items whose sale matches the same filters.
 	idSub := s.applySaleFilters(s.db.WithContext(ctx).Model(&model.Sale{}).Select("id"),
-		warehouseID, req.Msg.FromUnix, req.Msg.ToUnix, req.Msg.Status, req.Msg.Query)
+		warehouseID, req.Msg.FromUnix, req.Msg.ToUnix, req.Msg.Status, req.Msg.Query, cashierID)
 	var itemsSold int64
 	if err := s.db.WithContext(ctx).
 		Table("sale_items").

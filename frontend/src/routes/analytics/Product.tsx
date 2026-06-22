@@ -2,6 +2,7 @@ import { Box, HStack, Heading, Stack } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import CashierFilterSelect from "../../components/CashierFilterSelect";
 import ColumnsPopover from "../../components/ColumnsPopover";
 import DateRangeFilter, {
   resolveRange,
@@ -28,6 +29,8 @@ export default function Product() {
     () => new Set(DEFAULT_PRODUCT_FIELDS),
   );
   const [sort, setSort] = useState<Sort | undefined>(undefined);
+  // Optional cashier scope (managers only reach this page). Empty = all cashiers.
+  const [cashierFilter, setCashierFilter] = useState("");
 
   const metricTypes = useMemo(
     () => fieldsToMetricTypes(visibleFields),
@@ -38,12 +41,16 @@ export default function Product() {
     () => [...visibleFields].sort().join(","),
     [visibleFields],
   );
-  const resetKey = `${range.preset}|${range.fromUnix}|${range.toUnix}|${visibleKey}|${JSON.stringify(sort ?? null)}`;
+  const resetKey = `${range.preset}|${range.fromUnix}|${range.toUnix}|${visibleKey}|${JSON.stringify(sort ?? null)}|${cashierFilter}`;
   const { page, setPage, pageSize, setPageSize } = usePageState(resetKey);
 
   const q = useProductMetricQuery({
     metricTypes,
-    filter: { fromUnix: BigInt(range.fromUnix), toUnix: BigInt(range.toUnix) },
+    filter: {
+      fromUnix: BigInt(range.fromUnix),
+      toUnix: BigInt(range.toUnix),
+      cashierUserId: cashierFilter || undefined,
+    },
     sort,
     page,
     pageSize,
@@ -71,6 +78,7 @@ export default function Product() {
             groups={defaultGroups(t, { productExtras: true })}
             defaults={DEFAULT_PRODUCT_FIELDS}
           />
+          <CashierFilterSelect value={cashierFilter} onChange={setCashierFilter} />
           <DateRangeFilter value={range} onChange={setRange} />
         </HStack>
       </HStack>
