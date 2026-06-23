@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetFeatureFlagsRequest, GetFeatureFlagsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetFeatureFlagsRequest, SetFeatureFlagsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -136,6 +136,28 @@ export const SettingsService = {
       name: "GetPrintingInfo",
       I: GetPrintingInfoRequest,
       O: GetPrintingInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Beta feature flags. GetFeatureFlags is readable by every authenticated role
+     * (the sidebar reads it to gate menu items for any user); SetFeatureFlags is
+     * owner-only.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetFeatureFlags
+     */
+    getFeatureFlags: {
+      name: "GetFeatureFlags",
+      I: GetFeatureFlagsRequest,
+      O: GetFeatureFlagsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc settings_iface.v1.SettingsService.SetFeatureFlags
+     */
+    setFeatureFlags: {
+      name: "SetFeatureFlags",
+      I: SetFeatureFlagsRequest,
+      O: SetFeatureFlagsResponse,
       kind: MethodKind.Unary,
     },
   }

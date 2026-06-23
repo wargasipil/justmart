@@ -100,7 +100,13 @@
     "groups": {
       "general": "General",
       "license": "License",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "beta": "Beta"
+    },
+    "beta": {
+      "title": "Beta features",
+      "enablePayroll": "Enable Payroll",
+      "enablePayrollHelp": "Show the Payroll module in the sidebar."
     },
     "tabs": {
       "general": "General",

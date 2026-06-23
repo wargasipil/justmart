@@ -76,6 +76,189 @@ export class Settings extends Message<Settings> {
 }
 
 /**
+ * FeatureFlags is the set of beta feature toggles (Settings ▸ Beta).
+ *
+ * @generated from message settings_iface.v1.FeatureFlags
+ */
+export class FeatureFlags extends Message<FeatureFlags> {
+  /**
+   * gates the Payroll sidebar item
+   *
+   * @generated from field: bool payroll_enabled = 1;
+   */
+  payrollEnabled = false;
+
+  constructor(data?: PartialMessage<FeatureFlags>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.FeatureFlags";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "payroll_enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FeatureFlags {
+    return new FeatureFlags().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FeatureFlags {
+    return new FeatureFlags().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FeatureFlags {
+    return new FeatureFlags().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: FeatureFlags | PlainMessage<FeatureFlags> | undefined, b: FeatureFlags | PlainMessage<FeatureFlags> | undefined): boolean {
+    return proto3.util.equals(FeatureFlags, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetFeatureFlagsRequest
+ */
+export class GetFeatureFlagsRequest extends Message<GetFeatureFlagsRequest> {
+  constructor(data?: PartialMessage<GetFeatureFlagsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetFeatureFlagsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetFeatureFlagsRequest {
+    return new GetFeatureFlagsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetFeatureFlagsRequest {
+    return new GetFeatureFlagsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetFeatureFlagsRequest {
+    return new GetFeatureFlagsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetFeatureFlagsRequest | PlainMessage<GetFeatureFlagsRequest> | undefined, b: GetFeatureFlagsRequest | PlainMessage<GetFeatureFlagsRequest> | undefined): boolean {
+    return proto3.util.equals(GetFeatureFlagsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetFeatureFlagsResponse
+ */
+export class GetFeatureFlagsResponse extends Message<GetFeatureFlagsResponse> {
+  /**
+   * @generated from field: settings_iface.v1.FeatureFlags flags = 1;
+   */
+  flags?: FeatureFlags;
+
+  constructor(data?: PartialMessage<GetFeatureFlagsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetFeatureFlagsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "flags", kind: "message", T: FeatureFlags },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetFeatureFlagsResponse {
+    return new GetFeatureFlagsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetFeatureFlagsResponse {
+    return new GetFeatureFlagsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetFeatureFlagsResponse {
+    return new GetFeatureFlagsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetFeatureFlagsResponse | PlainMessage<GetFeatureFlagsResponse> | undefined, b: GetFeatureFlagsResponse | PlainMessage<GetFeatureFlagsResponse> | undefined): boolean {
+    return proto3.util.equals(GetFeatureFlagsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetFeatureFlagsRequest
+ */
+export class SetFeatureFlagsRequest extends Message<SetFeatureFlagsRequest> {
+  /**
+   * @generated from field: bool payroll_enabled = 1;
+   */
+  payrollEnabled = false;
+
+  constructor(data?: PartialMessage<SetFeatureFlagsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetFeatureFlagsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "payroll_enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetFeatureFlagsRequest {
+    return new SetFeatureFlagsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetFeatureFlagsRequest {
+    return new SetFeatureFlagsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetFeatureFlagsRequest {
+    return new SetFeatureFlagsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetFeatureFlagsRequest | PlainMessage<SetFeatureFlagsRequest> | undefined, b: SetFeatureFlagsRequest | PlainMessage<SetFeatureFlagsRequest> | undefined): boolean {
+    return proto3.util.equals(SetFeatureFlagsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetFeatureFlagsResponse
+ */
+export class SetFeatureFlagsResponse extends Message<SetFeatureFlagsResponse> {
+  /**
+   * @generated from field: settings_iface.v1.FeatureFlags flags = 1;
+   */
+  flags?: FeatureFlags;
+
+  constructor(data?: PartialMessage<SetFeatureFlagsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetFeatureFlagsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "flags", kind: "message", T: FeatureFlags },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetFeatureFlagsResponse {
+    return new SetFeatureFlagsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetFeatureFlagsResponse {
+    return new SetFeatureFlagsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetFeatureFlagsResponse {
+    return new SetFeatureFlagsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetFeatureFlagsResponse | PlainMessage<SetFeatureFlagsResponse> | undefined, b: SetFeatureFlagsResponse | PlainMessage<SetFeatureFlagsResponse> | undefined): boolean {
+    return proto3.util.equals(SetFeatureFlagsResponse, a, b);
+  }
+}
+
+/**
  * @generated from message settings_iface.v1.GetBussinessSettingsRequest
  */
 export class GetBussinessSettingsRequest extends Message<GetBussinessSettingsRequest> {

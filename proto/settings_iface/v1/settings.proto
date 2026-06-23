@@ -83,6 +83,35 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+
+  // Beta feature flags. GetFeatureFlags is readable by every authenticated role
+  // (the sidebar reads it to gate menu items for any user); SetFeatureFlags is
+  // owner-only.
+  rpc GetFeatureFlags(GetFeatureFlagsRequest) returns (GetFeatureFlagsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  rpc SetFeatureFlags(SetFeatureFlagsRequest) returns (SetFeatureFlagsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+}
+
+// FeatureFlags is the set of beta feature toggles (Settings ▸ Beta).
+message FeatureFlags {
+  bool payroll_enabled = 1; // gates the Payroll sidebar item
+}
+
+message GetFeatureFlagsRequest {}
+message GetFeatureFlagsResponse {
+  FeatureFlags flags = 1;
+}
+message SetFeatureFlagsRequest {
+  bool payroll_enabled = 1;
+}
+message SetFeatureFlagsResponse {
+  FeatureFlags flags = 1;
 }
 
 enum BussinessType {

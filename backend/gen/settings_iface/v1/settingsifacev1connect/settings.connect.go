@@ -66,6 +66,12 @@ const (
 	// SettingsServiceGetPrintingInfoProcedure is the fully-qualified name of the SettingsService's
 	// GetPrintingInfo RPC.
 	SettingsServiceGetPrintingInfoProcedure = "/settings_iface.v1.SettingsService/GetPrintingInfo"
+	// SettingsServiceGetFeatureFlagsProcedure is the fully-qualified name of the SettingsService's
+	// GetFeatureFlags RPC.
+	SettingsServiceGetFeatureFlagsProcedure = "/settings_iface.v1.SettingsService/GetFeatureFlags"
+	// SettingsServiceSetFeatureFlagsProcedure is the fully-qualified name of the SettingsService's
+	// SetFeatureFlags RPC.
+	SettingsServiceSetFeatureFlagsProcedure = "/settings_iface.v1.SettingsService/SetFeatureFlags"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
@@ -101,6 +107,11 @@ type SettingsServiceClient interface {
 	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
 	// which picker to show and the usb local-printer options. Manager-tier.
 	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
+	// Beta feature flags. GetFeatureFlags is readable by every authenticated role
+	// (the sidebar reads it to gate menu items for any user); SetFeatureFlags is
+	// owner-only.
+	GetFeatureFlags(context.Context, *connect.Request[v1.GetFeatureFlagsRequest]) (*connect.Response[v1.GetFeatureFlagsResponse], error)
+	SetFeatureFlags(context.Context, *connect.Request[v1.SetFeatureFlagsRequest]) (*connect.Response[v1.SetFeatureFlagsResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -180,6 +191,18 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		getFeatureFlags: connect.NewClient[v1.GetFeatureFlagsRequest, v1.GetFeatureFlagsResponse](
+			httpClient,
+			baseURL+SettingsServiceGetFeatureFlagsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetFeatureFlags")),
+			connect.WithClientOptions(opts...),
+		),
+		setFeatureFlags: connect.NewClient[v1.SetFeatureFlagsRequest, v1.SetFeatureFlagsResponse](
+			httpClient,
+			baseURL+SettingsServiceSetFeatureFlagsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("SetFeatureFlags")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -196,6 +219,8 @@ type settingsServiceClient struct {
 	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
 	setReceiptSettings   *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
 	getPrintingInfo      *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
+	getFeatureFlags      *connect.Client[v1.GetFeatureFlagsRequest, v1.GetFeatureFlagsResponse]
+	setFeatureFlags      *connect.Client[v1.SetFeatureFlagsRequest, v1.SetFeatureFlagsResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -253,6 +278,16 @@ func (c *settingsServiceClient) GetPrintingInfo(ctx context.Context, req *connec
 	return c.getPrintingInfo.CallUnary(ctx, req)
 }
 
+// GetFeatureFlags calls settings_iface.v1.SettingsService.GetFeatureFlags.
+func (c *settingsServiceClient) GetFeatureFlags(ctx context.Context, req *connect.Request[v1.GetFeatureFlagsRequest]) (*connect.Response[v1.GetFeatureFlagsResponse], error) {
+	return c.getFeatureFlags.CallUnary(ctx, req)
+}
+
+// SetFeatureFlags calls settings_iface.v1.SettingsService.SetFeatureFlags.
+func (c *settingsServiceClient) SetFeatureFlags(ctx context.Context, req *connect.Request[v1.SetFeatureFlagsRequest]) (*connect.Response[v1.SetFeatureFlagsResponse], error) {
+	return c.setFeatureFlags.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
@@ -286,6 +321,11 @@ type SettingsServiceHandler interface {
 	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
 	// which picker to show and the usb local-printer options. Manager-tier.
 	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
+	// Beta feature flags. GetFeatureFlags is readable by every authenticated role
+	// (the sidebar reads it to gate menu items for any user); SetFeatureFlags is
+	// owner-only.
+	GetFeatureFlags(context.Context, *connect.Request[v1.GetFeatureFlagsRequest]) (*connect.Response[v1.GetFeatureFlagsResponse], error)
+	SetFeatureFlags(context.Context, *connect.Request[v1.SetFeatureFlagsRequest]) (*connect.Response[v1.SetFeatureFlagsResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -361,6 +401,18 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetFeatureFlagsHandler := connect.NewUnaryHandler(
+		SettingsServiceGetFeatureFlagsProcedure,
+		svc.GetFeatureFlags,
+		connect.WithSchema(settingsServiceMethods.ByName("GetFeatureFlags")),
+		connect.WithHandlerOptions(opts...),
+	)
+	settingsServiceSetFeatureFlagsHandler := connect.NewUnaryHandler(
+		SettingsServiceSetFeatureFlagsProcedure,
+		svc.SetFeatureFlags,
+		connect.WithSchema(settingsServiceMethods.ByName("SetFeatureFlags")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
@@ -385,6 +437,10 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceSetReceiptSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceGetPrintingInfoProcedure:
 			settingsServiceGetPrintingInfoHandler.ServeHTTP(w, r)
+		case SettingsServiceGetFeatureFlagsProcedure:
+			settingsServiceGetFeatureFlagsHandler.ServeHTTP(w, r)
+		case SettingsServiceSetFeatureFlagsProcedure:
+			settingsServiceSetFeatureFlagsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -436,4 +492,12 @@ func (UnimplementedSettingsServiceHandler) SetReceiptSettings(context.Context, *
 
 func (UnimplementedSettingsServiceHandler) GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetPrintingInfo is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetFeatureFlags(context.Context, *connect.Request[v1.GetFeatureFlagsRequest]) (*connect.Response[v1.GetFeatureFlagsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetFeatureFlags is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) SetFeatureFlags(context.Context, *connect.Request[v1.SetFeatureFlagsRequest]) (*connect.Response[v1.SetFeatureFlagsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetFeatureFlags is not implemented"))
 }

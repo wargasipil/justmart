@@ -10,6 +10,7 @@ import {
   ChevronsRight,
   ClipboardList,
   FileText,
+  FlaskConical,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -34,7 +35,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { useAuth } from "../lib/auth";
-import { useBusinessMode } from "../queries/settings";
+import { useBusinessMode, useFeatureFlags } from "../queries/settings";
 import { usePreferencesStore } from "../stores/preferences";
 
 type NavLeaf = {
@@ -43,6 +44,7 @@ type NavLeaf = {
   icon: typeof Package;
   roles?: Role[];
   pharmacyOnly?: boolean; // hidden unless the shop is in pharmacy mode
+  feature?: "payroll"; // hidden unless the matching beta feature flag is enabled
 };
 
 type NavGroup = {
@@ -120,7 +122,7 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       roles: [Role.CASHIER, Role.APOTEKER],
     },
     { to: "/warehouses", label: t("nav.warehouses"), icon: WarehouseIcon, roles: [Role.OWNER] },
-    { to: "/payroll", label: t("nav.payroll"), icon: Wallet, roles: [Role.OWNER] },
+    { to: "/payroll", label: t("nav.payroll"), icon: Wallet, roles: [Role.OWNER], feature: "payroll" },
     { to: "/users", label: t("nav.users"), icon: UsersIcon, roles: [Role.OWNER] },
     {
       // Settings is an expandable group (like Inventaris): each child opens a
@@ -134,6 +136,7 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
         { to: "/settings/general", label: t("settings.groups.general"), icon: SlidersHorizontal },
         { to: "/settings/license", label: t("settings.groups.license"), icon: KeyRound },
         { to: "/settings/integrations", label: t("settings.groups.integrations"), icon: Plug },
+        { to: "/settings/beta", label: t("settings.groups.beta"), icon: FlaskConical },
       ],
     },
   ];
@@ -145,6 +148,7 @@ export default function Sidebar() {
   const toggle = usePreferencesStore((s) => s.toggleSidebar);
   const { user, logout } = useAuth();
   const { isPharmacy, shopName } = useBusinessMode();
+  const { payrollEnabled } = useFeatureFlags();
   // Pharmacy mode brands the top-left with the licensed shop name (like apotech),
   // falling back to a generic pharmacy label; retail keeps the Justmart brand.
   const brandName = isPharmacy ? shopName || t("app.pharmacyName") : t("app.name");
@@ -152,7 +156,9 @@ export default function Sidebar() {
   const items = buildItems(t, isPharmacy).filter(
     (item) =>
       (!item.roles || (user && item.roles.includes(user.role))) &&
-      (!("pharmacyOnly" in item && item.pharmacyOnly) || isPharmacy),
+      (!("pharmacyOnly" in item && item.pharmacyOnly) || isPharmacy) &&
+      // Beta feature gate: a `feature`-tagged item shows only when its flag is on.
+      (!("feature" in item && item.feature === "payroll") || payrollEnabled),
   );
 
   const width = collapsed ? "64px" : "240px";

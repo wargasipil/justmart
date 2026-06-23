@@ -60,6 +60,7 @@ import SettingsLicense from "./routes/settings/SettingsLicense";
 import SettingsPrinting from "./routes/settings/SettingsPrinting";
 import SettingsPayroll from "./routes/settings/SettingsPayroll";
 import SettingsIntegrations from "./routes/settings/SettingsIntegrations";
+import SettingsBeta from "./routes/settings/SettingsBeta";
 import SettingsGeneralGroup from "./routes/settings/SettingsGeneralGroup";
 import SettingsBackups from "./routes/settings/SettingsBackups";
 import Transfers from "./routes/inventory/Transfers";
@@ -121,6 +122,7 @@ const router = createBrowserRouter([
               },
               { path: "license", element: <SettingsLicense /> },
               { path: "integrations", element: <SettingsIntegrations /> },
+              { path: "beta", element: <SettingsBeta /> },
               // Back-compat: old flat URLs redirect to the nested General tabs.
               { path: "units", element: <Navigate to="/settings/general/units" replace /> },
               { path: "printing", element: <Navigate to="/settings/general/printing" replace /> },

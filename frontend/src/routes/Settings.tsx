@@ -16,7 +16,9 @@ export default function Settings() {
     ? "license"
     : pathname.startsWith("/settings/integrations")
       ? "integrations"
-      : "general";
+      : pathname.startsWith("/settings/beta")
+        ? "beta"
+        : "general";
 
   return (
     <Box>

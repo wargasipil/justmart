@@ -100,7 +100,13 @@
     "groups": {
       "general": "Umum",
       "license": "Lisensi",
-      "integrations": "Integrasi"
+      "integrations": "Integrasi",
+      "beta": "Beta"
+    },
+    "beta": {
+      "title": "Fitur beta",
+      "enablePayroll": "Aktifkan Penggajian",
+      "enablePayrollHelp": "Tampilkan modul Penggajian di sidebar."
     },
     "integrations": {
       "title": "Integrasi",

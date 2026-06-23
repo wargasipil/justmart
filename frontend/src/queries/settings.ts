@@ -7,6 +7,7 @@ export const settingsKeys = {
   all: ["settings"] as const,
   businessMode: ["settings", "businessMode"] as const,
   licenseInfo: ["settings", "licenseInfo"] as const,
+  featureFlags: ["settings", "featureFlags"] as const,
 };
 
 // The shop's business mode (license-driven). Readable by every authenticated
@@ -38,6 +39,38 @@ export function useBusinessMode(enabled = true) {
     shopName: q.data?.name ?? "",
     isLoading: q.isLoading,
   };
+}
+
+// Beta feature flags. Readable by every authenticated role (gates sidebar menu
+// items). Long staleTime + silenced errors, mirroring useBusinessModeQuery.
+export function useFeatureFlagsQuery(enabled = true) {
+  return useQuery({
+    queryKey: settingsKeys.featureFlags,
+    queryFn: () => settingsClient.getFeatureFlags({}),
+    staleTime: 5 * 60_000,
+    enabled,
+    meta: { silentError: true },
+  });
+}
+
+// Convenience accessor; defaults every flag OFF when unset/erroring.
+export function useFeatureFlags(enabled = true) {
+  const q = useFeatureFlagsQuery(enabled);
+  return {
+    payrollEnabled: q.data?.flags?.payrollEnabled ?? false,
+    isLoading: q.isLoading,
+  };
+}
+
+// Toggle a beta flag (OWNER). Invalidates the flags query so the sidebar
+// re-renders (show/hide gated menu items) with no reload.
+export function useSetFeatureFlagsMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: { payrollEnabled: boolean }) => settingsClient.setFeatureFlags(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: settingsKeys.featureFlags }),
+    meta: { silentError: true },
+  });
 }
 
 export function useSettingsQuery() {

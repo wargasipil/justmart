@@ -59,6 +59,10 @@ const (
 	SettingKeyXenditAPIKey          = "xendit_api_key"
 	SettingKeyXenditWebhookToken    = "xendit_webhook_token"
 
+	// Beta feature flags (Settings ▸ Beta). Stored as "true"/"false"; absent =
+	// disabled. SettingKeyFeaturePayroll gates the Payroll sidebar item.
+	SettingKeyFeaturePayroll = "feature_payroll"
+
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
 	BussinessTypeUnspecified int32 = 0
@@ -278,6 +282,21 @@ func SeedPaymentDefaults(ctx context.Context, db *gorm.DB, defActiveProvider str
 		return nil
 	}
 	return seedIfAbsent(ctx, db, SettingKeyPaymentActiveProvider, defActiveProvider)
+}
+
+// GetFeaturePayroll reports whether the Payroll beta feature is enabled (default
+// false when the flag is absent).
+func GetFeaturePayroll(ctx context.Context, db *gorm.DB) (bool, error) {
+	v, err := getSetting(ctx, db, SettingKeyFeaturePayroll)
+	if err != nil {
+		return false, err
+	}
+	return v == "true", nil
+}
+
+// SetFeaturePayroll persists the Payroll beta feature flag.
+func SetFeaturePayroll(ctx context.Context, db *gorm.DB, enabled bool) error {
+	return setSetting(ctx, db, SettingKeyFeaturePayroll, strconv.FormatBool(enabled))
 }
 
 // ReceiptLines splits a stored multi-line header/footer string into receipt
