@@ -1,36 +1,30 @@
-import { Box, Stack } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router-dom";
 
 import PageHeader from "../components/PageHeader";
-import RouteTabs from "../components/RouteTabs";
 
+// Settings shell. The submenu navigation now lives in the sidebar (the expandable
+// "Settings" group → General / License / Integrations), so this page only renders
+// the shared header + the active sub-page. The General sub-page adds its own tab
+// strip (SettingsGeneralGroup).
 export default function Settings() {
   const { t } = useTranslation();
-  const location = useLocation();
-  const tabs = [
-    { value: "general", to: "/settings/general", label: t("settings.tabs.general") },
-    { value: "units", to: "/settings/units", label: t("settings.tabs.units") },
-    { value: "license", to: "/settings/license", label: t("settings.tabs.license") },
-    { value: "printing", to: "/settings/printing", label: t("settings.tabs.printing") },
-    { value: "backups", to: "/settings/backups", label: t("settings.tabs.backups") },
-  ];
-  const activeKey =
-    tabs.find((tab) => location.pathname.startsWith(tab.to))?.value ?? "general";
+  const { pathname } = useLocation();
+
+  const submenu = pathname.startsWith("/settings/license")
+    ? "license"
+    : pathname.startsWith("/settings/integrations")
+      ? "integrations"
+      : "general";
 
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[
-          { label: t("nav.settings") },
-          { label: t(`settings.tabs.${activeKey}`) },
-        ]}
+        breadcrumbs={[{ label: t("nav.settings") }, { label: t(`settings.groups.${submenu}`) }]}
         title={t("settings.title")}
       />
-      <Stack gap={4}>
-        <RouteTabs items={tabs} />
-        <Outlet />
-      </Stack>
+      <Outlet />
     </Box>
   );
 }

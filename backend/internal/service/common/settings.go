@@ -45,6 +45,20 @@ const (
 	SettingKeyReceiptWidth = "receipt_width"
 	DefaultReceiptWidth    = int32(32)
 
+	// Payroll statutory config: BPJS contribution rates/caps + PPh21 (TER) tables,
+	// stored as JSON blobs. Seeded at boot (set-if-absent) with provisional
+	// defaults; editable via PayrollService.SetPayrollSettings.
+	SettingKeyPayrollBPJS  = "payroll_bpjs_config"
+	SettingKeyPayrollPPh21 = "payroll_pph21_config"
+
+	// Payment-integration config (Xendit-first disbursement gateway). The active
+	// provider drives whether payroll can pay via a gateway; the per-provider
+	// credentials are applied via Settings ▸ Integrations. config/env overrides
+	// win (mirrors the license precedence).
+	SettingKeyPaymentActiveProvider = "payment_active_provider"
+	SettingKeyXenditAPIKey          = "xendit_api_key"
+	SettingKeyXenditWebhookToken    = "xendit_webhook_token"
+
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
 	BussinessTypeUnspecified int32 = 0
@@ -189,6 +203,81 @@ func SeedReceiptWidth(ctx context.Context, db *gorm.DB, width int) error {
 		w = DefaultReceiptWidth
 	}
 	return seedIfAbsent(ctx, db, SettingKeyReceiptWidth, strconv.FormatInt(int64(w), 10))
+}
+
+// GetPayrollConfig returns the stored BPJS + PPh21 config JSON ("" each when
+// unset). The payroll package falls back to its baked defaults on empty/parse
+// error, so an unseeded shop still computes statutory amounts.
+func GetPayrollConfig(ctx context.Context, db *gorm.DB) (bpjs, pph21 string, err error) {
+	bpjs, err = getSetting(ctx, db, SettingKeyPayrollBPJS)
+	if err != nil {
+		return "", "", err
+	}
+	pph21, err = getSetting(ctx, db, SettingKeyPayrollPPh21)
+	if err != nil {
+		return "", "", err
+	}
+	return bpjs, pph21, nil
+}
+
+// SetPayrollConfig persists the BPJS + PPh21 config JSON (PayrollService.SetPayrollSettings).
+func SetPayrollConfig(ctx context.Context, db *gorm.DB, bpjs, pph21 string) error {
+	if err := setSetting(ctx, db, SettingKeyPayrollBPJS, bpjs); err != nil {
+		return err
+	}
+	return setSetting(ctx, db, SettingKeyPayrollPPh21, pph21)
+}
+
+// SeedPayrollDefaults writes the provisional payroll config JSON into
+// app_settings ONLY when absent (mirrors SeedReceiptDefaults), so a later edit is
+// never overwritten on reboot. The default JSON is supplied by the payroll
+// package (which owns the config structs).
+func SeedPayrollDefaults(ctx context.Context, db *gorm.DB, defBPJS, defPPh21 string) error {
+	if err := seedIfAbsent(ctx, db, SettingKeyPayrollBPJS, defBPJS); err != nil {
+		return err
+	}
+	return seedIfAbsent(ctx, db, SettingKeyPayrollPPh21, defPPh21)
+}
+
+// GetActiveProvider returns the active payment provider ("" = manual-only).
+func GetActiveProvider(ctx context.Context, db *gorm.DB) (string, error) {
+	return getSetting(ctx, db, SettingKeyPaymentActiveProvider)
+}
+
+// SetActiveProvider persists which payment gateway payroll uses ("" = manual).
+func SetActiveProvider(ctx context.Context, db *gorm.DB, provider string) error {
+	return setSetting(ctx, db, SettingKeyPaymentActiveProvider, provider)
+}
+
+// GetXenditCredentials returns the stored Xendit api key + webhook token ("" each
+// when unset). Callers prefer config/env over these (license-style precedence).
+func GetXenditCredentials(ctx context.Context, db *gorm.DB) (apiKey, webhookToken string, err error) {
+	apiKey, err = getSetting(ctx, db, SettingKeyXenditAPIKey)
+	if err != nil {
+		return "", "", err
+	}
+	webhookToken, err = getSetting(ctx, db, SettingKeyXenditWebhookToken)
+	if err != nil {
+		return "", "", err
+	}
+	return apiKey, webhookToken, nil
+}
+
+// SetXenditCredentials persists the Xendit api key + webhook token.
+func SetXenditCredentials(ctx context.Context, db *gorm.DB, apiKey, webhookToken string) error {
+	if err := setSetting(ctx, db, SettingKeyXenditAPIKey, apiKey); err != nil {
+		return err
+	}
+	return setSetting(ctx, db, SettingKeyXenditWebhookToken, webhookToken)
+}
+
+// SeedPaymentDefaults seeds the active provider from config ONLY when absent
+// (set-if-absent), so a UI change is never overwritten on reboot.
+func SeedPaymentDefaults(ctx context.Context, db *gorm.DB, defActiveProvider string) error {
+	if defActiveProvider == "" {
+		return nil
+	}
+	return seedIfAbsent(ctx, db, SettingKeyPaymentActiveProvider, defActiveProvider)
 }
 
 // ReceiptLines splits a stored multi-line header/footer string into receipt

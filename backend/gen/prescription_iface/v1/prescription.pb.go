@@ -23,12 +23,10 @@ const (
 )
 
 // Status is computed by the server (not stored except for ACTIVE/VOIDED):
-//
-//	ACTIVE    — issued, not voided, not expired, at least one item still has remaining qty
-//	DISPENSED — every item is fully dispensed (dispensed_qty == prescribed_qty)
-//	EXPIRED   — now > expires_at, not voided, not fully dispensed
-//	VOIDED    — explicitly voided by a pharmacist/owner/apoteker
-//
+//   ACTIVE    — issued, not voided, not expired, at least one item still has remaining qty
+//   DISPENSED — every item is fully dispensed (dispensed_qty == prescribed_qty)
+//   EXPIRED   — now > expires_at, not voided, not fully dispensed
+//   VOIDED    — explicitly voided by a pharmacist/owner/apoteker
 // Clients should treat status as read-only.
 type Prescription struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`

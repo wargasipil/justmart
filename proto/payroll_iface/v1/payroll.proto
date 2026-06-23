@@ -1,0 +1,336 @@
+syntax = "proto3";
+
+package payroll_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/payroll_iface/v1;payrollifacev1";
+
+// ----------------------------------------------------------------------------
+// Employee (separate staff roster; optionally linked to a users login account)
+// ----------------------------------------------------------------------------
+
+message Employee {
+  string id = 1;
+  string code = 2;                 // EMP-NNNN, unique editable business code
+  string name = 3;
+  string user_id = 4;              // optional link to a users login ("" = none); enables sales commission
+  string position = 5;             // jabatan
+  int64 base_salary = 6;           // gaji pokok, minor units (whole rupiah)
+  int32 commission_pct = 7;        // basis points of period sales revenue (250 = 2.5%)
+  string npwp = 8;
+  string ptkp_status = 9;          // TK0 | TK1 | TK2 | TK3 | K0 | K1 | K2 | K3 (PPh21)
+  string bpjs_kes_no = 10;
+  string bpjs_tk_no = 11;
+  bool bpjs_kes_enrolled = 12;
+  bool bpjs_jht_enrolled = 13;
+  bool bpjs_jp_enrolled = 14;
+  bool bpjs_jkk_enrolled = 15;
+  bool bpjs_jkm_enrolled = 16;
+  string bank_name = 17;
+  string bank_account_number = 18;
+  string bank_account_holder = 19;
+  string joined_at = 20;           // YYYY-MM-DD ("" = unset)
+  bool active = 21;
+  int64 created_at = 22;
+  repeated EmployeeAllowance allowances = 23;
+  string bank_channel_code = 24;   // payout channel code (e.g. ID_BCA); for gateway disbursement
+}
+
+message EmployeeAllowance {
+  string id = 1;
+  string label = 2;                // e.g. "Tunjangan transport"
+  int64 amount = 3;                // minor units, per month
+  bool taxable = 4;                // feeds the PPh21 taxable base
+}
+
+message EmployeeAllowanceInput {
+  string label = 1;
+  int64 amount = 2;
+  bool taxable = 3;
+}
+
+// Minimal display ref for resolve-by-IDs name lookups.
+message EmployeeRef {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+}
+
+service EmployeeService {
+  rpc ListEmployees(ListEmployeesRequest) returns (ListEmployeesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc GetEmployee(GetEmployeeRequest) returns (GetEmployeeResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc CreateEmployee(CreateEmployeeRequest) returns (CreateEmployeeResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc UpdateEmployee(UpdateEmployeeRequest) returns (UpdateEmployeeResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc ArchiveEmployee(ArchiveEmployeeRequest) returns (ArchiveEmployeeResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc SearchEmployees(SearchEmployeesRequest) returns (SearchEmployeesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc ResolveEmployees(ResolveEmployeesRequest) returns (ResolveEmployeesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+}
+
+message ListEmployeesRequest {
+  bool include_inactive = 1;
+  string query = 2;                // optional ILIKE name / code
+  int32 limit = 3;
+  int32 offset = 4;
+}
+message ListEmployeesResponse {
+  repeated Employee employees = 1;
+  int32 total = 2;
+}
+
+message GetEmployeeRequest { string id = 1; }
+message GetEmployeeResponse { Employee employee = 1; }
+
+message CreateEmployeeRequest {
+  string code = 1;
+  string name = 2;
+  string user_id = 3;
+  string position = 4;
+  int64 base_salary = 5;
+  int32 commission_pct = 6;
+  string npwp = 7;
+  string ptkp_status = 8;
+  string bpjs_kes_no = 9;
+  string bpjs_tk_no = 10;
+  bool bpjs_kes_enrolled = 11;
+  bool bpjs_jht_enrolled = 12;
+  bool bpjs_jp_enrolled = 13;
+  bool bpjs_jkk_enrolled = 14;
+  bool bpjs_jkm_enrolled = 15;
+  string bank_name = 16;
+  string bank_account_number = 17;
+  string bank_account_holder = 18;
+  string joined_at = 19;
+  repeated EmployeeAllowanceInput allowances = 20;
+  string bank_channel_code = 21;
+}
+message CreateEmployeeResponse { Employee employee = 1; }
+
+message UpdateEmployeeRequest {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+  string user_id = 4;
+  string position = 5;
+  int64 base_salary = 6;
+  int32 commission_pct = 7;
+  string npwp = 8;
+  string ptkp_status = 9;
+  string bpjs_kes_no = 10;
+  string bpjs_tk_no = 11;
+  bool bpjs_kes_enrolled = 12;
+  bool bpjs_jht_enrolled = 13;
+  bool bpjs_jp_enrolled = 14;
+  bool bpjs_jkk_enrolled = 15;
+  bool bpjs_jkm_enrolled = 16;
+  string bank_name = 17;
+  string bank_account_number = 18;
+  string bank_account_holder = 19;
+  string joined_at = 20;
+  // Full replace of the recurring allowance lines.
+  repeated EmployeeAllowanceInput allowances = 21;
+  string bank_channel_code = 22;
+}
+message UpdateEmployeeResponse { Employee employee = 1; }
+
+message ArchiveEmployeeRequest { string id = 1; }
+message ArchiveEmployeeResponse { Employee employee = 1; }
+
+message SearchEmployeesRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+message SearchEmployeesResponse {
+  repeated Employee employees = 1;
+}
+
+message ResolveEmployeesRequest { repeated string ids = 1; }
+message ResolveEmployeesResponse { repeated EmployeeRef employees = 1; }
+
+// ----------------------------------------------------------------------------
+// Payroll run + payslip
+// ----------------------------------------------------------------------------
+
+message PayrollRun {
+  string id = 1;
+  string run_no = 2;               // PAY-YYYY-NNNN, server-assigned
+  int32 period_year = 3;
+  int32 period_month = 4;          // 1..12
+  string status = 5;               // DRAFT | APPROVED | PAID | VOIDED
+  string note = 6;
+  int64 total_gross = 7;           // rollup of payslip gross
+  int64 total_deductions = 8;
+  int64 total_net = 9;
+  string created_by = 10;
+  int64 created_at = 11;
+  int64 approved_at = 12;          // unix; 0 = unset
+  int64 paid_at = 13;
+  int64 voided_at = 14;
+  repeated Payslip payslips = 15;  // populated by GetPayrollRun / CreatePayrollRun + mutations
+}
+
+message Payslip {
+  string id = 1;
+  string run_id = 2;
+  string employee_id = 3;
+  string employee_code = 4;        // snapshot
+  string employee_name = 5;        // snapshot
+  string position = 6;             // snapshot
+  string npwp = 7;                 // snapshot
+  string ptkp_status = 8;          // snapshot
+  string bank_name = 9;            // snapshot
+  string bank_account_number = 10; // snapshot
+  string bank_account_holder = 11; // snapshot
+  int64 base_salary = 12;          // snapshot
+  int64 commission_base = 13;      // period revenue used for commission (audit)
+  int64 gross = 14;                // sum of EARNING components
+  int64 total_deductions = 15;     // sum of DEDUCTION components
+  int64 net = 16;                  // gross - total_deductions
+  int64 employer_cost = 17;        // sum of EMPLOYER_CONTRIB components (reporting only)
+  repeated PayslipComponent components = 18;
+  string bank_channel_code = 19;   // snapshot; payout channel for gateway disbursement
+  string disbursement_status = 20; // gateway payout status ("" = none): PENDING|PROCESSING|COMPLETED|FAILED|VOIDED
+  string disbursement_id = 21;     // the disbursement record id ("" = none)
+}
+
+message PayslipComponent {
+  string id = 1;
+  string payslip_id = 2;
+  string kind = 3;                 // EARNING | DEDUCTION | EMPLOYER_CONTRIB
+  string code = 4;                 // BASE | ALLOWANCE | COMMISSION | BONUS | BPJS_*_EMP | BPJS_*_ER | PPH21 | MANUAL
+  string label = 5;
+  int64 amount = 6;                // minor units
+  bool taxable = 7;                // EARNING lines: whether it entered the PPh21 base
+  bool system_generated = 8;       // false = OWNER-added manual line
+  bool overridden = 9;             // true once an OWNER edited a system amount
+  int32 sort_order = 10;
+}
+
+service PayrollService {
+  rpc CreatePayrollRun(CreatePayrollRunRequest) returns (CreatePayrollRunResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc ListPayrollRuns(ListPayrollRunsRequest) returns (ListPayrollRunsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc GetPayrollRun(GetPayrollRunRequest) returns (GetPayrollRunResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc UpdatePayslipComponent(UpdatePayslipComponentRequest) returns (UpdatePayslipComponentResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc AddPayslipComponent(AddPayslipComponentRequest) returns (AddPayslipComponentResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc RemovePayslipComponent(RemovePayslipComponentRequest) returns (RemovePayslipComponentResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc ApprovePayrollRun(ApprovePayrollRunRequest) returns (ApprovePayrollRunResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc MarkPayrollRunPaid(MarkPayrollRunPaidRequest) returns (MarkPayrollRunPaidResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc VoidPayrollRun(VoidPayrollRunRequest) returns (VoidPayrollRunResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc PrintPayslip(PrintPayslipRequest) returns (PrintPayslipResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc GetPayrollSettings(GetPayrollSettingsRequest) returns (GetPayrollSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc SetPayrollSettings(SetPayrollSettingsRequest) returns (SetPayrollSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+}
+
+message CreatePayrollRunRequest {
+  int32 period_year = 1;
+  int32 period_month = 2;          // 1..12
+  string note = 3;
+}
+message CreatePayrollRunResponse { PayrollRun run = 1; }
+
+message ListPayrollRunsRequest {
+  string status = 1;               // optional filter
+  int32 year = 2;                  // optional filter (0 = all)
+  int32 limit = 3;
+  int32 offset = 4;
+}
+message ListPayrollRunsResponse {
+  repeated PayrollRun runs = 1;    // without payslips
+  int32 total = 2;
+}
+
+message GetPayrollRunRequest { string id = 1; }
+message GetPayrollRunResponse { PayrollRun run = 1; }
+
+message UpdatePayslipComponentRequest {
+  string component_id = 1;
+  string label = 2;
+  int64 amount = 3;
+  bool taxable = 4;
+}
+message UpdatePayslipComponentResponse { PayrollRun run = 1; }
+
+message AddPayslipComponentRequest {
+  string payslip_id = 1;
+  string kind = 2;                 // EARNING | DEDUCTION
+  string code = 3;                 // BONUS | MANUAL
+  string label = 4;
+  int64 amount = 5;
+  bool taxable = 6;
+}
+message AddPayslipComponentResponse { PayrollRun run = 1; }
+
+message RemovePayslipComponentRequest { string component_id = 1; }
+message RemovePayslipComponentResponse { PayrollRun run = 1; }
+
+message ApprovePayrollRunRequest { string id = 1; }
+message ApprovePayrollRunResponse { PayrollRun run = 1; }
+
+message MarkPayrollRunPaidRequest {
+  string id = 1;
+  string method = 2;   // "" / "MANUAL" (default) | "GATEWAY" (disburse via the active payment provider)
+}
+message MarkPayrollRunPaidResponse { PayrollRun run = 1; }
+
+message VoidPayrollRunRequest { string id = 1; }
+message VoidPayrollRunResponse { PayrollRun run = 1; }
+
+message PrintPayslipRequest {
+  string payslip_id = 1;
+  string connector_device_id = 2;  // optional explicit print target
+  string printer_name = 3;
+}
+message PrintPayslipResponse { int32 bytes_sent = 1; }
+
+message GetPayrollSettingsRequest {}
+message GetPayrollSettingsResponse {
+  string bpjs_config_json = 1;
+  string pph21_config_json = 2;
+}
+
+message SetPayrollSettingsRequest {
+  string bpjs_config_json = 1;
+  string pph21_config_json = 2;
+}
+message SetPayrollSettingsResponse {
+  string bpjs_config_json = 1;
+  string pph21_config_json = 2;
+}

@@ -44,6 +44,8 @@
     "active": "Aktif",
     "inactive": "Tidak aktif",
     "actions": "Aksi",
+    "status": "Status",
+    "created": "Dibuat",
     "showArchived": "Tampilkan arsip",
     "noResults": "Tidak ada hasil",
     "pagination": {
@@ -72,6 +74,7 @@
     "bpjs": "BPJS",
     "branches": "Cabang",
     "warehouses": "Gudang",
+    "payroll": "Penggajian",
     "orders": "Riwayat order",
     "myPerformance": "Performa saya",
     "settings": "Pengaturan",
@@ -94,11 +97,35 @@
   },
   "settings": {
     "title": "Pengaturan",
+    "groups": {
+      "general": "Umum",
+      "license": "Lisensi",
+      "integrations": "Integrasi"
+    },
+    "integrations": {
+      "title": "Integrasi",
+      "empty": "Belum ada integrasi.",
+      "xendit": "Xendit",
+      "xenditDesc": "Bayar karyawan via disbursement Xendit saat menandai periode gaji dibayar.",
+      "connected": "Terhubung",
+      "notConnected": "Belum terhubung",
+      "useForPayouts": "Gunakan Xendit untuk pembayaran gaji",
+      "credentials": "Kredensial",
+      "apiKey": "Secret API key",
+      "webhookToken": "Token verifikasi webhook",
+      "webhookTokenPlaceholder": "x-callback-token dari dashboard Xendit",
+      "webhookUrl": "URL Webhook",
+      "webhookHelp": "Daftarkan URL ini di dashboard Xendit (callback Payout) agar status pembayaran kembali ke sistem.",
+      "saved": "Integrasi disimpan",
+      "copy": "Salin",
+      "copied": "Tersalin"
+    },
     "tabs": {
       "general": "Umum",
       "units": "Satuan",
       "license": "Lisensi",
       "printing": "Pencetakan",
+      "payroll": "Penggajian",
       "backups": "Backup"
     },
     "printing": {
@@ -812,6 +839,134 @@
     "removeLine": "Hapus item",
     "submit": "Transfer"
   },
+  "payroll": {
+    "title": "Penggajian",
+    "tabs": {
+      "employees": "Karyawan",
+      "runs": "Periode gaji"
+    },
+    "filterAllStatus": "Semua status",
+    "filterYear": "Tahun",
+    "months": {
+      "1": "Januari",
+      "2": "Februari",
+      "3": "Maret",
+      "4": "April",
+      "5": "Mei",
+      "6": "Juni",
+      "7": "Juli",
+      "8": "Agustus",
+      "9": "September",
+      "10": "Oktober",
+      "11": "November",
+      "12": "Desember"
+    },
+    "runStatus": {
+      "draft": "Draf",
+      "approved": "Disetujui",
+      "paid": "Dibayar",
+      "voided": "Dibatalkan"
+    },
+    "bpjs": {
+      "kes": "Kesehatan",
+      "jht": "JHT",
+      "jp": "JP",
+      "jkk": "JKK",
+      "jkm": "JKM"
+    },
+    "employee": {
+      "addTitle": "Karyawan baru",
+      "editTitle": "Ubah karyawan",
+      "searchPlaceholder": "Cari nama atau kode…",
+      "archiveTitle": "Arsipkan karyawan",
+      "archiveBody": "Karyawan ini tidak akan diikutkan pada periode gaji baru. Slip gaji yang sudah ada tidak terpengaruh.",
+      "code": "Kode",
+      "name": "Nama",
+      "position": "Jabatan",
+      "joinedAt": "Tanggal masuk",
+      "userLink": "Akun login terkait (opsional)",
+      "userLinkPlaceholder": "Tanpa akun terkait",
+      "userLinkHelp": "Tautkan akun login untuk mengaktifkan komisi dari penjualan kasir tersebut.",
+      "compensation": "Komponen gaji",
+      "baseSalary": "Gaji pokok",
+      "commissionPct": "Komisi %",
+      "commissionHelp": "Persentase dari omzet penjualan selesai kasir terkait selama periode.",
+      "allowances": "Tunjangan",
+      "addAllowance": "Tambah tunjangan",
+      "noAllowances": "Tidak ada tunjangan rutin.",
+      "allowanceLabel": "Nama",
+      "taxable": "Kena pajak",
+      "taxBpjs": "Pajak & BPJS",
+      "npwp": "NPWP",
+      "ptkpStatus": "Status PTKP",
+      "bpjsKesNo": "No. BPJS Kesehatan",
+      "bpjsTkNo": "No. BPJS Ketenagakerjaan",
+      "bpjsEnrollment": "Kepesertaan BPJS",
+      "bankInfo": "Rekening bank",
+      "bankName": "Bank",
+      "bankAccountNumber": "No. rekening",
+      "bankAccountHolder": "Atas nama",
+      "bankChannelCode": "Channel pembayaran",
+      "bankChannelHelp": "Wajib untuk pembayaran via gateway (mis. ID_BCA).",
+      "channelNone": "Tidak ada (manual saja)"
+    },
+    "run": {
+      "addTitle": "Buat periode gaji",
+      "addDescription": "Membuat draf periode dengan satu slip gaji per karyawan aktif untuk bulan yang dipilih.",
+      "runNo": "No.",
+      "period": "Periode",
+      "month": "Bulan",
+      "year": "Tahun",
+      "note": "Catatan",
+      "gross": "Bruto",
+      "deductions": "Potongan",
+      "net": "Gaji bersih",
+      "generate": "Buat",
+      "generated": "Periode gaji dibuat",
+      "noPayslips": "Tidak ada karyawan aktif — periode ini tanpa slip gaji.",
+      "approve": "Setujui",
+      "approveTitle": "Setujui periode gaji",
+      "approveBody": "Setelah disetujui, baris slip gaji tidak bisa diubah lagi. Lanjutkan?",
+      "markPaid": "Tandai dibayar",
+      "markPaidTitle": "Tandai periode gaji dibayar",
+      "markPaidBody": "Tandai periode ini sebagai dibayar? Tanggal pembayaran akan dicatat.",
+      "payGateway": "Bayar via Xendit",
+      "payGatewayTitle": "Bayar via payment gateway",
+      "payGatewayBody": "Kirim gaji bersih tiap karyawan ke bank/e-wallet via gateway aktif, lalu tandai periode dibayar? Setiap karyawan wajib punya channel pembayaran.",
+      "void": "Batalkan",
+      "voidTitle": "Batalkan periode gaji",
+      "voidBody": "Batalkan periode ini? Periode tidak lagi dihitung dan bulan tersebut kembali tersedia."
+    },
+    "payslip": {
+      "title": "Slip gaji",
+      "earnings": "Pendapatan",
+      "totalEarnings": "Total pendapatan",
+      "deductions": "Potongan",
+      "totalDeductions": "Total potongan",
+      "net": "Gaji bersih",
+      "view": "Slip",
+      "print": "Cetak",
+      "printed": "Slip gaji dikirim ke printer",
+      "employerCost": "Iuran perusahaan: {{amount}}",
+      "addLine": "Tambah baris",
+      "lineLabel": "Nama"
+    },
+    "disbursement": {
+      "pending": "Menunggu",
+      "processing": "Diproses",
+      "completed": "Terbayar",
+      "failed": "Gagal bayar",
+      "voided": "Dibatalkan",
+      "retry": "Coba lagi"
+    },
+    "settings": {
+      "warning": "Tarif statutori ini adalah default sementara dan WAJIB dikonfirmasi oleh akuntan Anda sebelum penggajian sesungguhnya. Perubahan berlaku pada periode gaji berikutnya.",
+      "bpjs": "Konfigurasi BPJS",
+      "bpjsHelp": "Tarif per program (basis points), batas upah (satuan terkecil), dan basis. JSON.",
+      "pph21": "Konfigurasi PPh 21",
+      "pph21Help": "Metode TER bulanan: pemetaan PTKP→kategori dan tabel tarif TER. JSON."
+    }
+  },
   "errors": {
     "generic": "Terjadi kesalahan.",
     "tryAgain": "Coba lagi"
@@ -870,6 +1025,24 @@
     },
     "unit": {
       "factorInvalid": "Faktor harus lebih dari 1"
+    },
+    "payroll": {
+      "codeTaken": "Kode karyawan ini sudah dipakai",
+      "userTaken": "Akun login itu sudah ditautkan ke karyawan lain",
+      "userNotFound": "Akun login yang dipilih tidak ditemukan",
+      "ptkpInvalid": "Pilih status PTKP yang valid",
+      "periodInvalid": "Masukkan bulan dan tahun yang valid",
+      "periodExists": "Periode gaji untuk bulan ini sudah ada",
+      "runNotEditable": "Periode ini tidak bisa diubah lagi (bukan draf)",
+      "invalidTransition": "Aksi itu tidak diizinkan dari status saat ini",
+      "configInvalid": "Konfigurasi JSON tidak valid",
+      "missingChannelCode": "Setiap karyawan butuh channel pembayaran + rekening sebelum bayar via gateway"
+    },
+    "payment": {
+      "noProvider": "Belum ada payment gateway. Atur di Pengaturan → Integrasi.",
+      "unknownProvider": "Provider pembayaran tidak dikenal",
+      "credentialsIncomplete": "Isi semua kredensial yang diperlukan",
+      "retryNotFailed": "Hanya disbursement yang gagal yang bisa dicoba lagi"
     },
     "sale": {
       "cartEmpty": "Keranjang kosong",

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   batchClient,
   customerClient,
+  employeeClient,
   productClient,
   supplierClient,
   userClient,
@@ -13,6 +14,7 @@ import type { SupplierRef } from "../gen/inventory_iface/v1/supplier_pb";
 import type { BatchRef } from "../gen/inventory_iface/v1/batch_pb";
 import type { CustomerRef } from "../gen/customer_iface/v1/customer_pb";
 import type { UserRef } from "../gen/user_iface/v1/users_pb";
+import type { EmployeeRef } from "../gen/payroll_iface/v1/payroll_pb";
 
 // Resolve-by-IDs name lookups (HARD RULE). A page collects the referenced IDs on
 // its current page and calls Resolve<Domain>(ids) to build an id → ref map for
@@ -77,6 +79,13 @@ export function useUserRefs(ids: string[]): Map<string, UserRef> {
   return useRefs("userRefs", ids, async (i) => {
     const res = await userClient.resolveUsers({ ids: i });
     return res.users;
+  });
+}
+
+export function useEmployeeRefs(ids: string[]): Map<string, EmployeeRef> {
+  return useRefs("employeeRefs", ids, async (i) => {
+    const res = await employeeClient.resolveEmployees({ ids: i });
+    return res.employees;
   });
 }
 

@@ -1,0 +1,123 @@
+syntax = "proto3";
+
+package payment_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/payment_iface/v1;paymentifacev1";
+
+// ----------------------------------------------------------------------------
+// Payment-integration abstraction layer.
+//
+// This package is the SINGLE seam between the app (payroll, future POS) and any
+// external payment gateway. Callers speak only provider-agnostic terms: a
+// `provider` name ("xendit", later "midtrans"), a `channel_code` ("ID_BCA"), an
+// amount in minor units, and an abstract status string. Adding/swapping a
+// gateway is a backend ADAPTER change only — this proto never gains
+// gateway-specific fields.
+//
+// NOTE: there is deliberately NO CreateDisbursement RPC. Disbursements are
+// created in-process by trusted domains (payroll) via a Go interface, never by
+// an external "send money" endpoint.
+// ----------------------------------------------------------------------------
+
+// PaymentIntegrationService manages gateway credentials + which provider is
+// active. OWNER-only. Provider-agnostic: a new gateway adds an ADAPTER, not a
+// new RPC.
+service PaymentIntegrationService {
+  rpc GetIntegrationStatus(GetIntegrationStatusRequest) returns (GetIntegrationStatusResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  // ApplyProviderCredentials stores a provider's credentials. The credential
+  // keys are provider-specific (xendit: "api_key","webhook_token"; midtrans
+  // later: "server_key",...). The adapter declares + validates its required
+  // keys, so this RPC never changes per provider.
+  rpc ApplyProviderCredentials(ApplyProviderCredentialsRequest) returns (ApplyProviderCredentialsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  // SetActiveProvider picks which gateway payroll uses ("" = manual-only).
+  rpc SetActiveProvider(SetActiveProviderRequest) returns (SetActiveProviderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+}
+
+// ProviderStatus is a provider-agnostic view of one gateway's config.
+message ProviderStatus {
+  string provider = 1;          // "xendit"
+  bool configured = 2;          // required credentials present
+  string key_masked = 3;        // display hint "xnd_...AB12"; never the full key
+  bool webhook_set = 4;
+  string webhook_url_path = 5;  // "/webhooks/xendit" — UI shows the full URL to register
+}
+
+message GetIntegrationStatusRequest {}
+message GetIntegrationStatusResponse {
+  string active_provider = 1;             // "" = manual-only
+  repeated ProviderStatus providers = 2;  // one entry per registered adapter
+}
+
+message ApplyProviderCredentialsRequest {
+  string provider = 1;                    // "xendit"
+  map<string, string> credentials = 2;    // provider-specific keys; write-only, never echoed
+}
+message ApplyProviderCredentialsResponse {
+  ProviderStatus status = 1;
+}
+
+message SetActiveProviderRequest { string provider = 1; }  // "" | "xendit"
+message SetActiveProviderResponse { string active_provider = 1; }
+
+// ----------------------------------------------------------------------------
+
+// DisbursementService is the read/operate surface over money-out records.
+// OWNER-only. Records are CREATED in-process (payroll), not via RPC.
+service DisbursementService {
+  rpc ListDisbursements(ListDisbursementsRequest) returns (ListDisbursementsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc GetDisbursement(GetDisbursementRequest) returns (GetDisbursementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  // RetryDisbursement re-submits a FAILED disbursement under a new external_id.
+  rpc RetryDisbursement(RetryDisbursementRequest) returns (RetryDisbursementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+}
+
+// Disbursement is a single provider-agnostic money-out record.
+message Disbursement {
+  string id = 1;
+  string provider = 2;          // which adapter handled it
+  string external_id = 3;       // our idempotency key
+  string reference_type = 4;    // "payslip" (opaque link back to the caller domain)
+  string reference_id = 5;      // payslip id
+  string channel_code = 6;      // "ID_BCA", "ID_OVO", ...
+  string account_number = 7;
+  string account_holder = 8;
+  int64 amount = 9;             // minor units (whole IDR)
+  string currency = 10;         // "IDR"
+  string status = 11;           // PENDING|PROCESSING|COMPLETED|FAILED|VOIDED
+  string provider_ref = 12;     // gateway-assigned id
+  string failure_reason = 13;
+  string created_by = 14;
+  int64 created_at = 15;        // unix
+  int64 completed_at = 16;      // unix; 0 = unset
+}
+
+message ListDisbursementsRequest {
+  string status = 1;            // optional filter
+  string reference_type = 2;    // optional (e.g. "payslip")
+  string reference_id = 3;      // optional
+  int32 limit = 4;
+  int32 offset = 5;
+}
+message ListDisbursementsResponse {
+  repeated Disbursement disbursements = 1;
+  int32 total = 2;
+}
+
+message GetDisbursementRequest { string id = 1; }
+message GetDisbursementResponse { Disbursement disbursement = 1; }
+
+message RetryDisbursementRequest { string id = 1; }
+message RetryDisbursementResponse { Disbursement disbursement = 1; }

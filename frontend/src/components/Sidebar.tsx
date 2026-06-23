@@ -10,18 +10,22 @@ import {
   ChevronsRight,
   ClipboardList,
   FileText,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Package,
   Pill,
+  Plug,
   Receipt,
   Repeat,
   Settings as SettingsIcon,
   ShoppingCart,
+  SlidersHorizontal,
   Store,
   Truck,
   UserRound,
   Users as UsersIcon,
+  Wallet,
   Warehouse as WarehouseIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -116,8 +120,22 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       roles: [Role.CASHIER, Role.APOTEKER],
     },
     { to: "/warehouses", label: t("nav.warehouses"), icon: WarehouseIcon, roles: [Role.OWNER] },
+    { to: "/payroll", label: t("nav.payroll"), icon: Wallet, roles: [Role.OWNER] },
     { to: "/users", label: t("nav.users"), icon: UsersIcon, roles: [Role.OWNER] },
-    { to: "/settings", label: t("nav.settings"), icon: SettingsIcon, roles: [Role.OWNER] },
+    {
+      // Settings is an expandable group (like Inventaris): each child opens a
+      // settings page. "General" opens a tabbed page (General/Units/Printing/
+      // Payroll/Backups); License + Integrations are single panels.
+      kind: "group",
+      label: t("nav.settings"),
+      icon: SettingsIcon,
+      roles: [Role.OWNER],
+      children: [
+        { to: "/settings/general", label: t("settings.groups.general"), icon: SlidersHorizontal },
+        { to: "/settings/license", label: t("settings.groups.license"), icon: KeyRound },
+        { to: "/settings/integrations", label: t("settings.groups.integrations"), icon: Plug },
+      ],
+    },
   ];
 }
 

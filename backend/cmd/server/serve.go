@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -18,6 +20,8 @@ import (
 	"github.com/justmart/backend/gen/customer_iface/v1/customerifacev1connect"
 	"github.com/justmart/backend/gen/health_iface/v1/healthifacev1connect"
 	"github.com/justmart/backend/gen/inventory_iface/v1/inventoryifacev1connect"
+	"github.com/justmart/backend/gen/payment_iface/v1/paymentifacev1connect"
+	"github.com/justmart/backend/gen/payroll_iface/v1/payrollifacev1connect"
 	"github.com/justmart/backend/gen/pos_iface/v1/posifacev1connect"
 	"github.com/justmart/backend/gen/prescription_iface/v1/prescriptionifacev1connect"
 	"github.com/justmart/backend/gen/purchasing_iface/v1/purchasingifacev1connect"
@@ -40,6 +44,8 @@ import (
 	"github.com/justmart/backend/internal/service/connector"
 	"github.com/justmart/backend/internal/service/customer"
 	"github.com/justmart/backend/internal/service/health"
+	"github.com/justmart/backend/internal/service/payment"
+	"github.com/justmart/backend/internal/service/payroll"
 	"github.com/justmart/backend/internal/service/prescription"
 	"github.com/justmart/backend/internal/service/product"
 	"github.com/justmart/backend/internal/service/purchasing"
@@ -118,6 +124,11 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	branchesSvc := branch.NewBranchService(gormDB)
 	stocktakesSvc := stocktake.NewStocktakeService(gormDB)
 	prescriptionsSvc := prescription.NewPrescriptionService(gormDB)
+	paymentSvc := payment.NewService(gormDB, cfg.Payment)
+	employeesSvc := payroll.NewEmployeeService(gormDB)
+	payrollSvc := payroll.NewPayrollService(gormDB, cfg.Printer)
+	payrollSvc.SetConnector(cfg.Connector, connectorSvc)
+	payrollSvc.SetDisburser(paymentSvc) // gateway disbursement (decoupled via interface)
 	warehousesSvc := warehouse.NewWarehouseService(gormDB)
 	transfersSvc := transfer.NewTransferService(gormDB)
 	settingsSvc := settings.NewSettingsService(gormDB)
@@ -139,6 +150,18 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	// so a config-based shop keeps its width and it's editable in Settings.
 	if err := common.SeedReceiptWidth(context.Background(), gormDB, cfg.Printer.Width); err != nil {
 		slog.Warn("could not seed receipt width", "error", err)
+	}
+	// Seed the provisional payroll statutory config (BPJS rates/caps + PPh21 TER
+	// tables) into app_settings on first boot (set-if-absent). These defaults are
+	// editable in Settings ▸ Payroll and MUST be confirmed by the shop's accountant.
+	if err := common.SeedPayrollDefaults(context.Background(), gormDB,
+		payroll.DefaultBPJSConfigJSON(), payroll.DefaultPPh21ConfigJSON()); err != nil {
+		slog.Warn("could not seed payroll defaults", "error", err)
+	}
+	// Seed the active payment provider from config (set-if-absent), so a UI change
+	// is never overwritten on reboot.
+	if err := common.SeedPaymentDefaults(context.Background(), gormDB, cfg.Payment.ActiveProvider); err != nil {
+		slog.Warn("could not seed payment defaults", "error", err)
 	}
 
 	// License drives the business mode. Precedence: a config/env license
@@ -208,6 +231,10 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	apiMux.Handle(branchifacev1connect.NewBranchServiceHandler(branchesSvc, interceptors))
 	apiMux.Handle(stocktakeifacev1connect.NewStocktakeServiceHandler(stocktakesSvc, interceptors))
 	apiMux.Handle(prescriptionifacev1connect.NewPrescriptionServiceHandler(prescriptionsSvc, interceptors))
+	apiMux.Handle(payrollifacev1connect.NewEmployeeServiceHandler(employeesSvc, interceptors))
+	apiMux.Handle(payrollifacev1connect.NewPayrollServiceHandler(payrollSvc, interceptors))
+	apiMux.Handle(paymentifacev1connect.NewPaymentIntegrationServiceHandler(paymentSvc, interceptors))
+	apiMux.Handle(paymentifacev1connect.NewDisbursementServiceHandler(paymentSvc, interceptors))
 	apiMux.Handle(warehouseifacev1connect.NewWarehouseServiceHandler(warehousesSvc, interceptors))
 	apiMux.Handle(warehouseifacev1connect.NewStockTransferServiceHandler(transfersSvc, interceptors))
 	apiMux.Handle(settingsifacev1connect.NewSettingsServiceHandler(settingsSvc, interceptors))
@@ -221,6 +248,29 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	root.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		_, _ = w.Write([]byte("ok"))
+	})
+	// Payment-gateway webhooks (plain HTTP, NOT Connect — the auth interceptor only
+	// covers RPCs). The handler verifies the provider's x-callback-token itself.
+	root.HandleFunc("/webhooks/xendit", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+		if err != nil {
+			http.Error(w, "bad body", http.StatusBadRequest)
+			return
+		}
+		switch err := paymentSvc.HandleWebhook(r.Context(), payment.ProviderXendit, r.Header, body); {
+		case err == nil:
+			w.WriteHeader(http.StatusOK)
+		case errors.Is(err, payment.ErrWebhookUnauthorized):
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		case errors.Is(err, payment.ErrWebhookUnknownEvent):
+			w.WriteHeader(http.StatusOK) // ack so Xendit stops retrying a stale id
+		default:
+			http.Error(w, "internal", http.StatusInternalServerError)
+		}
 	})
 	root.Handle("/", web.Handler())
 

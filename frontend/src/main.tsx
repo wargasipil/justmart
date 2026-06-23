@@ -30,6 +30,11 @@ import Orders from "./routes/Orders";
 import MyPerformance from "./routes/MyPerformance";
 import Prescriptions from "./routes/Prescriptions";
 import NewPrescription from "./routes/prescriptions/NewPrescription";
+import Payroll from "./routes/Payroll";
+import Employees from "./routes/payroll/Employees";
+import PayrollRuns from "./routes/payroll/PayrollRuns";
+import NewPayrollRun from "./routes/payroll/NewPayrollRun";
+import PayrollRunDetail from "./routes/payroll/PayrollRunDetail";
 import OrderDetail from "./routes/OrderDetail";
 import Inventory from "./routes/Inventory";
 import Pos from "./routes/Pos";
@@ -53,6 +58,9 @@ import SettingsGeneral from "./routes/settings/SettingsGeneral";
 import SettingsUnits from "./routes/settings/SettingsUnits";
 import SettingsLicense from "./routes/settings/SettingsLicense";
 import SettingsPrinting from "./routes/settings/SettingsPrinting";
+import SettingsPayroll from "./routes/settings/SettingsPayroll";
+import SettingsIntegrations from "./routes/settings/SettingsIntegrations";
+import SettingsGeneralGroup from "./routes/settings/SettingsGeneralGroup";
 import SettingsBackups from "./routes/settings/SettingsBackups";
 import Transfers from "./routes/inventory/Transfers";
 import PurchaseOrdersList from "./routes/purchasing/PurchaseOrdersList";
@@ -79,16 +87,45 @@ const router = createBrowserRouter([
         element: <ProtectedRoute requiredRole={Role.OWNER} />,
         children: [
           { path: "users", element: <Users /> },
+          // Payroll (penggajian) — OWNER only, mode-agnostic. The runs generator +
+          // detail are full pages (own BackButton), outside the tab shell.
+          {
+            path: "payroll",
+            element: <Payroll />,
+            children: [
+              { index: true, element: <Navigate to="employees" replace /> },
+              { path: "employees", element: <Employees /> },
+              { path: "runs", element: <PayrollRuns /> },
+            ],
+          },
+          { path: "payroll/runs/new", element: <NewPayrollRun /> },
+          { path: "payroll/runs/:id", element: <PayrollRunDetail /> },
           {
             path: "settings",
             element: <Settings />,
             children: [
               { index: true, element: <Navigate to="general" replace /> },
-              { path: "general", element: <SettingsGeneral /> },
-              { path: "units", element: <SettingsUnits /> },
+              // "General" submenu = a tabbed page; its panels nest under
+              // /settings/general/* so the sidebar's prefix-based active/expand
+              // highlights "General" on any of its tabs.
+              {
+                path: "general",
+                element: <SettingsGeneralGroup />,
+                children: [
+                  { index: true, element: <SettingsGeneral /> },
+                  { path: "units", element: <SettingsUnits /> },
+                  { path: "printing", element: <SettingsPrinting /> },
+                  { path: "payroll", element: <SettingsPayroll /> },
+                  { path: "backups", element: <SettingsBackups /> },
+                ],
+              },
               { path: "license", element: <SettingsLicense /> },
-              { path: "printing", element: <SettingsPrinting /> },
-              { path: "backups", element: <SettingsBackups /> },
+              { path: "integrations", element: <SettingsIntegrations /> },
+              // Back-compat: old flat URLs redirect to the nested General tabs.
+              { path: "units", element: <Navigate to="/settings/general/units" replace /> },
+              { path: "printing", element: <Navigate to="/settings/general/printing" replace /> },
+              { path: "payroll", element: <Navigate to="/settings/general/payroll" replace /> },
+              { path: "backups", element: <Navigate to="/settings/general/backups" replace /> },
             ],
           },
         ],

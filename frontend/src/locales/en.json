@@ -44,6 +44,8 @@
     "active": "Active",
     "inactive": "Inactive",
     "actions": "Actions",
+    "status": "Status",
+    "created": "Created",
     "showArchived": "Show archived",
     "noResults": "No results",
     "pagination": {
@@ -72,6 +74,7 @@
     "bpjs": "BPJS",
     "branches": "Branches",
     "warehouses": "Warehouses",
+    "payroll": "Payroll",
     "orders": "Order history",
     "myPerformance": "My performance",
     "settings": "Settings",
@@ -94,12 +97,36 @@
   },
   "settings": {
     "title": "Settings",
+    "groups": {
+      "general": "General",
+      "license": "License",
+      "integrations": "Integrations"
+    },
     "tabs": {
       "general": "General",
       "units": "Units",
       "license": "License",
       "printing": "Printing",
+      "payroll": "Payroll",
       "backups": "Backups"
+    },
+    "integrations": {
+      "title": "Integrations",
+      "empty": "No integrations available yet.",
+      "xendit": "Xendit",
+      "xenditDesc": "Pay employees via Xendit disbursement when marking a payroll run paid.",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "useForPayouts": "Use Xendit for payroll payouts",
+      "credentials": "Credentials",
+      "apiKey": "Secret API key",
+      "webhookToken": "Webhook verification token",
+      "webhookTokenPlaceholder": "x-callback-token from the Xendit dashboard",
+      "webhookUrl": "Webhook URL",
+      "webhookHelp": "Register this URL in the Xendit dashboard (Payout callback) so payout status updates flow back.",
+      "saved": "Integration saved",
+      "copy": "Copy",
+      "copied": "Copied"
     },
     "printing": {
       "connectors": "Connected print connectors",
@@ -812,6 +839,134 @@
     "removeLine": "Remove item",
     "submit": "Transfer"
   },
+  "payroll": {
+    "title": "Payroll",
+    "tabs": {
+      "employees": "Employees",
+      "runs": "Payroll runs"
+    },
+    "filterAllStatus": "All statuses",
+    "filterYear": "Year",
+    "months": {
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "runStatus": {
+      "draft": "Draft",
+      "approved": "Approved",
+      "paid": "Paid",
+      "voided": "Voided"
+    },
+    "bpjs": {
+      "kes": "Kesehatan",
+      "jht": "JHT",
+      "jp": "JP",
+      "jkk": "JKK",
+      "jkm": "JKM"
+    },
+    "employee": {
+      "addTitle": "New employee",
+      "editTitle": "Edit employee",
+      "searchPlaceholder": "Search name or code…",
+      "archiveTitle": "Archive employee",
+      "archiveBody": "This employee will be excluded from new payroll runs. Existing payslips are unaffected.",
+      "code": "Code",
+      "name": "Name",
+      "position": "Position",
+      "joinedAt": "Joined date",
+      "userLink": "Linked login account (optional)",
+      "userLinkPlaceholder": "No linked account",
+      "userLinkHelp": "Link a login to enable sales commission from that cashier's completed sales.",
+      "compensation": "Compensation",
+      "baseSalary": "Base salary",
+      "commissionPct": "Commission %",
+      "commissionHelp": "Percent of the linked cashier's completed-sales revenue for the period.",
+      "allowances": "Allowances (tunjangan)",
+      "addAllowance": "Add allowance",
+      "noAllowances": "No recurring allowances.",
+      "allowanceLabel": "Label",
+      "taxable": "Taxable",
+      "taxBpjs": "Tax & BPJS",
+      "npwp": "NPWP",
+      "ptkpStatus": "PTKP status",
+      "bpjsKesNo": "BPJS Kesehatan no.",
+      "bpjsTkNo": "BPJS Ketenagakerjaan no.",
+      "bpjsEnrollment": "BPJS enrollment",
+      "bankInfo": "Bank account",
+      "bankName": "Bank",
+      "bankAccountNumber": "Account number",
+      "bankAccountHolder": "Account holder",
+      "bankChannelCode": "Payout channel",
+      "bankChannelHelp": "Required for gateway payout (e.g. ID_BCA).",
+      "channelNone": "None (manual only)"
+    },
+    "run": {
+      "addTitle": "Generate payroll run",
+      "addDescription": "Creates a draft run with one payslip per active employee for the chosen month.",
+      "runNo": "Run #",
+      "period": "Period",
+      "month": "Month",
+      "year": "Year",
+      "note": "Note",
+      "gross": "Gross",
+      "deductions": "Deductions",
+      "net": "Net pay",
+      "generate": "Generate",
+      "generated": "Payroll run generated",
+      "noPayslips": "No active employees — this run has no payslips.",
+      "approve": "Approve",
+      "approveTitle": "Approve payroll run",
+      "approveBody": "After approval, payslip lines can no longer be edited. Continue?",
+      "markPaid": "Mark paid",
+      "markPaidTitle": "Mark payroll run paid",
+      "markPaidBody": "Mark this run as paid? This records the payment date.",
+      "payGateway": "Pay via Xendit",
+      "payGatewayTitle": "Pay via payment gateway",
+      "payGatewayBody": "Disburse each employee's net pay to their bank/e-wallet via the active gateway, then mark the run paid? Every employee must have a payout channel.",
+      "void": "Void",
+      "voidTitle": "Void payroll run",
+      "voidBody": "Void this run? It will no longer count and the month becomes available again."
+    },
+    "payslip": {
+      "title": "Payslip",
+      "earnings": "Earnings",
+      "totalEarnings": "Total earnings",
+      "deductions": "Deductions",
+      "totalDeductions": "Total deductions",
+      "net": "Net pay",
+      "view": "Payslip",
+      "print": "Print",
+      "printed": "Payslip sent to printer",
+      "employerCost": "Employer contributions: {{amount}}",
+      "addLine": "Add line",
+      "lineLabel": "Label"
+    },
+    "disbursement": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "completed": "Paid out",
+      "failed": "Payout failed",
+      "voided": "Voided",
+      "retry": "Retry payout"
+    },
+    "settings": {
+      "warning": "These statutory rates are provisional defaults and MUST be confirmed by your accountant before running real payroll. Edits take effect on the next payroll run.",
+      "bpjs": "BPJS configuration",
+      "bpjsHelp": "Per-program rates (basis points), wage caps (minor units), and basis. JSON.",
+      "pph21": "PPh 21 configuration",
+      "pph21Help": "TER monthly method: PTKP→category mapping and the TER rate brackets. JSON."
+    }
+  },
   "errors": {
     "generic": "Something went wrong.",
     "tryAgain": "Try again"
@@ -870,6 +1025,24 @@
     },
     "unit": {
       "factorInvalid": "Factor must be greater than 1"
+    },
+    "payroll": {
+      "codeTaken": "This employee code is already in use",
+      "userTaken": "That login is already linked to another employee",
+      "userNotFound": "The selected login account was not found",
+      "ptkpInvalid": "Choose a valid PTKP status",
+      "periodInvalid": "Enter a valid month and year",
+      "periodExists": "A payroll run already exists for this month",
+      "runNotEditable": "This run can no longer be edited (it is not a draft)",
+      "invalidTransition": "That action isn't allowed from the current status",
+      "configInvalid": "The configuration JSON is invalid",
+      "missingChannelCode": "Every employee needs a payout channel + account before paying via a gateway"
+    },
+    "payment": {
+      "noProvider": "No payment gateway is configured. Set one up in Settings → Integrations.",
+      "unknownProvider": "Unknown payment provider",
+      "credentialsIncomplete": "Fill in all required credentials",
+      "retryNotFailed": "Only a failed disbursement can be retried"
     },
     "sale": {
       "cartEmpty": "The cart is empty",

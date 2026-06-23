@@ -115,6 +115,16 @@ type Connector struct {
 	PrinterName string `yaml:"printer_name"` // usb mode: local printer to spool to ("" = host default)
 }
 
+// Payment configures the payment-integration layer (payroll disbursement via an
+// external gateway). Secrets are best supplied via the JUSTMART_XENDIT_* env
+// vars; config/env wins over a value applied through the Settings ▸ Integrations
+// UI (which is the fallback, mirroring the license precedence).
+type Payment struct {
+	ActiveProvider     string `yaml:"active_provider"`      // "" (manual-only) | "xendit"
+	XenditAPIKey       string `yaml:"xendit_api_key"`       // Xendit secret key
+	XenditWebhookToken string `yaml:"xendit_webhook_token"` // x-callback-token to verify webhooks
+}
+
 type Config struct {
 	Server    Server    `yaml:"server"`
 	Database  Database  `yaml:"database"`
@@ -123,6 +133,7 @@ type Config struct {
 	Printer   Printer   `yaml:"printer"`
 	Connector Connector `yaml:"connector"`
 	Backup    Backup    `yaml:"backup"`
+	Payment   Payment   `yaml:"payment"`
 	// License is an offline license token (JWT minted by cmd/license, signed with
 	// security.SecretRoot). When present + valid, its business type drives the
 	// app's business mode on boot. Empty = unlicensed (mode stays UNSPECIFIED).
@@ -203,6 +214,15 @@ func applyEnvOverrides(c *Config) {
 	}
 	if v := os.Getenv("JUSTMART_LICENSE"); v != "" {
 		c.License = v
+	}
+	if v := os.Getenv("JUSTMART_PAYMENT_PROVIDER"); v != "" {
+		c.Payment.ActiveProvider = v
+	}
+	if v := os.Getenv("JUSTMART_XENDIT_API_KEY"); v != "" {
+		c.Payment.XenditAPIKey = v
+	}
+	if v := os.Getenv("JUSTMART_XENDIT_WEBHOOK_TOKEN"); v != "" {
+		c.Payment.XenditWebhookToken = v
 	}
 }
 
