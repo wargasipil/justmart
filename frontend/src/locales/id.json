@@ -816,6 +816,66 @@
     "generic": "Terjadi kesalahan.",
     "tryAgain": "Coba lagi"
   },
+  "validation": {
+    "required": "Wajib diisi",
+    "minLength": "Minimal {{count}} karakter",
+    "maxLength": "Maksimal {{count}} karakter",
+    "minValue": "Minimal {{min}}",
+    "maxValue": "Maksimal {{max}}",
+    "email": "Masukkan email yang valid",
+    "number": "Masukkan angka yang valid",
+    "invalid": "Nilai tidak valid",
+    "invalidOption": "Pilih opsi yang valid",
+    "qtyNonZero": "Jumlah tidak boleh nol",
+    "passwordMismatch": "Kata sandi tidak cocok",
+    "passwordMin": "Kata sandi minimal 8 karakter",
+    "thresholdInvalid": "Ambang harus bilangan bulat tak negatif"
+  },
+  "serverErrors": {
+    "common": {
+      "itemsRequired": "Tambahkan minimal satu item",
+      "qtyInvalid": "Jumlah harus lebih dari nol",
+      "amountNegative": "Nilai tidak boleh negatif",
+      "discountInvalid": "Diskon tidak valid"
+    },
+    "product": {
+      "skuTaken": "SKU ini sudah dipakai"
+    },
+    "supplier": {
+      "codeTaken": "Kode pemasok ini sudah dipakai",
+      "nameTaken": "Pemasok aktif dengan nama ini sudah ada"
+    },
+    "warehouse": {
+      "codeTaken": "Kode gudang ini sudah dipakai"
+    },
+    "user": {
+      "emailTaken": "Email ini sudah terdaftar"
+    },
+    "auth": {
+      "currentPasswordWrong": "Kata sandi saat ini salah"
+    },
+    "prescription": {
+      "expiresBeforeIssued": "Tanggal kedaluwarsa harus sama atau setelah tanggal terbit",
+      "alreadyDispensed": "Resep ini sudah pernah dilayani dan tidak bisa diubah"
+    },
+    "purchasing": {
+      "poVoided": "Tidak bisa membayar PO yang dibatalkan"
+    },
+    "transfer": {
+      "sameWarehouse": "Gudang asal dan tujuan harus berbeda"
+    },
+    "stocktake": {
+      "dispositionInvalid": "Disposisi harus Penyesuaian atau Write-off",
+      "writeOffKindRequired": "Pilih alasan write-off"
+    },
+    "unit": {
+      "factorInvalid": "Faktor harus lebih dari 1"
+    },
+    "sale": {
+      "cartEmpty": "Keranjang kosong",
+      "paidTooLow": "Jumlah bayar kurang dari total"
+    }
+  },
   "orders": {
     "title": "Riwayat order",
     "searchPlaceholder": "Cari no penjualan, pelanggan, atau $t(glossary.product)…",

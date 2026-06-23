@@ -2,7 +2,6 @@ package prescription
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -24,13 +23,13 @@ func (s *PrescriptionService) CreatePrescription(
 		return nil, err
 	}
 	if req.Msg.CustomerId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("customer_id required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "prescription.customer_required")
 	}
 	if strings.TrimSpace(req.Msg.IssuerName) == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("issuer_name required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "prescription.issuer_required")
 	}
 	if len(req.Msg.Items) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one item required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "prescription.items_required")
 	}
 
 	issued, err := parseDateRequired(req.Msg.IssuedAt, "issued_at")
@@ -46,10 +45,10 @@ func (s *PrescriptionService) CreatePrescription(
 		expires = &d
 	}
 	if expires.Before(issued) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at must be on/after issued_at"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "prescription.expires_before_issued")
 	}
 	if req.Msg.BiayaJasa < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("biaya_jasa must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "prescription.fee_negative")
 	}
 
 	var rx model.Prescription
@@ -79,10 +78,10 @@ func (s *PrescriptionService) CreatePrescription(
 		items := make([]model.PrescriptionItem, 0, len(req.Msg.Items))
 		for _, in := range req.Msg.Items {
 			if in.PrescribedQty <= 0 {
-				return connect.NewError(connect.CodeInvalidArgument, errors.New("prescribed_qty must be > 0"))
+				return common.TokenError(connect.CodeInvalidArgument, "prescription.qty_invalid")
 			}
 			if strings.TrimSpace(in.ProductId) == "" {
-				return connect.NewError(connect.CodeInvalidArgument, errors.New("product_id required on each item"))
+				return common.TokenError(connect.CodeInvalidArgument, "prescription.item_product_required")
 			}
 			items = append(items, model.PrescriptionItem{
 				PrescriptionID:     rx.ID,

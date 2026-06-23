@@ -102,6 +102,8 @@ export function useCreateWarehouseMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<CreateWarehouseRequest>) => warehouseClient.createWarehouse(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: warehouseKeys.all }),
+    // The form handles errors via useServerFormErrors (field-level + toast fallback).
+    meta: { silentError: true },
   });
 }
 
@@ -110,6 +112,7 @@ export function useUpdateWarehouseMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<UpdateWarehouseRequest>) => warehouseClient.updateWarehouse(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: warehouseKeys.all }),
+    meta: { silentError: true },
   });
 }
 

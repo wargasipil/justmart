@@ -41,7 +41,10 @@ func TestChangePassword_WrongOldPassword(t *testing.T) {
 		NewPassword: "brand-new-password",
 	}))
 	require.Error(t, err)
-	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, connect.CodeUnauthenticated, ce.Code())
+	require.Equal(t, "auth.current_password_wrong", ce.Message())
 }
 
 func TestChangePassword_Unauthenticated(t *testing.T) {

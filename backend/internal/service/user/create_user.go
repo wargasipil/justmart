@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -11,6 +10,7 @@ import (
 	userifacev1 "github.com/justmart/backend/gen/user_iface/v1"
 	"github.com/justmart/backend/internal/auth"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *UserService) CreateUser(
@@ -20,10 +20,10 @@ func (s *UserService) CreateUser(
 	m := req.Msg
 	email := strings.TrimSpace(m.Email)
 	if email == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("email required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "user.email_required")
 	}
 	if len(m.Password) < 8 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("password must be at least 8 characters"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "user.password_too_short")
 	}
 	roleStr, err := roleFromProto(m.Role)
 	if err != nil {
@@ -38,6 +38,14 @@ func (s *UserService) CreateUser(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	// Pre-check uniqueness for a specific token (the DB unique index — citext on
+	// Postgres — backstops any case-variant race the plain compare misses).
+	if taken, e := common.ExistsBy(s.db.WithContext(ctx), &model.User{}, "email = ?", email); e != nil {
+		return nil, connect.NewError(connect.CodeInternal, e)
+	} else if taken {
+		return nil, common.TokenError(connect.CodeAlreadyExists, "user.email_taken")
+	}
+
 	user := model.User{
 		Email:        email,
 		Name:         strings.TrimSpace(m.Name),
@@ -46,7 +54,7 @@ func (s *UserService) CreateUser(
 		Active:       true,
 	}
 	if err := s.db.WithContext(ctx).Create(&user).Error; err != nil {
-		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("create user: %w", err))
+		return nil, common.TokenError(connect.CodeAlreadyExists, "user.email_taken")
 	}
 	// Grant the new user access to the default warehouse (their first usable
 	// location). Owners can later grant access to additional warehouses via

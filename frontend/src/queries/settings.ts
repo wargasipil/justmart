@@ -87,5 +87,7 @@ export function useUpdateSettingsMutation() {
       // Threshold change → bell badge / dropdown re-evaluate.
       qc.invalidateQueries({ queryKey: ["lowStock"] });
     },
+    // Errors handled by the form via useServerFormErrors.
+    meta: { silentError: true },
   });
 }

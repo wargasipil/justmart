@@ -2,7 +2,6 @@ package purchasing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -56,10 +55,10 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 			}
 			for _, in := range req.Msg.Items {
 				if in.OrderedQty <= 0 {
-					return connect.NewError(connect.CodeInvalidArgument, errors.New("ordered_qty must be > 0"))
+					return common.TokenError(connect.CodeInvalidArgument, "purchasing.qty_invalid")
 				}
 				if in.UnitCostPrice < 0 {
-					return connect.NewError(connect.CodeInvalidArgument, errors.New("unit_cost_price must be >= 0"))
+					return common.TokenError(connect.CodeInvalidArgument, "purchasing.cost_negative")
 				}
 				unit, err := resolvePurchaseUnit(tx, in.ProductId, in.ProductUnitId)
 				if err != nil {

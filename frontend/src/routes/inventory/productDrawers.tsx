@@ -11,6 +11,7 @@ import FormField from "../../components/FormField";
 import MoneyInput from "../../components/MoneyInput";
 import NumberInput from "../../components/NumberInput";
 import type { Product, ProductUnitInput } from "../../gen/inventory_iface/v1/product_pb";
+import { useServerFormErrors } from "../../lib/formErrors";
 import { formatMoney } from "../../lib/format";
 import { marginPct, priceFromMarkup } from "../../lib/pricing";
 import { toast } from "../../lib/toaster";
@@ -269,6 +270,7 @@ export function CreateProductDialog({ open, onClose }: { open: boolean; onClose:
       prescriptionRequired: false,
     },
   });
+  const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {
     try {
@@ -277,8 +279,8 @@ export function CreateProductDialog({ open, onClose }: { open: boolean; onClose:
       form.reset();
       setUnits([]);
       onClose();
-    } catch {
-      /* toast handled globally */
+    } catch (err) {
+      onServerError(err); // product.sku_taken → field error on `sku`
     }
   });
 
@@ -332,6 +334,7 @@ export function EditProductDialog({
         }
       : undefined,
   });
+  const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {
     if (!product) return;
@@ -346,8 +349,8 @@ export function EditProductDialog({
       });
       toast.success(t("common.save") + " ✓");
       onClose();
-    } catch {
-      /* toast handled globally */
+    } catch (err) {
+      onServerError(err);
     }
   });
 

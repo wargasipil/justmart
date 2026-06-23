@@ -2,7 +2,6 @@ package unit
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 
 	unitifacev1 "github.com/justmart/backend/gen/unit_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (u *UnitService) CreateUnitBase(
@@ -18,7 +18,7 @@ func (u *UnitService) CreateUnitBase(
 ) (*connect.Response[unitifacev1.CreateUnitBaseResponse], error) {
 	name := strings.TrimSpace(req.Msg.Name)
 	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name is required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "unit.name_required")
 	}
 	row := model.UnitBase{Name: name, Active: true}
 	if err := u.db.WithContext(ctx).Create(&row).Error; err != nil {

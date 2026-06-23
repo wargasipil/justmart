@@ -2,7 +2,6 @@ package purchasing
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"time"
 
@@ -24,10 +23,10 @@ func (p *PurchaseOrders) CreatePurchaseOrder(
 		return nil, err
 	}
 	if req.Msg.SupplierId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("supplier_id required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.supplier_required")
 	}
 	if len(req.Msg.Items) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one item required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.items_required")
 	}
 
 	warehouseID, err := common.ResolveWarehouse(ctx, p.db, caller)
@@ -60,10 +59,10 @@ func (p *PurchaseOrders) CreatePurchaseOrder(
 		var items []model.PurchaseOrderItem
 		for _, in := range req.Msg.Items {
 			if in.OrderedQty <= 0 {
-				return connect.NewError(connect.CodeInvalidArgument, errors.New("ordered_qty must be > 0"))
+				return common.TokenError(connect.CodeInvalidArgument, "purchasing.qty_invalid")
 			}
 			if in.UnitCostPrice < 0 {
-				return connect.NewError(connect.CodeInvalidArgument, errors.New("unit_cost_price must be >= 0"))
+				return common.TokenError(connect.CodeInvalidArgument, "purchasing.cost_negative")
 			}
 			unit, err := resolvePurchaseUnit(tx, in.ProductId, in.ProductUnitId)
 			if err != nil {

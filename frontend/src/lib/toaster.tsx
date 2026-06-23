@@ -7,12 +7,18 @@ import {
 } from "@chakra-ui/react";
 import { ConnectError } from "@connectrpc/connect";
 
+import { translateServerError } from "./serverErrors";
+
 export const toaster = createToaster({
   placement: "top-end",
   pauseOnPageIdle: true,
 });
 
 function describe(err: unknown): string {
+  // Translate known backend tokens (and genericize unknown token-shaped /
+  // raw-DB-constraint messages) before falling back to the raw error text.
+  const translated = translateServerError(err);
+  if (translated) return translated;
   if (err instanceof ConnectError) return err.message;
   if (err instanceof Error) return err.message;
   return String(err);

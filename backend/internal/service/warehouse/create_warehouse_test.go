@@ -52,6 +52,32 @@ func TestCreateWarehouse_MissingCode(t *testing.T) {
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
+func TestCreateWarehouse_DuplicateCode(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := warehousesvc.NewWarehouseService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	_, err := svc.CreateWarehouse(ctx, connect.NewRequest(&warehouseifacev1.CreateWarehouseRequest{
+		Code: "DUP-WH",
+		Name: "First",
+	}))
+	require.NoError(t, err)
+
+	// Duplicate code -> AlreadyExists with a stable token (was previously a
+	// misleading CodeInternal wrapping the raw constraint string).
+	_, err = svc.CreateWarehouse(ctx, connect.NewRequest(&warehouseifacev1.CreateWarehouseRequest{
+		Code: "DUP-WH",
+		Name: "Second",
+	}))
+	require.Error(t, err)
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, connect.CodeAlreadyExists, ce.Code())
+	require.Equal(t, "warehouse.code_taken", ce.Message())
+}
+
 func TestCreateWarehouse_Unauthenticated(t *testing.T) {
 	t.Parallel()
 	svc := warehousesvc.NewWarehouseService(servicetest.NewDB(t, servicetest.NewConfig(t)))

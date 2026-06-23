@@ -60,6 +60,28 @@ func TestCreateProduct_MissingRequiredFields(t *testing.T) {
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
+func TestCreateProduct_DuplicateSKU(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	_, err := svc.CreateProduct(ctx, connect.NewRequest(&inventoryifacev1.CreateProductRequest{
+		Sku: "DUP-SKU", Name: "First", Unit: "tablet", UnitPrice: 1000,
+	}))
+	require.NoError(t, err)
+
+	_, err = svc.CreateProduct(ctx, connect.NewRequest(&inventoryifacev1.CreateProductRequest{
+		Sku: "DUP-SKU", Name: "Second", Unit: "tablet", UnitPrice: 1000,
+	}))
+	require.Error(t, err)
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, connect.CodeAlreadyExists, ce.Code())
+	require.Equal(t, "product.sku_taken", ce.Message())
+}
+
 func TestCreateProduct_Unauthenticated(t *testing.T) {
 	t.Parallel()
 	gormDB := servicetest.NewDB(t, servicetest.NewConfig(t))

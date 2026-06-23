@@ -26,6 +26,7 @@ import {
   useCreateSupplierMutation,
   useSuppliersQuery,
 } from "../../queries/suppliers";
+import { useServerFormErrors } from "../../lib/formErrors";
 import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
 
@@ -211,6 +212,7 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
       bankAccountHolder: "",
     },
   });
+  const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {
     try {
@@ -227,8 +229,8 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
       toast.success(t("common.create") + " ✓");
       form.reset();
       onClose();
-    } catch {
-      /* toast handled globally */
+    } catch (err) {
+      onServerError(err); // supplier.code_taken / name_taken → field error
     }
   });
 

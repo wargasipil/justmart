@@ -33,10 +33,10 @@ func (s *ProductService) UpdateProduct(
 	name := strings.TrimSpace(req.Msg.Name)
 	unit := strings.TrimSpace(req.Msg.Unit)
 	if name == "" || unit == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name and unit required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "product.required")
 	}
 	if req.Msg.UnitPrice < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("unit_price must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "product.unit_price_negative")
 	}
 
 	priceChanged := req.Msg.UnitPrice != med.UnitPrice

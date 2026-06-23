@@ -816,6 +816,66 @@
     "generic": "Something went wrong.",
     "tryAgain": "Try again"
   },
+  "validation": {
+    "required": "This field is required",
+    "minLength": "Must be at least {{count}} characters",
+    "maxLength": "Must be at most {{count}} characters",
+    "minValue": "Must be at least {{min}}",
+    "maxValue": "Must be at most {{max}}",
+    "email": "Enter a valid email",
+    "number": "Enter a valid number",
+    "invalid": "Invalid value",
+    "invalidOption": "Choose a valid option",
+    "qtyNonZero": "Quantity must not be zero",
+    "passwordMismatch": "Passwords do not match",
+    "passwordMin": "Password must be at least 8 characters",
+    "thresholdInvalid": "Threshold must be a non-negative integer"
+  },
+  "serverErrors": {
+    "common": {
+      "itemsRequired": "Add at least one item",
+      "qtyInvalid": "Quantity must be greater than zero",
+      "amountNegative": "Value must be zero or more",
+      "discountInvalid": "Invalid discount"
+    },
+    "product": {
+      "skuTaken": "This SKU is already in use"
+    },
+    "supplier": {
+      "codeTaken": "This supplier code is already in use",
+      "nameTaken": "An active supplier with this name already exists"
+    },
+    "warehouse": {
+      "codeTaken": "This warehouse code is already in use"
+    },
+    "user": {
+      "emailTaken": "This email is already registered"
+    },
+    "auth": {
+      "currentPasswordWrong": "Current password is incorrect"
+    },
+    "prescription": {
+      "expiresBeforeIssued": "Expiry must be on or after the issue date",
+      "alreadyDispensed": "This prescription has already been dispensed and can't be edited"
+    },
+    "purchasing": {
+      "poVoided": "Cannot pay a voided purchase order"
+    },
+    "transfer": {
+      "sameWarehouse": "Source and destination warehouses must differ"
+    },
+    "stocktake": {
+      "dispositionInvalid": "Disposition must be Adjustment or Write-off",
+      "writeOffKindRequired": "Choose a write-off reason"
+    },
+    "unit": {
+      "factorInvalid": "Factor must be greater than 1"
+    },
+    "sale": {
+      "cartEmpty": "The cart is empty",
+      "paidTooLow": "Amount paid is less than the total"
+    }
+  },
   "orders": {
     "title": "Order history",
     "searchPlaceholder": "Search sale no, customer, or $t(glossary.product)…",

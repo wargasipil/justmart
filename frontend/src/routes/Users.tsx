@@ -22,6 +22,7 @@ import PageHeader from "../components/PageHeader";
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { User } from "../gen/user_iface/v1/users_pb";
 import { useAuth } from "../lib/auth";
+import { useServerFormErrors } from "../lib/formErrors";
 import { toast } from "../lib/toaster";
 import {
   useCreateUserMutation,
@@ -178,6 +179,7 @@ function CreateUserDrawer({ open, onClose }: { open: boolean; onClose: () => voi
     resolver: zodResolver(CreateSchema),
     defaultValues: { email: "", name: "", password: "", role: Role.CASHIER },
   });
+  const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {
     try {
@@ -190,8 +192,8 @@ function CreateUserDrawer({ open, onClose }: { open: boolean; onClose: () => voi
       toast.success(t("common.create") + " ✓");
       form.reset();
       onClose();
-    } catch {
-      // toast handled globally
+    } catch (err) {
+      onServerError(err); // user.email_taken → field error on `email`
     }
   });
 

@@ -11,6 +11,7 @@ import (
 
 	unitifacev1 "github.com/justmart/backend/gen/unit_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (u *UnitService) UpdateUnitDerivative(
@@ -19,11 +20,10 @@ func (u *UnitService) UpdateUnitDerivative(
 ) (*connect.Response[unitifacev1.UpdateUnitDerivativeResponse], error) {
 	name := strings.TrimSpace(req.Msg.Name)
 	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name is required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "unit.name_required")
 	}
 	if req.Msg.Factor <= 1 {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("factor must be > 1"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "unit.factor_invalid")
 	}
 	var row model.UnitDerivative
 	if err := u.db.WithContext(ctx).First(&row, "id = ?", req.Msg.Id).Error; err != nil {

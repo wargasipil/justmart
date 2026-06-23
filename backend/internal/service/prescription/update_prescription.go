@@ -2,7 +2,6 @@ package prescription
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -36,13 +35,12 @@ func (s *PrescriptionService) UpdatePrescription(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		if dispensed > 0 {
-			return connect.NewError(connect.CodeFailedPrecondition,
-				errors.New("cannot edit a prescription that has already been partially dispensed"))
+			return common.TokenError(connect.CodeFailedPrecondition, "prescription.already_dispensed")
 		}
 
 		issuer := strings.TrimSpace(req.Msg.IssuerName)
 		if issuer == "" {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("issuer_name required"))
+			return common.TokenError(connect.CodeInvalidArgument, "prescription.issuer_required")
 		}
 		issued, err := parseDateRequired(req.Msg.IssuedAt, "issued_at")
 		if err != nil {
@@ -57,10 +55,10 @@ func (s *PrescriptionService) UpdatePrescription(
 			expires = &d
 		}
 		if expires.Before(issued) {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("expires_at must be on/after issued_at"))
+			return common.TokenError(connect.CodeInvalidArgument, "prescription.expires_before_issued")
 		}
 		if req.Msg.BiayaJasa < 0 {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("biaya_jasa must be >= 0"))
+			return common.TokenError(connect.CodeInvalidArgument, "prescription.fee_negative")
 		}
 
 		updates := map[string]any{
@@ -84,10 +82,10 @@ func (s *PrescriptionService) UpdatePrescription(
 			items := make([]model.PrescriptionItem, 0, len(req.Msg.Items))
 			for _, in := range req.Msg.Items {
 				if in.PrescribedQty <= 0 {
-					return connect.NewError(connect.CodeInvalidArgument, errors.New("prescribed_qty must be > 0"))
+					return common.TokenError(connect.CodeInvalidArgument, "prescription.qty_invalid")
 				}
 				if strings.TrimSpace(in.ProductId) == "" {
-					return connect.NewError(connect.CodeInvalidArgument, errors.New("product_id required on each item"))
+					return common.TokenError(connect.CodeInvalidArgument, "prescription.item_product_required")
 				}
 				items = append(items, model.PrescriptionItem{
 					PrescriptionID:     rx.ID,

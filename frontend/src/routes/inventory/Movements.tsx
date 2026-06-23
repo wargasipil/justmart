@@ -33,7 +33,7 @@ import { fetchMovementsForExport, useMovementsQuery, useRecordMovementMutation }
 
 const Schema = z.object({
   batchId: z.string().min(1),
-  qty: z.coerce.number().int().refine((n) => n !== 0, "qty must not be zero"),
+  qty: z.coerce.number().int().refine((n) => n !== 0, { params: { i18n: "validation.qtyNonZero" } }),
   type: z.coerce.number().int(),
   reason: z.string(),
 });

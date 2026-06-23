@@ -1,33 +1,40 @@
-import { Box, Button, HStack, Input, Spinner, Stack, Text } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { Box, Button, Spinner, Stack } from "@chakra-ui/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 
+import FormField from "../../components/FormField";
+import { useServerFormErrors } from "../../lib/formErrors";
 import { toast } from "../../lib/toaster";
 import { useSettingsQuery, useUpdateSettingsMutation } from "../../queries/settings";
+
+const Schema = z.object({
+  lowStockThreshold: z.coerce.number().int().min(0),
+});
+type FormValues = z.infer<typeof Schema>;
 
 export default function SettingsGeneral() {
   const { t } = useTranslation();
   const q = useSettingsQuery();
   const save = useUpdateSettingsMutation();
 
-  const [threshold, setThreshold] = useState<string>("");
-  useEffect(() => {
-    if (q.data) setThreshold(String(q.data.lowStockThreshold));
-  }, [q.data]);
+  const values = useMemo<FormValues | undefined>(
+    () => (q.data ? { lowStockThreshold: q.data.lowStockThreshold } : undefined),
+    [q.data],
+  );
+  const form = useForm<FormValues>({ resolver: zodResolver(Schema), values });
+  const onServerError = useServerFormErrors(form);
 
-  const onSave = async () => {
-    const n = Number(threshold);
-    if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
-      toast.error(t("settings.invalidThreshold"));
-      return;
-    }
+  const onSubmit = form.handleSubmit(async (v) => {
     try {
-      await save.mutateAsync({ lowStockThreshold: n });
+      await save.mutateAsync({ lowStockThreshold: v.lowStockThreshold });
       toast.success(t("common.save") + " ✓");
-    } catch {
-      /* toast handled globally */
+    } catch (err) {
+      onServerError(err);
     }
-  };
+  });
 
   if (q.isLoading) {
     return (
@@ -39,31 +46,18 @@ export default function SettingsGeneral() {
 
   return (
     <Stack gap={4} maxW="md">
-      <Stack gap={1}>
-        <Text fontSize="sm" fontWeight="medium">
-          {t("settings.lowStockThreshold")}
-        </Text>
-        <HStack gap={2}>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            width="120px"
-            value={threshold}
-            onChange={(e) => setThreshold(e.target.value)}
-          />
-          <Button
-            colorPalette="blue"
-            onClick={onSave}
-            loading={save.isPending}
-          >
-            {t("common.save")}
-          </Button>
-        </HStack>
-        <Text fontSize="xs" color="fg.muted">
-          {t("settings.lowStockHelp")}
-        </Text>
-      </Stack>
+      <FormField
+        control={form.control}
+        name="lowStockThreshold"
+        label={t("settings.lowStockThreshold")}
+        helperText={t("settings.lowStockHelp")}
+        number
+      />
+      <Box>
+        <Button colorPalette="blue" onClick={onSubmit} loading={save.isPending}>
+          {t("common.save")}
+        </Button>
+      </Box>
     </Stack>
   );
 }

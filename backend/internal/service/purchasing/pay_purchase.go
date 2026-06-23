@@ -2,7 +2,6 @@ package purchasing
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
@@ -16,10 +15,10 @@ func (p *PurchasePayments) PayPurchase(
 	req *connect.Request[purchasingifacev1.PayPurchaseRequest],
 ) (*connect.Response[purchasingifacev1.PayPurchaseResponse], error) {
 	if req.Msg.PurchaseOrderId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("purchase_order_id required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.po_required")
 	}
 	if req.Msg.Amount <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("amount must be > 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.amount_invalid")
 	}
 
 	var paid, outstanding int64
@@ -31,7 +30,7 @@ func (p *PurchasePayments) PayPurchase(
 			return err
 		}
 		if po.Status == poStatusVoided {
-			return connect.NewError(connect.CodeFailedPrecondition, errors.New("cannot pay a voided PO"))
+			return common.TokenError(connect.CodeFailedPrecondition, "purchasing.po_voided")
 		}
 		newPaid := po.PaidAmount + req.Msg.Amount
 		if err := tx.Model(po).Update("paid_amount", newPaid).Error; err != nil {

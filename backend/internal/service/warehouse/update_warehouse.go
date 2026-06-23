@@ -2,12 +2,12 @@ package warehouse
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"connectrpc.com/connect"
 
 	warehouseifacev1 "github.com/justmart/backend/gen/warehouse_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *WarehouseService) UpdateWarehouse(
@@ -20,7 +20,7 @@ func (s *WarehouseService) UpdateWarehouse(
 	}
 	name := strings.TrimSpace(req.Msg.Name)
 	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "warehouse.name_required")
 	}
 	updates := map[string]any{
 		"name":    name,

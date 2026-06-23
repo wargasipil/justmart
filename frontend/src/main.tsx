@@ -6,6 +6,13 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 
 import "./lib/i18n";
+import { z } from "zod";
+import { zodErrorMap } from "./lib/zodErrorMap";
+
+// Install the global Zod error map once at boot (after i18n is configured) so
+// every form's validation messages resolve through the translated validation.*
+// namespace. Registered here rather than in i18n.ts to avoid an import cycle.
+z.setErrorMap(zodErrorMap);
 
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";

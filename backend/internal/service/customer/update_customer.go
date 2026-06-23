@@ -2,12 +2,12 @@ package customer
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"connectrpc.com/connect"
 
 	customerifacev1 "github.com/justmart/backend/gen/customer_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *CustomerService) UpdateCustomer(
@@ -20,7 +20,7 @@ func (s *CustomerService) UpdateCustomer(
 	}
 	name := strings.TrimSpace(req.Msg.Name)
 	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("name required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "customer.name_required")
 	}
 	updates := map[string]any{
 		"name":    name,

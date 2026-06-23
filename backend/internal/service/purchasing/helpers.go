@@ -92,7 +92,7 @@ const (
 // [0, gross] so the net is never negative; PERCENT rounds half-up like PPN.
 func lineNetSubtotal(gross int64, discType string, discValue int64) (net int64, normType string, err error) {
 	if discValue < 0 {
-		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_value must be >= 0"))
+		return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_negative")
 	}
 	normType = discType
 	if normType == "" {
@@ -104,11 +104,11 @@ func lineNetSubtotal(gross int64, discType string, discValue int64) (net int64, 
 		disc = discValue
 	case discountPercent:
 		if discValue > 10000 { // 100.00%
-			return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("percent discount must be within 0..10000 basis points"))
+			return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_percent_range")
 		}
 		disc = (gross*discValue + 5000) / 10000 // round half up
 	default:
-		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_type must be FIXED or PERCENT"))
+		return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_type_invalid")
 	}
 	if disc < 0 {
 		disc = 0

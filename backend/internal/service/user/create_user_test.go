@@ -34,6 +34,25 @@ func TestCreateUser_RoundTrip(t *testing.T) {
 	require.True(t, u.Active)
 }
 
+func TestCreateUser_DuplicateEmail(t *testing.T) {
+	t.Parallel()
+	svc := usersvc.NewUserService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+
+	_, err := svc.CreateUser(context.Background(), connect.NewRequest(&userifacev1.CreateUserRequest{
+		Email: "dup@test.local", Name: "First", Password: "supersecret", Role: authifacev1.Role_ROLE_CASHIER,
+	}))
+	require.NoError(t, err)
+
+	_, err = svc.CreateUser(context.Background(), connect.NewRequest(&userifacev1.CreateUserRequest{
+		Email: "dup@test.local", Name: "Second", Password: "supersecret", Role: authifacev1.Role_ROLE_CASHIER,
+	}))
+	require.Error(t, err)
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, connect.CodeAlreadyExists, ce.Code())
+	require.Equal(t, "user.email_taken", ce.Message())
+}
+
 // APOTEKER (the pharmacy-only Rx-authority role) is creatable in pharmacy mode
 // and round-trips through roleFromProto/roleToProto.
 func TestCreateUser_ApotekerAllowedInPharmacyMode(t *testing.T) {

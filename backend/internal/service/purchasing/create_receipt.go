@@ -25,10 +25,10 @@ func (p *PurchaseReceipts) CreateReceipt(
 		return nil, err
 	}
 	if req.Msg.PurchaseOrderId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("purchase_order_id required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.po_required")
 	}
 	if len(req.Msg.Lines) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one line required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.lines_required")
 	}
 
 	// Stock lands in the PO's warehouse (stamped at CreatePurchaseOrder time),
@@ -95,7 +95,7 @@ func (p *PurchaseReceipts) CreateReceipt(
 		// Process each line: load PO item, validate qty, create batch + stock_movement.
 		for _, line := range req.Msg.Lines {
 			if line.Qty <= 0 {
-				return connect.NewError(connect.CodeInvalidArgument, errors.New("qty must be > 0"))
+				return common.TokenError(connect.CodeInvalidArgument, "purchasing.qty_invalid")
 			}
 			expiry, err := time.Parse("2006-01-02", line.ExpiryDate)
 			if err != nil {

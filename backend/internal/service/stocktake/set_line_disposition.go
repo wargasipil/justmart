@@ -19,14 +19,12 @@ func (s *StocktakeService) SetLineDisposition(
 ) (*connect.Response[stocktakeifacev1.SetLineDispositionResponse], error) {
 	disposition := strings.ToUpper(strings.TrimSpace(req.Msg.Disposition))
 	if disposition != dispositionAdjustment && disposition != dispositionWriteOff {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("disposition must be ADJUSTMENT or WRITE_OFF"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "stocktake.disposition_invalid")
 	}
 	kind := strings.ToUpper(strings.TrimSpace(req.Msg.WriteOffKind))
 	if disposition == dispositionWriteOff {
 		if kind == "" || !validWriteOffKinds[kind] {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				errors.New("write_off_kind must be EXPIRED|DAMAGED|LOST|THEFT|OTHER when disposition is WRITE_OFF"))
+			return nil, common.TokenError(connect.CodeInvalidArgument, "stocktake.write_off_kind_required")
 		}
 	} else {
 		kind = "" // strip kind for ADJUSTMENT lines

@@ -2,7 +2,6 @@ package sale
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -39,7 +38,7 @@ func (s *SaleService) CompleteSale(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		if len(items) == 0 {
-			return connect.NewError(connect.CodeFailedPrecondition, errors.New("cart is empty"))
+			return common.TokenError(connect.CodeFailedPrecondition, "sale.cart_empty")
 		}
 
 		// Pharmacy: re-assert Rx coverage at completion (per distinct product) so
@@ -61,7 +60,7 @@ func (s *SaleService) CompleteSale(
 
 		// Cash requires paid_amount >= total. Non-cash settles externally.
 		if paymentStr == paymentCash && req.Msg.PaidAmount < sale.Total {
-			return connect.NewError(connect.CodeInvalidArgument, errors.New("paid_amount less than total"))
+			return common.TokenError(connect.CodeInvalidArgument, "sale.paid_too_low")
 		}
 
 		now := time.Now()

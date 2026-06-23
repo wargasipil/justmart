@@ -17,7 +17,7 @@ func (s *SaleService) SetItemQuantity(
 	req *connect.Request[posifacev1.SetItemQuantityRequest],
 ) (*connect.Response[posifacev1.SetItemQuantityResponse], error) {
 	if req.Msg.Qty <= 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("qty must be > 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "sale.qty_invalid")
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		sale, err := s.draftForUpdate(tx, req.Msg.SaleId)

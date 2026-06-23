@@ -2,7 +2,6 @@ package warehouse
 
 import (
 	"context"
-	"errors"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -25,7 +24,7 @@ func (s *WarehouseService) CreateWarehouse(
 	code := strings.TrimSpace(strings.ToUpper(req.Msg.Code))
 	name := strings.TrimSpace(req.Msg.Name)
 	if code == "" || name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("code and name required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "warehouse.required")
 	}
 	row := model.Warehouse{
 		Code:    code,
@@ -35,8 +34,15 @@ func (s *WarehouseService) CreateWarehouse(
 		Active:  true,
 	}
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Pre-check uniqueness so a dup code is a specific AlreadyExists token
+		// (was previously a misleading Internal wrapping raw constraint text).
+		if taken, e := common.ExistsBy(tx, &model.Warehouse{}, "code = ?", code); e != nil {
+			return connect.NewError(connect.CodeInternal, e)
+		} else if taken {
+			return common.TokenError(connect.CodeAlreadyExists, "warehouse.code_taken")
+		}
 		if err := tx.Create(&row).Error; err != nil {
-			return connect.NewError(connect.CodeInternal, err)
+			return common.TokenError(connect.CodeAlreadyExists, "warehouse.code_taken")
 		}
 		// Auto-grant the creator access so they can use it immediately.
 		return tx.Save(&model.UserWarehouse{

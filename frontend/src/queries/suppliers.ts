@@ -105,6 +105,8 @@ export function useCreateSupplierMutation() {
     mutationFn: (req: PartialMessage<CreateSupplierRequest>) =>
       supplierClient.createSupplier(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: supplierKeys.all }),
+    // The form handles errors via useServerFormErrors (field-level + fallback).
+    meta: { silentError: true },
   });
 }
 
@@ -114,6 +116,7 @@ export function useUpdateSupplierMutation() {
     mutationFn: (req: PartialMessage<UpdateSupplierRequest>) =>
       supplierClient.updateSupplier(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: supplierKeys.all }),
+    meta: { silentError: true },
   });
 }
 

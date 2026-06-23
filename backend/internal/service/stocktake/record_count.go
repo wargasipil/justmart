@@ -23,7 +23,7 @@ func (s *StocktakeService) RecordCount(
 		return nil, err
 	}
 	if req.Msg.CountedQty < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("counted_qty must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "stocktake.count_negative")
 	}
 	var line model.StocktakeLine
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {

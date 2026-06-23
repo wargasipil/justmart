@@ -181,7 +181,7 @@ const (
 // purchasing module's lineNetSubtotal so the two domains stay consistent.
 func resolveDiscount(base int64, discType string, value int64) (amount int64, normType string, err error) {
 	if value < 0 {
-		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_value must be >= 0"))
+		return 0, "", common.TokenError(connect.CodeInvalidArgument, "sale.discount_negative")
 	}
 	normType = discType
 	if normType == "" {
@@ -192,11 +192,11 @@ func resolveDiscount(base int64, discType string, value int64) (amount int64, no
 		amount = value
 	case discountPercent:
 		if value > 10000 { // 100.00%
-			return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("percent discount must be within 0..10000 basis points"))
+			return 0, "", common.TokenError(connect.CodeInvalidArgument, "sale.discount_percent_range")
 		}
 		amount = (base*value + 5000) / 10000 // round half up
 	default:
-		return 0, "", connect.NewError(connect.CodeInvalidArgument, errors.New("discount_type must be FIXED or PERCENT"))
+		return 0, "", common.TokenError(connect.CodeInvalidArgument, "sale.discount_type_invalid")
 	}
 	if amount < 0 {
 		amount = 0

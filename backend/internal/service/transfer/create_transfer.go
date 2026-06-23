@@ -26,13 +26,13 @@ func (s *TransferService) CreateTransfer(
 	from := req.Msg.FromWarehouseId
 	to := req.Msg.ToWarehouseId
 	if from == "" || to == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("from and to warehouse required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "transfer.warehouse_required")
 	}
 	if from == to {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("source and destination must differ"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "transfer.same_warehouse")
 	}
 	if len(req.Msg.Lines) == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("at least one line required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "transfer.lines_required")
 	}
 
 	var transferID string
@@ -78,7 +78,7 @@ func (s *TransferService) CreateTransfer(
 
 		for _, line := range req.Msg.Lines {
 			if line.Qty <= 0 {
-				return connect.NewError(connect.CodeInvalidArgument, errors.New("qty must be > 0"))
+				return common.TokenError(connect.CodeInvalidArgument, "transfer.qty_invalid")
 			}
 			avail, e := common.BatchQtyInWarehouse(ctx, tx, line.BatchId, from)
 			if e != nil {

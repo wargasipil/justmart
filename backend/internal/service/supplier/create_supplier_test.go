@@ -12,6 +12,17 @@ import (
 	suppliersvc "github.com/justmart/backend/internal/service/supplier"
 )
 
+// requireToken asserts a connect error carries the given code + stable token
+// message (the contract the frontend serverErrors map relies on).
+func requireToken(t *testing.T, err error, code connect.Code, token string) {
+	t.Helper()
+	require.Error(t, err)
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, code, ce.Code())
+	require.Equal(t, token, ce.Message())
+}
+
 func TestCreateSupplier_RoundTrip(t *testing.T) {
 	t.Parallel()
 	svc := suppliersvc.NewSupplierService(servicetest.NewDB(t, servicetest.NewConfig(t)))
@@ -64,11 +75,28 @@ func TestCreateSupplier_DuplicateCode(t *testing.T) {
 	}))
 	require.NoError(t, err)
 
-	// Same code -> unique constraint -> handler maps to AlreadyExists.
+	// Same code -> pre-check -> AlreadyExists with a stable field token.
 	_, err = svc.CreateSupplier(context.Background(), connect.NewRequest(&inventoryifacev1.CreateSupplierRequest{
 		Code: "DUP-1",
 		Name: "Second",
 	}))
-	require.Error(t, err)
-	require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+	requireToken(t, err, connect.CodeAlreadyExists, "supplier.code_taken")
+}
+
+func TestCreateSupplier_DuplicateName(t *testing.T) {
+	t.Parallel()
+	svc := suppliersvc.NewSupplierService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+
+	_, err := svc.CreateSupplier(context.Background(), connect.NewRequest(&inventoryifacev1.CreateSupplierRequest{
+		Code: "CODE-A",
+		Name: "Same Name",
+	}))
+	require.NoError(t, err)
+
+	// Different code, same active name -> name_taken token.
+	_, err = svc.CreateSupplier(context.Background(), connect.NewRequest(&inventoryifacev1.CreateSupplierRequest{
+		Code: "CODE-B",
+		Name: "Same Name",
+	}))
+	requireToken(t, err, connect.CodeAlreadyExists, "supplier.name_taken")
 }

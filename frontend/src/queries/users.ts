@@ -29,6 +29,8 @@ export function useCreateUserMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<CreateUserRequest>) => userClient.createUser(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: userKeys.list() }),
+    // The form handles errors via useServerFormErrors (field-level + fallback).
+    meta: { silentError: true },
   });
 }
 
@@ -54,6 +56,8 @@ export function useChangePasswordMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<ChangePasswordRequest>) =>
       userClient.changePassword(req),
+    // The dialog handles errors via useServerFormErrors (field-level + fallback).
+    meta: { silentError: true },
   });
 }
 

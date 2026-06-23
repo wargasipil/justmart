@@ -175,6 +175,8 @@ export function useCreateProductMutation() {
     mutationFn: (req: PartialMessage<CreateProductRequest>) =>
       productClient.createProduct(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+    // The form handles errors via useServerFormErrors (field-level + fallback).
+    meta: { silentError: true },
   });
 }
 
@@ -195,6 +197,7 @@ export function useUpdateProductMutation() {
     mutationFn: (req: PartialMessage<UpdateProductRequest>) =>
       productClient.updateProduct(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+    meta: { silentError: true },
   });
 }
 

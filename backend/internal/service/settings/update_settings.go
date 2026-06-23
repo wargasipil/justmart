@@ -2,7 +2,6 @@ package settings
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"time"
 
@@ -19,8 +18,7 @@ func (s *SettingsService) UpdateSettings(
 	req *connect.Request[settingsifacev1.UpdateSettingsRequest],
 ) (*connect.Response[settingsifacev1.UpdateSettingsResponse], error) {
 	if req.Msg.LowStockThreshold < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument,
-			errors.New("low_stock_threshold must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "settings.threshold_negative")
 	}
 	row := model.AppSetting{
 		Key:       common.SettingKeyLowStockThreshold,

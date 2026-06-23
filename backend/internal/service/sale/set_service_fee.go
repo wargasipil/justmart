@@ -2,7 +2,6 @@ package sale
 
 import (
 	"context"
-	"errors"
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
@@ -19,7 +18,7 @@ func (s *SaleService) SetServiceFee(
 	req *connect.Request[posifacev1.SetServiceFeeRequest],
 ) (*connect.Response[posifacev1.SetServiceFeeResponse], error) {
 	if req.Msg.BiayaJasa < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("biaya_jasa must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "sale.fee_negative")
 	}
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		sale, err := s.draftForUpdate(tx, req.Msg.SaleId)

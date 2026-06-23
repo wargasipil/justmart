@@ -24,10 +24,10 @@ func (s *StockService) RecordMovement(
 	}
 
 	if req.Msg.BatchId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("batch_id required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "movement.batch_required")
 	}
 	if req.Msg.Qty == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("qty must not be zero"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "movement.qty_zero")
 	}
 
 	// Restrict allowed types for this RPC. PURCHASE comes via CreateBatch;

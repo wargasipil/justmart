@@ -32,6 +32,9 @@ type Props<TForm extends FieldValues> = {
   // When true, render the digits-only NumberInput (integer/quantity; empty at zero;
   // emits a raw digit string, so the field's zod schema should be z.coerce.bigint/number).
   number?: boolean;
+  // Render the input read-only (e.g. an immutable code on an edit form). The
+  // field still participates in the form/schema; it just can't be edited.
+  disabled?: boolean;
 };
 
 export default function FormField<TForm extends FieldValues>(props: Props<TForm>) {
@@ -48,6 +51,7 @@ export default function FormField<TForm extends FieldValues>(props: Props<TForm>
     passwordToggle,
     money,
     number,
+    disabled,
   } = props;
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
@@ -93,10 +97,11 @@ export default function FormField<TForm extends FieldValues>(props: Props<TForm>
               inputMode={inputMode}
               placeholder={placeholder}
               autoFocus={autoFocus}
+              disabled={disabled}
             />
           );
         return (
-          <Field.Root required={required} invalid={!!fieldState.error}>
+          <Field.Root required={required} invalid={!!fieldState.error} disabled={disabled}>
             <Field.Label>
               {label}
               {required && <Field.RequiredIndicator />}

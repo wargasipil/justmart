@@ -2,7 +2,6 @@ package batch
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -26,7 +25,7 @@ func (s *BatchService) CreateBatch(
 	}
 
 	if req.Msg.ProductId == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("product_id required"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.product_required")
 	}
 	expiry, err := time.Parse(common.DateLayout, req.Msg.ExpiryDate)
 	if err != nil {
@@ -40,10 +39,10 @@ func (s *BatchService) CreateBatch(
 		}
 	}
 	if req.Msg.InitialQuantity < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("initial_quantity must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.qty_negative")
 	}
 	if req.Msg.CostPrice < 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cost_price must be >= 0"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.cost_negative")
 	}
 
 	batch := model.Batch{

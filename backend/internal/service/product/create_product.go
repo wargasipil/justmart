@@ -13,6 +13,7 @@ import (
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	"github.com/justmart/backend/internal/auth"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *ProductService) CreateProduct(
@@ -29,6 +30,13 @@ func (s *ProductService) CreateProduct(
 
 	var med *model.Product
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Pre-check uniqueness so we can emit a specific field token instead of
+		// decoding a raw, engine-specific constraint error.
+		if taken, e := common.ExistsBy(tx, &model.Product{}, "sku = ?", strings.TrimSpace(req.Msg.Sku)); e != nil {
+			return connect.NewError(connect.CodeInternal, e)
+		} else if taken {
+			return common.TokenError(connect.CodeAlreadyExists, "product.sku_taken")
+		}
 		m, err := createProductTx(tx, req.Msg, caller.UserID)
 		if err != nil {
 			return err
@@ -39,9 +47,10 @@ func (s *ProductService) CreateProduct(
 	if err != nil {
 		var ce *connect.Error
 		if errors.As(err, &ce) {
-			return nil, err // unit validation error — keep its code
+			return nil, err // unit validation / sku_taken — keep its code/token
 		}
-		return nil, connect.NewError(connect.CodeAlreadyExists, err) // likely dup SKU
+		// Backstop: a rare race lost the pre-check; never leak the raw constraint.
+		return nil, common.TokenError(connect.CodeAlreadyExists, "product.sku_taken")
 	}
 	out := productToProto(med)
 	if err := s.attachUnits(ctx, []*inventoryifacev1.Product{out}); err != nil {
@@ -55,10 +64,10 @@ func (s *ProductService) CreateProduct(
 // validation is identical. Returns InvalidArgument with a clear message.
 func validateCreate(msg *inventoryifacev1.CreateProductRequest) error {
 	if strings.TrimSpace(msg.Sku) == "" || strings.TrimSpace(msg.Name) == "" || strings.TrimSpace(msg.Unit) == "" {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("sku, name, unit required"))
+		return common.TokenError(connect.CodeInvalidArgument, "product.required")
 	}
 	if msg.UnitPrice < 0 {
-		return connect.NewError(connect.CodeInvalidArgument, errors.New("unit_price must be >= 0"))
+		return common.TokenError(connect.CodeInvalidArgument, "product.unit_price_negative")
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 
 	userifacev1 "github.com/justmart/backend/gen/user_iface/v1"
 	"github.com/justmart/backend/internal/auth"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *UserService) ChangePassword(
@@ -19,7 +20,7 @@ func (s *UserService) ChangePassword(
 		return nil, err
 	}
 	if len(req.Msg.NewPassword) < 8 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("new_password must be at least 8 characters"))
+		return nil, common.TokenError(connect.CodeInvalidArgument, "auth.password_too_short")
 	}
 
 	targetID := req.Msg.UserId
@@ -37,7 +38,7 @@ func (s *UserService) ChangePassword(
 	}
 	if isSelf {
 		if err := auth.VerifyPassword(target.PasswordHash, req.Msg.OldPassword); err != nil {
-			return nil, connect.NewError(connect.CodeUnauthenticated, errors.New("old_password incorrect"))
+			return nil, common.TokenError(connect.CodeUnauthenticated, "auth.current_password_wrong")
 		}
 	}
 
