@@ -99,7 +99,27 @@
       "units": "Units",
       "license": "License",
       "printing": "Printing",
-      "backups": "Backups"
+      "backups": "Backups",
+      "updates": "Updates"
+    },
+    "updates": {
+      "title": "Software updates",
+      "current": "Current version",
+      "latest": "Latest version",
+      "devBuild": "development build",
+      "upToDate": "Up to date",
+      "available": "Update available",
+      "publishedAt": "Released",
+      "releaseNotes": "Release notes",
+      "checkAgain": "Check again",
+      "updateNow": "Update now",
+      "download": "Download from GitHub",
+      "checkFailed": "Couldn't reach the update server. Check your internet connection and try again.",
+      "disabled": "Update checks are turned off (update.disabled in config.yaml).",
+      "confirmTitle": "Update Justmart?",
+      "confirmBody": "Download and install v{{version}}? It will be applied the next time Justmart restarts.",
+      "downloaded": "Update downloaded",
+      "restartHint": "v{{version}} downloaded — restart Justmart to finish updating, then refresh this page."
     },
     "printing": {
       "connectors": "Connected print connectors",
@@ -174,7 +194,8 @@
     "bellAria": "Notifications",
     "lowStockTitle": "Low stock · {{count}}",
     "empty": "No low-stock items",
-    "viewSettings": "Open settings"
+    "viewSettings": "Open settings",
+    "updateAvailable": "Update available · v{{version}}"
   },
   "purchasing": {
     "title": "Restock",

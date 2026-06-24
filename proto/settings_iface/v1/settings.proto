@@ -83,6 +83,17 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+
+  // CheckUpdate reports the running build version + the latest GitHub release
+  // (autoupdater, portable Windows flavor). OWNER-only.
+  rpc CheckUpdate(CheckUpdateRequest) returns (CheckUpdateResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  // ApplyUpdate downloads + verifies + stages the latest release; the launcher
+  // swaps it in on next start. Windows + portable only. OWNER-only.
+  rpc ApplyUpdate(ApplyUpdateRequest) returns (ApplyUpdateResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
 }
 
 enum BussinessType {
@@ -167,4 +178,23 @@ message GetPrintingInfoRequest {}
 message GetPrintingInfoResponse {
   string mode = 1;                    // "tcp" | "connector" | "usb"
   repeated string local_printers = 2; // server-host printers (usb mode; empty off-Windows)
+}
+
+message CheckUpdateRequest {}
+message CheckUpdateResponse {
+  string current_version = 1;
+  bool checked = 2;            // false = remote lookup failed (offline / 404 / rate-limited)
+  bool update_available = 3;
+  string latest_version = 4;
+  string release_notes = 5;
+  string release_url = 6;
+  int64 published_at = 7;
+  bool enabled = 8;            // false when update.disabled (UI shows "checks off")
+  bool can_self_apply = 9;     // Windows + portable + release has zip + .sha256
+}
+
+message ApplyUpdateRequest { bool restart = 1; } // restart=true → also relaunch
+message ApplyUpdateResponse {
+  string staged_version = 1;
+  bool restarting = 2;
 }

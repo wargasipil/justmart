@@ -16,9 +16,16 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// version is the build version, injected at link time via
+// `-ldflags "-X main.version=<ver>"` by the Makefile + the Windows build scripts
+// (CI resolves it from the v* git tag). "dev" for an unstamped local build. The
+// autoupdater compares this against the latest GitHub release.
+var version = "dev"
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
+	slog.Info("justmart", "version", version)
 
 	cmd := &cli.Command{
 		Name:  "justmart",

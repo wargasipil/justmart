@@ -12,6 +12,12 @@ export JUSTMART_CONFIG := ../config.yaml
 
 GO_BACKEND := go -C backend
 
+# Build version stamped into the binary via -ldflags -X main.version. Override on
+# the CLI (e.g. `make build VERSION=1.2.0`); defaults to "dev". Drives the
+# autoupdater's current-version display.
+VERSION ?= dev
+GO_LDFLAGS := -s -w -X main.version=$(VERSION)
+
 # --- Docker ------------------------------------------------------------------
 up:
 	docker compose up -d
@@ -51,13 +57,13 @@ embed-web:
 # Native single binary -> dist/justmart (serves UI + /api + auto-migrates).
 build: embed-web
 	@mkdir -p dist
-	$(GO_BACKEND) build -ldflags "-s -w" -o ../dist/justmart ./cmd/server
+	$(GO_BACKEND) build -ldflags "$(GO_LDFLAGS)" -o ../dist/justmart ./cmd/server
 
 # Windows single binary -> dist/justmart.exe (input to the installer build).
 # Pure-Go deps mean no CGO, so this cross-compiles from any host.
 dist-windows: embed-web
 	@mkdir -p dist
-	GOOS=windows GOARCH=amd64 $(GO_BACKEND) build -ldflags "-s -w" -o ../dist/justmart.exe ./cmd/server
+	GOOS=windows GOARCH=amd64 $(GO_BACKEND) build -ldflags "$(GO_LDFLAGS)" -o ../dist/justmart.exe ./cmd/server
 
 # Cross-compile the standalone Windows print connector (no embedded UI). Ships
 # as a small zip the shop runs next to the printer. The Windows-only spooler dep

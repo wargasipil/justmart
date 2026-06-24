@@ -14,6 +14,7 @@ export default function Settings() {
     { value: "license", to: "/settings/license", label: t("settings.tabs.license") },
     { value: "printing", to: "/settings/printing", label: t("settings.tabs.printing") },
     { value: "backups", to: "/settings/backups", label: t("settings.tabs.backups") },
+    { value: "updates", to: "/settings/updates", label: t("settings.tabs.updates") },
   ];
   const activeKey =
     tabs.find((tab) => location.pathname.startsWith(tab.to))?.value ?? "general";
