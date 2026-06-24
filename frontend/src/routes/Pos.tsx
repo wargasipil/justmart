@@ -39,6 +39,7 @@ import { saleClient } from "../lib/clients";
 import { formatMoney } from "../lib/format";
 import { toast } from "../lib/toaster";
 import { useAuth } from "../lib/auth";
+import { POS_PRINTER_KEY, decodePrinter } from "../lib/printerTarget";
 import { WAREHOUSE_KEY } from "../lib/transport";
 import { useMyWarehousesQuery } from "../queries/warehouses";
 import { useAllProductsQuery } from "../queries/products";
@@ -70,19 +71,8 @@ import {
 // be re-added once the new resep is attached on return.
 const POS_DRAFT_KEY = "justmart_pos_draft";
 const POS_DEFERRED_KEY = "justmart_pos_deferred";
-// The cashier's chosen receipt printer (connector mode), persisted per device so
-// it sticks across sales. Value is "<deviceId>|<printerName>", or "" for Auto.
-const POS_PRINTER_KEY = "justmart_pos_printer";
-
-// decodePrinter splits the persisted "<deviceId>|<printerName>" value. Split on
-// the FIRST "|" — deviceId is a uuid (no "|"); a printer name may contain one.
-function decodePrinter(v: string): { deviceId: string; printerName: string } {
-  if (!v) return { deviceId: "", printerName: "" };
-  const i = v.indexOf("|");
-  return i < 0
-    ? { deviceId: v, printerName: "" }
-    : { deviceId: v.slice(0, i), printerName: v.slice(i + 1) };
-}
+// The receipt-printer target (POS_PRINTER_KEY / decodePrinter) is shared with
+// order-history reprint — see lib/printerTarget.ts.
 
 // Release the body lock Chakra/Ark leaves behind when a modal Dialog is
 // unmounted via navigation instead of a normal close (it sets pointer-events:

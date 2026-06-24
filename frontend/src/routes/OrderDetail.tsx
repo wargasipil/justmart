@@ -1,6 +1,6 @@
 import { Badge, Box, Button, Grid, HStack, Heading, Input, SimpleGrid, Spinner, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
-import { RotateCcw } from "lucide-react";
+import { Printer, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
@@ -11,9 +11,10 @@ import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { SaleStatus } from "../gen/pos_iface/v1/sale_pb";
 import { useAuth } from "../lib/auth";
 import { formatMoney, formatUnix } from "../lib/format";
+import { savedPrinterTarget } from "../lib/printerTarget";
 import { toast } from "../lib/toaster";
 import { useCustomerRefs, useProductRefs, useUserRefs } from "../queries/refs";
-import { useRefundSaleMutation, useSaleQuery } from "../queries/sales";
+import { usePrintReceiptMutation, useRefundSaleMutation, useSaleQuery } from "../queries/sales";
 
 const PAYMENT_KEY: Record<number, string> = {
   0: "unspecified",
@@ -50,6 +51,7 @@ export default function OrderDetail() {
   const { user } = useAuth();
   const saleQ = useSaleQuery(id);
   const refund = useRefundSaleMutation();
+  const printMut = usePrintReceiptMutation();
 
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundReason, setRefundReason] = useState("");
@@ -112,6 +114,22 @@ export default function OrderDetail() {
     }
   };
 
+  // Reprint a completed order's receipt, reusing the printer POS already targets
+  // (empty target → server resolves the saved default / sole connector / TCP).
+  const onPrint = async () => {
+    const target = savedPrinterTarget();
+    try {
+      await printMut.mutateAsync({
+        saleId: sale.id,
+        connectorDeviceId: target.deviceId,
+        printerName: target.printerName,
+      });
+      toast.success(t("pos.printSent"));
+    } catch {
+      /* error surfaced by the global mutation toast (printing disabled / Unavailable) */
+    }
+  };
+
   return (
     <Box>
       <BackButton to="/orders" />
@@ -123,6 +141,12 @@ export default function OrderDetail() {
         title={saleNo}
         actions={
           <HStack gap={3}>
+            {sale.status === SaleStatus.COMPLETED && (
+              <Button size="sm" variant="outline" onClick={onPrint} loading={printMut.isPending}>
+                <Printer size={14} />
+                {t("orders.printReceipt")}
+              </Button>
+            )}
             {canRefund && (
               <Button size="sm" variant="outline" colorPalette="orange" onClick={() => setRefundOpen(true)}>
                 <RotateCcw size={14} />

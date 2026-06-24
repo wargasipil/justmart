@@ -878,6 +878,7 @@
   },
   "orders": {
     "title": "Riwayat order",
+    "printReceipt": "Cetak struk",
     "searchPlaceholder": "Cari no penjualan, pelanggan, atau $t(glossary.product)…",
     "saleNo": "No penjualan",
     "date": "Tanggal",

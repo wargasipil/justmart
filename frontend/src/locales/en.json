@@ -878,6 +878,7 @@
   },
   "orders": {
     "title": "Order history",
+    "printReceipt": "Print receipt",
     "searchPlaceholder": "Search sale no, customer, or $t(glossary.product)…",
     "saleNo": "Sale no",
     "date": "Date",
