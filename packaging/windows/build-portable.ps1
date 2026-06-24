@@ -59,7 +59,7 @@ if ($SkipExeBuild -and (Test-Path $exe)) {
   Copy-Item -Recurse -Force (Join-Path $root "frontend\dist\*") $embedDir
   Push-Location (Join-Path $root "backend")
   $env:GOOS = "windows"; $env:GOARCH = "amd64"; $env:CGO_ENABLED = "0"
-  go build -ldflags "-s -w" -o $exe ./cmd/server
+  go build -ldflags "-s -w -X main.version=$AppVersion" -o $exe ./cmd/server
   $goExit = $LASTEXITCODE
   Remove-Item Env:\GOOS, Env:\GOARCH, Env:\CGO_ENABLED
   Pop-Location

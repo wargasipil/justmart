@@ -66,6 +66,12 @@ const (
 	// SettingsServiceGetPrintingInfoProcedure is the fully-qualified name of the SettingsService's
 	// GetPrintingInfo RPC.
 	SettingsServiceGetPrintingInfoProcedure = "/settings_iface.v1.SettingsService/GetPrintingInfo"
+	// SettingsServiceCheckUpdateProcedure is the fully-qualified name of the SettingsService's
+	// CheckUpdate RPC.
+	SettingsServiceCheckUpdateProcedure = "/settings_iface.v1.SettingsService/CheckUpdate"
+	// SettingsServiceApplyUpdateProcedure is the fully-qualified name of the SettingsService's
+	// ApplyUpdate RPC.
+	SettingsServiceApplyUpdateProcedure = "/settings_iface.v1.SettingsService/ApplyUpdate"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
@@ -101,6 +107,12 @@ type SettingsServiceClient interface {
 	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
 	// which picker to show and the usb local-printer options. Manager-tier.
 	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
+	// CheckUpdate reports the running build version + the latest GitHub release
+	// (autoupdater, portable Windows flavor). OWNER-only.
+	CheckUpdate(context.Context, *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error)
+	// ApplyUpdate downloads + verifies + stages the latest release; the launcher
+	// swaps it in on next start. Windows + portable only. OWNER-only.
+	ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -180,6 +192,18 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		checkUpdate: connect.NewClient[v1.CheckUpdateRequest, v1.CheckUpdateResponse](
+			httpClient,
+			baseURL+SettingsServiceCheckUpdateProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("CheckUpdate")),
+			connect.WithClientOptions(opts...),
+		),
+		applyUpdate: connect.NewClient[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse](
+			httpClient,
+			baseURL+SettingsServiceApplyUpdateProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("ApplyUpdate")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -196,6 +220,8 @@ type settingsServiceClient struct {
 	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
 	setReceiptSettings   *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
 	getPrintingInfo      *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
+	checkUpdate          *connect.Client[v1.CheckUpdateRequest, v1.CheckUpdateResponse]
+	applyUpdate          *connect.Client[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -253,6 +279,16 @@ func (c *settingsServiceClient) GetPrintingInfo(ctx context.Context, req *connec
 	return c.getPrintingInfo.CallUnary(ctx, req)
 }
 
+// CheckUpdate calls settings_iface.v1.SettingsService.CheckUpdate.
+func (c *settingsServiceClient) CheckUpdate(ctx context.Context, req *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error) {
+	return c.checkUpdate.CallUnary(ctx, req)
+}
+
+// ApplyUpdate calls settings_iface.v1.SettingsService.ApplyUpdate.
+func (c *settingsServiceClient) ApplyUpdate(ctx context.Context, req *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error) {
+	return c.applyUpdate.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
@@ -286,6 +322,12 @@ type SettingsServiceHandler interface {
 	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
 	// which picker to show and the usb local-printer options. Manager-tier.
 	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
+	// CheckUpdate reports the running build version + the latest GitHub release
+	// (autoupdater, portable Windows flavor). OWNER-only.
+	CheckUpdate(context.Context, *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error)
+	// ApplyUpdate downloads + verifies + stages the latest release; the launcher
+	// swaps it in on next start. Windows + portable only. OWNER-only.
+	ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -361,6 +403,18 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceCheckUpdateHandler := connect.NewUnaryHandler(
+		SettingsServiceCheckUpdateProcedure,
+		svc.CheckUpdate,
+		connect.WithSchema(settingsServiceMethods.ByName("CheckUpdate")),
+		connect.WithHandlerOptions(opts...),
+	)
+	settingsServiceApplyUpdateHandler := connect.NewUnaryHandler(
+		SettingsServiceApplyUpdateProcedure,
+		svc.ApplyUpdate,
+		connect.WithSchema(settingsServiceMethods.ByName("ApplyUpdate")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
@@ -385,6 +439,10 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceSetReceiptSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceGetPrintingInfoProcedure:
 			settingsServiceGetPrintingInfoHandler.ServeHTTP(w, r)
+		case SettingsServiceCheckUpdateProcedure:
+			settingsServiceCheckUpdateHandler.ServeHTTP(w, r)
+		case SettingsServiceApplyUpdateProcedure:
+			settingsServiceApplyUpdateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -436,4 +494,12 @@ func (UnimplementedSettingsServiceHandler) SetReceiptSettings(context.Context, *
 
 func (UnimplementedSettingsServiceHandler) GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetPrintingInfo is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) CheckUpdate(context.Context, *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.CheckUpdate is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.ApplyUpdate is not implemented"))
 }

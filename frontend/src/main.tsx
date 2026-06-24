@@ -54,6 +54,7 @@ import SettingsUnits from "./routes/settings/SettingsUnits";
 import SettingsLicense from "./routes/settings/SettingsLicense";
 import SettingsPrinting from "./routes/settings/SettingsPrinting";
 import SettingsBackups from "./routes/settings/SettingsBackups";
+import SettingsUpdates from "./routes/settings/SettingsUpdates";
 import Transfers from "./routes/inventory/Transfers";
 import PurchaseOrdersList from "./routes/purchasing/PurchaseOrdersList";
 import SuppliersLedger from "./routes/purchasing/SuppliersLedger";
@@ -89,6 +90,7 @@ const router = createBrowserRouter([
               { path: "license", element: <SettingsLicense /> },
               { path: "printing", element: <SettingsPrinting /> },
               { path: "backups", element: <SettingsBackups /> },
+              { path: "updates", element: <SettingsUpdates /> },
             ],
           },
         ],

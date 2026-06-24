@@ -1151,6 +1151,246 @@ func (x *GetPrintingInfoResponse) GetLocalPrinters() []string {
 	return nil
 }
 
+type CheckUpdateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CheckUpdateRequest) Reset() {
+	*x = CheckUpdateRequest{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckUpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckUpdateRequest) ProtoMessage() {}
+
+func (x *CheckUpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckUpdateRequest.ProtoReflect.Descriptor instead.
+func (*CheckUpdateRequest) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{23}
+}
+
+type CheckUpdateResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CurrentVersion  string                 `protobuf:"bytes,1,opt,name=current_version,json=currentVersion,proto3" json:"current_version,omitempty"`
+	Checked         bool                   `protobuf:"varint,2,opt,name=checked,proto3" json:"checked,omitempty"` // false = remote lookup failed (offline / 404 / rate-limited)
+	UpdateAvailable bool                   `protobuf:"varint,3,opt,name=update_available,json=updateAvailable,proto3" json:"update_available,omitempty"`
+	LatestVersion   string                 `protobuf:"bytes,4,opt,name=latest_version,json=latestVersion,proto3" json:"latest_version,omitempty"`
+	ReleaseNotes    string                 `protobuf:"bytes,5,opt,name=release_notes,json=releaseNotes,proto3" json:"release_notes,omitempty"`
+	ReleaseUrl      string                 `protobuf:"bytes,6,opt,name=release_url,json=releaseUrl,proto3" json:"release_url,omitempty"`
+	PublishedAt     int64                  `protobuf:"varint,7,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	Enabled         bool                   `protobuf:"varint,8,opt,name=enabled,proto3" json:"enabled,omitempty"`                                 // false when update.disabled (UI shows "checks off")
+	CanSelfApply    bool                   `protobuf:"varint,9,opt,name=can_self_apply,json=canSelfApply,proto3" json:"can_self_apply,omitempty"` // Windows + portable + release has zip + .sha256
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CheckUpdateResponse) Reset() {
+	*x = CheckUpdateResponse{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CheckUpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CheckUpdateResponse) ProtoMessage() {}
+
+func (x *CheckUpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CheckUpdateResponse.ProtoReflect.Descriptor instead.
+func (*CheckUpdateResponse) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *CheckUpdateResponse) GetCurrentVersion() string {
+	if x != nil {
+		return x.CurrentVersion
+	}
+	return ""
+}
+
+func (x *CheckUpdateResponse) GetChecked() bool {
+	if x != nil {
+		return x.Checked
+	}
+	return false
+}
+
+func (x *CheckUpdateResponse) GetUpdateAvailable() bool {
+	if x != nil {
+		return x.UpdateAvailable
+	}
+	return false
+}
+
+func (x *CheckUpdateResponse) GetLatestVersion() string {
+	if x != nil {
+		return x.LatestVersion
+	}
+	return ""
+}
+
+func (x *CheckUpdateResponse) GetReleaseNotes() string {
+	if x != nil {
+		return x.ReleaseNotes
+	}
+	return ""
+}
+
+func (x *CheckUpdateResponse) GetReleaseUrl() string {
+	if x != nil {
+		return x.ReleaseUrl
+	}
+	return ""
+}
+
+func (x *CheckUpdateResponse) GetPublishedAt() int64 {
+	if x != nil {
+		return x.PublishedAt
+	}
+	return 0
+}
+
+func (x *CheckUpdateResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *CheckUpdateResponse) GetCanSelfApply() bool {
+	if x != nil {
+		return x.CanSelfApply
+	}
+	return false
+}
+
+type ApplyUpdateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Restart       bool                   `protobuf:"varint,1,opt,name=restart,proto3" json:"restart,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyUpdateRequest) Reset() {
+	*x = ApplyUpdateRequest{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyUpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyUpdateRequest) ProtoMessage() {}
+
+func (x *ApplyUpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyUpdateRequest.ProtoReflect.Descriptor instead.
+func (*ApplyUpdateRequest) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ApplyUpdateRequest) GetRestart() bool {
+	if x != nil {
+		return x.Restart
+	}
+	return false
+}
+
+type ApplyUpdateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StagedVersion string                 `protobuf:"bytes,1,opt,name=staged_version,json=stagedVersion,proto3" json:"staged_version,omitempty"`
+	Restarting    bool                   `protobuf:"varint,2,opt,name=restarting,proto3" json:"restarting,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyUpdateResponse) Reset() {
+	*x = ApplyUpdateResponse{}
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyUpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyUpdateResponse) ProtoMessage() {}
+
+func (x *ApplyUpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyUpdateResponse.ProtoReflect.Descriptor instead.
+func (*ApplyUpdateResponse) Descriptor() ([]byte, []int) {
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ApplyUpdateResponse) GetStagedVersion() string {
+	if x != nil {
+		return x.StagedVersion
+	}
+	return ""
+}
+
+func (x *ApplyUpdateResponse) GetRestarting() bool {
+	if x != nil {
+		return x.Restarting
+	}
+	return false
+}
+
 var File_settings_iface_v1_settings_proto protoreflect.FileDescriptor
 
 const file_settings_iface_v1_settings_proto_rawDesc = "" +
@@ -1210,12 +1450,30 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\x16GetPrintingInfoRequest\"T\n" +
 	"\x17GetPrintingInfoResponse\x12\x12\n" +
 	"\x04mode\x18\x01 \x01(\tR\x04mode\x12%\n" +
-	"\x0elocal_printers\x18\x02 \x03(\tR\rlocalPrinters*l\n" +
+	"\x0elocal_printers\x18\x02 \x03(\tR\rlocalPrinters\"\x14\n" +
+	"\x12CheckUpdateRequest\"\xd3\x02\n" +
+	"\x13CheckUpdateResponse\x12'\n" +
+	"\x0fcurrent_version\x18\x01 \x01(\tR\x0ecurrentVersion\x12\x18\n" +
+	"\achecked\x18\x02 \x01(\bR\achecked\x12)\n" +
+	"\x10update_available\x18\x03 \x01(\bR\x0fupdateAvailable\x12%\n" +
+	"\x0elatest_version\x18\x04 \x01(\tR\rlatestVersion\x12#\n" +
+	"\rrelease_notes\x18\x05 \x01(\tR\freleaseNotes\x12\x1f\n" +
+	"\vrelease_url\x18\x06 \x01(\tR\n" +
+	"releaseUrl\x12!\n" +
+	"\fpublished_at\x18\a \x01(\x03R\vpublishedAt\x12\x18\n" +
+	"\aenabled\x18\b \x01(\bR\aenabled\x12$\n" +
+	"\x0ecan_self_apply\x18\t \x01(\bR\fcanSelfApply\".\n" +
+	"\x12ApplyUpdateRequest\x12\x18\n" +
+	"\arestart\x18\x01 \x01(\bR\arestart\"\\\n" +
+	"\x13ApplyUpdateResponse\x12%\n" +
+	"\x0estaged_version\x18\x01 \x01(\tR\rstagedVersion\x12\x1e\n" +
+	"\n" +
+	"restarting\x18\x02 \x01(\bR\n" +
+	"restarting*l\n" +
 	"\rBussinessType\x12\x1e\n" +
 	"\x1aBUSSINESS_TYPE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cBUSSINESS_TYPE_PHARMACY_SHOP\x10\x01\x12\x19\n" +
-	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\x86\n" +
-	"\n" +
+	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\xd0\v\n" +
 	"\x0fSettingsService\x12d\n" +
 	"\vGetSettings\x12%.settings_iface.v1.GetSettingsRequest\x1a&.settings_iface.v1.GetSettingsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
 	"\x0eUpdateSettings\x12(.settings_iface.v1.UpdateSettingsRequest\x1a).settings_iface.v1.UpdateSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12\x81\x01\n" +
@@ -1227,7 +1485,9 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\x0eSetPrintTarget\x12(.settings_iface.v1.SetPrintTargetRequest\x1a).settings_iface.v1.SetPrintTargetResponse\"\x05\x8a\xb5\x18\x01\x01\x12y\n" +
 	"\x12GetReceiptSettings\x12,.settings_iface.v1.GetReceiptSettingsRequest\x1a-.settings_iface.v1.GetReceiptSettingsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12x\n" +
 	"\x12SetReceiptSettings\x12,.settings_iface.v1.SetReceiptSettingsRequest\x1a-.settings_iface.v1.SetReceiptSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12p\n" +
-	"\x0fGetPrintingInfo\x12).settings_iface.v1.GetPrintingInfoRequest\x1a*.settings_iface.v1.GetPrintingInfoResponse\"\x06\x8a\xb5\x18\x02\x01\x02BCZAgithub.com/justmart/backend/gen/settings_iface/v1;settingsifacev1b\x06proto3"
+	"\x0fGetPrintingInfo\x12).settings_iface.v1.GetPrintingInfoRequest\x1a*.settings_iface.v1.GetPrintingInfoResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12c\n" +
+	"\vCheckUpdate\x12%.settings_iface.v1.CheckUpdateRequest\x1a&.settings_iface.v1.CheckUpdateResponse\"\x05\x8a\xb5\x18\x01\x01\x12c\n" +
+	"\vApplyUpdate\x12%.settings_iface.v1.ApplyUpdateRequest\x1a&.settings_iface.v1.ApplyUpdateResponse\"\x05\x8a\xb5\x18\x01\x01BCZAgithub.com/justmart/backend/gen/settings_iface/v1;settingsifacev1b\x06proto3"
 
 var (
 	file_settings_iface_v1_settings_proto_rawDescOnce sync.Once
@@ -1242,7 +1502,7 @@ func file_settings_iface_v1_settings_proto_rawDescGZIP() []byte {
 }
 
 var file_settings_iface_v1_settings_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_settings_iface_v1_settings_proto_goTypes = []any{
 	(BussinessType)(0),                   // 0: settings_iface.v1.BussinessType
 	(*Settings)(nil),                     // 1: settings_iface.v1.Settings
@@ -1268,6 +1528,10 @@ var file_settings_iface_v1_settings_proto_goTypes = []any{
 	(*SetReceiptSettingsResponse)(nil),   // 21: settings_iface.v1.SetReceiptSettingsResponse
 	(*GetPrintingInfoRequest)(nil),       // 22: settings_iface.v1.GetPrintingInfoRequest
 	(*GetPrintingInfoResponse)(nil),      // 23: settings_iface.v1.GetPrintingInfoResponse
+	(*CheckUpdateRequest)(nil),           // 24: settings_iface.v1.CheckUpdateRequest
+	(*CheckUpdateResponse)(nil),          // 25: settings_iface.v1.CheckUpdateResponse
+	(*ApplyUpdateRequest)(nil),           // 26: settings_iface.v1.ApplyUpdateRequest
+	(*ApplyUpdateResponse)(nil),          // 27: settings_iface.v1.ApplyUpdateResponse
 }
 var file_settings_iface_v1_settings_proto_depIdxs = []int32{
 	0,  // 0: settings_iface.v1.GetBussinessSettingsResponse.type:type_name -> settings_iface.v1.BussinessType
@@ -1288,19 +1552,23 @@ var file_settings_iface_v1_settings_proto_depIdxs = []int32{
 	18, // 15: settings_iface.v1.SettingsService.GetReceiptSettings:input_type -> settings_iface.v1.GetReceiptSettingsRequest
 	20, // 16: settings_iface.v1.SettingsService.SetReceiptSettings:input_type -> settings_iface.v1.SetReceiptSettingsRequest
 	22, // 17: settings_iface.v1.SettingsService.GetPrintingInfo:input_type -> settings_iface.v1.GetPrintingInfoRequest
-	11, // 18: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
-	13, // 19: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
-	3,  // 20: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
-	5,  // 21: settings_iface.v1.SettingsService.SetBussinessSettings:output_type -> settings_iface.v1.SetBussinessSettingsResponse
-	7,  // 22: settings_iface.v1.SettingsService.ApplyLicense:output_type -> settings_iface.v1.ApplyLicenseResponse
-	9,  // 23: settings_iface.v1.SettingsService.GetLicenseInfo:output_type -> settings_iface.v1.GetLicenseInfoResponse
-	15, // 24: settings_iface.v1.SettingsService.GetPrintTarget:output_type -> settings_iface.v1.GetPrintTargetResponse
-	17, // 25: settings_iface.v1.SettingsService.SetPrintTarget:output_type -> settings_iface.v1.SetPrintTargetResponse
-	19, // 26: settings_iface.v1.SettingsService.GetReceiptSettings:output_type -> settings_iface.v1.GetReceiptSettingsResponse
-	21, // 27: settings_iface.v1.SettingsService.SetReceiptSettings:output_type -> settings_iface.v1.SetReceiptSettingsResponse
-	23, // 28: settings_iface.v1.SettingsService.GetPrintingInfo:output_type -> settings_iface.v1.GetPrintingInfoResponse
-	18, // [18:29] is the sub-list for method output_type
-	7,  // [7:18] is the sub-list for method input_type
+	24, // 18: settings_iface.v1.SettingsService.CheckUpdate:input_type -> settings_iface.v1.CheckUpdateRequest
+	26, // 19: settings_iface.v1.SettingsService.ApplyUpdate:input_type -> settings_iface.v1.ApplyUpdateRequest
+	11, // 20: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
+	13, // 21: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
+	3,  // 22: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
+	5,  // 23: settings_iface.v1.SettingsService.SetBussinessSettings:output_type -> settings_iface.v1.SetBussinessSettingsResponse
+	7,  // 24: settings_iface.v1.SettingsService.ApplyLicense:output_type -> settings_iface.v1.ApplyLicenseResponse
+	9,  // 25: settings_iface.v1.SettingsService.GetLicenseInfo:output_type -> settings_iface.v1.GetLicenseInfoResponse
+	15, // 26: settings_iface.v1.SettingsService.GetPrintTarget:output_type -> settings_iface.v1.GetPrintTargetResponse
+	17, // 27: settings_iface.v1.SettingsService.SetPrintTarget:output_type -> settings_iface.v1.SetPrintTargetResponse
+	19, // 28: settings_iface.v1.SettingsService.GetReceiptSettings:output_type -> settings_iface.v1.GetReceiptSettingsResponse
+	21, // 29: settings_iface.v1.SettingsService.SetReceiptSettings:output_type -> settings_iface.v1.SetReceiptSettingsResponse
+	23, // 30: settings_iface.v1.SettingsService.GetPrintingInfo:output_type -> settings_iface.v1.GetPrintingInfoResponse
+	25, // 31: settings_iface.v1.SettingsService.CheckUpdate:output_type -> settings_iface.v1.CheckUpdateResponse
+	27, // 32: settings_iface.v1.SettingsService.ApplyUpdate:output_type -> settings_iface.v1.ApplyUpdateResponse
+	20, // [20:33] is the sub-list for method output_type
+	7,  // [7:20] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
 	7,  // [7:7] is the sub-list for extension extendee
 	0,  // [0:7] is the sub-list for field type_name
@@ -1317,7 +1585,7 @@ func file_settings_iface_v1_settings_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_settings_iface_v1_settings_proto_rawDesc), len(file_settings_iface_v1_settings_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   23,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

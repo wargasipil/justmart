@@ -122,6 +122,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	transfersSvc := transfer.NewTransferService(gormDB)
 	settingsSvc := settings.NewSettingsService(gormDB)
 	settingsSvc.SetConnectorMode(cfg.Connector.Mode)
+	settingsSvc.SetUpdate(version, cfg.Update)
 	unitsSvc := unit.NewUnitService(gormDB)
 	backupSvc := backup.NewBackupService(gormDB, cfg)
 

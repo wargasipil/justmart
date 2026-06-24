@@ -4,7 +4,7 @@
 // @ts-nocheck
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
-import { Message, proto3 } from "@bufbuild/protobuf";
+import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 
 /**
  * @generated from enum settings_iface.v1.BussinessType
@@ -970,6 +970,208 @@ export class GetPrintingInfoResponse extends Message<GetPrintingInfoResponse> {
 
   static equals(a: GetPrintingInfoResponse | PlainMessage<GetPrintingInfoResponse> | undefined, b: GetPrintingInfoResponse | PlainMessage<GetPrintingInfoResponse> | undefined): boolean {
     return proto3.util.equals(GetPrintingInfoResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.CheckUpdateRequest
+ */
+export class CheckUpdateRequest extends Message<CheckUpdateRequest> {
+  constructor(data?: PartialMessage<CheckUpdateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.CheckUpdateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CheckUpdateRequest {
+    return new CheckUpdateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CheckUpdateRequest {
+    return new CheckUpdateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CheckUpdateRequest {
+    return new CheckUpdateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CheckUpdateRequest | PlainMessage<CheckUpdateRequest> | undefined, b: CheckUpdateRequest | PlainMessage<CheckUpdateRequest> | undefined): boolean {
+    return proto3.util.equals(CheckUpdateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.CheckUpdateResponse
+ */
+export class CheckUpdateResponse extends Message<CheckUpdateResponse> {
+  /**
+   * @generated from field: string current_version = 1;
+   */
+  currentVersion = "";
+
+  /**
+   * false = remote lookup failed (offline / 404 / rate-limited)
+   *
+   * @generated from field: bool checked = 2;
+   */
+  checked = false;
+
+  /**
+   * @generated from field: bool update_available = 3;
+   */
+  updateAvailable = false;
+
+  /**
+   * @generated from field: string latest_version = 4;
+   */
+  latestVersion = "";
+
+  /**
+   * @generated from field: string release_notes = 5;
+   */
+  releaseNotes = "";
+
+  /**
+   * @generated from field: string release_url = 6;
+   */
+  releaseUrl = "";
+
+  /**
+   * @generated from field: int64 published_at = 7;
+   */
+  publishedAt = protoInt64.zero;
+
+  /**
+   * false when update.disabled (UI shows "checks off")
+   *
+   * @generated from field: bool enabled = 8;
+   */
+  enabled = false;
+
+  /**
+   * Windows + portable + release has zip + .sha256
+   *
+   * @generated from field: bool can_self_apply = 9;
+   */
+  canSelfApply = false;
+
+  constructor(data?: PartialMessage<CheckUpdateResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.CheckUpdateResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "current_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "checked", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 3, name: "update_available", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "latest_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "release_notes", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "release_url", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "published_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 9, name: "can_self_apply", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CheckUpdateResponse {
+    return new CheckUpdateResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CheckUpdateResponse {
+    return new CheckUpdateResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CheckUpdateResponse {
+    return new CheckUpdateResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CheckUpdateResponse | PlainMessage<CheckUpdateResponse> | undefined, b: CheckUpdateResponse | PlainMessage<CheckUpdateResponse> | undefined): boolean {
+    return proto3.util.equals(CheckUpdateResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.ApplyUpdateRequest
+ */
+export class ApplyUpdateRequest extends Message<ApplyUpdateRequest> {
+  /**
+   * @generated from field: bool restart = 1;
+   */
+  restart = false;
+
+  constructor(data?: PartialMessage<ApplyUpdateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.ApplyUpdateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "restart", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyUpdateRequest {
+    return new ApplyUpdateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyUpdateRequest {
+    return new ApplyUpdateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyUpdateRequest {
+    return new ApplyUpdateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyUpdateRequest | PlainMessage<ApplyUpdateRequest> | undefined, b: ApplyUpdateRequest | PlainMessage<ApplyUpdateRequest> | undefined): boolean {
+    return proto3.util.equals(ApplyUpdateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.ApplyUpdateResponse
+ */
+export class ApplyUpdateResponse extends Message<ApplyUpdateResponse> {
+  /**
+   * @generated from field: string staged_version = 1;
+   */
+  stagedVersion = "";
+
+  /**
+   * @generated from field: bool restarting = 2;
+   */
+  restarting = false;
+
+  constructor(data?: PartialMessage<ApplyUpdateResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.ApplyUpdateResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "staged_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "restarting", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ApplyUpdateResponse {
+    return new ApplyUpdateResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ApplyUpdateResponse {
+    return new ApplyUpdateResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ApplyUpdateResponse {
+    return new ApplyUpdateResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ApplyUpdateResponse | PlainMessage<ApplyUpdateResponse> | undefined, b: ApplyUpdateResponse | PlainMessage<ApplyUpdateResponse> | undefined): boolean {
+    return proto3.util.equals(ApplyUpdateResponse, a, b);
   }
 }
 

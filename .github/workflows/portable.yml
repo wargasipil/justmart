@@ -81,15 +81,27 @@ jobs:
           APP_VERSION: ${{ steps.ver.outputs.version }}
         run: ./packaging/windows/build-portable.ps1 -AppVersion $env:APP_VERSION -Port 8080
 
+      # SHA-256 of the zip, published as a release asset. The in-app autoupdater
+      # downloads <zip>.sha256 and verifies the zip before staging the new exe —
+      # without it, self-apply refuses (notify/manual-download still work).
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $zip = (Get-ChildItem dist/justmart-portable-*.zip | Select-Object -First 1).FullName
+          (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLower() | Out-File "$zip.sha256" -Encoding ascii -NoNewline
+          Write-Host "wrote $zip.sha256"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: justmart-portable-${{ steps.ver.outputs.version }}
-          path: dist/justmart-portable-*.zip
+          path: |
+            dist/justmart-portable-*.zip
+            dist/justmart-portable-*.zip.sha256
           if-no-files-found: error
 
-      # Tag pushes (v*) publish a Release with the zip attached. Uses the
-      # first-party gh CLI (preinstalled on the runner) — no third-party action.
+      # Tag pushes (v*) publish a Release with the zip + its .sha256 attached.
+      # Uses the first-party gh CLI (preinstalled on the runner).
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
@@ -97,11 +109,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $zip = (Get-ChildItem dist/justmart-portable-*.zip | Select-Object -First 1).FullName
+          $sum = "$zip.sha256"
           # Idempotent: create the release if it's new, else attach/overwrite the
-          # asset (so a re-run or re-pushed tag doesn't fail on "already exists").
+          # assets (so a re-run or re-pushed tag doesn't fail on "already exists").
           gh release view "$env:GITHUB_REF_NAME" 2>$null
           if ($LASTEXITCODE -ne 0) {
-            gh release create "$env:GITHUB_REF_NAME" "$zip" --title "Justmart $env:GITHUB_REF_NAME" --generate-notes
+            gh release create "$env:GITHUB_REF_NAME" "$zip" "$sum" --title "Justmart $env:GITHUB_REF_NAME" --generate-notes
           } else {
-            gh release upload "$env:GITHUB_REF_NAME" "$zip" --clobber
+            gh release upload "$env:GITHUB_REF_NAME" "$zip" "$sum" --clobber
           }

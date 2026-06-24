@@ -99,7 +99,27 @@
       "units": "Satuan",
       "license": "Lisensi",
       "printing": "Pencetakan",
-      "backups": "Backup"
+      "backups": "Backup",
+      "updates": "Pembaruan"
+    },
+    "updates": {
+      "title": "Pembaruan aplikasi",
+      "current": "Versi saat ini",
+      "latest": "Versi terbaru",
+      "devBuild": "versi pengembangan",
+      "upToDate": "Sudah terbaru",
+      "available": "Pembaruan tersedia",
+      "publishedAt": "Dirilis",
+      "releaseNotes": "Catatan rilis",
+      "checkAgain": "Periksa lagi",
+      "updateNow": "Perbarui sekarang",
+      "download": "Unduh dari GitHub",
+      "checkFailed": "Tidak dapat menghubungi server pembaruan. Periksa koneksi internet lalu coba lagi.",
+      "disabled": "Pemeriksaan pembaruan dimatikan (update.disabled di config.yaml).",
+      "confirmTitle": "Perbarui Justmart?",
+      "confirmBody": "Unduh dan pasang v{{version}}? Akan diterapkan saat Justmart dimulai ulang.",
+      "downloaded": "Pembaruan diunduh",
+      "restartHint": "v{{version}} diunduh — mulai ulang Justmart untuk menyelesaikan pembaruan, lalu segarkan halaman ini."
     },
     "printing": {
       "connectors": "Konektor cetak terhubung",
@@ -174,7 +194,8 @@
     "bellAria": "Notifikasi",
     "lowStockTitle": "Stok menipis · {{count}}",
     "empty": "Tidak ada stok menipis",
-    "viewSettings": "Buka pengaturan"
+    "viewSettings": "Buka pengaturan",
+    "updateAvailable": "Pembaruan tersedia · v{{version}}"
   },
   "purchasing": {
     "title": "Restok",

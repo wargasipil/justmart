@@ -12,7 +12,7 @@ import {
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import WarehouseSelect from "./WarehouseSelect";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, KeyRound, Languages, LogOut, Menu as MenuIcon, Moon, Settings as SettingsIcon, Sun, Warehouse as WarehouseIcon } from "lucide-react";
+import { ArrowUpCircle, Bell, KeyRound, Languages, LogOut, Menu as MenuIcon, Moon, Settings as SettingsIcon, Sun, Warehouse as WarehouseIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { useAuth } from "../lib/auth";
 import { WAREHOUSE_KEY } from "../lib/transport";
 import { useLowStockQuery } from "../queries/products";
+import { useUpdateInfoQuery } from "../queries/updates";
 import { searchMyWarehouses, useMyWarehousesQuery } from "../queries/warehouses";
 import { usePreferencesStore, type Locale } from "../stores/preferences";
 
@@ -232,6 +233,12 @@ function LowStockBell({ isOwner }: { isOwner: boolean }) {
   const total = q.data?.total ?? 0;
   const threshold = q.data?.threshold ?? 0;
 
+  // Update notice (OWNER only — the CheckUpdate RPC is OWNER-gated).
+  const updQ = useUpdateInfoQuery(isOwner);
+  const updateAvailable = isOwner && (updQ.data?.updateAvailable ?? false);
+  const latest = updQ.data?.latestVersion ?? "";
+  const badgeCount = total + (updateAvailable ? 1 : 0);
+
   return (
     <Menu.Root>
       <Menu.Trigger asChild>
@@ -242,7 +249,7 @@ function LowStockBell({ isOwner }: { isOwner: boolean }) {
           position="relative"
         >
           <Bell size={18} />
-          {total > 0 && (
+          {badgeCount > 0 && (
             <Badge
               position="absolute"
               top="2px"
@@ -257,7 +264,7 @@ function LowStockBell({ isOwner }: { isOwner: boolean }) {
               fontSize="9px"
               px={1}
             >
-              {total > 99 ? "99+" : total}
+              {badgeCount > 99 ? "99+" : badgeCount}
             </Badge>
           )}
         </IconButton>
@@ -265,6 +272,19 @@ function LowStockBell({ isOwner }: { isOwner: boolean }) {
       <Portal>
         <Menu.Positioner>
           <Menu.Content minW="280px" maxH="360px" overflowY="auto">
+            {updateAvailable && (
+              <>
+                <Menu.Item value="update" onClick={() => navigate("/settings/updates")}>
+                  <HStack gap={2}>
+                    <ArrowUpCircle size={14} />
+                    <Text fontSize="sm" fontWeight="medium">
+                      {t("notifications.updateAvailable", { version: latest })}
+                    </Text>
+                  </HStack>
+                </Menu.Item>
+                <Menu.Separator />
+              </>
+            )}
             <Menu.Item value="header" disabled>
               <Text fontSize="sm" fontWeight="medium">
                 {t("notifications.lowStockTitle", { count: total })}

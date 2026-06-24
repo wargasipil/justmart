@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -115,6 +116,16 @@ type Connector struct {
 	PrinterName string `yaml:"printer_name"` // usb mode: local printer to spool to ("" = host default)
 }
 
+// Update controls the in-app autoupdater (portable Windows flavor). The checker
+// queries GitHub Releases for the latest version and the OWNER can self-apply it.
+// Disabled (NOT Enabled) so the zero value = on: a plain bool can't tell an
+// absent YAML key from an explicit false, and we want updates on by default;
+// set disabled: true for air-gapped shops to suppress all outbound calls.
+type Update struct {
+	Disabled bool   `yaml:"disabled"` // true = never call out
+	Repo     string `yaml:"repo"`     // GitHub "owner/name"; default below
+}
+
 type Config struct {
 	Server    Server    `yaml:"server"`
 	Database  Database  `yaml:"database"`
@@ -123,6 +134,7 @@ type Config struct {
 	Printer   Printer   `yaml:"printer"`
 	Connector Connector `yaml:"connector"`
 	Backup    Backup    `yaml:"backup"`
+	Update    Update    `yaml:"update"`
 	// License is an offline license token (JWT minted by cmd/license, signed with
 	// security.SecretRoot). When present + valid, its business type drives the
 	// app's business mode on boot. Empty = unlicensed (mode stays UNSPECIFIED).
@@ -204,6 +216,12 @@ func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_LICENSE"); v != "" {
 		c.License = v
 	}
+	if v := os.Getenv("JUSTMART_UPDATE_REPO"); v != "" {
+		c.Update.Repo = v
+	}
+	if v := os.Getenv("JUSTMART_UPDATE_DISABLED"); v != "" {
+		c.Update.Disabled = v == "1" || strings.EqualFold(v, "true")
+	}
 }
 
 // applyDefaults fills in safe fallbacks for fields that the packaged flavors
@@ -229,6 +247,9 @@ func applyDefaults(c *Config) {
 		} else {
 			c.Backup.PgToolsDir = c.Backup.Directory + string(os.PathSeparator) + "_pgtools"
 		}
+	}
+	if c.Update.Repo == "" {
+		c.Update.Repo = "wargasipil/justmart" // the GitHub repo releases are published to
 	}
 }
 

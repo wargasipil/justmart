@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyLicenseRequest, ApplyLicenseResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyLicenseRequest, ApplyLicenseResponse, ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -136,6 +136,30 @@ export const SettingsService = {
       name: "GetPrintingInfo",
       I: GetPrintingInfoRequest,
       O: GetPrintingInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * CheckUpdate reports the running build version + the latest GitHub release
+     * (autoupdater, portable Windows flavor). OWNER-only.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.CheckUpdate
+     */
+    checkUpdate: {
+      name: "CheckUpdate",
+      I: CheckUpdateRequest,
+      O: CheckUpdateResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ApplyUpdate downloads + verifies + stages the latest release; the launcher
+     * swaps it in on next start. Windows + portable only. OWNER-only.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.ApplyUpdate
+     */
+    applyUpdate: {
+      name: "ApplyUpdate",
+      I: ApplyUpdateRequest,
+      O: ApplyUpdateResponse,
       kind: MethodKind.Unary,
     },
   }
