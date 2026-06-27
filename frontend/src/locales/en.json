@@ -34,6 +34,7 @@
     "edit": "Edit",
     "delete": "Delete",
     "archive": "Archive",
+    "unarchive": "Unarchive",
     "close": "Close",
     "search": "Search",
     "anyDate": "Any date",
@@ -72,6 +73,7 @@
     "bpjs": "BPJS",
     "branches": "Branches",
     "warehouses": "Warehouses",
+    "priceAgreements": "Price agreements",
     "orders": "Order history",
     "myPerformance": "My performance",
     "settings": "Settings",
@@ -119,7 +121,12 @@
       "confirmTitle": "Update Justmart?",
       "confirmBody": "Download and install v{{version}}? It will be applied the next time Justmart restarts.",
       "downloaded": "Update downloaded",
-      "restartHint": "v{{version}} downloaded — restart Justmart to finish updating, then refresh this page."
+      "restartHint": "v{{version}} downloaded — restart Justmart to finish updating, then refresh this page.",
+      "revert": "Revert update",
+      "revertTo": "Revert to v{{version}}",
+      "revertTitle": "Revert update?",
+      "revertBody": "Roll back to the previously installed version? It will be applied the next time Justmart restarts.",
+      "revertStagedHint": "Reverting to the previous version — restart Justmart to finish, then refresh this page."
     },
     "printing": {
       "connectors": "Connected print connectors",
@@ -236,7 +243,21 @@
       "send": "Send",
       "void": "Void",
       "receive": "Receive",
-      "pay": "Pay"
+      "pay": "Pay",
+      "return": "Return"
+    },
+    "return": {
+      "title": "Return to supplier",
+      "section": "Returns",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. damaged, expired, wrong item",
+      "returnedAt": "Return date",
+      "returnNo": "Return #",
+      "refundAmount": "Returned value",
+      "returnable": "Returnable",
+      "returned": "Returned",
+      "credit": "Supplier credit",
+      "nothingReturnable": "No received goods are in stock to return."
     },
     "states": {
       "draft": "Draft",
@@ -271,6 +292,8 @@
     "itemsMore": "+{{count}} more",
     "lineTotalInput": "Total cost (IDR)",
     "unitCostDerived": "Cost / base unit",
+    "agreedPrice": "Agreed: {{price}}",
+    "aboveAgreement": "Above agreed price",
     "lineDiscount": "Line discount",
     "discountType": "Discount type",
     "fixed": "Fixed",
@@ -643,6 +666,9 @@
     "suppliers": {
       "title": "Suppliers",
       "addTitle": "Add supplier",
+      "editTitle": "Edit supplier",
+      "confirmArchive": "Archive this supplier? It will be hidden from the active list but its history is kept. You can unarchive it later.",
+      "confirmUnarchive": "Restore this supplier to the active list?",
       "code": "Code",
       "name": "Name",
       "email": "Email",
@@ -658,6 +684,40 @@
       "restockProduct": "Product",
       "restockEmpty": "No restocks recorded in this warehouse yet.",
       "restockSearchPlaceholder": "Search $t(glossary.product)…"
+    },
+    "priceAgreements": {
+      "title": "Price agreements",
+      "addTitle": "Add agreement",
+      "editTitle": "Edit agreement",
+      "newTitle": "New price agreement",
+      "items": "Agreements",
+      "addLine": "Add line",
+      "removeLine": "Remove line",
+      "lineDuplicate": "Duplicate $t(glossary.product) + unit",
+      "supplier": "Supplier",
+      "product": "$t(glossary.productCap)",
+      "unit": "Unit",
+      "price": "Price",
+      "pricePerUnit": "Agreed price / unit (IDR)",
+      "validFrom": "Valid from",
+      "validUntil": "Valid until",
+      "valid": "Validity",
+      "note": "Note",
+      "searchPlaceholder": "Search supplier / $t(glossary.product)…",
+      "selectSupplier": "Select supplier",
+      "selectProduct": "Select $t(glossary.product)",
+      "selectUnit": "Select unit",
+      "empty": "No price agreements yet.",
+      "supplierSection": "Price agreements",
+      "archiveTitle": "Archive agreement?",
+      "archiveBody": "This removes the agreement from the active list. You can add a new one for the same product/unit afterwards.",
+      "validity": {
+        "label": "Validity",
+        "all": "All validity",
+        "current": "Currently valid",
+        "expired": "Expired",
+        "upcoming": "Upcoming"
+      }
     },
     "batches": {
       "title": "Batches",
@@ -866,6 +926,12 @@
       "codeTaken": "This supplier code is already in use",
       "nameTaken": "An active supplier with this name already exists"
     },
+    "priceAgreement": {
+      "exists": "An agreement for this supplier, product and unit already exists",
+      "badDates": "\"Valid until\" must be on or after \"Valid from\"",
+      "supplierMissing": "Pick a valid supplier",
+      "productMissing": "Pick a valid product"
+    },
     "warehouse": {
       "codeTaken": "This warehouse code is already in use"
     },
@@ -880,7 +946,13 @@
       "alreadyDispensed": "This prescription has already been dispensed and can't be edited"
     },
     "purchasing": {
-      "poVoided": "Cannot pay a voided purchase order"
+      "poVoided": "Cannot pay a voided purchase order",
+      "poNotReturnable": "This purchase order has no received goods to return",
+      "returnExceedsOnHand": "Cannot return more than the quantity still in stock",
+      "receiptItemNotFound": "That receipt line was not found on this purchase order",
+      "reasonRequired": "A reason is required for a return",
+      "duplicateLine": "A receipt line appears more than once in this return",
+      "noBatch": "That receipt line has no batch to return"
     },
     "transfer": {
       "sameWarehouse": "Source and destination warehouses must differ"

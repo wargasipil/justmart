@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package purchasing_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1";
+
+// Partial purchase return ("retur pembelian"): received goods sent back to the
+// supplier. Each line reverses a receipt line (one batch) via a negative
+// PURCHASE_RETURN stock movement, decrements received_qty, and drops the PO
+// outstanding by the returned value.
+message PurchaseReturn {
+  string id = 1;
+  string return_no = 2;            // RTN-YYYY-NNNN
+  string purchase_order_id = 3;
+  string warehouse_id = 4;
+  string returned_at = 5;          // YYYY-MM-DD
+  string returned_by = 6;
+  string reason = 7;
+  string note = 8;
+  int64  refund_amount = 9;        // Σ line (qty × unit_cost_price)
+  int64  created_at = 10;
+  repeated PurchaseReturnItem items = 11;
+}
+
+message PurchaseReturnItem {
+  string id = 1;
+  string purchase_return_id = 2;
+  string purchase_receipt_item_id = 3;
+  string purchase_order_item_id = 4;
+  string product_id = 5;
+  string batch_id = 6;
+  int32  qty = 7;                  // BASE units returned
+  int64  unit_cost_price = 8;      // per BASE unit
+  string unit_name = 9;
+  int64  unit_factor = 10;
+}
+
+message ReturnLineInput {
+  string purchase_receipt_item_id = 1;
+  int32  qty = 2;                  // qty in the receipt line's purchasable unit (× unit_factor → base)
+}
+
+service PurchaseReturnService {
+  rpc CreatePurchaseReturn(CreatePurchaseReturnRequest) returns (CreatePurchaseReturnResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ListPurchaseReturns(ListPurchaseReturnsRequest) returns (ListPurchaseReturnsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc GetPurchaseReturn(GetPurchaseReturnRequest) returns (GetPurchaseReturnResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message CreatePurchaseReturnRequest {
+  string purchase_order_id = 1;
+  string returned_at = 2;          // YYYY-MM-DD (defaults to today if empty)
+  string reason = 3;               // required
+  string note = 4;
+  repeated ReturnLineInput lines = 5;
+}
+message CreatePurchaseReturnResponse { PurchaseReturn purchase_return = 1; }
+
+message ListPurchaseReturnsRequest { string purchase_order_id = 1; }
+message ListPurchaseReturnsResponse { repeated PurchaseReturn returns = 1; }
+
+message GetPurchaseReturnRequest { string id = 1; }
+message GetPurchaseReturnResponse { PurchaseReturn purchase_return = 1; }

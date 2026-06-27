@@ -45,6 +45,11 @@ const (
 	SettingKeyReceiptWidth = "receipt_width"
 	DefaultReceiptWidth    = int32(32)
 
+	// SettingKeyUpdatePrevVersion records the version being REPLACED when an
+	// update (or revert) is staged — the running exe becomes justmart.exe.bak on
+	// the next launcher swap, so this labels the rollback target. Best-effort.
+	SettingKeyUpdatePrevVersion = "update_prev_version"
+
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
 	BussinessTypeUnspecified int32 = 0
@@ -244,6 +249,19 @@ func setSetting(ctx context.Context, db *gorm.DB, key, value string) error {
 			Columns:   []clause.Column{{Name: "key"}},
 			DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
 		}).Create(&row).Error
+}
+
+// GetUpdatePrevVersion returns the version recorded as the rollback target (the
+// version justmart.exe.bak holds), "" when none was recorded. Best-effort label
+// for the Settings ▸ Updates "Revert" action.
+func GetUpdatePrevVersion(ctx context.Context, db *gorm.DB) (string, error) {
+	return getSetting(ctx, db, SettingKeyUpdatePrevVersion)
+}
+
+// SetUpdatePrevVersion records the version being replaced when an update/revert
+// is staged. Called best-effort after a successful stage.
+func SetUpdatePrevVersion(ctx context.Context, db *gorm.DB, version string) error {
+	return setSetting(ctx, db, SettingKeyUpdatePrevVersion, version)
 }
 
 // GetLowStockThreshold reads the current low-stock threshold from app_settings,

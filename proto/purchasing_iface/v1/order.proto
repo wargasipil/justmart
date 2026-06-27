@@ -25,7 +25,7 @@ message PurchaseOrder {
   string note = 6;
   int64 ordered_total = 7;         // FINAL total = subtotal − cart_discount + ppn_amount
   int64 paid_amount = 8;
-  int64 outstanding = 9;           // ordered_total - paid_amount (computed)
+  int64 outstanding = 9;           // ordered_total − paid_amount − returned_amount (may be negative = supplier credit)
   string created_by = 10;
   string branch_id = 11;
   int64 created_at = 12;
@@ -42,6 +42,7 @@ message PurchaseOrder {
   bool ppn_enabled = 23;           // whether PPN is applied
   int64 ppn_amount = 24;           // round((subtotal − cart_discount) × ppn_rate%) when enabled, else 0
   int32 ppn_rate = 25;             // PPN rate as a percent (default 11; ignored when ppn_enabled=false)
+  int64 returned_amount = 26;      // accumulated purchase-return value (drops outstanding)
 }
 
 message PurchaseOrderItem {

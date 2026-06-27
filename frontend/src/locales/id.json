@@ -34,6 +34,7 @@
     "edit": "Ubah",
     "delete": "Hapus",
     "archive": "Arsipkan",
+    "unarchive": "Pulihkan",
     "close": "Tutup",
     "search": "Cari",
     "anyDate": "Tanggal apa saja",
@@ -72,6 +73,7 @@
     "bpjs": "BPJS",
     "branches": "Cabang",
     "warehouses": "Gudang",
+    "priceAgreements": "Kesepakatan harga",
     "orders": "Riwayat order",
     "myPerformance": "Performa saya",
     "settings": "Pengaturan",
@@ -119,7 +121,12 @@
       "confirmTitle": "Perbarui Justmart?",
       "confirmBody": "Unduh dan pasang v{{version}}? Akan diterapkan saat Justmart dimulai ulang.",
       "downloaded": "Pembaruan diunduh",
-      "restartHint": "v{{version}} diunduh — mulai ulang Justmart untuk menyelesaikan pembaruan, lalu segarkan halaman ini."
+      "restartHint": "v{{version}} diunduh — mulai ulang Justmart untuk menyelesaikan pembaruan, lalu segarkan halaman ini.",
+      "revert": "Kembalikan pembaruan",
+      "revertTo": "Kembalikan ke v{{version}}",
+      "revertTitle": "Kembalikan pembaruan?",
+      "revertBody": "Kembalikan ke versi yang terpasang sebelumnya? Akan diterapkan saat Justmart dimulai ulang.",
+      "revertStagedHint": "Mengembalikan ke versi sebelumnya — mulai ulang Justmart untuk menyelesaikan, lalu segarkan halaman ini."
     },
     "printing": {
       "connectors": "Konektor cetak terhubung",
@@ -236,7 +243,21 @@
       "send": "Kirim",
       "void": "Batalkan",
       "receive": "Terima",
-      "pay": "Bayar"
+      "pay": "Bayar",
+      "return": "Retur"
+    },
+    "return": {
+      "title": "Retur ke pemasok",
+      "section": "Retur",
+      "reason": "Alasan",
+      "reasonPlaceholder": "mis. rusak, kedaluwarsa, barang salah",
+      "returnedAt": "Tanggal retur",
+      "returnNo": "No. retur",
+      "refundAmount": "Nilai retur",
+      "returnable": "Bisa diretur",
+      "returned": "Diretur",
+      "credit": "Kredit pemasok",
+      "nothingReturnable": "Tidak ada barang diterima yang masih ada stok untuk diretur."
     },
     "states": {
       "draft": "Draf",
@@ -271,6 +292,8 @@
     "itemsMore": "+{{count}} lainnya",
     "lineTotalInput": "Harga modal total (IDR)",
     "unitCostDerived": "Harga / satuan dasar",
+    "agreedPrice": "Disepakati: {{price}}",
+    "aboveAgreement": "Di atas harga kesepakatan",
     "lineDiscount": "Diskon item",
     "discountType": "Jenis diskon",
     "fixed": "Nominal",
@@ -643,6 +666,9 @@
     "suppliers": {
       "title": "Pemasok",
       "addTitle": "Tambah pemasok",
+      "editTitle": "Ubah pemasok",
+      "confirmArchive": "Arsipkan pemasok ini? Pemasok disembunyikan dari daftar aktif tetapi riwayatnya tetap tersimpan. Anda bisa memulihkannya nanti.",
+      "confirmUnarchive": "Pulihkan pemasok ini ke daftar aktif?",
       "code": "Kode",
       "name": "Nama",
       "email": "Email",
@@ -658,6 +684,40 @@
       "restockProduct": "Produk",
       "restockEmpty": "Belum ada restok di gudang ini.",
       "restockSearchPlaceholder": "Cari $t(glossary.product)…"
+    },
+    "priceAgreements": {
+      "title": "Kesepakatan harga",
+      "addTitle": "Tambah kesepakatan",
+      "editTitle": "Ubah kesepakatan",
+      "newTitle": "Kesepakatan harga baru",
+      "items": "Kesepakatan",
+      "addLine": "Tambah baris",
+      "removeLine": "Hapus baris",
+      "lineDuplicate": "$t(glossary.productCap) + satuan ganda",
+      "supplier": "Pemasok",
+      "product": "$t(glossary.productCap)",
+      "unit": "Satuan",
+      "price": "Harga",
+      "pricePerUnit": "Harga sepakat / satuan (IDR)",
+      "validFrom": "Berlaku dari",
+      "validUntil": "Berlaku s/d",
+      "valid": "Masa berlaku",
+      "note": "Catatan",
+      "searchPlaceholder": "Cari pemasok / $t(glossary.product)…",
+      "selectSupplier": "Pilih pemasok",
+      "selectProduct": "Pilih $t(glossary.product)",
+      "selectUnit": "Pilih satuan",
+      "empty": "Belum ada kesepakatan harga.",
+      "supplierSection": "Kesepakatan harga",
+      "archiveTitle": "Arsipkan kesepakatan?",
+      "archiveBody": "Ini menghapus kesepakatan dari daftar aktif. Anda bisa menambah yang baru untuk produk/satuan yang sama setelahnya.",
+      "validity": {
+        "label": "Masa berlaku",
+        "all": "Semua masa berlaku",
+        "current": "Sedang berlaku",
+        "expired": "Kedaluwarsa",
+        "upcoming": "Akan datang"
+      }
     },
     "batches": {
       "title": "Batch",
@@ -866,6 +926,12 @@
       "codeTaken": "Kode pemasok ini sudah dipakai",
       "nameTaken": "Pemasok aktif dengan nama ini sudah ada"
     },
+    "priceAgreement": {
+      "exists": "Kesepakatan untuk pemasok, produk, dan satuan ini sudah ada",
+      "badDates": "\"Berlaku s/d\" harus sama atau setelah \"Berlaku dari\"",
+      "supplierMissing": "Pilih pemasok yang valid",
+      "productMissing": "Pilih produk yang valid"
+    },
     "warehouse": {
       "codeTaken": "Kode gudang ini sudah dipakai"
     },
@@ -880,7 +946,13 @@
       "alreadyDispensed": "Resep ini sudah pernah dilayani dan tidak bisa diubah"
     },
     "purchasing": {
-      "poVoided": "Tidak bisa membayar PO yang dibatalkan"
+      "poVoided": "Tidak bisa membayar PO yang dibatalkan",
+      "poNotReturnable": "PO ini tidak punya barang diterima untuk diretur",
+      "returnExceedsOnHand": "Tidak bisa meretur melebihi jumlah yang masih ada stok",
+      "receiptItemNotFound": "Baris penerimaan tidak ditemukan pada PO ini",
+      "reasonRequired": "Alasan wajib diisi untuk retur",
+      "duplicateLine": "Baris penerimaan muncul lebih dari sekali pada retur ini",
+      "noBatch": "Baris penerimaan tidak punya batch untuk diretur"
     },
     "transfer": {
       "sameWarehouse": "Gudang asal dan tujuan harus berbeda"

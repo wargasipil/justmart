@@ -10,37 +10,19 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Archive, Plus, Search } from "lucide-react";
+import { Archive, ArchiveRestore, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
-import EntityDrawer from "../../components/EntityDrawer";
-import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
 import { Supplier } from "../../gen/inventory_iface/v1/supplier_pb";
 import {
   useArchiveSupplierMutation,
-  useCreateSupplierMutation,
   useSuppliersQuery,
+  useUnarchiveSupplierMutation,
 } from "../../queries/suppliers";
-import { useServerFormErrors } from "../../lib/formErrors";
 import { usePageState } from "../../lib/pagination";
-import { toast } from "../../lib/toaster";
-
-const Schema = z.object({
-  code: z.string().min(1),
-  name: z.string().min(1),
-  contactEmail: z.string().email().or(z.literal("")),
-  phone: z.string(),
-  address: z.string(),
-  bankName: z.string(),
-  bankAccountNumber: z.string(),
-  bankAccountHolder: z.string(),
-});
-type FormValues = z.infer<typeof Schema>;
+import { CreateSupplierDrawer } from "./supplierDrawers";
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -133,7 +115,7 @@ export default function Suppliers() {
         onPageSizeChange={setPageSize}
       />
 
-      <CreateDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <CreateSupplierDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </Stack>
   );
 }
@@ -142,6 +124,7 @@ function Row({ supplier }: { supplier: Supplier }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const archive = useArchiveSupplierMutation();
+  const unarchive = useUnarchiveSupplierMutation();
   return (
     <Table.Row
       cursor="pointer"
@@ -158,7 +141,7 @@ function Row({ supplier }: { supplier: Supplier }) {
       </Table.Cell>
       <Table.Cell>{supplier.active ? t("common.yes") : t("common.no")}</Table.Cell>
       <Table.Cell>
-        {supplier.active && (
+        {supplier.active ? (
           <Button
             size="xs"
             variant="ghost"
@@ -169,6 +152,18 @@ function Row({ supplier }: { supplier: Supplier }) {
           >
             <Archive size={14} />
             {t("common.archive")}
+          </Button>
+        ) : (
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              unarchive.mutate({ id: supplier.id });
+            }}
+          >
+            <ArchiveRestore size={14} />
+            {t("common.unarchive")}
           </Button>
         )}
       </Table.Cell>
@@ -196,111 +191,3 @@ function RekeningCell({ supplier }: { supplier: Supplier }) {
   );
 }
 
-function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useTranslation();
-  const create = useCreateSupplierMutation();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(Schema),
-    defaultValues: {
-      code: "",
-      name: "",
-      contactEmail: "",
-      phone: "",
-      address: "",
-      bankName: "",
-      bankAccountNumber: "",
-      bankAccountHolder: "",
-    },
-  });
-  const onServerError = useServerFormErrors(form);
-
-  const submit = form.handleSubmit(async (values) => {
-    try {
-      await create.mutateAsync({
-        code: values.code,
-        name: values.name,
-        contactEmail: values.contactEmail,
-        phone: values.phone,
-        address: values.address,
-        bankName: values.bankName,
-        bankAccountNumber: values.bankAccountNumber,
-        bankAccountHolder: values.bankAccountHolder,
-      });
-      toast.success(t("common.create") + " ✓");
-      form.reset();
-      onClose();
-    } catch (err) {
-      onServerError(err); // supplier.code_taken / name_taken → field error
-    }
-  });
-
-  return (
-    <EntityDrawer
-      open={open}
-      onClose={onClose}
-      title={t("inventory.suppliers.addTitle")}
-      footer={
-        <HStack justify="space-between">
-          <Button variant="ghost" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button colorPalette="blue" onClick={submit} loading={create.isPending}>
-            {t("common.save")}
-          </Button>
-        </HStack>
-      }
-    >
-      <form onSubmit={submit}>
-        <Stack gap={4}>
-          <FormField
-            control={form.control}
-            name="code"
-            label={t("inventory.suppliers.code")}
-            required
-            autoFocus
-          />
-          <FormField
-            control={form.control}
-            name="name"
-            label={t("inventory.suppliers.name")}
-            required
-          />
-          <FormField
-            control={form.control}
-            name="contactEmail"
-            label={t("inventory.suppliers.email")}
-            type="email"
-          />
-          <FormField
-            control={form.control}
-            name="phone"
-            label={t("inventory.suppliers.phone")}
-          />
-          <FormField
-            control={form.control}
-            name="address"
-            label={t("inventory.suppliers.address")}
-          />
-          <Text fontSize="sm" fontWeight="medium" color="fg.muted" pt={2}>
-            {t("inventory.suppliers.bankInfo")}
-          </Text>
-          <FormField
-            control={form.control}
-            name="bankName"
-            label={t("inventory.suppliers.bankName")}
-          />
-          <FormField
-            control={form.control}
-            name="bankAccountNumber"
-            label={t("inventory.suppliers.bankAccountNumber")}
-          />
-          <FormField
-            control={form.control}
-            name="bankAccountHolder"
-            label={t("inventory.suppliers.bankAccountHolder")}
-          />
-        </Stack>
-      </form>
-    </EntityDrawer>
-  );
-}

@@ -28,3 +28,13 @@ export function useApplyUpdateMutation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: updateKeys.info }),
   });
 }
+
+// Stages the previous-version backup to roll back the last update (applied on
+// next restart). Windows portable only; the button only shows when canRevert.
+export function useRevertUpdateMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => settingsClient.revertUpdate({}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: updateKeys.info }),
+  });
+}

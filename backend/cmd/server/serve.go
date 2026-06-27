@@ -47,6 +47,7 @@ import (
 	"github.com/justmart/backend/internal/service/settings"
 	"github.com/justmart/backend/internal/service/stock"
 	"github.com/justmart/backend/internal/service/stocktake"
+	"github.com/justmart/backend/internal/service/priceagreement"
 	"github.com/justmart/backend/internal/service/supplier"
 	"github.com/justmart/backend/internal/service/transfer"
 	"github.com/justmart/backend/internal/service/unit"
@@ -104,6 +105,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	authSvc := authsvc.NewAuthService(gormDB, issuer, refreshIssuer, loginLimiter)
 	healthSvc := health.NewHealthService(gormDB)
 	supplierSvc := supplier.NewSupplierService(gormDB)
+	priceAgreementSvc := priceagreement.NewPriceAgreementService(gormDB)
 	productSvc := product.NewProductService(gormDB)
 	batchSvc := batch.NewBatchService(gormDB)
 	stockSvc := stock.NewStockService(gormDB)
@@ -115,6 +117,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	purchaseOrdersSvc := purchasing.NewPurchaseOrderService(gormDB)
 	purchaseReceiptsSvc := purchasing.NewPurchaseReceiptService(gormDB)
 	purchasePaymentsSvc := purchasing.NewPurchasePaymentService(gormDB)
+	purchaseReturnsSvc := purchasing.NewPurchaseReturnService(gormDB)
 	branchesSvc := branch.NewBranchService(gormDB)
 	stocktakesSvc := stocktake.NewStocktakeService(gormDB)
 	prescriptionsSvc := prescription.NewPrescriptionService(gormDB)
@@ -196,6 +199,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	apiMux.Handle(userifacev1connect.NewAuthServiceHandler(authSvc, interceptors))
 	apiMux.Handle(userifacev1connect.NewUserServiceHandler(userSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewSupplierServiceHandler(supplierSvc, interceptors))
+	apiMux.Handle(inventoryifacev1connect.NewPriceAgreementServiceHandler(priceAgreementSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductServiceHandler(productSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewBatchServiceHandler(batchSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewStockMovementServiceHandler(stockSvc, interceptors))
@@ -206,6 +210,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	apiMux.Handle(purchasingifacev1connect.NewPurchaseOrderServiceHandler(purchaseOrdersSvc, interceptors))
 	apiMux.Handle(purchasingifacev1connect.NewPurchaseReceiptServiceHandler(purchaseReceiptsSvc, interceptors))
 	apiMux.Handle(purchasingifacev1connect.NewPurchasePaymentServiceHandler(purchasePaymentsSvc, interceptors))
+	apiMux.Handle(purchasingifacev1connect.NewPurchaseReturnServiceHandler(purchaseReturnsSvc, interceptors))
 	apiMux.Handle(branchifacev1connect.NewBranchServiceHandler(branchesSvc, interceptors))
 	apiMux.Handle(stocktakeifacev1connect.NewStocktakeServiceHandler(stocktakesSvc, interceptors))
 	apiMux.Handle(prescriptionifacev1connect.NewPrescriptionServiceHandler(prescriptionsSvc, interceptors))

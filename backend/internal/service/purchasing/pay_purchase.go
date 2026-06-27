@@ -42,7 +42,7 @@ func (p *PurchasePayments) PayPurchase(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		paid = po.PaidAmount
-		outstanding = po.OrderedTotal - po.PaidAmount
+		outstanding = po.OrderedTotal - po.PaidAmount - po.ReturnedAmount
 		return nil
 	})
 	if err != nil {

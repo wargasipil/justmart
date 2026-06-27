@@ -17,10 +17,12 @@ func poToProto(po *model.PurchaseOrder) *purchasingifacev1.PurchaseOrder {
 		PpnEnabled:   po.PpnEnabled,
 		PpnRate:      po.PpnRate,
 		PpnAmount:    po.PpnAmount,
-		OrderedTotal: po.OrderedTotal,
-		PaidAmount:   po.PaidAmount,
-		Outstanding:  po.OrderedTotal - po.PaidAmount,
-		CreatedBy:    po.CreatedBy,
+		OrderedTotal:   po.OrderedTotal,
+		PaidAmount:     po.PaidAmount,
+		ReturnedAmount: po.ReturnedAmount,
+		// May go negative = a supplier credit (you returned more value than you still owed).
+		Outstanding: po.OrderedTotal - po.PaidAmount - po.ReturnedAmount,
+		CreatedBy:   po.CreatedBy,
 		CreatedAt:    po.CreatedAt.Unix(),
 		WarehouseId:  po.WarehouseID,
 	}
@@ -153,4 +155,44 @@ func receiptItemToProto(it *model.PurchaseReceiptItem) *purchasingifacev1.Purcha
 		out.ProductUnitId = *it.ProductUnitID
 	}
 	return out
+}
+
+func purchaseReturnToProto(r *model.PurchaseReturn) *purchasingifacev1.PurchaseReturn {
+	out := &purchasingifacev1.PurchaseReturn{
+		Id:              r.ID,
+		PurchaseOrderId: r.PurchaseOrderID,
+		WarehouseId:     r.WarehouseID,
+		ReturnedAt:      r.ReturnedAt.Format("2006-01-02"),
+		ReturnedBy:      r.ReturnedBy,
+		Reason:          r.Reason,
+		Note:            r.Note,
+		RefundAmount:    r.RefundAmount,
+		CreatedAt:       r.CreatedAt.Unix(),
+	}
+	if r.ReturnNo != nil {
+		out.ReturnNo = *r.ReturnNo
+	}
+	for i := range r.Items {
+		out.Items = append(out.Items, purchaseReturnItemToProto(&r.Items[i]))
+	}
+	return out
+}
+
+func purchaseReturnItemToProto(it *model.PurchaseReturnItem) *purchasingifacev1.PurchaseReturnItem {
+	factor := it.UnitFactor
+	if factor < 1 {
+		factor = 1
+	}
+	return &purchasingifacev1.PurchaseReturnItem{
+		Id:                    it.ID,
+		PurchaseReturnId:      it.PurchaseReturnID,
+		PurchaseReceiptItemId: it.PurchaseReceiptItemID,
+		PurchaseOrderItemId:   it.PurchaseOrderItemID,
+		ProductId:             it.ProductID,
+		BatchId:               it.BatchID,
+		Qty:                   it.Qty,
+		UnitCostPrice:         it.UnitCostPrice,
+		UnitName:              it.UnitName,
+		UnitFactor:            factor,
+	}
 }

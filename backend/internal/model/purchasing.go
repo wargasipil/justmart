@@ -18,6 +18,9 @@ type PurchaseOrder struct {
 	PpnAmount    int64      `gorm:"not null;default:0;column:ppn_amount"`
 	OrderedTotal int64      `gorm:"not null;default:0;column:ordered_total"` // = Subtotal − CartDiscount + PpnAmount
 	PaidAmount   int64      `gorm:"not null;default:0;column:paid_amount"`
+	// Accumulated value of purchase returns. Outstanding = OrderedTotal −
+	// PaidAmount − ReturnedAmount (may go negative = a supplier credit).
+	ReturnedAmount int64    `gorm:"not null;default:0;column:returned_amount"`
 	CreatedBy    string     `gorm:"not null;type:uuid;column:created_by"`
 	BranchID     *string    `gorm:"type:uuid;column:branch_id"`
 	WarehouseID  string     `gorm:"not null;type:uuid;column:warehouse_id"`
@@ -98,3 +101,45 @@ type RcvCounter struct {
 }
 
 func (RcvCounter) TableName() string { return "rcv_no_counters" }
+
+// PurchaseReturn is a partial "retur pembelian": received goods sent back to the
+// supplier. Append-only ledger mirroring PurchaseReceipt. Each item reverses a
+// receipt line (one batch) via a negative PURCHASE_RETURN stock movement.
+type PurchaseReturn struct {
+	ID              string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ReturnNo        *string   `gorm:"uniqueIndex;column:return_no"` // RTN-YYYY-NNNN
+	PurchaseOrderID string    `gorm:"not null;type:uuid;column:purchase_order_id"`
+	WarehouseID     string    `gorm:"not null;type:uuid;column:warehouse_id"`
+	ReturnedAt      time.Time `gorm:"not null;type:date;column:returned_at"`
+	ReturnedBy      string    `gorm:"not null;type:uuid;column:returned_by"`
+	Reason          string    `gorm:"not null;default:''"`
+	Note            string    `gorm:"not null;default:''"`
+	RefundAmount    int64     `gorm:"not null;default:0;column:refund_amount"` // Σ line (qty × unit_cost_price)
+	CreatedAt       time.Time
+
+	Items []PurchaseReturnItem `gorm:"foreignKey:PurchaseReturnID"`
+}
+
+func (PurchaseReturn) TableName() string { return "purchase_returns" }
+
+type PurchaseReturnItem struct {
+	ID                    string `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	PurchaseReturnID      string `gorm:"not null;type:uuid;column:purchase_return_id"`
+	PurchaseReceiptItemID string `gorm:"not null;type:uuid;column:purchase_receipt_item_id"`
+	PurchaseOrderItemID   string `gorm:"not null;type:uuid;column:purchase_order_item_id"`
+	ProductID             string `gorm:"not null;type:uuid;column:product_id"`
+	BatchID               string `gorm:"not null;type:uuid;column:batch_id"`
+	Qty                   int32  `gorm:"not null"` // BASE units returned
+	UnitCostPrice         int64  `gorm:"not null;default:0;column:unit_cost_price"` // per BASE unit
+	UnitName              string `gorm:"not null;default:'';column:unit_name"`
+	UnitFactor            int64  `gorm:"not null;default:1;column:unit_factor"`
+}
+
+func (PurchaseReturnItem) TableName() string { return "purchase_return_items" }
+
+type RtnCounter struct {
+	Year    int `gorm:"primaryKey"`
+	LastSeq int `gorm:"not null;default:0;column:last_seq"`
+}
+
+func (RtnCounter) TableName() string { return "rtn_no_counters" }

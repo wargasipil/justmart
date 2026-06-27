@@ -37,7 +37,7 @@ func (p *PurchaseOrders) ListPurchaseOrders(
 		}
 		if req.Msg.OnlyOutstanding {
 			q = q.Where("status NOT IN ?", []string{poStatusVoided, poStatusDraft}).
-				Where("ordered_total > paid_amount")
+				Where("ordered_total > paid_amount + returned_amount")
 		}
 		if query := strings.TrimSpace(req.Msg.Query); query != "" {
 			pattern := "%" + query + "%"

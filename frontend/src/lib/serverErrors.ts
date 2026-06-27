@@ -22,6 +22,14 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "supplier.required": { i18nKey: "validation.required" },
   "supplier.code_taken": { field: "code", i18nKey: "serverErrors.supplier.codeTaken" },
   "supplier.name_taken": { field: "name", i18nKey: "serverErrors.supplier.nameTaken" },
+  // price agreement
+  "price_agreement.required": { i18nKey: "validation.required" },
+  "price_agreement.items_required": { i18nKey: "serverErrors.common.itemsRequired" },
+  "price_agreement.price_invalid": { field: "price", i18nKey: "serverErrors.common.amountNegative" },
+  "price_agreement.bad_dates": { field: "validUntil", i18nKey: "serverErrors.priceAgreement.badDates" },
+  "price_agreement.supplier_missing": { field: "supplierId", i18nKey: "serverErrors.priceAgreement.supplierMissing" },
+  "price_agreement.product_missing": { field: "productId", i18nKey: "serverErrors.priceAgreement.productMissing" },
+  "price_agreement.exists": { field: "productUnitId", i18nKey: "serverErrors.priceAgreement.exists" },
   // warehouse
   "warehouse.required": { i18nKey: "validation.required" },
   "warehouse.name_required": { field: "name", i18nKey: "validation.required" },
@@ -65,6 +73,12 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "purchasing.discount_negative": { i18nKey: "serverErrors.common.discountInvalid" },
   "purchasing.discount_percent_range": { i18nKey: "serverErrors.common.discountInvalid" },
   "purchasing.discount_type_invalid": { i18nKey: "serverErrors.common.discountInvalid" },
+  "purchasing.reason_required": { i18nKey: "serverErrors.purchasing.reasonRequired" },
+  "purchasing.po_not_returnable": { i18nKey: "serverErrors.purchasing.poNotReturnable" },
+  "purchasing.return_exceeds_on_hand": { i18nKey: "serverErrors.purchasing.returnExceedsOnHand" },
+  "purchasing.receipt_item_not_found": { i18nKey: "serverErrors.purchasing.receiptItemNotFound" },
+  "purchasing.duplicate_line": { i18nKey: "serverErrors.purchasing.duplicateLine" },
+  "purchasing.no_batch": { i18nKey: "serverErrors.purchasing.noBatch" },
   // transfer
   "transfer.warehouse_required": { i18nKey: "validation.required" },
   "transfer.same_warehouse": { i18nKey: "serverErrors.transfer.sameWarehouse" },

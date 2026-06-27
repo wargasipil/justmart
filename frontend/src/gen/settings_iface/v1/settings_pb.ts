@@ -1059,6 +1059,20 @@ export class CheckUpdateResponse extends Message<CheckUpdateResponse> {
    */
   canSelfApply = false;
 
+  /**
+   * Windows + a justmart.exe.bak backup exists
+   *
+   * @generated from field: bool can_revert = 10;
+   */
+  canRevert = false;
+
+  /**
+   * version the backup holds ("" when unknown)
+   *
+   * @generated from field: string backup_version = 11;
+   */
+  backupVersion = "";
+
   constructor(data?: PartialMessage<CheckUpdateResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1076,6 +1090,8 @@ export class CheckUpdateResponse extends Message<CheckUpdateResponse> {
     { no: 7, name: "published_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 9, name: "can_self_apply", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 10, name: "can_revert", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 11, name: "backup_version", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CheckUpdateResponse {
@@ -1172,6 +1188,74 @@ export class ApplyUpdateResponse extends Message<ApplyUpdateResponse> {
 
   static equals(a: ApplyUpdateResponse | PlainMessage<ApplyUpdateResponse> | undefined, b: ApplyUpdateResponse | PlainMessage<ApplyUpdateResponse> | undefined): boolean {
     return proto3.util.equals(ApplyUpdateResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.RevertUpdateRequest
+ */
+export class RevertUpdateRequest extends Message<RevertUpdateRequest> {
+  constructor(data?: PartialMessage<RevertUpdateRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.RevertUpdateRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RevertUpdateRequest {
+    return new RevertUpdateRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RevertUpdateRequest {
+    return new RevertUpdateRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RevertUpdateRequest {
+    return new RevertUpdateRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RevertUpdateRequest | PlainMessage<RevertUpdateRequest> | undefined, b: RevertUpdateRequest | PlainMessage<RevertUpdateRequest> | undefined): boolean {
+    return proto3.util.equals(RevertUpdateRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.RevertUpdateResponse
+ */
+export class RevertUpdateResponse extends Message<RevertUpdateResponse> {
+  /**
+   * @generated from field: bool staged = 1;
+   */
+  staged = false;
+
+  constructor(data?: PartialMessage<RevertUpdateResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.RevertUpdateResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "staged", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RevertUpdateResponse {
+    return new RevertUpdateResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): RevertUpdateResponse {
+    return new RevertUpdateResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): RevertUpdateResponse {
+    return new RevertUpdateResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: RevertUpdateResponse | PlainMessage<RevertUpdateResponse> | undefined, b: RevertUpdateResponse | PlainMessage<RevertUpdateResponse> | undefined): boolean {
+    return proto3.util.equals(RevertUpdateResponse, a, b);
   }
 }
 

@@ -1,12 +1,12 @@
 import { Badge, Box, Button, Heading, HStack, Link, Spinner, Stack, Text } from "@chakra-ui/react";
-import { Download, ExternalLink, RefreshCw } from "lucide-react";
+import { Download, ExternalLink, RefreshCw, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { formatUnix } from "../../lib/format";
 import { toast } from "../../lib/toaster";
-import { useApplyUpdateMutation, useUpdateInfoQuery } from "../../queries/updates";
+import { useApplyUpdateMutation, useRevertUpdateMutation, useUpdateInfoQuery } from "../../queries/updates";
 
 // SettingsUpdates (OWNER) — shows the running version vs the latest GitHub
 // release. On the Windows portable build the OWNER can "Update now" (download +
@@ -15,8 +15,11 @@ export default function SettingsUpdates() {
   const { t } = useTranslation();
   const infoQ = useUpdateInfoQuery();
   const apply = useApplyUpdateMutation();
+  const revert = useRevertUpdateMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [revertConfirmOpen, setRevertConfirmOpen] = useState(false);
   const [staged, setStaged] = useState<string | null>(null);
+  const [revertStaged, setRevertStaged] = useState(false);
 
   const info = infoQ.data;
 
@@ -26,6 +29,16 @@ export default function SettingsUpdates() {
       setStaged(res.stagedVersion);
       setConfirmOpen(false);
       toast.success(t("settings.updates.downloaded"));
+    } catch {
+      /* global toaster shows the error */
+    }
+  };
+
+  const onRevert = async () => {
+    try {
+      await revert.mutateAsync();
+      setRevertStaged(true);
+      setRevertConfirmOpen(false);
     } catch {
       /* global toaster shows the error */
     }
@@ -117,6 +130,12 @@ export default function SettingsUpdates() {
         </Text>
       )}
 
+      {revertStaged && (
+        <Text fontSize="sm" color="orange.fg">
+          {t("settings.updates.revertStagedHint")}
+        </Text>
+      )}
+
       <HStack gap={3} wrap="wrap">
         <Button variant="outline" size="sm" onClick={() => infoQ.refetch()} loading={infoQ.isFetching}>
           <RefreshCw size={14} />
@@ -138,6 +157,21 @@ export default function SettingsUpdates() {
             </HStack>
           </Link>
         )}
+
+        {info.canRevert && !revertStaged && (
+          <Button
+            variant="outline"
+            colorPalette="orange"
+            size="sm"
+            onClick={() => setRevertConfirmOpen(true)}
+            loading={revert.isPending}
+          >
+            <Undo2 size={14} />
+            {info.backupVersion
+              ? t("settings.updates.revertTo", { version: info.backupVersion })
+              : t("settings.updates.revert")}
+          </Button>
+        )}
       </HStack>
 
       <ConfirmDialog
@@ -149,6 +183,21 @@ export default function SettingsUpdates() {
         loading={apply.isPending}
         onConfirm={onApply}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={revertConfirmOpen}
+        title={t("settings.updates.revertTitle")}
+        body={t("settings.updates.revertBody")}
+        confirmLabel={
+          info.backupVersion
+            ? t("settings.updates.revertTo", { version: info.backupVersion })
+            : t("settings.updates.revert")
+        }
+        confirmColorPalette="orange"
+        loading={revert.isPending}
+        onConfirm={onRevert}
+        onCancel={() => setRevertConfirmOpen(false)}
       />
     </Stack>
   );

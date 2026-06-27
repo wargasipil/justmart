@@ -15,7 +15,7 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Ban, DollarSign, PackageCheck, Send, X } from "lucide-react";
+import { Ban, DollarSign, PackageCheck, Send, Undo2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -32,11 +32,14 @@ import {
 import { formatDate, formatMoney } from "../../lib/format";
 import { toast } from "../../lib/toaster";
 import type { ProductRef } from "../../gen/inventory_iface/v1/product_pb";
+import type { PurchaseReceipt } from "../../gen/purchasing_iface/v1/receipt_pb";
 import { useProductRefs, useSupplierRefs } from "../../queries/refs";
 import {
+  useCreatePurchaseReturnMutation,
   useCreateReceiptMutation,
   usePayPurchaseMutation,
   usePurchaseOrderQuery,
+  usePurchaseReturnsQuery,
   useReceiptsQuery,
   useSendPurchaseOrderMutation,
   useVoidPurchaseOrderMutation,
@@ -59,12 +62,14 @@ export default function PurchaseOrderDetail() {
 
   const poQ = usePurchaseOrderQuery(id);
   const receiptsQ = useReceiptsQuery({ purchaseOrderId: id });
+  const returnsQ = usePurchaseReturnsQuery(id);
 
   const sendMut = useSendPurchaseOrderMutation();
   const voidMut = useVoidPurchaseOrderMutation();
 
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
 
   // Resolve names for just this PO's supplier + line/receipt products
   // (resolve-by-IDs; hooks run unconditionally, before the loading early-return).
@@ -95,6 +100,13 @@ export default function PurchaseOrderDetail() {
     po.status !== POStatus.PO_STATUS_VOIDED &&
     po.status !== POStatus.PO_STATUS_DRAFT &&
     po.outstanding > 0n;
+  // Returnable: a PO with received goods still in stock (a receipt line whose
+  // batch on-hand > 0). VOIDED/DRAFT/SENT have nothing to return.
+  const canReturn =
+    (po.status === POStatus.PO_STATUS_PARTIALLY_RECEIVED ||
+      po.status === POStatus.PO_STATUS_RECEIVED ||
+      po.status === POStatus.PO_STATUS_CLOSED) &&
+    (receiptsQ.data ?? []).some((r) => r.items.some((it) => it.returnableQty > 0n));
 
   const onSend = async () => {
     try {
@@ -144,6 +156,12 @@ export default function PurchaseOrderDetail() {
               {t("purchasing.actions.pay")}
             </Button>
           )}
+          {canReturn && (
+            <Button size="sm" variant="outline" colorPalette="orange" onClick={() => setReturnOpen(true)}>
+              <Undo2 size={14} />
+              {t("purchasing.actions.return")}
+            </Button>
+          )}
           {canVoid && (
             <Button size="sm" variant="outline" colorPalette="red" onClick={onVoid}>
               <Ban size={14} />
@@ -165,8 +183,14 @@ export default function PurchaseOrderDetail() {
             label={t("purchasing.totalOrdered")}
             value={formatMoney(Number(po.orderedTotal))}
           />
+          {po.returnedAmount > 0n && (
+            <Info
+              label={t("purchasing.return.refundAmount")}
+              value={formatMoney(Number(po.returnedAmount))}
+            />
+          )}
           <Info
-            label={t("purchasing.outstanding")}
+            label={po.outstanding < 0n ? t("purchasing.return.credit") : t("purchasing.outstanding")}
             value={formatMoney(Number(po.outstanding))}
             highlight={po.outstanding > 0n}
           />
@@ -305,10 +329,63 @@ export default function PurchaseOrderDetail() {
         )}
       </Box>
 
+      {/* Returns */}
+      {(returnsQ.data?.length ?? 0) > 0 && (
+        <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
+          <Heading size="sm" mb={3}>
+            {t("purchasing.return.section")}
+          </Heading>
+          <Stack gap={3}>
+            {returnsQ.data!.map((r) => (
+              <Box key={r.id} borderWidth="1px" borderRadius="md" p={3}>
+                <HStack justify="space-between" mb={2} wrap="wrap" gap={2}>
+                  <HStack gap={3}>
+                    <Text fontFamily="mono" fontWeight="medium">
+                      {r.returnNo}
+                    </Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      {r.reason}
+                    </Text>
+                  </HStack>
+                  <HStack gap={3}>
+                    <Text fontFamily="mono" fontSize="sm">
+                      −{formatMoney(Number(r.refundAmount))}
+                    </Text>
+                    <Text fontSize="sm" color="fg.muted">
+                      {formatDate(r.returnedAt)}
+                    </Text>
+                  </HStack>
+                </HStack>
+                <Table.Root size="sm">
+                  <Table.Body>
+                    {r.items.map((it) => (
+                      <Table.Row key={it.id}>
+                        <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
+                        <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
+                        <Table.Cell fontFamily="mono" color="fg.muted">
+                          {formatMoney(Number(it.unitCostPrice))}
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table.Root>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      )}
+
       <ReceiveDialog
         open={receiveOpen}
         onClose={() => setReceiveOpen(false)}
         po={po}
+        productRefs={productRefs}
+      />
+      <ReturnDialog
+        open={returnOpen}
+        onClose={() => setReturnOpen(false)}
+        poId={po.id}
+        receipts={receiptsQ.data ?? []}
         productRefs={productRefs}
       />
       <PayDialog open={payOpen} onClose={() => setPayOpen(false)} poId={po.id} outstanding={Number(po.outstanding)} />
@@ -539,6 +616,195 @@ function ReceiveDialog({
                   disabled={!canSubmit}
                 >
                   {t("purchasing.actions.receive")}
+                </Button>
+              </HStack>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+function ReturnDialog({
+  open,
+  onClose,
+  poId,
+  receipts,
+  productRefs,
+}: {
+  open: boolean;
+  onClose: () => void;
+  poId: string;
+  receipts: PurchaseReceipt[];
+  productRefs: Map<string, ProductRef>;
+}) {
+  const { t } = useTranslation();
+  const createReturn = useCreatePurchaseReturnMutation();
+  const today = new Date().toISOString().slice(0, 10);
+  const [returnedAt, setReturnedAt] = useState(today);
+  const [reason, setReason] = useState("");
+
+  type ReturnRow = {
+    purchaseReceiptItemId: string;
+    productId: string;
+    batchNumber: string;
+    qty: number; // in the receipt line's purchasable unit
+    max: number; // returnable, in the purchasable unit
+    unitName: string;
+    unitFactor: number;
+  };
+  // Flatten every returnable receipt line (on-hand > 0) across receipts.
+  const buildRows = (): ReturnRow[] => {
+    const rows: ReturnRow[] = [];
+    for (const r of receipts) {
+      for (const it of r.items) {
+        if (it.returnableQty <= 0n) continue;
+        const factor = Number(it.unitFactor) || 1;
+        rows.push({
+          purchaseReceiptItemId: it.id,
+          productId: it.productId,
+          batchNumber: it.batchNumber,
+          qty: 0,
+          max: Number(it.returnableQty) / factor,
+          unitName: it.unitName,
+          unitFactor: factor,
+        });
+      }
+    }
+    return rows;
+  };
+  const [rows, setRows] = useState<ReturnRow[]>(() => buildRows());
+
+  // Rebuild rows when opening (receipts/returnable may have changed since the
+  // last open). handleClose empties rows, so every fresh open re-derives them.
+  if (open && rows.length === 0 && receipts.some((r) => r.items.some((it) => it.returnableQty > 0n))) {
+    setRows(buildRows());
+  }
+
+  const handleClose = () => {
+    setRows([]);
+    setReason("");
+    onClose();
+  };
+
+  const updateRow = (idx: number, patch: Partial<ReturnRow>) =>
+    setRows((cur) => cur.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+
+  const canSubmit =
+    reason.trim().length > 0 &&
+    rows.some((r) => r.qty > 0) &&
+    rows.every((r) => r.qty >= 0 && r.qty <= r.max);
+
+  const submit = async () => {
+    try {
+      await createReturn.mutateAsync({
+        purchaseOrderId: poId,
+        returnedAt,
+        reason: reason.trim(),
+        lines: rows
+          .filter((r) => r.qty > 0)
+          .map((r) => ({ purchaseReceiptItemId: r.purchaseReceiptItemId, qty: r.qty })),
+      });
+      toast.success(t("purchasing.return.title") + " ✓");
+      handleClose();
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={(d) => !d.open && handleClose()} size="xl">
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>{t("purchasing.return.title")}</Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="close" variant="ghost" size="sm">
+                  <X size={16} />
+                </IconButton>
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Stack gap={4}>
+                <HStack gap={3} align="flex-start">
+                  <Box flex="1">
+                    <Text fontSize="xs" color="fg.muted">
+                      {t("purchasing.return.returnedAt")}
+                    </Text>
+                    <DatePickerField value={returnedAt} onChange={setReturnedAt} />
+                  </Box>
+                  <Box flex="2">
+                    <Text fontSize="xs" color="fg.muted">
+                      {t("purchasing.return.reason")} *
+                    </Text>
+                    <Input
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder={t("purchasing.return.reasonPlaceholder")}
+                    />
+                  </Box>
+                </HStack>
+
+                {rows.length === 0 ? (
+                  <Text fontSize="sm" color="fg.muted">
+                    {t("purchasing.return.nothingReturnable")}
+                  </Text>
+                ) : (
+                  <Table.Root size="sm">
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.return.returnable")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {rows.map((r, idx) => (
+                        <Table.Row key={r.purchaseReceiptItemId}>
+                          <Table.Cell>{productRefs.get(r.productId)?.name ?? "—"}</Table.Cell>
+                          <Table.Cell>{r.batchNumber || "—"}</Table.Cell>
+                          <Table.Cell color="fg.muted">
+                            {r.max} {r.unitName}
+                          </Table.Cell>
+                          <Table.Cell>
+                            <HStack gap={1}>
+                              <NumberInput
+                                size="sm"
+                                width="70px"
+                                value={r.qty}
+                                onChange={(raw) => updateRow(idx, { qty: Number(raw || 0) })}
+                                max={r.max}
+                              />
+                              {r.unitFactor > 1 && (
+                                <Text fontSize="xs" color="fg.muted">
+                                  {r.unitName}
+                                </Text>
+                              )}
+                            </HStack>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                )}
+              </Stack>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <HStack justify="space-between" w="full">
+                <Button variant="ghost" onClick={handleClose}>
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  colorPalette="orange"
+                  onClick={submit}
+                  loading={createReturn.isPending}
+                  disabled={!canSubmit}
+                >
+                  {t("purchasing.actions.return")}
                 </Button>
               </HStack>
             </Dialog.Footer>

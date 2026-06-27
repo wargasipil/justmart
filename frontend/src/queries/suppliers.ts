@@ -5,6 +5,7 @@ import { supplierClient } from "../lib/clients";
 import type {
   ArchiveSupplierRequest,
   CreateSupplierRequest,
+  UnarchiveSupplierRequest,
   UpdateSupplierRequest,
 } from "../gen/inventory_iface/v1/supplier_pb";
 
@@ -125,6 +126,18 @@ export function useArchiveSupplierMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<ArchiveSupplierRequest>) =>
       supplierClient.archiveSupplier(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: supplierKeys.all }),
+  });
+}
+
+// Restore an archived supplier to active. No silentError: a name-collision
+// (supplier.name_taken) surfaces via the global translated toast — there's no
+// form here to attach a field error to.
+export function useUnarchiveSupplierMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<UnarchiveSupplierRequest>) =>
+      supplierClient.unarchiveSupplier(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: supplierKeys.all }),
   });
 }

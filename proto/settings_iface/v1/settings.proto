@@ -94,6 +94,12 @@ service SettingsService {
   rpc ApplyUpdate(ApplyUpdateRequest) returns (ApplyUpdateResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
   }
+  // RevertUpdate stages the previous-version backup (justmart.exe.bak) so the
+  // launcher rolls back on next start. Windows + portable only, local (no
+  // network). OWNER-only.
+  rpc RevertUpdate(RevertUpdateRequest) returns (RevertUpdateResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
 }
 
 enum BussinessType {
@@ -191,6 +197,8 @@ message CheckUpdateResponse {
   int64 published_at = 7;
   bool enabled = 8;            // false when update.disabled (UI shows "checks off")
   bool can_self_apply = 9;     // Windows + portable + release has zip + .sha256
+  bool can_revert = 10;        // Windows + a justmart.exe.bak backup exists
+  string backup_version = 11;  // version the backup holds ("" when unknown)
 }
 
 message ApplyUpdateRequest { bool restart = 1; } // restart=true → also relaunch
@@ -198,3 +206,6 @@ message ApplyUpdateResponse {
   string staged_version = 1;
   bool restarting = 2;
 }
+
+message RevertUpdateRequest {}
+message RevertUpdateResponse { bool staged = 1; }

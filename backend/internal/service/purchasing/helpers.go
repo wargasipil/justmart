@@ -232,6 +232,42 @@ func assignReceiptNo(tx *gorm.DB, now time.Time) (string, error) {
 	return fmt.Sprintf("RCV-%d-%04d", year, counter.LastSeq), nil
 }
 
+func assignReturnNo(tx *gorm.DB, now time.Time) (string, error) {
+	year := now.Year()
+	var counter model.RtnCounter
+	err := tx.Where("year = ?", year).First(&counter).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		counter = model.RtnCounter{Year: year, LastSeq: 0}
+		if err := tx.Create(&counter).Error; err != nil {
+			return "", err
+		}
+	} else if err != nil {
+		return "", err
+	}
+	if err := tx.Model(&model.RtnCounter{}).
+		Where("year = ?", year).
+		Update("last_seq", gorm.Expr("last_seq + 1")).Error; err != nil {
+		return "", err
+	}
+	if err := tx.Where("year = ?", year).First(&counter).Error; err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("RTN-%d-%04d", year, counter.LastSeq), nil
+}
+
+// loadFull hydrates a purchase return with its items (Preload, no N+1).
+func (p *PurchaseReturns) loadFull(ctx context.Context, id string) (*model.PurchaseReturn, error) {
+	var ret model.PurchaseReturn
+	err := p.db.WithContext(ctx).Preload("Items").Where("id = ?", id).First(&ret).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("purchase return not found"))
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return &ret, nil
+}
+
 // recomputePOStatus inspects items and bumps po.status accordingly. Caller is
 // inside a tx and the po row is locked.
 func recomputePOStatus(tx *gorm.DB, po *model.PurchaseOrder) error {
@@ -256,7 +292,10 @@ func recomputePOStatus(tx *gorm.DB, po *model.PurchaseOrder) error {
 	case anyReceived:
 		newStatus = poStatusPartiallyReceived
 	default:
-		return nil
+		// Nothing currently received. The forward receive path never reaches
+		// here (a receipt always raises received_qty); a purchase return that
+		// gives back every received unit does, and reverts the PO to SENT.
+		newStatus = poStatusSent
 	}
 	if po.Status == poStatusClosed {
 		return nil

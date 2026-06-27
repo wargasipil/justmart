@@ -21,6 +21,10 @@ const (
 	poStatusVoided            = common.POStatusVoided
 
 	defaultPPNRate = 11 // Indonesia's standard PPN rate as of 2026
+
+	// Goods leaving the warehouse back to the supplier on a purchase return
+	// (negative qty). Distinct from the sales-refund RETURN (goods back in).
+	movementTypePurchaseReturn = "PURCHASE_RETURN"
 )
 
 type PurchaseOrders struct {
@@ -40,3 +44,9 @@ type PurchasePayments struct {
 }
 
 func NewPurchasePaymentService(db *gorm.DB) *PurchasePayments { return &PurchasePayments{db: db} }
+
+type PurchaseReturns struct {
+	db *gorm.DB
+}
+
+func NewPurchaseReturnService(db *gorm.DB) *PurchaseReturns { return &PurchaseReturns{db: db} }

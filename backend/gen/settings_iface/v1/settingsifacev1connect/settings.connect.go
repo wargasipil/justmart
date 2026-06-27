@@ -72,6 +72,9 @@ const (
 	// SettingsServiceApplyUpdateProcedure is the fully-qualified name of the SettingsService's
 	// ApplyUpdate RPC.
 	SettingsServiceApplyUpdateProcedure = "/settings_iface.v1.SettingsService/ApplyUpdate"
+	// SettingsServiceRevertUpdateProcedure is the fully-qualified name of the SettingsService's
+	// RevertUpdate RPC.
+	SettingsServiceRevertUpdateProcedure = "/settings_iface.v1.SettingsService/RevertUpdate"
 )
 
 // SettingsServiceClient is a client for the settings_iface.v1.SettingsService service.
@@ -113,6 +116,10 @@ type SettingsServiceClient interface {
 	// ApplyUpdate downloads + verifies + stages the latest release; the launcher
 	// swaps it in on next start. Windows + portable only. OWNER-only.
 	ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error)
+	// RevertUpdate stages the previous-version backup (justmart.exe.bak) so the
+	// launcher rolls back on next start. Windows + portable only, local (no
+	// network). OWNER-only.
+	RevertUpdate(context.Context, *connect.Request[v1.RevertUpdateRequest]) (*connect.Response[v1.RevertUpdateResponse], error)
 }
 
 // NewSettingsServiceClient constructs a client for the settings_iface.v1.SettingsService service.
@@ -204,6 +211,12 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("ApplyUpdate")),
 			connect.WithClientOptions(opts...),
 		),
+		revertUpdate: connect.NewClient[v1.RevertUpdateRequest, v1.RevertUpdateResponse](
+			httpClient,
+			baseURL+SettingsServiceRevertUpdateProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("RevertUpdate")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -222,6 +235,7 @@ type settingsServiceClient struct {
 	getPrintingInfo      *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
 	checkUpdate          *connect.Client[v1.CheckUpdateRequest, v1.CheckUpdateResponse]
 	applyUpdate          *connect.Client[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse]
+	revertUpdate         *connect.Client[v1.RevertUpdateRequest, v1.RevertUpdateResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -289,6 +303,11 @@ func (c *settingsServiceClient) ApplyUpdate(ctx context.Context, req *connect.Re
 	return c.applyUpdate.CallUnary(ctx, req)
 }
 
+// RevertUpdate calls settings_iface.v1.SettingsService.RevertUpdate.
+func (c *settingsServiceClient) RevertUpdate(ctx context.Context, req *connect.Request[v1.RevertUpdateRequest]) (*connect.Response[v1.RevertUpdateResponse], error) {
+	return c.revertUpdate.CallUnary(ctx, req)
+}
+
 // SettingsServiceHandler is an implementation of the settings_iface.v1.SettingsService service.
 type SettingsServiceHandler interface {
 	GetSettings(context.Context, *connect.Request[v1.GetSettingsRequest]) (*connect.Response[v1.GetSettingsResponse], error)
@@ -328,6 +347,10 @@ type SettingsServiceHandler interface {
 	// ApplyUpdate downloads + verifies + stages the latest release; the launcher
 	// swaps it in on next start. Windows + portable only. OWNER-only.
 	ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error)
+	// RevertUpdate stages the previous-version backup (justmart.exe.bak) so the
+	// launcher rolls back on next start. Windows + portable only, local (no
+	// network). OWNER-only.
+	RevertUpdate(context.Context, *connect.Request[v1.RevertUpdateRequest]) (*connect.Response[v1.RevertUpdateResponse], error)
 }
 
 // NewSettingsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -415,6 +438,12 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("ApplyUpdate")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceRevertUpdateHandler := connect.NewUnaryHandler(
+		SettingsServiceRevertUpdateProcedure,
+		svc.RevertUpdate,
+		connect.WithSchema(settingsServiceMethods.ByName("RevertUpdate")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/settings_iface.v1.SettingsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case SettingsServiceGetSettingsProcedure:
@@ -443,6 +472,8 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceCheckUpdateHandler.ServeHTTP(w, r)
 		case SettingsServiceApplyUpdateProcedure:
 			settingsServiceApplyUpdateHandler.ServeHTTP(w, r)
+		case SettingsServiceRevertUpdateProcedure:
+			settingsServiceRevertUpdateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -502,4 +533,8 @@ func (UnimplementedSettingsServiceHandler) CheckUpdate(context.Context, *connect
 
 func (UnimplementedSettingsServiceHandler) ApplyUpdate(context.Context, *connect.Request[v1.ApplyUpdateRequest]) (*connect.Response[v1.ApplyUpdateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.ApplyUpdate is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) RevertUpdate(context.Context, *connect.Request[v1.RevertUpdateRequest]) (*connect.Response[v1.RevertUpdateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.RevertUpdate is not implemented"))
 }

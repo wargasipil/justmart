@@ -165,6 +165,14 @@ export class PurchaseReceiptItem extends Message<PurchaseReceiptItem> {
    */
   unitFactor = protoInt64.zero;
 
+  /**
+   * Current on-hand of this line's batch in the PO warehouse (BASE units) — the
+   * max returnable for this receipt line. Only populated on the PO-detail load.
+   *
+   * @generated from field: int64 returnable_qty = 13;
+   */
+  returnableQty = protoInt64.zero;
+
   constructor(data?: PartialMessage<PurchaseReceiptItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -185,6 +193,7 @@ export class PurchaseReceiptItem extends Message<PurchaseReceiptItem> {
     { no: 10, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "unit_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 12, name: "unit_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 13, name: "returnable_qty", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseReceiptItem {

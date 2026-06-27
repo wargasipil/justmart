@@ -5,6 +5,7 @@ import {
   purchaseOrderClient,
   purchasePaymentClient,
   purchaseReceiptClient,
+  purchaseReturnClient,
 } from "../lib/clients";
 import type {
   CreatePurchaseOrderRequest,
@@ -19,6 +20,7 @@ import type {
   GetSupplierBalancesRequest,
   PayPurchaseRequest,
 } from "../gen/purchasing_iface/v1/payment_pb";
+import type { CreatePurchaseReturnRequest } from "../gen/purchasing_iface/v1/return_pb";
 import { ALL_LIMIT } from "../lib/pagination";
 
 export const purchasingKeys = {
@@ -26,6 +28,7 @@ export const purchasingKeys = {
   orders: (filters: object) => [...purchasingKeys.all, "orders", filters] as const,
   order: (id: string) => [...purchasingKeys.all, "order", id] as const,
   receipts: (poId: string) => [...purchasingKeys.all, "receipts", poId] as const,
+  returns: (poId: string) => [...purchasingKeys.all, "returns", poId] as const,
   balances: (filters: object) => [...purchasingKeys.all, "balances", filters] as const,
 };
 
@@ -120,6 +123,31 @@ export function useCreateReceiptMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<CreateReceiptRequest>) =>
       purchaseReceiptClient.createReceipt(req),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: purchasingKeys.all });
+      void qc.invalidateQueries({ queryKey: ["batches"] });
+      void qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+// ---------- Returns ----------
+export function usePurchaseReturnsQuery(purchaseOrderId: string) {
+  return useQuery({
+    queryKey: purchasingKeys.returns(purchaseOrderId),
+    queryFn: async () => {
+      const res = await purchaseReturnClient.listPurchaseReturns({ purchaseOrderId });
+      return res.returns;
+    },
+    enabled: !!purchaseOrderId,
+  });
+}
+
+export function useCreatePurchaseReturnMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<CreatePurchaseReturnRequest>) =>
+      purchaseReturnClient.createPurchaseReturn(req),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: purchasingKeys.all });
       void qc.invalidateQueries({ queryKey: ["batches"] });

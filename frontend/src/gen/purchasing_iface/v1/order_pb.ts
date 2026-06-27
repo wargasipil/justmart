@@ -105,7 +105,7 @@ export class PurchaseOrder extends Message<PurchaseOrder> {
   paidAmount = protoInt64.zero;
 
   /**
-   * ordered_total - paid_amount (computed)
+   * ordered_total − paid_amount − returned_amount (may be negative = supplier credit)
    *
    * @generated from field: int64 outstanding = 9;
    */
@@ -211,6 +211,13 @@ export class PurchaseOrder extends Message<PurchaseOrder> {
    */
   ppnRate = 0;
 
+  /**
+   * accumulated purchase-return value (drops outstanding)
+   *
+   * @generated from field: int64 returned_amount = 26;
+   */
+  returnedAmount = protoInt64.zero;
+
   constructor(data?: PartialMessage<PurchaseOrder>) {
     super();
     proto3.util.initPartial(data, this);
@@ -244,6 +251,7 @@ export class PurchaseOrder extends Message<PurchaseOrder> {
     { no: 23, name: "ppn_enabled", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 24, name: "ppn_amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 25, name: "ppn_rate", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 26, name: "returned_amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrder {

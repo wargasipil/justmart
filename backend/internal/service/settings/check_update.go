@@ -3,12 +3,15 @@ package settings
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
 	"connectrpc.com/connect"
 
 	settingsifacev1 "github.com/justmart/backend/gen/settings_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 	"github.com/justmart/backend/internal/update"
 )
 
@@ -31,10 +34,25 @@ func (s *SettingsService) CheckUpdate(
 	_ *connect.Request[settingsifacev1.CheckUpdateRequest],
 ) (*connect.Response[settingsifacev1.CheckUpdateResponse], error) {
 	cur := s.currentVersion()
+
+	// Rollback availability is local (a justmart.exe.bak next to the binary) — it
+	// works offline and even when updates are disabled, so compute it up front and
+	// report it on both branches. The version label is best-effort.
+	canRevert := false
+	backupVersion := ""
+	if runtime.GOOS == "windows" {
+		if exePath, err := os.Executable(); err == nil && update.HasBackup(filepath.Dir(exePath)) {
+			canRevert = true
+			backupVersion, _ = common.GetUpdatePrevVersion(ctx, s.db)
+		}
+	}
+
 	if s.updateCfg.Disabled {
 		return connect.NewResponse(&settingsifacev1.CheckUpdateResponse{
 			CurrentVersion: cur,
 			Enabled:        false,
+			CanRevert:      canRevert,
+			BackupVersion:  backupVersion,
 		}), nil
 	}
 
@@ -50,5 +68,7 @@ func (s *SettingsService) CheckUpdate(
 		PublishedAt:     info.PublishedAt,
 		Enabled:         true,
 		CanSelfApply:    canSelfApply,
+		CanRevert:       canRevert,
+		BackupVersion:   backupVersion,
 	}), nil
 }

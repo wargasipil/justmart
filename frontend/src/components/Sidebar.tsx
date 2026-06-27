@@ -10,6 +10,7 @@ import {
   ChevronsRight,
   ClipboardList,
   FileText,
+  Handshake,
   LayoutDashboard,
   LogOut,
   Package,
@@ -80,6 +81,7 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       children: [
         { to: "/purchasing", label: t("nav.purchasing"), icon: Truck },
         { to: "/inventory/suppliers", label: t("inventory.tabs.suppliers"), icon: Building2 },
+        { to: "/inventory/price-agreements", label: t("nav.priceAgreements"), icon: Handshake },
         { to: "/inventory/batches", label: t("inventory.tabs.batches"), icon: Boxes },
         { to: "/inventory/movements", label: t("inventory.tabs.movements"), icon: ArrowLeftRight },
         { to: "/inventory/stocktake", label: t("inventory.tabs.stocktake"), icon: ClipboardList },

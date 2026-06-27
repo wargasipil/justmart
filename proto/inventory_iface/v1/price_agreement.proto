@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package inventory_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+// A negotiated/agreed purchase price for a product from a supplier, quoted per a
+// chosen purchasable unit (box/strip/pcs). Reference data — does NOT feed the PO
+// flow. Supplier/product names are resolved on the client via ResolveSuppliers /
+// ResolveProducts (refs), not denormalized here.
+message PriceAgreement {
+  string id = 1;
+  string supplier_id = 2;
+  string product_id = 3;
+  string product_unit_id = 4;
+  string unit_name = 5;       // snapshot of the unit (e.g. "box")
+  int64 unit_factor = 6;      // base units per 1 of the unit
+  int64 price = 7;            // agreed cost for 1 of the unit (minor units)
+  string valid_from = 8;      // YYYY-MM-DD or "" (none)
+  string valid_until = 9;     // YYYY-MM-DD or "" (none)
+  string note = 10;
+  bool active = 11;
+  int64 created_at = 12;
+}
+
+// Validity-window filter for the list (computed from valid_from/valid_until vs
+// today, server-local). UNSPECIFIED = no validity filter (all).
+enum PriceAgreementValidity {
+  PRICE_AGREEMENT_VALIDITY_UNSPECIFIED = 0; // all
+  PRICE_AGREEMENT_VALIDITY_CURRENT = 1;     // valid today (open-ended dates count as valid)
+  PRICE_AGREEMENT_VALIDITY_EXPIRED = 2;     // valid_until < today
+  PRICE_AGREEMENT_VALIDITY_UPCOMING = 3;    // valid_from > today
+}
+
+service PriceAgreementService {
+  rpc ListPriceAgreements(ListPriceAgreementsRequest) returns (ListPriceAgreementsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc GetPriceAgreement(GetPriceAgreementRequest) returns (GetPriceAgreementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc CreatePriceAgreement(CreatePriceAgreementRequest) returns (CreatePriceAgreementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // Batch create: many product/unit lines for ONE supplier in a single tx
+  // (all-or-nothing). Backs the dedicated "New price agreement" page.
+  rpc CreatePriceAgreements(CreatePriceAgreementsRequest) returns (CreatePriceAgreementsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdatePriceAgreement(UpdatePriceAgreementRequest) returns (UpdatePriceAgreementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ArchivePriceAgreement(ArchivePriceAgreementRequest) returns (ArchivePriceAgreementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UnarchivePriceAgreement(UnarchivePriceAgreementRequest) returns (UnarchivePriceAgreementResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListPriceAgreementsRequest {
+  string supplier_id = 1;     // optional filter
+  string product_id = 2;      // optional filter
+  string query = 3;           // optional ILIKE product name/sku + supplier name/code
+  bool include_inactive = 4;
+  int32 limit = 5;
+  int32 offset = 6;
+  PriceAgreementValidity validity = 7; // optional validity-window filter
+}
+message ListPriceAgreementsResponse {
+  repeated PriceAgreement agreements = 1;
+  int32 total = 2;
+}
+
+message GetPriceAgreementRequest { string id = 1; }
+message GetPriceAgreementResponse { PriceAgreement agreement = 1; }
+
+message CreatePriceAgreementRequest {
+  string supplier_id = 1;
+  string product_id = 2;
+  string product_unit_id = 3;
+  int64 price = 4;
+  string valid_from = 5;      // YYYY-MM-DD or ""
+  string valid_until = 6;     // YYYY-MM-DD or ""
+  string note = 7;
+}
+message CreatePriceAgreementResponse { PriceAgreement agreement = 1; }
+
+// One line of a batch create — a product/unit/price quote under a shared supplier.
+message PriceAgreementItemInput {
+  string product_id = 1;
+  string product_unit_id = 2;
+  int64 price = 3;            // agreed cost for 1 of the unit (minor units)
+  string valid_from = 4;      // YYYY-MM-DD or ""
+  string valid_until = 5;     // YYYY-MM-DD or ""
+  string note = 6;
+}
+message CreatePriceAgreementsRequest {
+  string supplier_id = 1;
+  repeated PriceAgreementItemInput items = 2;
+}
+message CreatePriceAgreementsResponse { repeated PriceAgreement agreements = 1; }
+
+message UpdatePriceAgreementRequest {
+  string id = 1;
+  string product_unit_id = 2;
+  int64 price = 3;
+  string valid_from = 4;
+  string valid_until = 5;
+  string note = 6;
+}
+message UpdatePriceAgreementResponse { PriceAgreement agreement = 1; }
+
+message ArchivePriceAgreementRequest { string id = 1; }
+message ArchivePriceAgreementResponse { PriceAgreement agreement = 1; }
+
+message UnarchivePriceAgreementRequest { string id = 1; }
+message UnarchivePriceAgreementResponse { PriceAgreement agreement = 1; }

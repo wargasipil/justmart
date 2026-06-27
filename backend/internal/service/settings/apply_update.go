@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 
 	settingsifacev1 "github.com/justmart/backend/gen/settings_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 	"github.com/justmart/backend/internal/update"
 )
 
@@ -46,6 +47,10 @@ func (s *SettingsService) ApplyUpdate(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
+	// Best-effort: the current version becomes justmart.exe.bak after the launcher
+	// swap, so record it as the rollback target for the Updates "Revert" action.
+	_ = common.SetUpdatePrevVersion(ctx, s.db, s.currentVersion())
+
 	return connect.NewResponse(&settingsifacev1.ApplyUpdateResponse{
 		StagedVersion: staged,
 		Restarting:    false, // applied on next restart via the launcher swap

@@ -28,13 +28,13 @@ func (p *PurchasePayments) GetSupplierBalances(
 		        s.name AS supplier_name,
 		        COALESCE(SUM(po.ordered_total), 0) AS ordered_total,
 		        COALESCE(SUM(po.paid_amount), 0) AS paid_total,
-		        COALESCE(SUM(po.ordered_total - po.paid_amount), 0) AS outstanding,
+		        COALESCE(SUM(po.ordered_total - po.paid_amount - po.returned_amount), 0) AS outstanding,
 		        COUNT(po.id) FILTER (WHERE po.status NOT IN (?, ?)) AS open_po_count`,
 			poStatusClosed, poStatusVoided).
 		Group("s.id, s.name").
 		Where("s.active = ?", true)
 	if req.Msg.OnlyOutstanding {
-		q = q.Having("COALESCE(SUM(po.ordered_total - po.paid_amount), 0) > 0")
+		q = q.Having("COALESCE(SUM(po.ordered_total - po.paid_amount - po.returned_amount), 0) > 0")
 	}
 	q = q.Order("outstanding DESC, s.name ASC")
 

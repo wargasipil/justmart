@@ -12,7 +12,7 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -22,9 +22,12 @@ import EnumSelect from "../../components/EnumSelect";
 import MoneyInput from "../../components/MoneyInput";
 import NumberInput from "../../components/NumberInput";
 import SearchableSelect from "../../components/SearchableSelect";
+import type { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { formatMoney } from "../../lib/format";
+import { ALL_LIMIT } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
+import { usePriceAgreementsQuery } from "../../queries/priceAgreements";
 import { searchProducts } from "../../queries/products";
 import { useCreatePurchaseOrderMutation } from "../../queries/purchasing";
 import { searchSuppliers } from "../../queries/suppliers";
@@ -65,6 +68,10 @@ const netUnitCostOf = (l: Line): number => {
 };
 const unitNameOf = (l: Line): string =>
   l.units.find((x) => x.id === l.productUnitId)?.name ?? "";
+// GROSS cost per CHOSEN unit (entered line total / qty, before discount) — the
+// basis for the price-agreement comparison.
+const perChosenUnitGross = (l: Line): number =>
+  l.orderedQty > 0 ? l.lineTotal / l.orderedQty : 0;
 
 const emptyLine = (): Line => ({
   productId: "",
@@ -90,6 +97,29 @@ export default function NewPurchaseOrder() {
   const [cartDiscount, setCartDiscount] = useState(0);
   const [ppnEnabled, setPpnEnabled] = useState(false);
   const [ppnRate, setPpnRate] = useState(11); // percent; current Indonesian default
+
+  // Active price agreements for the chosen supplier — reference only, to warn
+  // (not block) when a line's entered cost is above the agreed price. Gated on
+  // a supplier so we don't fetch every supplier's agreements when none is set.
+  const agreementsQ = usePriceAgreementsQuery({
+    supplierId,
+    includeInactive: false,
+    pageSize: ALL_LIMIT,
+    enabled: !!supplierId,
+  });
+  const agreementMap = useMemo(() => {
+    const m = new Map<string, PriceAgreement>();
+    for (const a of agreementsQ.rows) m.set(`${a.productId}|${a.productUnitId}`, a);
+    return m;
+  }, [agreementsQ.rows]);
+  // Exact-unit match: an agreement only applies when the line is bought in the
+  // same unit it was negotiated for.
+  const agreementFor = (l: Line): PriceAgreement | undefined =>
+    l.productId && l.productUnitId ? agreementMap.get(`${l.productId}|${l.productUnitId}`) : undefined;
+  const isAboveAgreement = (l: Line): boolean => {
+    const a = agreementFor(l);
+    return a ? perChosenUnitGross(l) > Number(a.price) : false;
+  };
 
   // Sum the NET line totals (after per-line discount) so the displayed totals
   // match what the backend computes from the same discounts.
@@ -236,8 +266,11 @@ export default function NewPurchaseOrder() {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {lines.map((l, idx) => (
-                <Table.Row key={idx}>
+              {lines.map((l, idx) => {
+                const agreement = agreementFor(l);
+                const above = isAboveAgreement(l);
+                return (
+                <Table.Row key={idx} bg={above ? "red.subtle" : undefined}>
                   <Table.Cell>
                     <SearchableSelect
                       size="sm"
@@ -249,6 +282,19 @@ export default function NewPurchaseOrder() {
                       itemToValue={(m) => m.id}
                       placeholder={t("purchasing.selectProduct")}
                     />
+                    {agreement && (
+                      <Stack gap={0.5} mt={1}>
+                        <Text fontSize="xs" color="fg.muted">
+                          {t("purchasing.agreedPrice", { price: formatMoney(Number(agreement.price)) })}
+                        </Text>
+                        {above && (
+                          <HStack gap={1} color="red.500">
+                            <AlertTriangle size={12} />
+                            <Text fontSize="xs">{t("purchasing.aboveAgreement")}</Text>
+                          </HStack>
+                        )}
+                      </Stack>
+                    )}
                   </Table.Cell>
                   <Table.Cell>
                     {l.units.length > 1 ? (
@@ -344,7 +390,8 @@ export default function NewPurchaseOrder() {
                     </IconButton>
                   </Table.Cell>
                 </Table.Row>
-              ))}
+                );
+              })}
             </Table.Body>
           </Table.Root>
         </Box>

@@ -32,6 +32,9 @@ message PurchaseReceiptItem {
   string product_unit_id = 10;
   string unit_name = 11;
   int64 unit_factor = 12;
+  // Current on-hand of this line's batch in the PO warehouse (BASE units) — the
+  // max returnable for this receipt line. Only populated on the PO-detail load.
+  int64 returnable_qty = 13;
 }
 
 message ReceiveLineInput {

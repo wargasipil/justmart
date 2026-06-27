@@ -26,6 +26,7 @@ type poEnv struct {
 	pos      *purchasing.PurchaseOrders
 	receipts *purchasing.PurchaseReceipts
 	payments *purchasing.PurchasePayments
+	returns  *purchasing.PurchaseReturns
 	products *productsvc.ProductService
 	supplier *suppliersvc.SupplierService
 }
@@ -42,9 +43,38 @@ func newPOEnv(t *testing.T) *poEnv {
 		pos:      purchasing.NewPurchaseOrderService(gormDB),
 		receipts: purchasing.NewPurchaseReceiptService(gormDB),
 		payments: purchasing.NewPurchasePaymentService(gormDB),
+		returns:  purchasing.NewPurchaseReturnService(gormDB),
 		products: productsvc.NewProductService(gormDB),
 		supplier: suppliersvc.NewSupplierService(gormDB),
 	}
+}
+
+// receiptItem returns the first receipt line's (id, batch_id) for a receipt.
+func (e *poEnv) receiptItem(t *testing.T, receiptID string) (itemID, batchID string) {
+	t.Helper()
+	resp, err := e.receipts.GetReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.GetReceiptRequest{Id: receiptID}))
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.Msg.Receipt.Items)
+	it := resp.Msg.Receipt.Items[0]
+	return it.Id, it.BatchId
+}
+
+// batchOnHand sums stock_movements.qty for a batch across all warehouses.
+func (e *poEnv) batchOnHand(t *testing.T, batchID string) int64 {
+	t.Helper()
+	var total int64
+	require.NoError(t, e.db.Raw(
+		"SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE batch_id = ?", batchID,
+	).Scan(&total).Error)
+	return total
+}
+
+// getPO reloads a PO proto (status, outstanding, items).
+func (e *poEnv) getPO(t *testing.T, poID string) *purchasingifacev1.PurchaseOrder {
+	t.Helper()
+	resp, err := e.pos.GetPurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.GetPurchaseOrderRequest{Id: poID}))
+	require.NoError(t, err)
+	return resp.Msg.Order
 }
 
 // seedSupplier creates a supplier via the real CreateSupplier handler and returns

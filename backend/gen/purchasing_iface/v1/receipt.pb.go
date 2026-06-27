@@ -145,6 +145,9 @@ type PurchaseReceiptItem struct {
 	ProductUnitId string `protobuf:"bytes,10,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"`
 	UnitName      string `protobuf:"bytes,11,opt,name=unit_name,json=unitName,proto3" json:"unit_name,omitempty"`
 	UnitFactor    int64  `protobuf:"varint,12,opt,name=unit_factor,json=unitFactor,proto3" json:"unit_factor,omitempty"`
+	// Current on-hand of this line's batch in the PO warehouse (BASE units) — the
+	// max returnable for this receipt line. Only populated on the PO-detail load.
+	ReturnableQty int64 `protobuf:"varint,13,opt,name=returnable_qty,json=returnableQty,proto3" json:"returnable_qty,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -259,6 +262,13 @@ func (x *PurchaseReceiptItem) GetUnitName() string {
 func (x *PurchaseReceiptItem) GetUnitFactor() int64 {
 	if x != nil {
 		return x.UnitFactor
+	}
+	return 0
+}
+
+func (x *PurchaseReceiptItem) GetReturnableQty() int64 {
+	if x != nil {
+		return x.ReturnableQty
 	}
 	return 0
 }
@@ -662,7 +672,7 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"created_at\x18\a \x01(\x03R\tcreatedAt\x12>\n" +
 	"\x05items\x18\b \x03(\v2(.purchasing_iface.v1.PurchaseReceiptItemR\x05items\x12\x1d\n" +
 	"\n" +
-	"invoice_no\x18\t \x01(\tR\tinvoiceNo\"\xa8\x03\n" +
+	"invoice_no\x18\t \x01(\tR\tinvoiceNo\"\xcf\x03\n" +
 	"\x13PurchaseReceiptItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x13purchase_receipt_id\x18\x02 \x01(\tR\x11purchaseReceiptId\x123\n" +
@@ -679,7 +689,8 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	" \x01(\tR\rproductUnitId\x12\x1b\n" +
 	"\tunit_name\x18\v \x01(\tR\bunitName\x12\x1f\n" +
 	"\vunit_factor\x18\f \x01(\x03R\n" +
-	"unitFactor\"\xed\x01\n" +
+	"unitFactor\x12%\n" +
+	"\x0ereturnable_qty\x18\r \x01(\x03R\rreturnableQty\"\xed\x01\n" +
 	"\x10ReceiveLineInput\x123\n" +
 	"\x16purchase_order_item_id\x18\x01 \x01(\tR\x13purchaseOrderItemId\x12\x10\n" +
 	"\x03qty\x18\x02 \x01(\x05R\x03qty\x12&\n" +

@@ -600,6 +600,80 @@ export class ArchiveSupplierResponse extends Message<ArchiveSupplierResponse> {
 }
 
 /**
+ * @generated from message inventory_iface.v1.UnarchiveSupplierRequest
+ */
+export class UnarchiveSupplierRequest extends Message<UnarchiveSupplierRequest> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  constructor(data?: PartialMessage<UnarchiveSupplierRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.UnarchiveSupplierRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnarchiveSupplierRequest {
+    return new UnarchiveSupplierRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnarchiveSupplierRequest {
+    return new UnarchiveSupplierRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnarchiveSupplierRequest {
+    return new UnarchiveSupplierRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UnarchiveSupplierRequest | PlainMessage<UnarchiveSupplierRequest> | undefined, b: UnarchiveSupplierRequest | PlainMessage<UnarchiveSupplierRequest> | undefined): boolean {
+    return proto3.util.equals(UnarchiveSupplierRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.UnarchiveSupplierResponse
+ */
+export class UnarchiveSupplierResponse extends Message<UnarchiveSupplierResponse> {
+  /**
+   * @generated from field: inventory_iface.v1.Supplier supplier = 1;
+   */
+  supplier?: Supplier;
+
+  constructor(data?: PartialMessage<UnarchiveSupplierResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.UnarchiveSupplierResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "supplier", kind: "message", T: Supplier },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UnarchiveSupplierResponse {
+    return new UnarchiveSupplierResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UnarchiveSupplierResponse {
+    return new UnarchiveSupplierResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UnarchiveSupplierResponse {
+    return new UnarchiveSupplierResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UnarchiveSupplierResponse | PlainMessage<UnarchiveSupplierResponse> | undefined, b: UnarchiveSupplierResponse | PlainMessage<UnarchiveSupplierResponse> | undefined): boolean {
+    return proto3.util.equals(UnarchiveSupplierResponse, a, b);
+  }
+}
+
+/**
  * @generated from message inventory_iface.v1.SearchSuppliersRequest
  */
 export class SearchSuppliersRequest extends Message<SearchSuppliersRequest> {

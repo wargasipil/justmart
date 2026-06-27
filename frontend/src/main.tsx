@@ -36,6 +36,8 @@ import Pos from "./routes/Pos";
 import Products from "./routes/inventory/Products";
 import ProductDetail from "./routes/inventory/ProductDetail";
 import Suppliers from "./routes/inventory/Suppliers";
+import PriceAgreements from "./routes/inventory/PriceAgreements";
+import NewPriceAgreement from "./routes/inventory/NewPriceAgreement";
 import SupplierDetail from "./routes/inventory/SupplierDetail";
 import Batches from "./routes/inventory/Batches";
 import Movements from "./routes/inventory/Movements";
@@ -132,6 +134,8 @@ const router = createBrowserRouter([
               { path: "products", element: <Navigate to="/products" replace /> },
               { path: "suppliers", element: <Suppliers /> },
               { path: "suppliers/:id", element: <SupplierDetail /> },
+              { path: "price-agreements", element: <PriceAgreements /> },
+              { path: "price-agreements/new", element: <NewPriceAgreement /> },
               { path: "batches", element: <Batches /> },
               { path: "movements", element: <Movements /> },
               { path: "stocktake", element: <Stocktake /> },
