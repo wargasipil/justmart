@@ -174,7 +174,10 @@ export default function SupplierDetail() {
                       <Table.Cell>{productRefs.get(r.productId)?.name ?? "—"}</Table.Cell>
                       <Table.Cell textAlign="end">{formatMoney(r.lastPrice)}</Table.Cell>
                       <Table.Cell textAlign="end">{r.lastQty.toString()}</Table.Cell>
-                      <Table.Cell textAlign="end">{formatDiscount(r.lastDiscountType, r.lastDiscountValue)}</Table.Cell>
+                      <Table.Cell textAlign="end">
+                        {formatDiscount(r.lastDiscountType, r.lastDiscountValue)}
+                        {r.lastDiscountValue > 0n && r.lastDiscountPerItem ? ` ${t("purchasing.perItemSuffix")}` : ""}
+                      </Table.Cell>
                       <Table.Cell>{formatUnixOrDash(r.lastCreatedAt)}</Table.Cell>
                       <Table.Cell>{formatUnixOrDash(r.lastArrivedAt)}</Table.Cell>
                     </Table.Row>

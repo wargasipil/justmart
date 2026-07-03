@@ -932,6 +932,13 @@ export class SupplierProductRestock extends Message<SupplierProductRestock> {
    */
   lastArrivedAt = protoInt64.zero;
 
+  /**
+   * when true, discount was applied per item (× qty)
+   *
+   * @generated from field: bool last_discount_per_item = 8;
+   */
+  lastDiscountPerItem = false;
+
   constructor(data?: PartialMessage<SupplierProductRestock>) {
     super();
     proto3.util.initPartial(data, this);
@@ -947,6 +954,7 @@ export class SupplierProductRestock extends Message<SupplierProductRestock> {
     { no: 5, name: "last_discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "last_created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "last_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "last_discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SupplierProductRestock {

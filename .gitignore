@@ -18,6 +18,7 @@ data/
 # Go
 /backend/bin/
 /backend/tmp/
+/backend/backups/
 *.test
 *.out
 
@@ -64,3 +65,4 @@ Thumbs.db
 thirdparties/bin
 server.exe
 license.exe
+graphify-out/

@@ -9,6 +9,7 @@ import type {
   DetachPrescriptionRequest,
   SetServiceFeeRequest,
   SetLineDiscountRequest,
+  ClearLineDiscountRequest,
   SetCartDiscountRequest,
   GetSalesSummaryRequest,
   ListSalesRequest,
@@ -114,6 +115,17 @@ export function useSetLineDiscountMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<SetLineDiscountRequest>) =>
       saleClient.setLineDiscount(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+  });
+}
+
+export function useClearLineDiscountMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<ClearLineDiscountRequest>) =>
+      saleClient.clearLineDiscount(req),
     onSuccess: (res) => {
       if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
     },

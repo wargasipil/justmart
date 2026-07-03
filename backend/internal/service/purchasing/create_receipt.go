@@ -199,16 +199,17 @@ func (p *PurchaseReceipts) CreateReceipt(
 			// Record the restock: upsert the last-value row + append a log row
 			// (drives supplier detail, product-list columns, restock-history tab).
 			if err := recordRestock(tx, restockEntry{
-				WarehouseID:   warehouseID,
-				ProductID:     poItem.ProductID,
-				SupplierID:    supplierID,
-				Price:         unitCost,
-				Qty:           int64(baseQty),
-				DiscountType:  poItem.DiscountType,
-				DiscountValue: poItem.DiscountValue,
-				CreatedAt:     po.CreatedAt, // PO (restock order) created
-				ArrivedAt:     receivedAt,   // receipt received_at
-				ReceiptID:     receipt.ID,
+				WarehouseID:     warehouseID,
+				ProductID:       poItem.ProductID,
+				SupplierID:      supplierID,
+				Price:           unitCost,
+				Qty:             int64(baseQty),
+				DiscountType:    poItem.DiscountType,
+				DiscountValue:   poItem.DiscountValue,
+				DiscountPerItem: poItem.DiscountPerItem,
+				CreatedAt:       po.CreatedAt, // PO (restock order) created
+				ArrivedAt:       receivedAt,   // receipt received_at
+				ReceiptID:       receipt.ID,
 			}); err != nil {
 				return err
 			}

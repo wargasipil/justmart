@@ -233,9 +233,10 @@ export default function PurchaseOrderDetail() {
                 <Table.Cell fontFamily="mono">{formatMoney(Number(it.unitCostPrice))}</Table.Cell>
                 <Table.Cell fontFamily="mono" color="fg.muted">
                   {it.discountValue > 0n
-                    ? it.discountType === "PERCENT"
-                      ? `${Number(it.discountValue) / 100}%`
-                      : `−${formatMoney(Number(it.discountValue))}`
+                    ? (it.discountType === "PERCENT"
+                        ? `${Number(it.discountValue) / 100}%`
+                        : `−${formatMoney(Number(it.discountValue))}`) +
+                      (it.discountPerItem ? ` ${t("purchasing.perItemSuffix")}` : "")
                     : "—"}
                 </Table.Cell>
                 <Table.Cell fontFamily="mono">{formatMoney(Number(it.subtotal))}</Table.Cell>

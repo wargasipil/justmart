@@ -18,6 +18,7 @@ import {
   Receipt,
   Repeat,
   Settings as SettingsIcon,
+  ShoppingBag,
   ShoppingCart,
   Store,
   Truck,
@@ -65,7 +66,20 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       icon: BarChart3,
       roles: [Role.OWNER, Role.PHARMACIST],
     },
-    { to: "/pos", label: t("nav.pos"), icon: ShoppingCart },
+    {
+      kind: "group",
+      label: t("nav.order"),
+      icon: ShoppingBag,
+      children: [
+        { to: "/pos", label: t("nav.pos"), icon: ShoppingCart },
+        {
+          to: "/orders",
+          label: t("nav.orders"),
+          icon: Receipt,
+          roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER],
+        },
+      ],
+    },
     {
       to: "/products",
       // In pharmacy mode the catalog is "Obat" (medicines); in retail it's "Produk".
@@ -102,12 +116,6 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       to: "/customers",
       label: t("nav.customers"),
       icon: UserRound,
-    },
-    {
-      to: "/orders",
-      label: t("nav.orders"),
-      icon: Receipt,
-      roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER],
     },
     {
       // Self-scoped performance view for the till roles (own sales over time).

@@ -728,6 +728,7 @@ type ProductRestockLog struct {
 	DiscountValue    int64                  `protobuf:"varint,6,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`            // FIXED minor units | PERCENT basis points
 	RestockCreatedAt int64                  `protobuf:"varint,7,opt,name=restock_created_at,json=restockCreatedAt,proto3" json:"restock_created_at,omitempty"` // unix; PO (restock order) created
 	RestockArrivedAt int64                  `protobuf:"varint,8,opt,name=restock_arrived_at,json=restockArrivedAt,proto3" json:"restock_arrived_at,omitempty"` // unix; receipt received_at
+	DiscountPerItem  bool                   `protobuf:"varint,9,opt,name=discount_per_item,json=discountPerItem,proto3" json:"discount_per_item,omitempty"`    // when true, discount was applied per item (× qty)
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -816,6 +817,13 @@ func (x *ProductRestockLog) GetRestockArrivedAt() int64 {
 		return x.RestockArrivedAt
 	}
 	return 0
+}
+
+func (x *ProductRestockLog) GetDiscountPerItem() bool {
+	if x != nil {
+		return x.DiscountPerItem
+	}
+	return false
 }
 
 type ListProductsRequest struct {
@@ -2383,7 +2391,7 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\x0eeffective_from\x18\x05 \x01(\x03R\reffectiveFrom\x12!\n" +
 	"\feffective_to\x18\x06 \x01(\x03R\veffectiveTo\x12\x1d\n" +
 	"\n" +
-	"changed_by\x18\a \x01(\tR\tchangedBy\"\x94\x02\n" +
+	"changed_by\x18\a \x01(\tR\tchangedBy\"\xc0\x02\n" +
 	"\x11ProductRestockLog\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
 	"\vsupplier_id\x18\x02 \x01(\tR\n" +
@@ -2393,7 +2401,8 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\rdiscount_type\x18\x05 \x01(\tR\fdiscountType\x12%\n" +
 	"\x0ediscount_value\x18\x06 \x01(\x03R\rdiscountValue\x12,\n" +
 	"\x12restock_created_at\x18\a \x01(\x03R\x10restockCreatedAt\x12,\n" +
-	"\x12restock_arrived_at\x18\b \x01(\x03R\x10restockArrivedAt\"\xce\x01\n" +
+	"\x12restock_arrived_at\x18\b \x01(\x03R\x10restockArrivedAt\x12*\n" +
+	"\x11discount_per_item\x18\t \x01(\bR\x0fdiscountPerItem\"\xce\x01\n" +
 	"\x13ListProductsRequest\x12)\n" +
 	"\x10include_inactive\x18\x01 \x01(\bR\x0fincludeInactive\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +

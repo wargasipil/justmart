@@ -397,6 +397,20 @@ export class SaleItem extends Message<SaleItem> {
    */
   discountValue = protoInt64.zero;
 
+  /**
+   * discount applies per item (×qty), from an auto product discount
+   *
+   * @generated from field: bool discount_per_item = 16;
+   */
+  discountPerItem = false;
+
+  /**
+   * cashier overrode the auto product discount (false = auto/promo)
+   *
+   * @generated from field: bool discount_manual = 17;
+   */
+  discountManual = false;
+
   constructor(data?: PartialMessage<SaleItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -420,6 +434,8 @@ export class SaleItem extends Message<SaleItem> {
     { no: 13, name: "base_qty", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 14, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 15, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 16, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 17, name: "discount_manual", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaleItem {
@@ -1374,6 +1390,86 @@ export class SetLineDiscountResponse extends Message<SetLineDiscountResponse> {
 
   static equals(a: SetLineDiscountResponse | PlainMessage<SetLineDiscountResponse> | undefined, b: SetLineDiscountResponse | PlainMessage<SetLineDiscountResponse> | undefined): boolean {
     return proto3.util.equals(SetLineDiscountResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.ClearLineDiscountRequest
+ */
+export class ClearLineDiscountRequest extends Message<ClearLineDiscountRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * @generated from field: string item_id = 2;
+   */
+  itemId = "";
+
+  constructor(data?: PartialMessage<ClearLineDiscountRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.ClearLineDiscountRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "item_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ClearLineDiscountRequest {
+    return new ClearLineDiscountRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ClearLineDiscountRequest {
+    return new ClearLineDiscountRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ClearLineDiscountRequest {
+    return new ClearLineDiscountRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ClearLineDiscountRequest | PlainMessage<ClearLineDiscountRequest> | undefined, b: ClearLineDiscountRequest | PlainMessage<ClearLineDiscountRequest> | undefined): boolean {
+    return proto3.util.equals(ClearLineDiscountRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.ClearLineDiscountResponse
+ */
+export class ClearLineDiscountResponse extends Message<ClearLineDiscountResponse> {
+  /**
+   * @generated from field: pos_iface.v1.Sale sale = 1;
+   */
+  sale?: Sale;
+
+  constructor(data?: PartialMessage<ClearLineDiscountResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.ClearLineDiscountResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale", kind: "message", T: Sale },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ClearLineDiscountResponse {
+    return new ClearLineDiscountResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ClearLineDiscountResponse {
+    return new ClearLineDiscountResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ClearLineDiscountResponse {
+    return new ClearLineDiscountResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ClearLineDiscountResponse | PlainMessage<ClearLineDiscountResponse> | undefined, b: ClearLineDiscountResponse | PlainMessage<ClearLineDiscountResponse> | undefined): boolean {
+    return proto3.util.equals(ClearLineDiscountResponse, a, b);
   }
 }
 

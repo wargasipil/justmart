@@ -61,6 +61,7 @@ func (s *ProductService) ListProductRestockLogs(
 			Qty:              r.Qty,
 			DiscountType:     r.DiscountType,
 			DiscountValue:    r.DiscountValue,
+			DiscountPerItem:  r.DiscountPerItem,
 			RestockCreatedAt: unixOrZero(r.RestockCreatedAt),
 			RestockArrivedAt: unixOrZero(r.RestockArrivedAt),
 		})

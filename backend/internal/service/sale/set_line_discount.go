@@ -36,10 +36,12 @@ func (s *SaleService) SetLineDiscount(
 			}
 			return connect.NewError(connect.CodeInternal, err)
 		}
+		// Manual override: the cashier's discount wins over any auto product
+		// discount until cleared (ClearLineDiscount reverts to auto).
+		item.DiscountManual = true
 		item.DiscountType = normType
 		item.DiscountValue = req.Msg.DiscountValue
-		item.LineDiscount, item.LineTotal, err = computeLineTotal(item.Qty, item.UnitPriceSnapshot, item.DiscountType, item.DiscountValue)
-		if err != nil {
+		if err := recomputeLine(tx, &item); err != nil {
 			return err
 		}
 		if err := tx.Save(&item).Error; err != nil {

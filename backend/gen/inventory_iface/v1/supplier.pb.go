@@ -1074,16 +1074,17 @@ func (x *ResolveSuppliersResponse) GetSuppliers() []*SupplierRef {
 // One product's last restock from a supplier (product_last_restocks). Product
 // resolved to a name via ResolveProducts on the client.
 type SupplierProductRestock struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ProductId         string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	LastPrice         int64                  `protobuf:"varint,2,opt,name=last_price,json=lastPrice,proto3" json:"last_price,omitempty"`                           // NET unit cost per base unit
-	LastQty           int64                  `protobuf:"varint,3,opt,name=last_qty,json=lastQty,proto3" json:"last_qty,omitempty"`                                 // base units received
-	LastDiscountType  string                 `protobuf:"bytes,4,opt,name=last_discount_type,json=lastDiscountType,proto3" json:"last_discount_type,omitempty"`     // FIXED | PERCENT
-	LastDiscountValue int64                  `protobuf:"varint,5,opt,name=last_discount_value,json=lastDiscountValue,proto3" json:"last_discount_value,omitempty"` // FIXED minor units | PERCENT basis points
-	LastCreatedAt     int64                  `protobuf:"varint,6,opt,name=last_created_at,json=lastCreatedAt,proto3" json:"last_created_at,omitempty"`             // unix; PO (restock order) created
-	LastArrivedAt     int64                  `protobuf:"varint,7,opt,name=last_arrived_at,json=lastArrivedAt,proto3" json:"last_arrived_at,omitempty"`             // unix; receipt received_at
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ProductId           string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	LastPrice           int64                  `protobuf:"varint,2,opt,name=last_price,json=lastPrice,proto3" json:"last_price,omitempty"`                                   // NET unit cost per base unit
+	LastQty             int64                  `protobuf:"varint,3,opt,name=last_qty,json=lastQty,proto3" json:"last_qty,omitempty"`                                         // base units received
+	LastDiscountType    string                 `protobuf:"bytes,4,opt,name=last_discount_type,json=lastDiscountType,proto3" json:"last_discount_type,omitempty"`             // FIXED | PERCENT
+	LastDiscountValue   int64                  `protobuf:"varint,5,opt,name=last_discount_value,json=lastDiscountValue,proto3" json:"last_discount_value,omitempty"`         // FIXED minor units | PERCENT basis points
+	LastCreatedAt       int64                  `protobuf:"varint,6,opt,name=last_created_at,json=lastCreatedAt,proto3" json:"last_created_at,omitempty"`                     // unix; PO (restock order) created
+	LastArrivedAt       int64                  `protobuf:"varint,7,opt,name=last_arrived_at,json=lastArrivedAt,proto3" json:"last_arrived_at,omitempty"`                     // unix; receipt received_at
+	LastDiscountPerItem bool                   `protobuf:"varint,8,opt,name=last_discount_per_item,json=lastDiscountPerItem,proto3" json:"last_discount_per_item,omitempty"` // when true, discount was applied per item (× qty)
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *SupplierProductRestock) Reset() {
@@ -1163,6 +1164,13 @@ func (x *SupplierProductRestock) GetLastArrivedAt() int64 {
 		return x.LastArrivedAt
 	}
 	return 0
+}
+
+func (x *SupplierProductRestock) GetLastDiscountPerItem() bool {
+	if x != nil {
+		return x.LastDiscountPerItem
+	}
+	return false
 }
 
 type ListSupplierRestocksRequest struct {
@@ -1359,7 +1367,7 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x17ResolveSuppliersRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"Y\n" +
 	"\x18ResolveSuppliersResponse\x12=\n" +
-	"\tsuppliers\x18\x01 \x03(\v2\x1f.inventory_iface.v1.SupplierRefR\tsuppliers\"\x9f\x02\n" +
+	"\tsuppliers\x18\x01 \x03(\v2\x1f.inventory_iface.v1.SupplierRefR\tsuppliers\"\xd4\x02\n" +
 	"\x16SupplierProductRestock\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1d\n" +
@@ -1369,7 +1377,8 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x12last_discount_type\x18\x04 \x01(\tR\x10lastDiscountType\x12.\n" +
 	"\x13last_discount_value\x18\x05 \x01(\x03R\x11lastDiscountValue\x12&\n" +
 	"\x0flast_created_at\x18\x06 \x01(\x03R\rlastCreatedAt\x12&\n" +
-	"\x0flast_arrived_at\x18\a \x01(\x03R\rlastArrivedAt\"\x82\x01\n" +
+	"\x0flast_arrived_at\x18\a \x01(\x03R\rlastArrivedAt\x123\n" +
+	"\x16last_discount_per_item\x18\b \x01(\bR\x13lastDiscountPerItem\"\x82\x01\n" +
 	"\x1bListSupplierRestocksRequest\x12\x1f\n" +
 	"\vsupplier_id\x18\x01 \x01(\tR\n" +
 	"supplierId\x12\x14\n" +

@@ -239,18 +239,6 @@ func recomputeSaleTotals(tx *gorm.DB, saleID string) error {
 	}).Error
 }
 
-// computeLineTotal resolves the line's discount off its gross (qty × unitPrice)
-// and returns (resolvedDiscount, lineTotal). PERCENT re-resolves whenever qty or
-// price changes. Caller persists both line_discount + line_total.
-func computeLineTotal(qty int32, unitPrice int64, discType string, discValue int64) (lineDiscount, lineTotal int64, err error) {
-	gross := int64(qty) * unitPrice
-	lineDiscount, _, err = resolveDiscount(gross, discType, discValue)
-	if err != nil {
-		return 0, 0, err
-	}
-	return lineDiscount, gross - lineDiscount, nil
-}
-
 func assignSaleNo(tx *gorm.DB, now time.Time) (string, error) {
 	year := now.Year()
 	var counter model.SaleNoCounter

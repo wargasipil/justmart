@@ -104,6 +104,30 @@ func (e *poEnv) seedProduct(t *testing.T, sku, name string, unitPrice int64) str
 	return resp.Msg.Product.Id
 }
 
+// seedProductWithBox creates a product whose base unit is "tablet" plus a
+// purchasable "box" unit with the given factor (base units per box). Returns the
+// product id and the box unit's id (for PO line ProductUnitId).
+func (e *poEnv) seedProductWithBox(t *testing.T, sku, name string, baseUnitPrice, boxFactor int64) (productID, boxUnitID string) {
+	t.Helper()
+	resp, err := e.products.CreateProduct(e.ctx, connect.NewRequest(&inventoryifacev1.CreateProductRequest{
+		Sku:       sku,
+		Name:      name,
+		Unit:      "tablet",
+		UnitPrice: baseUnitPrice,
+		Units: []*inventoryifacev1.ProductUnitInput{
+			{Name: "box", Factor: boxFactor, Purchasable: true, Sellable: true, Active: true},
+		},
+	}))
+	require.NoError(t, err)
+	for _, u := range resp.Msg.Product.Units {
+		if u.Name == "box" {
+			boxUnitID = u.Id
+		}
+	}
+	require.NotEmpty(t, boxUnitID, "box unit must be created")
+	return resp.Msg.Product.Id, boxUnitID
+}
+
 // createPO creates a single-line PO (DRAFT) and returns the full proto order.
 func (e *poEnv) createPO(t *testing.T, supplierID, productID string, qty int32, unitCost int64) *purchasingifacev1.PurchaseOrder {
 	t.Helper()

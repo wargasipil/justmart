@@ -12,7 +12,7 @@ import {
   Tabs,
   Text,
 } from "@chakra-ui/react";
-import { Archive, ArchiveRestore, Pencil } from "lucide-react";
+import { Archive, ArchiveRestore, Pencil, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -35,7 +35,14 @@ import {
 } from "../../queries/products";
 import { useSupplierRefs } from "../../queries/refs";
 import { useMovementsQuery } from "../../queries/stock";
+import { ProductDiscount } from "../../gen/inventory_iface/v1/product_discount_pb";
+import {
+  formatDiscountValue,
+  useDeleteProductDiscountMutation,
+  useProductDiscountsQuery,
+} from "../../queries/productDiscounts";
 import { EditProductDialog } from "./productDrawers";
+import ProductDiscountDrawer from "./ProductDiscountDrawer";
 
 function fmtVariance(v: bigint): string {
   if (v === 0n) return "±0";
@@ -258,6 +265,7 @@ export default function ProductDetail() {
             <Tabs.Trigger value="prices">{t("inventory.products.soldPriceHistory")}</Tabs.Trigger>
             <Tabs.Trigger value="restocks">{t("inventory.products.restockPriceHistory")}</Tabs.Trigger>
             <Tabs.Trigger value="movements">{t("inventory.products.movementsSection")}</Tabs.Trigger>
+            <Tabs.Trigger value="discount">{t("productDiscounts.section")}</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="batches">
@@ -362,7 +370,10 @@ export default function ProductDetail() {
                     <Table.Cell>{restockSupplierRefs.get(r.supplierId)?.name ?? "—"}</Table.Cell>
                     <Table.Cell textAlign="end">{formatMoney(r.price)}</Table.Cell>
                     <Table.Cell textAlign="end">{r.qty.toString()}</Table.Cell>
-                    <Table.Cell textAlign="end">{formatDiscount(r.discountType, r.discountValue)}</Table.Cell>
+                    <Table.Cell textAlign="end">
+                      {formatDiscount(r.discountType, r.discountValue)}
+                      {r.discountValue > 0n && r.discountPerItem ? ` ${t("purchasing.perItemSuffix")}` : ""}
+                    </Table.Cell>
                     <Table.Cell>{r.restockCreatedAt > 0n ? formatUnix(r.restockCreatedAt) : "—"}</Table.Cell>
                     <Table.Cell>{r.restockArrivedAt > 0n ? formatUnix(r.restockArrivedAt) : "—"}</Table.Cell>
                   </Table.Row>
@@ -402,6 +413,10 @@ export default function ProductDetail() {
               )}
             </Table.Body>
           </Table.Root>
+          </Tabs.Content>
+
+          <Tabs.Content value="discount">
+            <DiscountTab productId={id} />
           </Tabs.Content>
         </Tabs.Root>
       </Stack>
@@ -451,6 +466,135 @@ function Tile({ label, value, muted }: { label: string; value: string; muted?: b
       <Text fontSize="lg" fontWeight="semibold" color={muted ? "fg.muted" : undefined}>
         {value}
       </Text>
+    </Box>
+  );
+}
+
+// Local YYYY-MM-DD for the "expired" check (expires_at is a date string).
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Per-product discount manager: the Product detail "Discount" tab.
+function DiscountTab({ productId }: { productId: string }) {
+  const { t } = useTranslation();
+  const q = useProductDiscountsQuery(productId);
+  const del = useDeleteProductDiscountMutation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editing, setEditing] = useState<ProductDiscount | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ProductDiscount | null>(null);
+  const today = useMemo(() => todayStr(), []);
+  const rows = q.data ?? [];
+
+  const modeLabel = (d: ProductDiscount) => {
+    if (d.perItem) return d.discountType === "PERCENT" ? t("productDiscounts.modePercentItem") : t("productDiscounts.modeFixedItem");
+    return d.discountType === "PERCENT" ? t("productDiscounts.modePercent") : t("productDiscounts.modeFixed");
+  };
+
+  return (
+    <Box>
+      <HStack justify="flex-end" mb={3}>
+        <Button
+          size="sm"
+          colorPalette="blue"
+          onClick={() => {
+            setEditing(null);
+            setDrawerOpen(true);
+          }}
+        >
+          <Plus size={16} />
+          {t("productDiscounts.add")}
+        </Button>
+      </HStack>
+      <Box overflowX="auto">
+        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+          <Table.Header bg="bg.muted">
+            <Table.Row>
+              <Table.ColumnHeader>{t("productDiscounts.mode")}</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">{t("productDiscounts.value")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("productDiscounts.rule")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("productDiscounts.expiresAt")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {rows.map((d) => {
+              const expired = d.expiresAt !== "" && d.expiresAt < today;
+              return (
+                <Table.Row key={d.id}>
+                  <Table.Cell>{modeLabel(d)}</Table.Cell>
+                  <Table.Cell textAlign="end" fontFamily="mono">
+                    {formatDiscountValue(d.discountType, d.perItem, d.value, formatMoney, "/item")}
+                  </Table.Cell>
+                  <Table.Cell color="fg.muted">
+                    {d.minQty > 0 && d.minQtyUnitName
+                      ? t("productDiscounts.minQtyRuleUnit", { count: d.minQty, unit: d.minQtyUnitName })
+                      : d.minQty > 1
+                        ? t("productDiscounts.minQtyRule", { count: d.minQty })
+                        : t("productDiscounts.noRule")}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {d.expiresAt ? (
+                      <HStack gap={2}>
+                        <Text>{d.expiresAt}</Text>
+                        {expired && <Badge colorPalette="red">{t("productDiscounts.expired")}</Badge>}
+                      </HStack>
+                    ) : (
+                      <Text color="fg.muted">{t("productDiscounts.noExpiry")}</Text>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <HStack gap={1}>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditing(d);
+                          setDrawerOpen(true);
+                        }}
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      <Button size="xs" variant="ghost" colorPalette="red" onClick={() => setPendingDelete(d)}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </HStack>
+                  </Table.Cell>
+                </Table.Row>
+              );
+            })}
+            {rows.length === 0 && (
+              <Table.Row>
+                <Table.Cell colSpan={5}>
+                  <Text color="fg.muted" textAlign="center" py={4}>
+                    {t("productDiscounts.empty")}
+                  </Text>
+                </Table.Cell>
+              </Table.Row>
+            )}
+          </Table.Body>
+        </Table.Root>
+      </Box>
+
+      <ProductDiscountDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} productId={productId} editing={editing} />
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title={t("productDiscounts.deleteTitle")}
+        body={t("productDiscounts.deleteBody")}
+        confirmLabel={t("common.delete")}
+        confirmColorPalette="red"
+        loading={del.isPending}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          try {
+            await del.mutateAsync(pendingDelete.id);
+          } finally {
+            setPendingDelete(null);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </Box>
   );
 }

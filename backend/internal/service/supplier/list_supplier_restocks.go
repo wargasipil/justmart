@@ -70,10 +70,11 @@ func (s *SupplierService) ListSupplierRestocks(
 			ProductId:         r.ProductID,
 			LastPrice:         r.LastPrice,
 			LastQty:           r.LastQty,
-			LastDiscountType:  r.LastDiscountType,
-			LastDiscountValue: r.LastDiscountValue,
-			LastCreatedAt:     unixOrZero(r.LastCreatedAt),
-			LastArrivedAt:     unixOrZero(r.LastArrivedAt),
+			LastDiscountType:    r.LastDiscountType,
+			LastDiscountValue:   r.LastDiscountValue,
+			LastDiscountPerItem: r.LastDiscountPerItem,
+			LastCreatedAt:       unixOrZero(r.LastCreatedAt),
+			LastArrivedAt:       unixOrZero(r.LastArrivedAt),
 		})
 	}
 	return connect.NewResponse(&inventoryifacev1.ListSupplierRestocksResponse{

@@ -21,11 +21,12 @@ type restockEntry struct {
 	WarehouseID   string
 	ProductID     string
 	SupplierID    string
-	Price         int64 // NET unit cost per base unit
-	Qty           int64 // base units received
-	DiscountType  string
-	DiscountValue int64
-	CreatedAt     time.Time // PO (restock order) created
+	Price           int64 // NET unit cost per base unit
+	Qty             int64 // base units received
+	DiscountType    string
+	DiscountValue   int64
+	DiscountPerItem bool
+	CreatedAt       time.Time // PO (restock order) created
 	ArrivedAt     time.Time // receipt received_at
 	ReceiptID     string
 }
@@ -44,17 +45,18 @@ func recordRestock(tx *gorm.DB, e restockEntry) error {
 		SupplierID:        e.SupplierID,
 		LastPrice:         e.Price,
 		LastQty:           e.Qty,
-		LastDiscountType:  discType,
-		LastDiscountValue: e.DiscountValue,
-		LastCreatedAt:     e.CreatedAt,
-		LastArrivedAt:     e.ArrivedAt,
-		UpdatedAt:         e.ArrivedAt,
+		LastDiscountType:    discType,
+		LastDiscountValue:   e.DiscountValue,
+		LastDiscountPerItem: e.DiscountPerItem,
+		LastCreatedAt:       e.CreatedAt,
+		LastArrivedAt:       e.ArrivedAt,
+		UpdatedAt:           e.ArrivedAt,
 	}
 	if err := tx.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "warehouse_id"}, {Name: "product_id"}, {Name: "supplier_id"}},
 		DoUpdates: clause.AssignmentColumns([]string{
 			"last_price", "last_qty", "last_discount_type", "last_discount_value",
-			"last_created_at", "last_arrived_at", "updated_at",
+			"last_discount_per_item", "last_created_at", "last_arrived_at", "updated_at",
 		}),
 	}).Create(&last).Error; err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("record last restock: %w", err))
@@ -68,6 +70,7 @@ func recordRestock(tx *gorm.DB, e restockEntry) error {
 		Qty:              e.Qty,
 		DiscountType:     discType,
 		DiscountValue:    e.DiscountValue,
+		DiscountPerItem:  e.DiscountPerItem,
 		RestockCreatedAt: e.CreatedAt,
 		RestockArrivedAt: e.ArrivedAt,
 	}
@@ -90,7 +93,12 @@ const (
 // and the normalized discount type. discValue is minor units when FIXED, basis
 // points (percent*100, so 12.5% = 1250) when PERCENT. The discount is clamped to
 // [0, gross] so the net is never negative; PERCENT rounds half-up like PPN.
-func lineNetSubtotal(gross int64, discType string, discValue int64) (net int64, normType string, err error) {
+//
+// When perItem is true, the discount applies to EACH item's cost (rounded per
+// item) and is then × chosenQty, instead of to the whole line. chosenQty is the
+// line qty in the purchasable unit (the pre-×factor value); perItemGross =
+// gross/chosenQty is exact because gross = chosenQty × factor × unitCost.
+func lineNetSubtotal(gross int64, chosenQty int32, perItem bool, discType string, discValue int64) (net int64, normType string, err error) {
 	if discValue < 0 {
 		return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_negative")
 	}
@@ -98,18 +106,32 @@ func lineNetSubtotal(gross int64, discType string, discValue int64) (net int64, 
 	if normType == "" {
 		normType = discountFixed
 	}
-	var disc int64
-	switch normType {
-	case discountFixed:
-		disc = discValue
-	case discountPercent:
-		if discValue > 10000 { // 100.00%
-			return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_percent_range")
-		}
-		disc = (gross*discValue + 5000) / 10000 // round half up
-	default:
+	if normType != discountFixed && normType != discountPercent {
 		return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_type_invalid")
 	}
+	if normType == discountPercent && discValue > 10000 { // 100.00%
+		return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_percent_range")
+	}
+
+	var disc int64
+	if perItem && chosenQty > 0 {
+		perItemGross := gross / int64(chosenQty) // exact: gross is a multiple of chosenQty
+		var perItemDisc int64
+		if normType == discountFixed {
+			perItemDisc = discValue
+		} else {
+			perItemDisc = (perItemGross*discValue + 5000) / 10000 // round half up, per item
+		}
+		if perItemDisc > perItemGross {
+			perItemDisc = perItemGross
+		}
+		disc = perItemDisc * int64(chosenQty)
+	} else if normType == discountFixed {
+		disc = discValue
+	} else {
+		disc = (gross*discValue + 5000) / 10000 // round half up
+	}
+
 	if disc < 0 {
 		disc = 0
 	}

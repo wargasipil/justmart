@@ -1,8 +1,9 @@
 # Builds the portable Windows distribution (SQLite, no installer) via
 # packaging/windows/build-portable.ps1 — a self-contained justmart.exe + SQLite
 # config + launcher, zipped. Runs on a Windows runner (the script is PowerShell
-# and emits a win64 .exe). Uploads the zip as an artifact on every run, and
-# publishes a GitHub Release with the zip on `v*` tags.
+# and emits a win64 .exe). Runs ONLY on `v*` tags (publishing a GitHub Release
+# with the zip) and on manual dispatch (artifact only) — ordinary pushes/PRs
+# don't build.
 #
 # Trigger a release:  git tag v1.2.0 && git push origin v1.2.0
 # Build on demand:    Actions tab -> "Portable (Windows)" -> Run workflow (set version)
@@ -10,10 +11,7 @@ name: Portable (Windows)
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
     inputs:
       version:

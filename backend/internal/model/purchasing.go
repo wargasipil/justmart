@@ -50,6 +50,9 @@ type PurchaseOrderItem struct {
 	// (percent*100) when PERCENT. Subtotal above is the NET (gross − discount).
 	DiscountType  string `gorm:"not null;default:'FIXED';column:discount_type"`
 	DiscountValue int64  `gorm:"not null;default:0;column:discount_value"`
+	// DiscountPerItem: when true the discount applies to each item's cost (× qty)
+	// instead of the whole line. Combines with DiscountType for 4 effective modes.
+	DiscountPerItem bool `gorm:"not null;default:false;column:discount_per_item"`
 }
 
 func (PurchaseOrderItem) TableName() string { return "purchase_order_items" }

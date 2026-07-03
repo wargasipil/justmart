@@ -96,6 +96,7 @@ message ProductRestockLog {
   int64 discount_value = 6;     // FIXED minor units | PERCENT basis points
   int64 restock_created_at = 7; // unix; PO (restock order) created
   int64 restock_arrived_at = 8; // unix; receipt received_at
+  bool discount_per_item = 9;   // when true, discount was applied per item (× qty)
 }
 
 service ProductService {

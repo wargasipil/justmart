@@ -73,6 +73,8 @@ message SaleItem {
   // type => FIXED).
   string discount_type = 14;
   int64 discount_value = 15;
+  bool discount_per_item = 16;  // discount applies per item (×qty), from an auto product discount
+  bool discount_manual = 17;    // cashier overrode the auto product discount (false = auto/promo)
 }
 
 service SaleService {
@@ -145,6 +147,14 @@ service SaleService {
   // SetLineDiscount sets a per-item discount (FIXED amount or PERCENT) on a cart
   // line and recomputes the line + sale totals. DRAFT only.
   rpc SetLineDiscount(SetLineDiscountRequest) returns (SetLineDiscountResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // ClearLineDiscount removes a manual line discount and reverts the line to the
+  // auto-applied product discount (if any). DRAFT only.
+  rpc ClearLineDiscount(ClearLineDiscountRequest) returns (ClearLineDiscountResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
@@ -288,6 +298,12 @@ message SetLineDiscountRequest {
   int64 discount_value = 4;   // FIXED=minor units; PERCENT=basis points (percent*100); >= 0
 }
 message SetLineDiscountResponse { Sale sale = 1; }
+
+message ClearLineDiscountRequest {
+  string sale_id = 1;
+  string item_id = 2;
+}
+message ClearLineDiscountResponse { Sale sale = 1; }
 
 message SetCartDiscountRequest {
   string sale_id = 1;

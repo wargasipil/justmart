@@ -192,6 +192,35 @@ func TestCreateReceipt_RecordsRestock(t *testing.T) {
 	require.Len(t, logs, 2)
 }
 
+// TestCreateReceipt_RecordsRestockPerItemFlag proves a PO line's per-item
+// discount flag propagates into both restock-history tables so the display can
+// show "10% /item". A per-line discount (default false) is the negative control.
+func TestCreateReceipt_RecordsRestockPerItemFlag(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-RS-PI", "Restock per-item supplier")
+	prodID := e.seedProduct(t, "rs-pi-sku", "Restock per-item product", 1000)
+
+	poResp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000, DiscountType: "PERCENT", DiscountValue: 1000, DiscountPerItem: true},
+		},
+	}))
+	require.NoError(t, err)
+	po := poResp.Msg.Order
+	e.sendPO(t, po.Id)
+	e.receiveFull(t, po.Id, po.Items[0].Id, 10, "RS-PI-B1")
+
+	var last model.ProductLastRestock
+	require.NoError(t, e.db.Where("product_id = ? AND supplier_id = ?", prodID, supID).First(&last).Error)
+	require.True(t, last.LastDiscountPerItem, "last restock must carry the per-item flag")
+
+	var log model.ProductRestockLog
+	require.NoError(t, e.db.Where("product_id = ?", prodID).First(&log).Error)
+	require.True(t, log.DiscountPerItem, "restock log must carry the per-item flag")
+}
+
 func TestCreateReceipt_OverReceiveRejected(t *testing.T) {
 	t.Parallel()
 	e := newPOEnv(t)

@@ -42,6 +42,7 @@ import (
 	"github.com/justmart/backend/internal/service/health"
 	"github.com/justmart/backend/internal/service/prescription"
 	"github.com/justmart/backend/internal/service/product"
+	"github.com/justmart/backend/internal/service/productdiscount"
 	"github.com/justmart/backend/internal/service/purchasing"
 	"github.com/justmart/backend/internal/service/sale"
 	"github.com/justmart/backend/internal/service/settings"
@@ -106,6 +107,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	healthSvc := health.NewHealthService(gormDB)
 	supplierSvc := supplier.NewSupplierService(gormDB)
 	priceAgreementSvc := priceagreement.NewPriceAgreementService(gormDB)
+	productDiscountSvc := productdiscount.NewProductDiscountService(gormDB)
 	productSvc := product.NewProductService(gormDB)
 	batchSvc := batch.NewBatchService(gormDB)
 	stockSvc := stock.NewStockService(gormDB)
@@ -200,6 +202,7 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	apiMux.Handle(userifacev1connect.NewUserServiceHandler(userSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewSupplierServiceHandler(supplierSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewPriceAgreementServiceHandler(priceAgreementSvc, interceptors))
+	apiMux.Handle(inventoryifacev1connect.NewProductDiscountServiceHandler(productDiscountSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductServiceHandler(productSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewBatchServiceHandler(batchSvc, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewStockMovementServiceHandler(stockSvc, interceptors))

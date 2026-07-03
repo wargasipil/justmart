@@ -654,6 +654,13 @@ export class ProductRestockLog extends Message<ProductRestockLog> {
    */
   restockArrivedAt = protoInt64.zero;
 
+  /**
+   * when true, discount was applied per item (× qty)
+   *
+   * @generated from field: bool discount_per_item = 9;
+   */
+  discountPerItem = false;
+
   constructor(data?: PartialMessage<ProductRestockLog>) {
     super();
     proto3.util.initPartial(data, this);
@@ -670,6 +677,7 @@ export class ProductRestockLog extends Message<ProductRestockLog> {
     { no: 6, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "restock_created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "restock_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 9, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProductRestockLog {

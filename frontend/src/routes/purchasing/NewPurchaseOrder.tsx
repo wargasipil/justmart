@@ -33,14 +33,29 @@ import { useCreatePurchaseOrderMutation } from "../../queries/purchasing";
 import { searchSuppliers } from "../../queries/suppliers";
 
 type DiscountType = "FIXED" | "PERCENT";
+// The 4 effective discount modes = (discountType, discountPerItem). The "_ITEM"
+// modes apply the discount to each item's cost (× qty) instead of the whole line.
+type DiscountMode = "FIXED" | "PERCENT" | "FIXED_ITEM" | "PERCENT_ITEM";
+const DISCOUNT_MODES: DiscountMode[] = ["FIXED", "PERCENT", "FIXED_ITEM", "PERCENT_ITEM"];
+const modeOf = (l: Line): DiscountMode =>
+  l.discountPerItem
+    ? l.discountType === "PERCENT"
+      ? "PERCENT_ITEM"
+      : "FIXED_ITEM"
+    : l.discountType;
+const modeToParts = (m: DiscountMode): { discountType: DiscountType; discountPerItem: boolean } => ({
+  discountType: m === "PERCENT" || m === "PERCENT_ITEM" ? "PERCENT" : "FIXED",
+  discountPerItem: m === "FIXED_ITEM" || m === "PERCENT_ITEM",
+});
 
 type Line = {
   productId: string;
   productUnitId: string; // chosen purchasable unit ("" => base)
   units: ProductUnit[]; // purchasable + active units of the picked product
   orderedQty: number; // in the chosen unit
-  lineTotal: number; // GROSS total cost for the line (Harga modal total); unit cost is derived
+  costPerItem: number; // GROSS cost per chosen purchasable unit (entered); line total is derived
   discountType: DiscountType;
+  discountPerItem: boolean;
   discountValue: number; // FIXED: minor units; PERCENT: human decimal percent (e.g. 12.5)
 };
 
@@ -49,18 +64,34 @@ const factorOf = (l: Line): number => {
   return u ? Number(u.factor) : 1;
 };
 const baseQtyOf = (l: Line): number => l.orderedQty * factorOf(l);
-// GROSS cost per BASE unit — derived from the gross line total / base qty (sent
-// to the backend, which re-derives the net cost from the discount itself).
-const unitCostOf = (l: Line): number => {
-  const base = baseQtyOf(l);
-  return base > 0 ? Math.round(l.lineTotal / base) : 0;
+// GROSS cost per BASE unit — derived from the entered cost-per-item / factor.
+// Sent to the backend as unit_cost_price; the preview below uses this same
+// rounded integer so the displayed totals agree with what the server stores.
+const unitCostBaseOf = (l: Line): number => Math.round(l.costPerItem / factorOf(l));
+// GROSS extended line amount = base qty × per-base cost.
+const grossOf = (l: Line): number => baseQtyOf(l) * unitCostBaseOf(l);
+// Per-line discount amount — mirrors the backend lineNetSubtotal EXACTLY so the
+// preview matches: per-item rounds each item then × qty; per-line rounds the
+// whole line. PERCENT value is converted to basis points first (×100), like submit.
+const lineDiscountAmount = (l: Line): number => {
+  const gross = grossOf(l);
+  const chosenQty = l.orderedQty;
+  const isPct = l.discountType === "PERCENT";
+  const val = isPct ? Math.round(l.discountValue * 100) : l.discountValue; // bp | rupiah
+  let disc: number;
+  if (l.discountPerItem && chosenQty > 0) {
+    const perItemGross = Math.floor(gross / chosenQty); // exact (gross is a multiple of qty)
+    let perItemDisc = isPct ? Math.floor((perItemGross * val + 5000) / 10000) : val;
+    if (perItemDisc > perItemGross) perItemDisc = perItemGross;
+    disc = perItemDisc * chosenQty;
+  } else if (!isPct) {
+    disc = val;
+  } else {
+    disc = Math.floor((gross * val + 5000) / 10000);
+  }
+  return Math.max(0, Math.min(disc, gross));
 };
-// Per-line discount amount (rounded) off the gross line total.
-const lineDiscountAmount = (l: Line): number =>
-  l.discountType === "PERCENT"
-    ? Math.round((l.lineTotal * l.discountValue) / 100)
-    : Math.min(l.discountValue, l.lineTotal);
-const lineNet = (l: Line): number => Math.max(0, l.lineTotal - lineDiscountAmount(l));
+const lineNet = (l: Line): number => grossOf(l) - lineDiscountAmount(l);
 // NET cost per base unit — what flows to the received batch's cost_price.
 const netUnitCostOf = (l: Line): number => {
   const base = baseQtyOf(l);
@@ -68,18 +99,17 @@ const netUnitCostOf = (l: Line): number => {
 };
 const unitNameOf = (l: Line): string =>
   l.units.find((x) => x.id === l.productUnitId)?.name ?? "";
-// GROSS cost per CHOSEN unit (entered line total / qty, before discount) — the
-// basis for the price-agreement comparison.
-const perChosenUnitGross = (l: Line): number =>
-  l.orderedQty > 0 ? l.lineTotal / l.orderedQty : 0;
+// The entered cost per chosen unit — the basis for the price-agreement compare.
+const perChosenUnitGross = (l: Line): number => l.costPerItem;
 
 const emptyLine = (): Line => ({
   productId: "",
   productUnitId: "",
   units: [],
   orderedQty: 1,
-  lineTotal: 0,
+  costPerItem: 0,
   discountType: "FIXED",
+  discountPerItem: false,
   discountValue: 0,
 });
 
@@ -148,7 +178,7 @@ export default function NewPurchaseOrder() {
   const canSubmit =
     !!supplierId &&
     lines.length > 0 &&
-    lines.every((l) => l.productId && l.orderedQty > 0 && l.lineTotal >= 0);
+    lines.every((l) => l.productId && l.orderedQty > 0 && l.costPerItem >= 0);
 
   const submit = async () => {
     try {
@@ -165,8 +195,9 @@ export default function NewPurchaseOrder() {
           productId: l.productId,
           productUnitId: l.productUnitId,
           orderedQty: l.orderedQty,
-          unitCostPrice: BigInt(unitCostOf(l)), // GROSS per base unit
+          unitCostPrice: BigInt(unitCostBaseOf(l)), // GROSS per base unit (from cost/item)
           discountType: l.discountType,
+          discountPerItem: l.discountPerItem,
           // PERCENT: human decimal -> basis points (12.5 -> 1250). FIXED: minor units.
           discountValue: BigInt(
             l.discountType === "PERCENT"
@@ -259,9 +290,10 @@ export default function NewPurchaseOrder() {
                 <Table.ColumnHeader minW="240px">{t("purchasing.selectProduct")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.unit")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.lineTotalInput")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.costPerItemInput")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("purchasing.unitCostDerived")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.subtotal")}</Table.ColumnHeader>
                 <Table.ColumnHeader />
               </Table.Row>
             </Table.Header>
@@ -325,24 +357,32 @@ export default function NewPurchaseOrder() {
                     <MoneyInput
                       size="sm"
                       width="140px"
-                      value={l.lineTotal}
-                      onChange={(raw) => updateLine(idx, { lineTotal: Number(raw || 0) })}
+                      value={l.costPerItem}
+                      onChange={(raw) => updateLine(idx, { costPerItem: Number(raw || 0) })}
                     />
                   </Table.Cell>
                   <Table.Cell>
                     <HStack gap={1}>
                       <EnumSelect
                         size="sm"
-                        width="96px"
-                        value={l.discountType}
+                        width="150px"
+                        value={modeOf(l)}
                         onChange={(v) =>
-                          updateLine(idx, { discountType: v as DiscountType, discountValue: 0 })
+                          updateLine(idx, { ...modeToParts(v as DiscountMode), discountValue: 0 })
                         }
-                        items={["FIXED", "PERCENT"] as const}
-                        itemToString={(d) =>
-                          t(d === "FIXED" ? "purchasing.fixed" : "purchasing.percent")
+                        items={DISCOUNT_MODES}
+                        itemToString={(m) =>
+                          t(
+                            m === "FIXED"
+                              ? "purchasing.fixed"
+                              : m === "PERCENT"
+                                ? "purchasing.percent"
+                                : m === "FIXED_ITEM"
+                                  ? "purchasing.fixedPerItem"
+                                  : "purchasing.percentPerItem",
+                          )
                         }
-                        itemToValue={(d) => d}
+                        itemToValue={(m) => m}
                       />
                       {l.discountType === "PERCENT" ? (
                         <Input
@@ -377,6 +417,9 @@ export default function NewPurchaseOrder() {
                         /{t("inventory.products.baseUnit").toLowerCase()}
                       </Text>
                     )}
+                  </Table.Cell>
+                  <Table.Cell fontFamily="mono" fontWeight="medium">
+                    {formatMoney(lineNet(l))}
                   </Table.Cell>
                   <Table.Cell>
                     <IconButton

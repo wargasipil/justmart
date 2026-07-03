@@ -60,6 +60,29 @@ func TestUpdatePurchaseOrder_PercentLineDiscount(t *testing.T) {
 	require.Equal(t, int64(8750), o.OrderedTotal)
 }
 
+func TestUpdatePurchaseOrder_PercentPerItemDiscount(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-UPO-PPI", "Update PO per-item supplier")
+	prodID := e.seedProduct(t, "upo-ppi-sku", "UPO per-item product", 1000)
+	po := e.createPO(t, supID, prodID, 5, 800) // subtotal 4000, no discount
+
+	// Replace with a percent-per-item line: 3 @ 105, 5%/item → net 300 (per-item
+	// rounding; a line-level 5% would net 299).
+	resp, err := e.pos.UpdatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.UpdatePurchaseOrderRequest{
+		Id: po.Id,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 3, UnitCostPrice: 105, DiscountType: "PERCENT", DiscountValue: 500, DiscountPerItem: true},
+		},
+	}))
+	require.NoError(t, err)
+	o := resp.Msg.Order
+	require.Len(t, o.Items, 1)
+	require.True(t, o.Items[0].DiscountPerItem)
+	require.Equal(t, int64(300), o.Items[0].Subtotal)
+	require.Equal(t, int64(300), o.OrderedTotal)
+}
+
 func TestUpdatePurchaseOrder_NotDraftRejected(t *testing.T) {
 	t.Parallel()
 	e := newPOEnv(t)

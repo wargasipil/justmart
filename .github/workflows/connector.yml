@@ -1,7 +1,8 @@
 # Builds the standalone Windows print connector (justmart-connector.exe + config
 # template + launchers), zipped. Cross-compiles on a Linux runner (GOOS=windows;
-# the connector has no SPA/UI, so no Node step). Uploads the zip on every run and
-# publishes a GitHub Release with it on `v*` tags.
+# the connector has no SPA/UI, so no Node step). Runs ONLY on `v*` tags
+# (publishing a GitHub Release with the zip) and on manual dispatch (artifact
+# only) — ordinary pushes/PRs don't build.
 #
 # Trigger a release:  git tag v1.2.0 && git push origin v1.2.0
 # Build on demand:    Actions tab -> "Connector (Windows)" -> Run workflow
@@ -9,10 +10,7 @@ name: Connector (Windows)
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
     inputs:
       version:

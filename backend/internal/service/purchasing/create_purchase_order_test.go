@@ -86,6 +86,96 @@ func TestCreatePurchaseOrder_PercentLineDiscountDecimal(t *testing.T) {
 	require.Equal(t, int64(8750), o.OrderedTotal)
 }
 
+func TestCreatePurchaseOrder_FixedPerItemDiscount(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CPO-FPI", "Fixed/item supplier")
+	prodID := e.seedProduct(t, "cpo-fpi-sku", "Fixed/item product", 1000)
+
+	resp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			// 5 items @ 800; Rp 200 off EACH item → disc 1000, net 3000.
+			{ProductId: prodID, OrderedQty: 5, UnitCostPrice: 800, DiscountType: "FIXED", DiscountValue: 200, DiscountPerItem: true},
+		},
+	}))
+	require.NoError(t, err)
+	o := resp.Msg.Order
+	require.Len(t, o.Items, 1)
+	require.Equal(t, "FIXED", o.Items[0].DiscountType)
+	require.True(t, o.Items[0].DiscountPerItem)
+	require.Equal(t, int64(3000), o.Items[0].Subtotal) // 5*800 − 5*200
+	require.Equal(t, int64(3000), o.OrderedTotal)
+}
+
+func TestCreatePurchaseOrder_FixedPerItemClampedToItemGross(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CPO-FPC", "Fixed/item clamp supplier")
+	prodID := e.seedProduct(t, "cpo-fpc-sku", "Clamp product", 1000)
+
+	resp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			// Rp 150 off each, but each item only costs 100 → per-item disc clamps
+			// to 100, total disc 400, net 0 (never negative).
+			{ProductId: prodID, OrderedQty: 4, UnitCostPrice: 100, DiscountType: "FIXED", DiscountValue: 150, DiscountPerItem: true},
+		},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int64(0), resp.Msg.Order.Items[0].Subtotal)
+}
+
+func TestCreatePurchaseOrder_PercentPerItemVsLineRounding(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CPO-PPI", "Pct/item supplier")
+	prodID := e.seedProduct(t, "cpo-ppi-sku", "Pct/item product", 1000)
+
+	// 3 items @ 105, 5% (500 bp). Per-item: round(105*5% )=round(5.25)=5 → 15 off → net 300.
+	// Line-level: round(315*5%)=round(15.75)=16 off → net 299. The two differ by 1.
+	perItem, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 3, UnitCostPrice: 105, DiscountType: "PERCENT", DiscountValue: 500, DiscountPerItem: true},
+		},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int64(300), perItem.Msg.Order.Items[0].Subtotal)
+	require.True(t, perItem.Msg.Order.Items[0].DiscountPerItem)
+
+	line, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 3, UnitCostPrice: 105, DiscountType: "PERCENT", DiscountValue: 500, DiscountPerItem: false},
+		},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int64(299), line.Msg.Order.Items[0].Subtotal)
+	require.False(t, line.Msg.Order.Items[0].DiscountPerItem)
+}
+
+func TestCreatePurchaseOrder_PerItemUsesChosenUnitNotBase(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CPO-BOX", "Box supplier")
+	prodID, boxUnitID := e.seedProductWithBox(t, "cpo-box-sku", "Box product", 1000, 100)
+
+	// 2 boxes (factor 100) @ 10/base = gross 2000. perItemGross = gross/2 boxes =
+	// 1000/box. Rp 50 off EACH BOX → disc 100, net 1900. Proves chosenQty (2 boxes)
+	// drives per-item division, not baseQty (200).
+	resp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, ProductUnitId: boxUnitID, OrderedQty: 2, UnitCostPrice: 10, DiscountType: "FIXED", DiscountValue: 50, DiscountPerItem: true},
+		},
+	}))
+	require.NoError(t, err)
+	o := resp.Msg.Order
+	require.Equal(t, int32(200), o.Items[0].OrderedQty) // stored in base units
+	require.Equal(t, int64(1900), o.Items[0].Subtotal)
+}
+
 func TestCreatePurchaseOrder_NoItems(t *testing.T) {
 	t.Parallel()
 	e := newPOEnv(t)

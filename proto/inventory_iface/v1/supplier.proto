@@ -136,6 +136,7 @@ message SupplierProductRestock {
   int64 last_discount_value = 5;     // FIXED minor units | PERCENT basis points
   int64 last_created_at = 6;         // unix; PO (restock order) created
   int64 last_arrived_at = 7;         // unix; receipt received_at
+  bool last_discount_per_item = 8;   // when true, discount was applied per item (× qty)
 }
 message ListSupplierRestocksRequest {
   string supplier_id = 1;

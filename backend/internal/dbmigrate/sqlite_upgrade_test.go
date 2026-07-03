@@ -102,6 +102,64 @@ func TestSQLite_UpgradeTo00043_PurchaseReturn(t *testing.T) {
 	require.Error(t, err, "unknown movement type must still violate the CHECK")
 }
 
+// TestSQLite_UpgradeTo00045_DiscountPerItem proves an existing SQLite DB
+// (migrated to 00044) gains the additive purchase_order_items.discount_per_item
+// column in place and accepts a row that sets it — no table rebuild involved.
+func TestSQLite_UpgradeTo00045_DiscountPerItem(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "upgrade45.sqlite")
+	dsn := (config.Database{Driver: "sqlite", Path: dbPath}).SQLiteDSN()
+	db, err := sql.Open("sqlite", dsn)
+	require.NoError(t, err)
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	require.NoError(t, goose.SetDialect("sqlite3"))
+	goose.SetBaseFS(migrations.FS("sqlite"))
+
+	require.NoError(t, goose.UpTo(db, ".", 44))
+	require.False(t, columnExists(t, db, "purchase_order_items", "discount_per_item"),
+		"discount_per_item should not exist before 00045")
+
+	require.NoError(t, goose.Up(db, "."))
+	require.True(t, columnExists(t, db, "purchase_order_items", "discount_per_item"),
+		"discount_per_item added by 00045")
+
+	// A row setting the flag inserts cleanly (FKs off to isolate the column).
+	_, err = db.Exec(`PRAGMA foreign_keys=OFF`)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO purchase_order_items
+		(id, purchase_order_id, product_id, ordered_qty, unit_cost_price, subtotal, discount_per_item)
+		VALUES ('poi-1','po-1','p-1',1,100,100,1)`)
+	require.NoError(t, err, "row with discount_per_item must insert after 00045")
+}
+
+// TestSQLite_UpgradeTo00047_RestockDiscountPerItem proves an existing SQLite DB
+// (migrated to 00046) gains the additive per-item discount columns on both
+// restock-history tables in place — no table rebuild.
+func TestSQLite_UpgradeTo00047_RestockDiscountPerItem(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "upgrade47.sqlite")
+	dsn := (config.Database{Driver: "sqlite", Path: dbPath}).SQLiteDSN()
+	db, err := sql.Open("sqlite", dsn)
+	require.NoError(t, err)
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	require.NoError(t, goose.SetDialect("sqlite3"))
+	goose.SetBaseFS(migrations.FS("sqlite"))
+
+	require.NoError(t, goose.UpTo(db, ".", 46))
+	require.False(t, columnExists(t, db, "product_last_restocks", "last_discount_per_item"),
+		"last_discount_per_item should not exist before 00047")
+	require.False(t, columnExists(t, db, "product_restock_logs", "discount_per_item"),
+		"discount_per_item should not exist before 00047")
+
+	require.NoError(t, goose.Up(db, "."))
+	require.True(t, columnExists(t, db, "product_last_restocks", "last_discount_per_item"),
+		"last_discount_per_item added by 00047")
+	require.True(t, columnExists(t, db, "product_restock_logs", "discount_per_item"),
+		"discount_per_item added by 00047")
+}
+
 func columnExists(t *testing.T, db *sql.DB, table, col string) bool {
 	t.Helper()
 	rows, err := db.Query("PRAGMA table_info(" + table + ")")

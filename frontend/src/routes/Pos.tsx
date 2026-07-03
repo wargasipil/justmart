@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import {
+  Badge,
   Box,
   Button,
   Dialog,
@@ -55,6 +56,7 @@ import {
   useCompleteSaleMutation,
   useDetachPrescriptionMutation,
   usePrintReceiptMutation,
+  useClearLineDiscountMutation,
   useRemoveItemMutation,
   useSetCartDiscountMutation,
   useSetItemQuantityMutation,
@@ -91,19 +93,24 @@ function releaseModalBodyLock() {
 function LineDiscountPopover({
   item,
   onApply,
+  onClear,
 }: {
   item: SaleItem;
   onApply: (type: DiscountType, human: number) => void | Promise<void>;
+  onClear: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const seed = (): { type: DiscountType; value: number } => {
-    const type = (item.discountType || "FIXED") as DiscountType;
-    const raw = Number(item.discountValue);
+    // Seed from a MANUAL discount only; an auto product discount starts blank so
+    // the cashier types a fresh override.
+    const type = (item.discountManual ? item.discountType : "FIXED") as DiscountType;
+    const raw = item.discountManual ? Number(item.discountValue) : 0;
     return { type, value: type === "PERCENT" ? raw / 100 : raw };
   };
   const [draft, setDraft] = useState(seed);
   const hasDiscount = Number(item.lineDiscount) > 0;
+  const isAuto = hasDiscount && !item.discountManual;
 
   return (
     <Popover.Root
@@ -132,6 +139,11 @@ function LineDiscountPopover({
                 <Text fontSize="xs" color="fg.muted">
                   {t("pos.lineDiscount")}
                 </Text>
+                {isAuto && (
+                  <Text fontSize="xs" color="green.fg">
+                    {t("pos.autoDiscountHint")}
+                  </Text>
+                )}
                 <DiscountField
                   type={draft.type}
                   value={draft.value}
@@ -142,7 +154,7 @@ function LineDiscountPopover({
                     size="xs"
                     variant="ghost"
                     onClick={() => {
-                      void onApply("FIXED", 0);
+                      void onClear();
                       setOpen(false);
                     }}
                   >
@@ -187,6 +199,7 @@ export default function Pos() {
   const detachPrescription = useDetachPrescriptionMutation();
   const setServiceFee = useSetServiceFeeMutation();
   const setLineDiscount = useSetLineDiscountMutation();
+  const clearLineDiscount = useClearLineDiscountMutation();
   const setCartDiscount = useSetCartDiscountMutation();
   const completeSale = useCompleteSaleMutation();
 
@@ -750,6 +763,17 @@ export default function Pos() {
     }
   };
 
+  // Clear a manual line discount → revert to the auto product discount (if any).
+  const commitClearLineDiscount = async (itemId: string) => {
+    if (!sale) return;
+    try {
+      const res = await clearLineDiscount.mutateAsync({ saleId: sale.id, itemId });
+      if (res.sale) setSale(res.sale);
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
   const total = Number(sale?.total ?? 0n);
   const paidNum = Number(paidAmount || "0") || 0;
   const change = paidNum - total;
@@ -1020,18 +1044,26 @@ export default function Pos() {
                     <LineDiscountPopover
                       item={it}
                       onApply={(type, human) => commitLineDiscount(it.id, type, human)}
+                      onClear={() => commitClearLineDiscount(it.id)}
                     />
                     <Stack gap={0} w="80px" align="flex-end">
                       <Text fontSize="sm" fontFamily="mono">
                         {formatMoney(it.lineTotal)}
                       </Text>
                       {Number(it.lineDiscount) > 0 && (
-                        <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
-                          -{formatMoney(Number(it.lineDiscount))}
-                          {it.discountType === "PERCENT"
-                            ? ` (${Number(it.discountValue) / 100}%)`
-                            : ""}
-                        </Text>
+                        <HStack gap={1}>
+                          {!it.discountManual && (
+                            <Badge size="xs" colorPalette="green">
+                              {t("pos.promo")}
+                            </Badge>
+                          )}
+                          <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
+                            -{formatMoney(Number(it.lineDiscount))}
+                            {it.discountType === "PERCENT"
+                              ? ` (${Number(it.discountValue) / 100}%)`
+                              : ""}
+                          </Text>
+                        </HStack>
                       )}
                     </Stack>
                     <IconButton

@@ -63,6 +63,8 @@ func saleItemToProto(i *model.SaleItem) *posifacev1.SaleItem {
 		LineDiscount:      i.LineDiscount,
 		DiscountType:      i.DiscountType,
 		DiscountValue:     i.DiscountValue,
+		DiscountPerItem:   i.DiscountPerItem,
+		DiscountManual:    i.DiscountManual,
 		LineTotal:         i.LineTotal,
 		UnitName:          i.UnitName,
 		UnitFactor:        i.UnitFactor,

@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package inventory_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+// A per-product discount, defined in the Product detail "Discount" tab and
+// auto-applied at POS. A product can have several. The 4 modes are
+// (discount_type FIXED|PERCENT) × per_item. value = minor units when FIXED, basis
+// points (percent*100) when PERCENT. min_qty = minimal items to buy (per line,
+// selling unit; 0/1 = always). expires_at optional.
+message ProductDiscount {
+  string id = 1;
+  string product_id = 2;
+  string discount_type = 3;   // FIXED | PERCENT
+  bool per_item = 4;
+  int64 value = 5;
+  int32 min_qty = 6;
+  string expires_at = 7;      // YYYY-MM-DD or "" (never expires)
+  int64 created_at = 8;
+  // Unit of the min_qty threshold ("" = base unit). Name/factor are snapshots;
+  // the POS gate compares base_qty >= min_qty * min_qty_unit_factor.
+  string min_qty_unit_id = 9;
+  string min_qty_unit_name = 10;
+  int64 min_qty_unit_factor = 11;
+}
+
+service ProductDiscountService {
+  rpc ListProductDiscounts(ListProductDiscountsRequest) returns (ListProductDiscountsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc CreateProductDiscount(CreateProductDiscountRequest) returns (CreateProductDiscountResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdateProductDiscount(UpdateProductDiscountRequest) returns (UpdateProductDiscountResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc DeleteProductDiscount(DeleteProductDiscountRequest) returns (DeleteProductDiscountResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListProductDiscountsRequest { string product_id = 1; }
+message ListProductDiscountsResponse { repeated ProductDiscount discounts = 1; }
+
+message CreateProductDiscountRequest {
+  string product_id = 1;
+  string discount_type = 2;
+  bool per_item = 3;
+  int64 value = 4;
+  int32 min_qty = 5;
+  string expires_at = 6;
+  string min_qty_unit_id = 7; // "" = base unit
+}
+message CreateProductDiscountResponse { ProductDiscount discount = 1; }
+
+message UpdateProductDiscountRequest {
+  string id = 1;
+  string discount_type = 2;
+  bool per_item = 3;
+  int64 value = 4;
+  int32 min_qty = 5;
+  string expires_at = 6;
+  string min_qty_unit_id = 7; // "" = base unit
+}
+message UpdateProductDiscountResponse { ProductDiscount discount = 1; }
+
+message DeleteProductDiscountRequest { string id = 1; }
+message DeleteProductDiscountResponse {}

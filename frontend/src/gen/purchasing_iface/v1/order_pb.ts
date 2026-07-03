@@ -359,6 +359,13 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
    */
   discountValue = protoInt64.zero;
 
+  /**
+   * when true, discount applies to each item (× qty), not the whole line
+   *
+   * @generated from field: bool discount_per_item = 15;
+   */
+  discountPerItem = false;
+
   constructor(data?: PartialMessage<PurchaseOrderItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -381,6 +388,7 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
     { no: 12, name: "unit_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 13, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 14, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 15, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItem {
@@ -444,6 +452,13 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
    */
   discountValue = protoInt64.zero;
 
+  /**
+   * when true, discount applies to each item (× qty), not the whole line
+   *
+   * @generated from field: bool discount_per_item = 7;
+   */
+  discountPerItem = false;
+
   constructor(data?: PartialMessage<PurchaseOrderItemInput>) {
     super();
     proto3.util.initPartial(data, this);
@@ -458,6 +473,7 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
     { no: 4, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 7, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItemInput {

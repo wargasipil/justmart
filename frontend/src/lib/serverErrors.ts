@@ -30,6 +30,13 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "price_agreement.supplier_missing": { field: "supplierId", i18nKey: "serverErrors.priceAgreement.supplierMissing" },
   "price_agreement.product_missing": { field: "productId", i18nKey: "serverErrors.priceAgreement.productMissing" },
   "price_agreement.exists": { field: "productUnitId", i18nKey: "serverErrors.priceAgreement.exists" },
+  // product discount
+  "product_discount.product_missing": { i18nKey: "serverErrors.productDiscount.productMissing" },
+  "product_discount.value_invalid": { field: "value", i18nKey: "serverErrors.productDiscount.valueInvalid" },
+  "product_discount.type_invalid": { i18nKey: "serverErrors.productDiscount.valueInvalid" },
+  "product_discount.threshold_invalid": { field: "minQty", i18nKey: "serverErrors.productDiscount.thresholdInvalid" },
+  "product_discount.bad_expiry": { field: "expiresAt", i18nKey: "serverErrors.productDiscount.badExpiry" },
+  "product_discount.unit_invalid": { field: "minQtyUnitId", i18nKey: "serverErrors.productDiscount.unitInvalid" },
   // warehouse
   "warehouse.required": { i18nKey: "validation.required" },
   "warehouse.name_required": { field: "name", i18nKey: "validation.required" },

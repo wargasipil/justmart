@@ -45,6 +45,8 @@ type SaleItem struct {
 	LineDiscount      int64   `gorm:"not null;default:0;column:line_discount"` // RESOLVED amount (minor units)
 	DiscountType      string  `gorm:"not null;default:'FIXED';column:discount_type"`  // FIXED | PERCENT
 	DiscountValue     int64   `gorm:"not null;default:0;column:discount_value"`       // FIXED=minor units; PERCENT=basis points
+	DiscountPerItem   bool    `gorm:"not null;default:false;column:discount_per_item"` // discount applies per item (×qty)
+	DiscountManual    bool    `gorm:"not null;default:false;column:discount_manual"`   // cashier overrode the auto product discount
 	LineTotal         int64   `gorm:"not null;default:0;column:line_total"`
 	BranchID          *string `gorm:"type:uuid;column:branch_id"`
 	ProductUnitID    *string `gorm:"type:uuid;column:product_unit_id"`

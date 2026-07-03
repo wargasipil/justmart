@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetMyPerformanceRequest, GetMyPerformanceResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RefundSaleRequest, RefundSaleResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
+import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, ClearLineDiscountRequest, ClearLineDiscountResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetMyPerformanceRequest, GetMyPerformanceResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RefundSaleRequest, RefundSaleResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -120,6 +120,18 @@ export const SaleService = {
       name: "SetLineDiscount",
       I: SetLineDiscountRequest,
       O: SetLineDiscountResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ClearLineDiscount removes a manual line discount and reverts the line to the
+     * auto-applied product discount (if any). DRAFT only.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.ClearLineDiscount
+     */
+    clearLineDiscount: {
+      name: "ClearLineDiscount",
+      I: ClearLineDiscountRequest,
+      O: ClearLineDiscountResponse,
       kind: MethodKind.Unary,
     },
     /**

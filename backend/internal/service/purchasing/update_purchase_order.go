@@ -66,7 +66,7 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 				}
 				baseQty := in.OrderedQty * int32(unit.Factor) // ordered_qty stored in BASE units
 				gross := int64(baseQty) * in.UnitCostPrice
-				net, discType, err := lineNetSubtotal(gross, in.DiscountType, in.DiscountValue)
+				net, discType, err := lineNetSubtotal(gross, in.OrderedQty, in.DiscountPerItem, in.DiscountType, in.DiscountValue)
 				if err != nil {
 					return err
 				}
@@ -78,6 +78,7 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 					Subtotal:        net,              // NET (after per-line discount)
 					DiscountType:    discType,
 					DiscountValue:   in.DiscountValue,
+					DiscountPerItem: in.DiscountPerItem,
 					ProductUnitID:   &unit.ID,
 					UnitName:        unit.Name,
 					UnitFactor:      unit.Factor,
