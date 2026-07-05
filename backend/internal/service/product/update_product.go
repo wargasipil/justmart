@@ -32,6 +32,7 @@ func (s *ProductService) UpdateProduct(
 
 	name := strings.TrimSpace(req.Msg.Name)
 	unit := strings.TrimSpace(req.Msg.Unit)
+	sku := strings.TrimSpace(req.Msg.Sku)
 	if name == "" || unit == "" {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "product.required")
 	}
@@ -53,6 +54,18 @@ func (s *ProductService) UpdateProduct(
 			"name":                  name,
 			"unit":                  unit,
 			"prescription_required": req.Msg.PrescriptionRequired,
+		}
+		// SKU is an editable unique business code. Apply only when a (changed)
+		// value is provided — empty keeps the current SKU (partial-update safe).
+		// Pre-check uniqueness excluding this row (products.sku unique index
+		// backstops the race).
+		if sku != "" && sku != med.SKU {
+			if taken, e := common.ExistsBy(tx, &model.Product{}, "sku = ? AND id <> ?", sku, med.ID); e != nil {
+				return connect.NewError(connect.CodeInternal, e)
+			} else if taken {
+				return common.TokenError(connect.CodeAlreadyExists, "product.sku_taken")
+			}
+			updates["sku"] = sku
 		}
 		if priceChanged {
 			updates["unit_price"] = req.Msg.UnitPrice

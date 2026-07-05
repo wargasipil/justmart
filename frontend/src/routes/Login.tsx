@@ -1,7 +1,7 @@
-import { Box, Button, Heading, Stack } from "@chakra-ui/react";
+import { Box, Button, Heading, Stack, Text } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { Store } from "lucide-react";
+import { Pill, Store } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import { z } from "zod";
 
 import FormField from "../components/FormField";
 import { useAuth } from "../lib/auth";
+import { useBranding } from "../queries/settings";
 import { toast } from "../lib/toaster";
 
 const Schema = z.object({
@@ -20,7 +21,12 @@ type FormValues = z.infer<typeof Schema>;
 export default function Login() {
   const { t } = useTranslation();
   const { user, login } = useAuth();
+  const { isPharmacy, shopName } = useBranding();
   const navigate = useNavigate();
+
+  // Mirror the Sidebar brand: licensed shop name in pharmacy mode (fallback to
+  // the localized "Apotek"/"Pharmacy" label), else the "Justmart" retail brand.
+  const brandName = isPharmacy ? shopName || t("app.pharmacyName") : t("app.name");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(Schema),
@@ -39,11 +45,12 @@ export default function Login() {
   return (
     <Box maxW="sm" mx="auto" mt={20} p={6} bg="bg.subtle" borderWidth="1px" borderRadius="lg" shadow="sm">
       <Stack gap={5}>
-        <Stack gap={2} align="center">
+        <Stack gap={1} align="center">
           <Box colorPalette="blue" color="colorPalette.solid">
-            <Store size={32} />
+            {isPharmacy ? <Pill size={32} /> : <Store size={32} />}
           </Box>
-          <Heading size="lg">{t("auth.signInTitle")}</Heading>
+          <Heading size="lg" textAlign="center">{brandName}</Heading>
+          <Text color="fg.muted" fontSize="sm">{t("auth.signIn")}</Text>
         </Stack>
         <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))}>
           <Stack gap={4}>

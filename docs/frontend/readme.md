@@ -15,6 +15,8 @@
     - for pharmacy we use term `Medicine`
     - for retail we use term `Product`
 
+4. we have product code. dont threat product code like number when showed, like `10+e1` THREAT AS STRING
+
 ## Form & Input Related Guideline.
 
 

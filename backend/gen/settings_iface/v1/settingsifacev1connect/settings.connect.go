@@ -51,6 +51,9 @@ const (
 	// SettingsServiceGetLicenseInfoProcedure is the fully-qualified name of the SettingsService's
 	// GetLicenseInfo RPC.
 	SettingsServiceGetLicenseInfoProcedure = "/settings_iface.v1.SettingsService/GetLicenseInfo"
+	// SettingsServiceGetBrandingProcedure is the fully-qualified name of the SettingsService's
+	// GetBranding RPC.
+	SettingsServiceGetBrandingProcedure = "/settings_iface.v1.SettingsService/GetBranding"
 	// SettingsServiceGetPrintTargetProcedure is the fully-qualified name of the SettingsService's
 	// GetPrintTarget RPC.
 	SettingsServiceGetPrintTargetProcedure = "/settings_iface.v1.SettingsService/GetPrintTarget"
@@ -93,6 +96,12 @@ type SettingsServiceClient interface {
 	// Readable by every role (the holder name brands the app for all users); only
 	// applying a license (ApplyLicense) is owner-gated.
 	GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error)
+	// GetBranding exposes JUST the branding facts (business type + licensed shop
+	// name) needed to render the app chrome BEFORE the user authenticates — the
+	// login screen + browser tab title. PUBLIC by design: the shop name + mode are
+	// the storefront brand (already shown to anyone who reaches the login page),
+	// not sensitive data. All richer settings/license RPCs stay role-gated.
+	GetBranding(context.Context, *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error)
 	// GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
 	// (app_settings) used by SaleService.PrintReceipt when the request carries no
 	// explicit target. Get is manager-tier (drives the Settings ▸ Printing panel);
@@ -169,6 +178,12 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("GetLicenseInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		getBranding: connect.NewClient[v1.GetBrandingRequest, v1.GetBrandingResponse](
+			httpClient,
+			baseURL+SettingsServiceGetBrandingProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetBranding")),
+			connect.WithClientOptions(opts...),
+		),
 		getPrintTarget: connect.NewClient[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse](
 			httpClient,
 			baseURL+SettingsServiceGetPrintTargetProcedure,
@@ -228,6 +243,7 @@ type settingsServiceClient struct {
 	setBussinessSettings *connect.Client[v1.SetBussinessSettingsRequest, v1.SetBussinessSettingsResponse]
 	applyLicense         *connect.Client[v1.ApplyLicenseRequest, v1.ApplyLicenseResponse]
 	getLicenseInfo       *connect.Client[v1.GetLicenseInfoRequest, v1.GetLicenseInfoResponse]
+	getBranding          *connect.Client[v1.GetBrandingRequest, v1.GetBrandingResponse]
 	getPrintTarget       *connect.Client[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse]
 	setPrintTarget       *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
 	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
@@ -266,6 +282,11 @@ func (c *settingsServiceClient) ApplyLicense(ctx context.Context, req *connect.R
 // GetLicenseInfo calls settings_iface.v1.SettingsService.GetLicenseInfo.
 func (c *settingsServiceClient) GetLicenseInfo(ctx context.Context, req *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error) {
 	return c.getLicenseInfo.CallUnary(ctx, req)
+}
+
+// GetBranding calls settings_iface.v1.SettingsService.GetBranding.
+func (c *settingsServiceClient) GetBranding(ctx context.Context, req *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error) {
+	return c.getBranding.CallUnary(ctx, req)
 }
 
 // GetPrintTarget calls settings_iface.v1.SettingsService.GetPrintTarget.
@@ -324,6 +345,12 @@ type SettingsServiceHandler interface {
 	// Readable by every role (the holder name brands the app for all users); only
 	// applying a license (ApplyLicense) is owner-gated.
 	GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error)
+	// GetBranding exposes JUST the branding facts (business type + licensed shop
+	// name) needed to render the app chrome BEFORE the user authenticates — the
+	// login screen + browser tab title. PUBLIC by design: the shop name + mode are
+	// the storefront brand (already shown to anyone who reaches the login page),
+	// not sensitive data. All richer settings/license RPCs stay role-gated.
+	GetBranding(context.Context, *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error)
 	// GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
 	// (app_settings) used by SaleService.PrintReceipt when the request carries no
 	// explicit target. Get is manager-tier (drives the Settings ▸ Printing panel);
@@ -396,6 +423,12 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("GetLicenseInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetBrandingHandler := connect.NewUnaryHandler(
+		SettingsServiceGetBrandingProcedure,
+		svc.GetBranding,
+		connect.WithSchema(settingsServiceMethods.ByName("GetBranding")),
+		connect.WithHandlerOptions(opts...),
+	)
 	settingsServiceGetPrintTargetHandler := connect.NewUnaryHandler(
 		SettingsServiceGetPrintTargetProcedure,
 		svc.GetPrintTarget,
@@ -458,6 +491,8 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceApplyLicenseHandler.ServeHTTP(w, r)
 		case SettingsServiceGetLicenseInfoProcedure:
 			settingsServiceGetLicenseInfoHandler.ServeHTTP(w, r)
+		case SettingsServiceGetBrandingProcedure:
+			settingsServiceGetBrandingHandler.ServeHTTP(w, r)
 		case SettingsServiceGetPrintTargetProcedure:
 			settingsServiceGetPrintTargetHandler.ServeHTTP(w, r)
 		case SettingsServiceSetPrintTargetProcedure:
@@ -505,6 +540,10 @@ func (UnimplementedSettingsServiceHandler) ApplyLicense(context.Context, *connec
 
 func (UnimplementedSettingsServiceHandler) GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetLicenseInfo is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetBranding(context.Context, *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetBranding is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error) {

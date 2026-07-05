@@ -110,7 +110,7 @@ export default function Movements() {
       [
         { key: "date", header: t("inventory.movements.when") },
         { key: "product", header: t("inventory.batches.product") },
-        { key: "batch", header: t("inventory.movements.batch") },
+        { key: "batch", header: t("inventory.movements.batch"), text: true },
         { key: "type", header: t("inventory.movements.type") },
         { key: "qty", header: t("inventory.movements.qty") },
         { key: "reason", header: t("inventory.movements.reason") },

@@ -404,6 +404,84 @@ export class GetLicenseInfoResponse extends Message<GetLicenseInfoResponse> {
 }
 
 /**
+ * @generated from message settings_iface.v1.GetBrandingRequest
+ */
+export class GetBrandingRequest extends Message<GetBrandingRequest> {
+  constructor(data?: PartialMessage<GetBrandingRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetBrandingRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBrandingRequest {
+    return new GetBrandingRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBrandingRequest {
+    return new GetBrandingRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBrandingRequest {
+    return new GetBrandingRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetBrandingRequest | PlainMessage<GetBrandingRequest> | undefined, b: GetBrandingRequest | PlainMessage<GetBrandingRequest> | undefined): boolean {
+    return proto3.util.equals(GetBrandingRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetBrandingResponse
+ */
+export class GetBrandingResponse extends Message<GetBrandingResponse> {
+  /**
+   * active mode (UNSPECIFIED when unlicensed)
+   *
+   * @generated from field: settings_iface.v1.BussinessType business_type = 1;
+   */
+  businessType = BussinessType.UNSPECIFIED;
+
+  /**
+   * licensed shop/holder name ("" when unlicensed)
+   *
+   * @generated from field: string shop_name = 2;
+   */
+  shopName = "";
+
+  constructor(data?: PartialMessage<GetBrandingResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetBrandingResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "business_type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+    { no: 2, name: "shop_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetBrandingResponse {
+    return new GetBrandingResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetBrandingResponse {
+    return new GetBrandingResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetBrandingResponse {
+    return new GetBrandingResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetBrandingResponse | PlainMessage<GetBrandingResponse> | undefined, b: GetBrandingResponse | PlainMessage<GetBrandingResponse> | undefined): boolean {
+    return proto3.util.equals(GetBrandingResponse, a, b);
+  }
+}
+
+/**
  * @generated from message settings_iface.v1.GetSettingsRequest
  */
 export class GetSettingsRequest extends Message<GetSettingsRequest> {

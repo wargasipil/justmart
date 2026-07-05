@@ -130,7 +130,7 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
         { key: "status", header: t("purchasing.status") },
         { key: "created", header: t("purchasing.created") },
         { key: "received", header: t("purchasing.received") },
-        { key: "invoiceNo", header: t("purchasing.invoiceNo") },
+        { key: "invoiceNo", header: t("purchasing.invoiceNo"), text: true },
         { key: "total", header: t("purchasing.totalOrdered") },
         { key: "outstanding", header: t("purchasing.outstanding") },
       ],

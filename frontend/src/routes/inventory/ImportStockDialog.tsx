@@ -158,11 +158,11 @@ export default function ImportStockDialog({
         { sku: "SALT", quantity: 50, unit: "", cost: 100, batch_number: "", expiry_date: "" },
       ],
       [
-        { key: "sku", header: "sku" },
+        { key: "sku", header: "sku", text: true },
         { key: "quantity", header: "quantity" },
         { key: "unit", header: "unit" },
         { key: "cost", header: "cost" },
-        { key: "batch_number", header: "batch_number" },
+        { key: "batch_number", header: "batch_number", text: true },
         { key: "expiry_date", header: "expiry_date" },
       ],
     );

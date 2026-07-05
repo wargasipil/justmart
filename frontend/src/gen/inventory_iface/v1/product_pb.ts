@@ -1199,6 +1199,13 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
    */
   units: ProductUnitInput[] = [];
 
+  /**
+   * editable business code; unique (excludes self on update)
+   *
+   * @generated from field: string sku = 8;
+   */
+  sku = "";
+
   constructor(data?: PartialMessage<UpdateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1213,6 +1220,7 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
     { no: 5, name: "unit_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
+    { no: 8, name: "sku", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateProductRequest {

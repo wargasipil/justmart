@@ -10,16 +10,37 @@ function escape(value: unknown): string {
   return s;
 }
 
+// A `text: true` column is an identifier/code (SKU, barcode, batch number) that
+// a spreadsheet would otherwise coerce — "10E1" -> 100, "007" -> 7, a 13-digit
+// barcode -> scientific notation. Wrapping the value as an Excel/Sheets text
+// formula (`="10E1"`) forces both apps to keep it as a literal string. parseCsv
+// unwraps it again so an export -> re-import round-trip stays lossless.
+export type CsvColumn<T> = { key: keyof T; header: string; text?: boolean };
+
+function cell<T extends Record<string, unknown>>(row: T, col: CsvColumn<T>): string {
+  const raw = row[col.key];
+  if (col.text && raw !== null && raw !== undefined && String(raw) !== "") {
+    return escape(`="${String(raw).replace(/"/g, '""')}"`);
+  }
+  return escape(raw);
+}
+
+// Pure serialization (no DOM) — the download path and the tests share this.
+export function toCsvText<T extends Record<string, unknown>>(
+  rows: T[],
+  columns: CsvColumn<T>[],
+): string {
+  const header = columns.map((c) => escape(c.header)).join(",");
+  const body = rows.map((row) => columns.map((c) => cell(row, c)).join(",")).join("\n");
+  return `${header}\n${body}`;
+}
+
 export function downloadCsv<T extends Record<string, unknown>>(
   filename: string,
   rows: T[],
-  columns: { key: keyof T; header: string }[],
+  columns: CsvColumn<T>[],
 ) {
-  const header = columns.map((c) => escape(c.header)).join(",");
-  const body = rows
-    .map((row) => columns.map((c) => escape(row[c.key])).join(","))
-    .join("\n");
-  const csv = `${header}\n${body}`;
+  const csv = toCsvText(rows, columns);
 
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }); // BOM for Excel
   const url = URL.createObjectURL(blob);
@@ -30,6 +51,14 @@ export function downloadCsv<T extends Record<string, unknown>>(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// Unwrap an Excel/Sheets text-guard cell (`="10E1"` -> `10E1`, `""` -> `"`), so
+// a CSV we exported with text: true columns re-imports as the original string.
+// Strict match: only a whole cell that is exactly a guarded formula is unwrapped.
+function unguardCell(s: string): string {
+  const m = /^="((?:[^"]|"")*)"$/.exec(s);
+  return m ? m[1].replace(/""/g, '"') : s;
 }
 
 // parseCsv parses CSV text (RFC-4180-ish) into header names + row objects keyed
@@ -50,7 +79,7 @@ export function parseCsv(text: string): {
     if (cells.length === 1 && cells[0].trim() === "") continue;
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => {
-      row[h] = (cells[idx] ?? "").trim();
+      row[h] = unguardCell((cells[idx] ?? "").trim());
     });
     rows.push(row);
   }

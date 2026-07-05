@@ -51,6 +51,15 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
 
+  // GetBranding exposes JUST the branding facts (business type + licensed shop
+  // name) needed to render the app chrome BEFORE the user authenticates — the
+  // login screen + browser tab title. PUBLIC by design: the shop name + mode are
+  // the storefront brand (already shown to anyone who reaches the login page),
+  // not sensitive data. All richer settings/license RPCs stay role-gated.
+  rpc GetBranding(GetBrandingRequest) returns (GetBrandingResponse) {
+    option (auth_iface.v1.public) = true;
+  }
+
   // GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
   // (app_settings) used by SaleService.PrintReceipt when the request carries no
   // explicit target. Get is manager-tier (drives the Settings ▸ Printing panel);
@@ -135,6 +144,12 @@ message GetLicenseInfoResponse {
   bool has_license = 1;     // true when a license has been applied
   string name = 2;          // licensed holder / business name (empty when none)
   BussinessType type = 3;   // the active business type
+}
+
+message GetBrandingRequest {}
+message GetBrandingResponse {
+  BussinessType business_type = 1;  // active mode (UNSPECIFIED when unlicensed)
+  string shop_name = 2;             // licensed shop/holder name ("" when unlicensed)
 }
 
 message GetSettingsRequest {}

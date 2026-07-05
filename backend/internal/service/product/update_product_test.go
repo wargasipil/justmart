@@ -24,6 +24,7 @@ func TestUpdateProduct_ChangesNameAndPrice(t *testing.T) {
 
 	resp, err := svc.UpdateProduct(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductRequest{
 		Id:                   pid,
+		Sku:                  "SKU-UPD-1", // unchanged (SKU is required on update)
 		Name:                 "New Name",
 		Unit:                 "tablet",
 		UnitPrice:            1800,
@@ -63,6 +64,67 @@ func TestUpdateProduct_MissingName(t *testing.T) {
 	}))
 	require.Error(t, err)
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateProduct_ChangesSKU(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	pid := seedProduct(t, svc, ctx, "SKU-OLD", "Product", 1000)
+
+	resp, err := svc.UpdateProduct(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductRequest{
+		Id: pid, Sku: "SKU-NEW", Name: "Product", Unit: "tablet", UnitPrice: 1000,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, "SKU-NEW", resp.Msg.Product.Sku)
+
+	// Persisted to the row.
+	var p model.Product
+	require.NoError(t, gormDB.First(&p, "id = ?", pid).Error)
+	require.Equal(t, "SKU-NEW", p.SKU)
+}
+
+func TestUpdateProduct_DuplicateSKURejected(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	seedProduct(t, svc, ctx, "SKU-A", "A", 1000)
+	b := seedProduct(t, svc, ctx, "SKU-B", "B", 1000)
+
+	// Renaming B onto A's SKU is rejected with the same token as create.
+	_, err := svc.UpdateProduct(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductRequest{
+		Id: b, Sku: "SKU-A", Name: "B", Unit: "tablet", UnitPrice: 1000,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, "product.sku_taken", ce.Message())
+}
+
+func TestUpdateProduct_KeepsOwnSKU(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	pid := seedProduct(t, svc, ctx, "SKU-SELF", "Old", 1000)
+
+	// Resubmitting the row's own SKU while editing other fields must NOT trip
+	// the uniqueness check (id <> ? excludes self).
+	resp, err := svc.UpdateProduct(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductRequest{
+		Id: pid, Sku: "SKU-SELF", Name: "New", Unit: "tablet", UnitPrice: 1200,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, "SKU-SELF", resp.Msg.Product.Sku)
+	require.Equal(t, "New", resp.Msg.Product.Name)
 }
 
 func TestUpdateProduct_NotFound(t *testing.T) {

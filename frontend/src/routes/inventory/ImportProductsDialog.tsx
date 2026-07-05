@@ -201,7 +201,7 @@ export default function ImportProductsDialog({
         },
       ],
       [
-        { key: "sku", header: "sku" },
+        { key: "sku", header: "sku", text: true },
         { key: "name", header: "name" },
         { key: "unit", header: "unit" },
         { key: "unit_price", header: "unit_price" },

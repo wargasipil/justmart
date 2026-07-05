@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyLicenseRequest, ApplyLicenseResponse, ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyLicenseRequest, ApplyLicenseResponse, ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -76,6 +76,21 @@ export const SettingsService = {
       name: "GetLicenseInfo",
       I: GetLicenseInfoRequest,
       O: GetLicenseInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetBranding exposes JUST the branding facts (business type + licensed shop
+     * name) needed to render the app chrome BEFORE the user authenticates — the
+     * login screen + browser tab title. PUBLIC by design: the shop name + mode are
+     * the storefront brand (already shown to anyone who reaches the login page),
+     * not sensitive data. All richer settings/license RPCs stay role-gated.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetBranding
+     */
+    getBranding: {
+      name: "GetBranding",
+      I: GetBrandingRequest,
+      O: GetBrandingResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -310,7 +310,6 @@
     }
   },
   "auth": {
-    "signInTitle": "Masuk ke Justmart",
     "email": "Email",
     "password": "Kata sandi",
     "signIn": "Masuk",

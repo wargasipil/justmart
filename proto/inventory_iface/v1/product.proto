@@ -235,6 +235,7 @@ message UpdateProductRequest {
   int64 unit_price = 5;
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // upsert the full unit set (exactly one is_base, base factor 1)
+  string sku = 8;                        // editable business code; unique (excludes self on update)
 }
 message UpdateProductResponse { Product product = 1; }
 

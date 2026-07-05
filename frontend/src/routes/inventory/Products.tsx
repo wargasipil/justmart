@@ -179,7 +179,7 @@ export default function Products() {
           : "",
       })),
       [
-        { key: "sku", header: t("inventory.products.sku") },
+        { key: "sku", header: t("inventory.products.sku"), text: true },
         { key: "name", header: t("inventory.products.name") },
         { key: "unit", header: t("inventory.products.unit") },
         { key: "unitPrice", header: t("inventory.products.unitPrice") },

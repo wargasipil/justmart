@@ -122,7 +122,7 @@ function ProductForm({
         control={form.control}
         name="sku"
         label={t("inventory.products.sku")}
-        required={isCreate}
+        required
         autoFocus={isCreate}
       />
       <FormField control={form.control} name="name" label={t("inventory.products.name")} required />
@@ -341,6 +341,7 @@ export function EditProductDialog({
     try {
       await update.mutateAsync({
         id: product.id,
+        sku: values.sku,
         name: values.name,
         unit: values.unit,
         unitPrice: values.unitPrice,
@@ -376,6 +377,7 @@ export function EditProductDialog({
           units={units}
           setUnits={setUnits}
           referenceCost={product?.referenceCost ?? 0n}
+          isCreate={false}
         />
       </form>
     </EntityDialog>

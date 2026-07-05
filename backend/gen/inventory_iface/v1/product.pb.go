@@ -1377,6 +1377,7 @@ type UpdateProductRequest struct {
 	UnitPrice            int64                  `protobuf:"varint,5,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
 	PrescriptionRequired bool                   `protobuf:"varint,6,opt,name=prescription_required,json=prescriptionRequired,proto3" json:"prescription_required,omitempty"`
 	Units                []*ProductUnitInput    `protobuf:"bytes,7,rep,name=units,proto3" json:"units,omitempty"` // upsert the full unit set (exactly one is_base, base factor 1)
+	Sku                  string                 `protobuf:"bytes,8,opt,name=sku,proto3" json:"sku,omitempty"`     // editable business code; unique (excludes self on update)
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1451,6 +1452,13 @@ func (x *UpdateProductRequest) GetUnits() []*ProductUnitInput {
 		return x.Units
 	}
 	return nil
+}
+
+func (x *UpdateProductRequest) GetSku() string {
+	if x != nil {
+		return x.Sku
+	}
+	return ""
 }
 
 type UpdateProductResponse struct {
@@ -2440,7 +2448,7 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\aresults\x18\x01 \x03(\v2'.inventory_iface.v1.ImportProductResultR\aresults\x12\x18\n" +
 	"\acreated\x18\x02 \x01(\x05R\acreated\x12\x18\n" +
 	"\askipped\x18\x03 \x01(\x05R\askipped\x12\x18\n" +
-	"\aerrored\x18\x04 \x01(\x05R\aerrored\"\xf2\x01\n" +
+	"\aerrored\x18\x04 \x01(\x05R\aerrored\"\x84\x02\n" +
 	"\x14UpdateProductRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -2448,7 +2456,8 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"unit_price\x18\x05 \x01(\x03R\tunitPrice\x123\n" +
 	"\x15prescription_required\x18\x06 \x01(\bR\x14prescriptionRequired\x12:\n" +
-	"\x05units\x18\a \x03(\v2$.inventory_iface.v1.ProductUnitInputR\x05unitsJ\x04\b\x03\x10\x04R\fmanufacturer\"N\n" +
+	"\x05units\x18\a \x03(\v2$.inventory_iface.v1.ProductUnitInputR\x05units\x12\x10\n" +
+	"\x03sku\x18\b \x01(\tR\x03skuJ\x04\b\x03\x10\x04R\fmanufacturer\"N\n" +
 	"\x15UpdateProductResponse\x125\n" +
 	"\aproduct\x18\x01 \x01(\v2\x1b.inventory_iface.v1.ProductR\aproduct\"'\n" +
 	"\x15ArchiveProductRequest\x12\x0e\n" +
