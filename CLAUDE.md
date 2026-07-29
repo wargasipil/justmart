@@ -205,6 +205,9 @@ make docker-build    # docker build -t justmart:latest .
 make docker-up       # docker compose -f docker-compose.prod.yml up -d --build
 make docker-down     # tear down the prod stack
 make installer       # build dist-windows + assemble the Windows installer (needs Inno Setup)
+make fly-setup OWNER_EMAIL=... OWNER_PASSWORD=...  # one-time Fly.io provisioning (app + volume + secrets; re-runnable)
+make fly-deploy      # fly deploy --ha=false (single machine — SQLite lives on one volume)
+make fly-status / fly-logs / fly-ssh               # Fly.io ops
 ```
 
 ### Development workflow (HARD RULE)

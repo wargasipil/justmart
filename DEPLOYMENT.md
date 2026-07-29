@@ -55,16 +55,26 @@ printing disabled**. Config lives in [fly.toml](fly.toml).
 
 ### First deploy
 ```sh
-fly volume create justmart_data --region sin --size 3   # SQLite DB + backups
-fly secrets set JUSTMART_JWT_SECRET=$(openssl rand -hex 32) \
-                JUSTMART_OWNER_EMAIL=owner@yourshop.com \
-                JUSTMART_OWNER_PASSWORD='<strong-password>'
+# One-time: creates the app, the volume (SQLite DB + backups) and the secrets.
+# Every step no-ops when it already exists, so this is safe to re-run.
+make fly-setup OWNER_EMAIL=owner@justmart.com OWNER_PASSWORD='justmart123'
+
 # optional: fly secrets set JUSTMART_LICENSE=<token>   # selects pharmacy/retail mode
-fly deploy
-fly scale count 1        # NEVER more than 1 — see below
+
+make fly-deploy
 ```
 The app auto-migrates on boot and serves the UI + `/api` on one HTTPS origin.
 Health: `GET /healthz` → `200 ok`.
+
+`make fly-setup` mints `JUSTMART_JWT_SECRET` once and never rotates it (rotating
+invalidates every access token in the field); re-runs only re-apply the owner
+credentials. `make fly-deploy` passes `--ha=false` so Fly does not add the
+standby machine it normally would — see below.
+
+Ops shortcuts: `make fly-status` · `make fly-logs` · `make fly-ssh` (the volume
+is at `/data`). Override the app/region/volume with
+`FLY_APP=` / `FLY_REGION=` / `FLY_VOLUME=` / `FLY_VOLUME_SIZE=` — `FLY_APP` is
+the one value that must match `app =` in [fly.toml](fly.toml).
 
 ### Single machine only (hard rule)
 A Fly volume attaches to **exactly one machine**, and stock lives in SQLite. Two

@@ -2,7 +2,8 @@
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows dist-connector-windows docker-build docker-up docker-down installer \
-        portable-windows backup
+        portable-windows backup \
+        fly-app fly-volume fly-secrets fly-setup fly-deploy fly-status fly-logs fly-ssh
 
 # `go -C backend run ...` runs the binary with CWD = backend/, so we point
 # JUSTMART_CONFIG at the repo-root config from there. Using `export` (a Make
@@ -84,6 +85,72 @@ docker-up:
 
 docker-down:
 	docker compose -f docker-compose.prod.yml down
+
+# --- Fly.io (cloud deploy) ----------------------------------------------------
+# One machine, SQLite on a persistent volume, printing disabled. Shape + caveats
+# are documented in fly.toml and the Fly.io section of DEPLOYMENT.md.
+#
+# Only FLY_APP duplicates fly.toml (`fly apps create` needs the name before a
+# config exists); every other target lets flyctl read the app from fly.toml in
+# CWD. Rename in fly.toml -> pass FLY_APP=<newname> or edit it here too.
+FLY_APP         ?= justmart
+FLY_REGION      ?= sin
+FLY_VOLUME      ?= justmart_data
+# Size in GB. 1 = Fly's minimum, plenty for a SQLite shop DB + backups. A volume
+# can be EXTENDED later (`fly volume extend <id> -s <gb>`) but never shrunk, so
+# start small.
+FLY_VOLUME_SIZE ?= 1
+
+# One-time provisioning. Each step is a no-op when it already exists, so the
+# whole thing is safe to re-run:
+#   make fly-setup OWNER_EMAIL=owner@yourshop.com OWNER_PASSWORD='<strong>'
+fly-setup: fly-app fly-volume fly-secrets
+
+fly-app:
+	@fly status -a $(FLY_APP) >/dev/null 2>&1 \
+	  && echo "app $(FLY_APP) already exists" \
+	  || fly apps create $(FLY_APP)
+
+# A Fly volume attaches to exactly ONE machine and the stock ledger lives in
+# SQLite, so this stays a single volume on purpose (--yes skips flyctl's
+# "you're creating a single volume" redundancy prompt). Never scale past 1.
+fly-volume:
+	@fly volumes list -a $(FLY_APP) 2>/dev/null | grep -q "$(FLY_VOLUME)" \
+	  && echo "volume $(FLY_VOLUME) already exists" \
+	  || fly volume create $(FLY_VOLUME) -a $(FLY_APP) --region $(FLY_REGION) --size $(FLY_VOLUME_SIZE) --yes
+
+# JWT secret is minted once and then LEFT ALONE — rotating it invalidates every
+# access token in the field. The owner credentials are re-applied on purpose:
+# EnsureBootstrapOwner re-reads them every boot, and an EMPTY env var falls back
+# to the baked config.docker.yaml defaults (owner@justmart.local /
+# change-me-on-first-login), so both must stay set permanently.
+fly-secrets:
+	@test -n "$(OWNER_EMAIL)"    || { echo "usage: make fly-secrets OWNER_EMAIL=owner@yourshop.com OWNER_PASSWORD='<strong-password>'"; exit 1; }
+	@test -n "$(OWNER_PASSWORD)" || { echo "usage: make fly-secrets OWNER_EMAIL=owner@yourshop.com OWNER_PASSWORD='<strong-password>'"; exit 1; }
+	@fly secrets list -a $(FLY_APP) 2>/dev/null | grep -q JUSTMART_JWT_SECRET \
+	  && echo "JUSTMART_JWT_SECRET already set (not rotating)" \
+	  || fly secrets set -a $(FLY_APP) JUSTMART_JWT_SECRET=$$(openssl rand -hex 32)
+	fly secrets set -a $(FLY_APP) \
+	  JUSTMART_OWNER_EMAIL='$(OWNER_EMAIL)' \
+	  JUSTMART_OWNER_PASSWORD='$(OWNER_PASSWORD)'
+
+# Build the image remotely and release it. The SPA + migrations are embedded by
+# the Dockerfile and goose runs on boot (auto_migrate: true), so there is no
+# separate build or migrate step. --ha=false keeps Fly from provisioning the
+# standby machine it would normally add: the second machine cannot mount the
+# volume, and two SQLite files would diverge.
+fly-deploy:
+	fly deploy -a $(FLY_APP) --ha=false
+
+fly-status:
+	fly status -a $(FLY_APP)
+
+fly-logs:
+	fly logs -a $(FLY_APP)
+
+# Shell into the machine; the volume is at /data (SQLite DB + backups).
+fly-ssh:
+	fly ssh console -a $(FLY_APP)
 
 # --- Windows installer -------------------------------------------------------
 # Assembles the payload (exe + bundled Postgres + WinSW) and runs Inno Setup.

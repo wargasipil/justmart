@@ -16,7 +16,7 @@
 # refused server-side (see internal/service/connector).
 #
 # One-time setup (see DEPLOYMENT.md):
-#   fly volume create justmart_data --region sin --size 3
+#   fly volume create justmart_data --region sin --size 1
 #   fly secrets set JUSTMART_JWT_SECRET=$(openssl rand -hex 32) \
 #                   JUSTMART_OWNER_EMAIL=... JUSTMART_OWNER_PASSWORD=...
 #   fly deploy && fly scale count 1
