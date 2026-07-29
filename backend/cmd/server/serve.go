@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"connectrpc.com/connect"
@@ -112,7 +116,10 @@ func serve(_ context.Context, cmd *cli.Command) error {
 	batchSvc := batch.NewBatchService(gormDB)
 	stockSvc := stock.NewStockService(gormDB)
 	customerSvc := customer.NewCustomerService(gormDB)
-	connectorSvc := connector.NewConnectorService()
+	// The Connect stream is public + unauthenticated and the auth interceptor is
+	// unary-only, so only accept connectors when we actually print through them.
+	// On an internet-facing deploy (Fly) this keeps the stream shut.
+	connectorSvc := connector.NewConnectorService(cfg.Connector.Mode == "connector")
 	saleSvc := sale.NewSaleService(gormDB, cfg.Printer)
 	saleSvc.SetConnector(cfg.Connector, connectorSvc)
 	analyticsSvc := analytics.NewAnalyticsService(gormDB)
@@ -244,6 +251,34 @@ func serve(_ context.Context, cmd *cli.Command) error {
 		Protocols: &protocols,
 	}
 
-	slog.Info("justmart listening", "addr", addr)
-	return srv.ListenAndServe()
+	// Graceful shutdown. Fly (and Docker/WinSW) send SIGTERM on every deploy,
+	// restart and machine migration. Without this the process dies mid-request:
+	// in-flight sales are cut, the detached audit-log goroutines are dropped, and
+	// SQLite is left to recover its WAL on next boot. Drain instead.
+	shutdownCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("justmart listening", "addr", addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-shutdownCtx.Done():
+		stop() // restore default handling: a second signal kills immediately
+		slog.Info("shutting down; draining in-flight requests")
+		drainCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(drainCtx); err != nil {
+			slog.Warn("graceful shutdown timed out", "err", err)
+			return srv.Close()
+		}
+		slog.Info("shutdown complete")
+		return nil
+	}
 }

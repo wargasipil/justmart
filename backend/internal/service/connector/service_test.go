@@ -4,6 +4,7 @@
 package connector
 
 import (
+	"context"
 	"sync"
 	"testing"
 
@@ -12,6 +13,27 @@ import (
 
 	connectorifacev1 "github.com/justmart/backend/gen/connector_iface/v1"
 )
+
+// TestConnect_DisabledRefusesStream is the internet-facing guard: Connect is a
+// public, UNAUTHENTICATED stream that the unary auth interceptor cannot cover,
+// so when the server isn't in connector print mode it must be refused outright.
+// Passing a nil stream is deliberate — it proves the gate returns BEFORE
+// register()/Send/ctx.Done() are ever reached (otherwise this would panic).
+func TestConnect_DisabledRefusesStream(t *testing.T) {
+	t.Parallel()
+	s := NewConnectorService(false) // connector.mode != "connector" (e.g. cloud deploy)
+
+	err := s.Connect(context.Background(),
+		connect.NewRequest(&connectorifacev1.ConnectRequest{DeviceId: "attacker"}), nil)
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+
+	// Never registered → cannot be hijacked as a push target, so no receipt can
+	// ever be pushed to it.
+	require.Empty(t, s.List(), "a refused connector must not land in the registry")
+	_, err = s.Push("attacker", "", []byte("receipt"))
+	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
+}
 
 func fakeConn(id string, ch chan *connectorifacev1.ServerEvent) *conn {
 	return &conn{
@@ -24,7 +46,7 @@ func fakeConn(id string, ch chan *connectorifacev1.ServerEvent) *conn {
 
 func TestPush_DeliversToRegisteredConn(t *testing.T) {
 	t.Parallel()
-	s := NewConnectorService()
+	s := NewConnectorService(true)
 	ch := make(chan *connectorifacev1.ServerEvent, 4)
 	c := fakeConn("dev1", ch)
 	s.register(c)
@@ -52,7 +74,7 @@ func TestPush_DeliversToRegisteredConn(t *testing.T) {
 
 func TestPush_EmptyDeviceUsesSoleConnector(t *testing.T) {
 	t.Parallel()
-	s := NewConnectorService()
+	s := NewConnectorService(true)
 	ch := make(chan *connectorifacev1.ServerEvent, 1)
 	s.register(fakeConn("only", ch))
 
@@ -63,7 +85,7 @@ func TestPush_EmptyDeviceUsesSoleConnector(t *testing.T) {
 
 func TestPush_EmptyDeviceAmbiguous(t *testing.T) {
 	t.Parallel()
-	s := NewConnectorService()
+	s := NewConnectorService(true)
 	s.register(fakeConn("a", make(chan *connectorifacev1.ServerEvent, 1)))
 	s.register(fakeConn("b", make(chan *connectorifacev1.ServerEvent, 1)))
 
@@ -73,14 +95,14 @@ func TestPush_EmptyDeviceAmbiguous(t *testing.T) {
 
 func TestPush_NotConnected(t *testing.T) {
 	t.Parallel()
-	s := NewConnectorService()
+	s := NewConnectorService(true)
 	_, err := s.Push("ghost", "", nil)
 	require.Equal(t, connect.CodeUnavailable, connect.CodeOf(err))
 }
 
 func TestReconnect_SameIDReplacesAndSurvivesStaleUnregister(t *testing.T) {
 	t.Parallel()
-	s := NewConnectorService()
+	s := NewConnectorService(true)
 	ch1 := make(chan *connectorifacev1.ServerEvent, 1)
 	ch2 := make(chan *connectorifacev1.ServerEvent, 1)
 	old := fakeConn("dev", ch1)
@@ -98,7 +120,7 @@ func TestReconnect_SameIDReplacesAndSurvivesStaleUnregister(t *testing.T) {
 // Run with -race: pushing while unregistering must not panic or send-after-evict.
 func TestPush_ConcurrentWithUnregister(t *testing.T) {
 	t.Parallel()
-	s := NewConnectorService()
+	s := NewConnectorService(true)
 	ch := make(chan *connectorifacev1.ServerEvent, 100)
 	c := fakeConn("dev", ch)
 	s.register(c)

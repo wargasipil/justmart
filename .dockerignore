@@ -16,6 +16,16 @@ frontend/playwright-report
 frontend/tests/e2e/.auth
 backend/bin
 backend/tmp
+# Host build artifacts + local runtime state under backend/. These never reach
+# the final image (only /out/justmart is copied), but they bloat every context
+# upload and bust the build cache — server.exe alone is ~41 MB.
+backend/*.exe
+backend/justmart.db
+backend/justmart.db-shm
+backend/justmart.db-wal
+backend/backups/
+backend/connector-identity.json
+backend/*.license
 # The embedded SPA is rebuilt in-image; never copy a host build of it in.
 backend/internal/web/dist/assets
 # Local runtime config (secrets) — provided via env / compose, never baked in.

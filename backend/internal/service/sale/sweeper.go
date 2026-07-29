@@ -51,19 +51,28 @@ func SweepStaleDrafts(ctx context.Context, db *gorm.DB, maxIdle time.Duration) (
 // StartDraftSweeper launches a background goroutine that periodically deletes
 // abandoned DRAFT carts (idle > draftMaxIdle) the POS client missed (crashes,
 // lost sessions). Runs for the process lifetime; no graceful shutdown.
+//
+// It sweeps once immediately, then on every tick. The initial sweep matters:
+// time.Ticker only fires after a full draftSweepInterval, so a process that
+// restarts more often than that — container deploys, Fly machine restarts —
+// would otherwise never sweep at all and let abandoned DRAFTs accumulate.
 func StartDraftSweeper(db *gorm.DB) {
+	sweep := func() {
+		n, err := SweepStaleDrafts(context.Background(), db, draftMaxIdle)
+		if err != nil {
+			slog.Error("draft sweeper failed", "error", err)
+			return
+		}
+		if n > 0 {
+			slog.Info("draft sweeper deleted abandoned carts", "count", n)
+		}
+	}
 	go func() {
+		sweep()
 		ticker := time.NewTicker(draftSweepInterval)
 		defer ticker.Stop()
 		for range ticker.C {
-			n, err := SweepStaleDrafts(context.Background(), db, draftMaxIdle)
-			if err != nil {
-				slog.Error("draft sweeper failed", "error", err)
-				continue
-			}
-			if n > 0 {
-				slog.Info("draft sweeper deleted abandoned carts", "count", n)
-			}
+			sweep()
 		}
 	}()
 }

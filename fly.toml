@@ -1,0 +1,73 @@
+# Justmart — Fly.io deployment.
+#
+# Shape: ONE machine, SQLite on a persistent volume, printing disabled.
+#
+# Why one machine: a Fly volume attaches to exactly one machine, and the app's
+# stock ledger lives in SQLite. Two machines would each get their own divergent
+# database file. Never `fly scale count > 1` with this config. (To scale out,
+# move to Fly Postgres: `fly pg create` + `fly pg attach` provisions a `justmart`
+# user AND database on :5432, which already matches the values baked into
+# config.docker.yaml — only JUSTMART_DB_HOST + JUSTMART_DB_PASSWORD would change.)
+#
+# Printing is NOT available in the cloud: raw-TCP mode dials a LAN printer, USB
+# mode needs the Windows spooler, and the print connector speaks h2c (cleartext
+# HTTP/2) so it cannot dial Fly's HTTPS edge. connector.mode is left at its
+# default ("tcp"), which also keeps the public ConnectorService.Connect stream
+# refused server-side (see internal/service/connector).
+#
+# One-time setup (see DEPLOYMENT.md):
+#   fly volume create justmart_data --region sin --size 3
+#   fly secrets set JUSTMART_JWT_SECRET=$(openssl rand -hex 32) \
+#                   JUSTMART_OWNER_EMAIL=... JUSTMART_OWNER_PASSWORD=...
+#   fly deploy && fly scale count 1
+
+app = 'justmart'
+primary_region = 'sin'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  # The "today" boundary (dashboard tiles, daily analytics, cashier shift totals)
+  # is derived from time.Local. Without TZ the VM is UTC and the day would roll
+  # over at 07:00 WIB, mis-attributing every early-morning sale. tzdata is
+  # embedded in the binary, so this resolves on the slim image.
+  TZ = 'Asia/Jakarta'
+
+  # SQLite on the mounted volume. These three are the only DB knobs that have env
+  # overrides; server.port (8080) and auto_migrate come from the baked
+  # config.docker.yaml, so no config file change is needed.
+  JUSTMART_DB_DRIVER = 'sqlite'
+  JUSTMART_DB_PATH = '/data/justmart.db'
+  JUSTMART_BACKUP_DIR = '/data/backups'
+
+  # Self-update targets the Windows portable build; in a container the apply path
+  # is already OS-gated, but this also stops Settings > Updates from calling the
+  # GitHub API on every visit.
+  JUSTMART_UPDATE_DISABLED = 'true'
+
+[[mounts]]
+  source = 'justmart_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080  # must match server.port in the baked config (no PORT env override exists)
+  force_https = true
+  # Always-on, single machine: SQLite + one volume cannot be replicated, and a
+  # sleeping machine adds cold-start latency at the register and stalls the
+  # hourly stale-draft sweeper.
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    timeout = '5s'
+    path = '/healthz'
+
+[[vm]]
+  memory = '512mb'  # Go + embedded SPA + SQLite VACUUM INTO backups
+  cpus = 1

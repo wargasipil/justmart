@@ -39,9 +39,14 @@ RUN groupadd --system --gid 65532 justmart \
 WORKDIR /app
 COPY --from=build /out/justmart /app/justmart
 COPY config.docker.yaml /app/config.yaml
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 ENV JUSTMART_CONFIG=/app/config.yaml
 # Default shop timezone for the "today" boundary; override in compose if needed.
 ENV TZ=Asia/Jakarta
 EXPOSE 8080
-USER justmart:justmart
-ENTRYPOINT ["/app/justmart"]
+# NOTE: we intentionally do NOT set `USER` here. The entrypoint starts as root
+# only to chown mounted volumes (Fly/Docker mount them root-owned), then drops
+# to uid 65532 via setpriv before exec'ing the server. Net effect is the same
+# non-root runtime as before — see docker-entrypoint.sh.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

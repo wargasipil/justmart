@@ -1,0 +1,9 @@
+# Shell scripts and the Dockerfile MUST keep LF endings.
+#
+# This repo is developed on Windows with core.autocrlf=true, which would
+# otherwise check these out with CRLF. A CRLF shebang breaks a script inside a
+# Linux container with a cryptic "exec /app/docker-entrypoint.sh: no such file
+# or directory" — the interpreter is read as "/bin/sh\r", which doesn't exist.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.dockerfile text eol=lf

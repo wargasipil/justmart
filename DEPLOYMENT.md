@@ -2,13 +2,15 @@
 
 Single-shop deployment. Justmart ships as **one self-contained binary** that
 serves the web UI and the API on a single port and auto-applies its database
-migrations on boot. Two turnkey distribution flavors:
+migrations on boot. Three turnkey distribution flavors:
 
 - **Docker image** — for a Linux box / VM / cloud host. `docker compose up`.
+- **Fly.io** — hosted single machine, SQLite on a volume. `fly deploy`.
+  Note: **no receipt printing in the cloud** (see that section).
 - **Windows installer** — for a pharmacy running everything on a Windows PC,
   optionally serving a few LAN registers. Double-click `JustmartSetup-*.exe`.
 
-Both embed the SPA + migrations into the binary; there is **no separate nginx,
+All embed the SPA + migrations into the binary; there is **no separate nginx,
 static host, or manual migrate step**.
 
 ---
@@ -43,7 +45,84 @@ docker compose -f docker-compose.prod.yml up -d --build   # rebuilds image, re-m
 
 ---
 
-## Flavor 2 — Windows installer
+## Flavor 2 — Fly.io (cloud)
+
+Hosted deploy of the same image: **one machine, SQLite on a persistent volume,
+printing disabled**. Config lives in [fly.toml](fly.toml).
+
+### Prerequisites
+`flyctl` installed + `fly auth login`.
+
+### First deploy
+```sh
+fly volume create justmart_data --region sin --size 3   # SQLite DB + backups
+fly secrets set JUSTMART_JWT_SECRET=$(openssl rand -hex 32) \
+                JUSTMART_OWNER_EMAIL=owner@yourshop.com \
+                JUSTMART_OWNER_PASSWORD='<strong-password>'
+# optional: fly secrets set JUSTMART_LICENSE=<token>   # selects pharmacy/retail mode
+fly deploy
+fly scale count 1        # NEVER more than 1 — see below
+```
+The app auto-migrates on boot and serves the UI + `/api` on one HTTPS origin.
+Health: `GET /healthz` → `200 ok`.
+
+### Single machine only (hard rule)
+A Fly volume attaches to **exactly one machine**, and stock lives in SQLite. Two
+machines would each get their own divergent database file. `fly.toml` pins
+`min_machines_running = 1` / `auto_stop_machines = "off"`; do not scale out.
+
+To outgrow it, switch to Fly Postgres — `fly pg create` + `fly pg attach`
+provision a `justmart` user **and** database on `:5432`, which already matches
+the values baked into `config.docker.yaml`, so only `JUSTMART_DB_HOST` +
+`JUSTMART_DB_PASSWORD` change (and drop the `JUSTMART_DB_DRIVER=sqlite` env).
+
+### The bootstrap owner is re-applied on EVERY boot
+`EnsureBootstrapOwner` re-hashes the password, re-promotes to OWNER and
+re-activates that account on every start. An **empty env var falls back to the
+baked config**, so *removing* `JUSTMART_OWNER_EMAIL`/`JUSTMART_OWNER_PASSWORD`
+would silently reset the owner to `owner@justmart.local` /
+`change-me-on-first-login`. Therefore:
+
+- **Keep both secrets set permanently**, with a strong password.
+- Treat that account as an env-managed **break-glass owner** — its UI password
+  change will be reverted on the next deploy.
+- Create separate OWNER users in the UI for day-to-day work.
+
+### Printing is NOT available in the cloud
+All three print paths assume the server shares a LAN with the printer: raw-TCP
+mode dials `192.168.1.100:9100`, `usb` mode needs the Windows spooler, and the
+print connector speaks **h2c** (cleartext HTTP/2) so it cannot dial Fly's HTTPS
+edge. `connector.mode` therefore stays `tcp` (unused) and `printer.enabled` is
+false — `PrintReceipt` returns a clean `FailedPrecondition`.
+
+Because `ConnectorService.Connect` is a `public`, **unauthenticated** stream (and
+the auth interceptor is unary-only, so it structurally cannot guard a stream),
+the server **refuses that stream unless `connector.mode == "connector"`**. That
+keeps an internet-facing deploy from letting anyone register as the shop's
+connector and receive its receipts. Enabling cloud printing later requires a
+TLS-aware connector + a streaming auth interceptor + reshipping the connector.
+
+### Timezone
+`fly.toml` sets `TZ=Asia/Jakarta`. This is **load-bearing**: every "today"
+boundary (dashboard tiles, daily analytics, cashier shift totals) is derived from
+`time.Local`. Unset, the VM is UTC and the day rolls over at 07:00 WIB.
+
+### Backups
+`JUSTMART_BACKUP_DIR=/data/backups` (on the volume). SQLite uses `VACUUM INTO`,
+so no `pg_dump` is involved. Create them in-app (OWNER → Settings → Backups) and
+pull them down with `fly ssh sftp get /data/backups/<dir>/database.sqlite`.
+**Backups on the volume die with the volume** — copy them off-box regularly.
+
+### Ops
+```sh
+fly logs                # structured JSON logs
+fly ssh console         # shell into the machine (/data is the volume)
+fly deploy              # rebuild + release; drains in-flight requests (SIGTERM)
+```
+
+---
+
+## Flavor 3 — Windows installer
 
 A self-contained `.exe` that installs the app, a **bundled PostgreSQL**, both as
 auto-start Windows Services, plus a browser shortcut. Zero prerequisites for the

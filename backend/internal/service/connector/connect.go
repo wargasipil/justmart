@@ -12,11 +12,23 @@ import (
 // Connect is the long-lived outbound stream from a connector. It is a `public`,
 // UNAUTHENTICATED RPC — a connector connects freely (trusted single-shop LAN).
 // It registers the device, acks, then blocks until the connector disconnects.
+//
+// Refused outright unless the server runs in connector print mode (see the
+// ConnectorService doc comment): on an internet-facing deploy an open stream is
+// a receipt-exfiltration / registry-hijack / memory-exhaustion vector, and the
+// unary auth interceptor structurally cannot guard a stream. Returning early —
+// before register() and before the ctx.Done() hold — means no registration, no
+// push target, and no held goroutine.
 func (s *ConnectorService) Connect(
 	ctx context.Context,
 	req *connect.Request[connectorifacev1.ConnectRequest],
 	stream *connect.ServerStream[connectorifacev1.ServerEvent],
 ) error {
+	if !s.enabled {
+		return connect.NewError(connect.CodeFailedPrecondition,
+			errors.New("print connector mode is not enabled on this server"))
+	}
+
 	id := req.Msg.DeviceId
 	if id == "" {
 		return connect.NewError(connect.CodeInvalidArgument, errors.New("device_id is required"))
