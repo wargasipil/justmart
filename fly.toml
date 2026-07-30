@@ -69,5 +69,14 @@ primary_region = 'sin'
     path = '/healthz'
 
 [[vm]]
-  memory = '512mb'  # Go + embedded SPA + SQLite VACUUM INTO backups
+  # Fly's smallest tier: shared-cpu-1x @ 256mb (the platform minimum for both).
+  # cpu_kind is stated explicitly rather than relying on the "shared" default.
+  #
+  # 256mb is tight for the workload that peaks hardest — a SQLite `VACUUM INTO`
+  # backup and the analytics aggregations both allocate well above steady state.
+  # If the machine starts getting OOM-killed (`fly logs` shows
+  # "Out of memory: Killed process"), bump memory back to '512mb'; that is the
+  # first knob to turn, not the volume or the machine count.
+  memory = '256mb'
+  cpu_kind = 'shared'
   cpus = 1
