@@ -242,7 +242,21 @@ export default function OrderDetail() {
                         {String(it.qty)}{it.unitName ? ` ${it.unitName}` : ""}
                       </Table.Cell>
                       <Table.Cell textAlign="end" fontFamily="mono">
-                        {formatMoney(Number(it.unitPriceSnapshot))}
+                        <Stack gap={0} align="flex-end">
+                          <Text fontFamily="mono">{formatMoney(Number(it.unitPriceSnapshot))}</Text>
+                          {/* Grosir: history must explain the price the customer
+                              actually paid, same as POS showed at checkout. */}
+                          {it.tierMinQty > 0 && (
+                            <HStack gap={1}>
+                              <Badge size="xs" colorPalette="purple">
+                                {t("pos.grosir")}
+                              </Badge>
+                              <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
+                                {t("pos.grosirThreshold", { qty: it.tierMinQty })}
+                              </Text>
+                            </HStack>
+                          )}
+                        </Stack>
                       </Table.Cell>
                       <Table.Cell textAlign="end" fontFamily="mono">
                         {formatMoney(Number(it.lineDiscount))}

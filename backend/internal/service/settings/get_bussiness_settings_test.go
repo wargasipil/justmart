@@ -13,7 +13,7 @@ import (
 	"github.com/justmart/backend/internal/service/servicetest"
 )
 
-// With nothing configured, GetBussinessSettings returns UNSPECIFIED + empty name.
+// With nothing configured, GetBussinessSettings returns UNSPECIFIED + no title.
 func TestGetBussinessSettings_DefaultUnspecified(t *testing.T) {
 	t.Parallel()
 	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
@@ -21,18 +21,21 @@ func TestGetBussinessSettings_DefaultUnspecified(t *testing.T) {
 	resp, err := svc.GetBussinessSettings(context.Background(), connect.NewRequest(&settingsifacev1.GetBussinessSettingsRequest{}))
 	require.NoError(t, err)
 	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_UNSPECIFIED, resp.Msg.Type)
-	require.Empty(t, resp.Msg.Name)
+	require.Empty(t, resp.Msg.AppTitle)
 }
 
-// The licensed shop name is surfaced (all roles) for pharmacy-mode branding.
-func TestGetBussinessSettings_ReturnsLicensedName(t *testing.T) {
+// The configured mode + app title are surfaced to every role — they drive the
+// app chrome (brand, nav, POS behavior) for cashiers too.
+func TestGetBussinessSettings_ReturnsConfiguredModeAndTitle(t *testing.T) {
 	t.Parallel()
 	db := servicetest.NewDB(t, servicetest.NewConfig(t))
 	svc := settingssvc.NewSettingsService(db)
 	ctx := context.Background()
-	require.NoError(t, common.SetLicense(ctx, db, "stored-token", "Apotek Sehat"))
+	require.NoError(t, common.SetBussinessType(ctx, db, common.BussinessTypePharmacyShop))
+	require.NoError(t, common.SetAppTitle(ctx, db, "Apotek Sehat"))
 
 	resp, err := svc.GetBussinessSettings(ctx, connect.NewRequest(&settingsifacev1.GetBussinessSettingsRequest{}))
 	require.NoError(t, err)
-	require.Equal(t, "Apotek Sehat", resp.Msg.Name)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_PHARMACY_SHOP, resp.Msg.Type)
+	require.Equal(t, "Apotek Sehat", resp.Msg.AppTitle)
 }

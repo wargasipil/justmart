@@ -411,6 +411,24 @@ export class SaleItem extends Message<SaleItem> {
    */
   discountManual = false;
 
+  /**
+   * Grosir (wholesale tier) pricing. list_price_snapshot is the unit's NORMAL
+   * catalog price frozen at add time; unit_price_snapshot (field 6) is the
+   * EFFECTIVE price, which equals it unless a tier applied. tier_min_qty is the
+   * applied tier's threshold (0 = no grosir on this line — also the "applied"
+   * flag). Keeping the list price makes tier resolution a pure function of
+   * (list_price_snapshot, qty), so lowering the qty back below a threshold
+   * restores the normal price instead of ratcheting.
+   *
+   * @generated from field: int64 list_price_snapshot = 18;
+   */
+  listPriceSnapshot = protoInt64.zero;
+
+  /**
+   * @generated from field: int32 tier_min_qty = 19;
+   */
+  tierMinQty = 0;
+
   constructor(data?: PartialMessage<SaleItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -436,6 +454,8 @@ export class SaleItem extends Message<SaleItem> {
     { no: 15, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 16, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 17, name: "discount_manual", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 18, name: "list_price_snapshot", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 19, name: "tier_min_qty", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaleItem {

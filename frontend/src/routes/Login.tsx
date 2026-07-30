@@ -9,7 +9,7 @@ import { z } from "zod";
 
 import FormField from "../components/FormField";
 import { useAuth } from "../lib/auth";
-import { useBranding } from "../queries/settings";
+import { useAppTitle, useBranding } from "../queries/settings";
 import { toast } from "../lib/toaster";
 
 const Schema = z.object({
@@ -21,12 +21,12 @@ type FormValues = z.infer<typeof Schema>;
 export default function Login() {
   const { t } = useTranslation();
   const { user, login } = useAuth();
-  const { isPharmacy, shopName } = useBranding();
+  const { isPharmacy } = useBranding();
   const navigate = useNavigate();
 
-  // Mirror the Sidebar brand: licensed shop name in pharmacy mode (fallback to
-  // the localized "Apotek"/"Pharmacy" label), else the "Justmart" retail brand.
-  const brandName = isPharmacy ? shopName || t("app.pharmacyName") : t("app.name");
+  // Mirror the Sidebar brand + tab title: the app title configured in Settings ▸
+  // General, else the built-in brand for the active mode.
+  const brandName = useAppTitle();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(Schema),

@@ -55,6 +55,25 @@ func productUnitToProto(u *model.ProductUnit) *inventoryifacev1.ProductUnit {
 	}
 }
 
+// productPriceTierToProto mirrors productpricetier.toProto — the tier is hydrated
+// onto Product here so POS gets the ladder without a second RPC.
+func productPriceTierToProto(t *model.ProductPriceTier) *inventoryifacev1.ProductPriceTier {
+	factor := t.UnitFactor
+	if factor < 1 {
+		factor = 1
+	}
+	return &inventoryifacev1.ProductPriceTier{
+		Id:            t.ID,
+		ProductId:     t.ProductID,
+		ProductUnitId: t.ProductUnitID,
+		UnitName:      t.UnitName,
+		UnitFactor:    factor,
+		MinQty:        t.MinQty,
+		Price:         t.Price,
+		CreatedAt:     t.CreatedAt.Unix(),
+	}
+}
+
 func productPriceToProto(p *model.ProductPrice) *inventoryifacev1.ProductPrice {
 	out := &inventoryifacev1.ProductPrice{
 		Id:            p.ID,

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import { settingsClient } from "../lib/clients";
 import { BussinessType } from "../gen/settings_iface/v1/settings_pb";
@@ -8,25 +9,24 @@ export const settingsKeys = {
   all: ["settings"] as const,
   businessMode: ["settings", "businessMode"] as const,
   branding: ["settings", "branding"] as const,
-  licenseInfo: ["settings", "licenseInfo"] as const,
 };
 
-// Branding (business type + licensed shop name) via the PUBLIC GetBranding RPC —
-// readable WITHOUT auth, so the login screen + browser tab title can brand the
-// pharmacy shop before anyone logs in (the authenticated business-mode query is
-// dormant pre-login). Last-known branding is cached in localStorage and used as
+// Branding (business mode + configured app title) via the PUBLIC GetBranding RPC
+// — readable WITHOUT auth, so the login screen + browser tab title can brand the
+// shop before anyone logs in (the authenticated business-mode query is dormant
+// pre-login). Last-known branding is cached in localStorage and used as
 // placeholder so a repeat visitor sees the right brand instantly, no "Justmart"
 // flash, while the query still refetches for freshness.
 const BRANDING_CACHE_KEY = "justmart_branding";
-type CachedBranding = { businessType: number; shopName: string };
+type CachedBranding = { businessType: number; appTitle: string };
 
 function readBrandingCache(): CachedBranding | undefined {
   try {
     const raw = localStorage.getItem(BRANDING_CACHE_KEY);
     if (!raw) return undefined;
     const p = JSON.parse(raw) as Partial<CachedBranding>;
-    if (typeof p?.businessType === "number" && typeof p?.shopName === "string") {
-      return { businessType: p.businessType, shopName: p.shopName };
+    if (typeof p?.businessType === "number" && typeof p?.appTitle === "string") {
+      return { businessType: p.businessType, appTitle: p.appTitle };
     }
   } catch {
     // malformed / unavailable cache — ignore, fall back to the default brand
@@ -47,7 +47,7 @@ export function useBrandingQuery() {
     queryKey: settingsKeys.branding,
     queryFn: async (): Promise<CachedBranding> => {
       const res = await settingsClient.getBranding({});
-      return { businessType: res.businessType, shopName: res.shopName };
+      return { businessType: res.businessType, appTitle: res.appTitle };
     },
     staleTime: 5 * 60_000,
     placeholderData: readBrandingCache,
@@ -68,16 +68,27 @@ export function useBranding() {
     mode,
     isPharmacy: mode === BussinessType.PHARMACY_SHOP,
     isRetail: mode !== BussinessType.PHARMACY_SHOP,
-    shopName: q.data?.shopName ?? "",
+    appTitle: q.data?.appTitle ?? "",
     isLoading: q.isLoading,
   };
 }
 
-// The shop's business mode (license-driven). Readable by every authenticated
-// role; drives branding, navigation, and POS Rx behavior. Long staleTime — the
-// mode only changes on a server restart (re-applied from the license on boot).
-// `enabled` lets callers skip the (authenticated) RPC before login. Errors are
-// silenced — a failure just falls back to retail, no global toast.
+// The single source of the app's display name, used by every brand surface (tab
+// title, sidebar brand, login heading): the owner-configured title from
+// Settings ▸ General wins; otherwise fall back to the built-in brand for the
+// active mode ("Apotek"/"Pharmacy" vs "Justmart"). Reads the PUBLIC branding
+// query so it's correct pre-login too.
+export function useAppTitle() {
+  const { isPharmacy, appTitle } = useBranding();
+  const { t } = useTranslation();
+  return appTitle || (isPharmacy ? t("app.pharmacyName") : t("app.name"));
+}
+
+// The shop's business mode (configured in Settings ▸ General). Readable by every
+// authenticated role; drives branding, navigation, and POS Rx behavior. Long
+// staleTime — the mode changes only when the owner edits it (the mutation
+// invalidates this key). `enabled` lets callers skip the (authenticated) RPC
+// before login. Errors are silenced — a failure just falls back to retail.
 export function useBusinessModeQuery(enabled = true) {
   return useQuery({
     queryKey: settingsKeys.businessMode,
@@ -89,9 +100,9 @@ export function useBusinessModeQuery(enabled = true) {
 }
 
 // Convenience accessor. Defaults to RETAIL when unset/unspecified so a fresh
-// install (no license) behaves as the completed retail product, not a
+// install (nothing configured) behaves as the completed retail product, not a
 // half-rendered pharmacy. Pharmacy features must opt in via `isPharmacy`.
-// `shopName` is the licensed holder name (used for the pharmacy-mode header).
+// `appTitle` is the owner-configured shop title ("" = use the built-in brand).
 export function useBusinessMode(enabled = true) {
   const q = useBusinessModeQuery(enabled);
   const mode = q.data?.type ?? BussinessType.UNSPECIFIED;
@@ -99,7 +110,7 @@ export function useBusinessMode(enabled = true) {
     mode,
     isPharmacy: mode === BussinessType.PHARMACY_SHOP,
     isRetail: mode !== BussinessType.PHARMACY_SHOP, // UNSPECIFIED falls back to retail
-    shopName: q.data?.name ?? "",
+    appTitle: q.data?.appTitle ?? "",
     isLoading: q.isLoading,
   };
 }
@@ -116,39 +127,21 @@ export function useSettingsQuery() {
   return q;
 }
 
-// License info for the Settings › License page (OWNER). Returns the applied
-// license holder + active business type.
-export function useLicenseInfoQuery() {
-  return useQuery({
-    queryKey: settingsKeys.licenseInfo,
-    queryFn: () => settingsClient.getLicenseInfo({}),
-    staleTime: 60_000,
-  });
-}
-
-// Apply a pasted license key. On success the business mode may change, so we
-// invalidate the mode query (re-themes the whole app via GlossaryBridge / nav)
-// plus the license-info panel.
-export function useApplyLicenseMutation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (token: string) => settingsClient.applyLicense({ token }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: settingsKeys.businessMode });
-      qc.invalidateQueries({ queryKey: settingsKeys.branding });
-      qc.invalidateQueries({ queryKey: settingsKeys.licenseInfo });
-    },
-    meta: { silentError: true }, // the page surfaces the verify error inline
-  });
-}
-
+// Saves the General settings panel. The title + mode re-brand the whole app
+// (tab title, sidebar, glossary, nav, POS Rx gate), so invalidate both branding
+// keys — the app re-themes live, no reload.
 export function useUpdateSettingsMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (req: { lowStockThreshold: number }) =>
-      settingsClient.updateSettings(req),
+    mutationFn: (req: {
+      lowStockThreshold: number;
+      appTitle: string;
+      businessType: BussinessType;
+    }) => settingsClient.updateSettings(req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: settingsKeys.all });
+      qc.invalidateQueries({ queryKey: settingsKeys.businessMode });
+      qc.invalidateQueries({ queryKey: settingsKeys.branding });
       // Threshold change → bell badge / dropdown re-evaluate.
       qc.invalidateQueries({ queryKey: ["lowStock"] });
     },

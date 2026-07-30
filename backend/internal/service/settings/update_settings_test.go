@@ -2,6 +2,8 @@ package settings_test
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -60,4 +62,106 @@ func TestUpdateSettings_NegativeRejected(t *testing.T) {
 	}))
 	require.Error(t, err)
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// The app title is trimmed, persisted, and readable back — it brands the tab
+// title / sidebar / login screen. Passing "" clears the override.
+func TestUpdateSettings_AppTitlePersistsAndClears(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+	ctx := context.Background()
+
+	resp, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		AppTitle:          "  Toko Maju  ",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, "Toko Maju", resp.Msg.Settings.AppTitle)
+
+	brand, err := svc.GetBranding(ctx, connect.NewRequest(&settingsifacev1.GetBrandingRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, "Toko Maju", brand.Msg.AppTitle)
+
+	// Empty clears it — the app falls back to the built-in brand.
+	_, err = svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		AppTitle:          "",
+	}))
+	require.NoError(t, err)
+	got, err := svc.GetSettings(ctx, connect.NewRequest(&settingsifacev1.GetSettingsRequest{}))
+	require.NoError(t, err)
+	require.Empty(t, got.Msg.Settings.AppTitle)
+}
+
+// An over-long title is rejected with a stable token, nothing is written.
+func TestUpdateSettings_AppTitleTooLong(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+	ctx := context.Background()
+
+	_, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		AppTitle:          strings.Repeat("x", settingssvc.MaxAppTitleLen+1),
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	var ce *connect.Error
+	require.True(t, errors.As(err, &ce))
+	require.Equal(t, "settings.app_title_too_long", ce.Message())
+
+	got, err := svc.GetSettings(ctx, connect.NewRequest(&settingsifacev1.GetSettingsRequest{}))
+	require.NoError(t, err)
+	require.Empty(t, got.Msg.Settings.AppTitle)
+}
+
+// The business mode is settable from Settings ▸ General; an UNSPECIFIED value on
+// a later call means "leave it alone" so an unrelated edit can't reset the mode.
+func TestUpdateSettings_BusinessMode(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+	ctx := context.Background()
+
+	resp, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		BusinessType:      settingsifacev1.BussinessType_BUSSINESS_TYPE_PHARMACY_SHOP,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_PHARMACY_SHOP, resp.Msg.Settings.BusinessType)
+
+	mode, err := svc.GetBussinessSettings(ctx, connect.NewRequest(&settingsifacev1.GetBussinessSettingsRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_PHARMACY_SHOP, mode.Msg.Type)
+
+	// Threshold-only edit (UNSPECIFIED mode) keeps the pharmacy mode.
+	resp2, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 7,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_PHARMACY_SHOP, resp2.Msg.Settings.BusinessType)
+
+	// Switching back to retail persists.
+	_, err = svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 7,
+		BusinessType:      settingsifacev1.BussinessType_BUSSINESS_TYPE_RETAIL,
+	}))
+	require.NoError(t, err)
+	mode2, err := svc.GetBussinessSettings(ctx, connect.NewRequest(&settingsifacev1.GetBussinessSettingsRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RETAIL, mode2.Msg.Type)
+}
+
+// An unknown business type value is rejected with a stable token.
+func TestUpdateSettings_UnknownBusinessType(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+
+	_, err := svc.UpdateSettings(context.Background(), connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		BusinessType:      settingsifacev1.BussinessType(99),
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	var ce *connect.Error
+	require.True(t, errors.As(err, &ce))
+	require.Equal(t, "settings.business_type_invalid", ce.Message())
 }

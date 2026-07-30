@@ -127,6 +127,13 @@ type Update struct {
 }
 
 type Config struct {
+	// CloudflareTunnelToken, when non-empty, makes the server run a Cloudflare
+	// Tunnel alongside the HTTP listener (pkgs/cloudflare_tunnel), so a shop
+	// behind NAT/CGNAT is reachable on a public hostname without port
+	// forwarding. Empty (the default) = no tunnel. It is a credential — prefer
+	// $JUSTMART_CLOUDFLARE_TUNNEL_TOKEN over writing it into config.yaml.
+	CloudflareTunnelToken string `yaml:"cloudflare_tunnel_token"`
+
 	Server    Server    `yaml:"server"`
 	Database  Database  `yaml:"database"`
 	Auth      Auth      `yaml:"auth"`
@@ -135,10 +142,6 @@ type Config struct {
 	Connector Connector `yaml:"connector"`
 	Backup    Backup    `yaml:"backup"`
 	Update    Update    `yaml:"update"`
-	// License is an offline license token (JWT minted by cmd/license, signed with
-	// security.SecretRoot). When present + valid, its business type drives the
-	// app's business mode on boot. Empty = unlicensed (mode stays UNSPECIFIED).
-	License string `yaml:"license"`
 }
 
 func (d Database) DSN() string {
@@ -213,14 +216,14 @@ func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_PG_TOOLS_DIR"); v != "" {
 		c.Backup.PgToolsDir = v
 	}
-	if v := os.Getenv("JUSTMART_LICENSE"); v != "" {
-		c.License = v
-	}
 	if v := os.Getenv("JUSTMART_UPDATE_REPO"); v != "" {
 		c.Update.Repo = v
 	}
 	if v := os.Getenv("JUSTMART_UPDATE_DISABLED"); v != "" {
 		c.Update.Disabled = v == "1" || strings.EqualFold(v, "true")
+	}
+	if v := os.Getenv("JUSTMART_CLOUDFLARE_TUNNEL_TOKEN"); v != "" {
+		c.CloudflareTunnelToken = v
 	}
 }
 

@@ -5,6 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { ProductPriceTier } from "./product_price_tier_pb.js";
 
 /**
  * Per-row outcome of a CSV import.
@@ -210,6 +211,15 @@ export class Product extends Message<Product> {
    */
   lastRestockSupplierId = "";
 
+  /**
+   * Grosir (wholesale) quantity price ladders, one set per sellable unit. Hydrated
+   * on Get/List/Search so POS can hint the tier without a second RPC; tiers of an
+   * archived unit are omitted.
+   *
+   * @generated from field: repeated inventory_iface.v1.ProductPriceTier price_tiers = 27;
+   */
+  priceTiers: ProductPriceTier[] = [];
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -243,6 +253,7 @@ export class Product extends Message<Product> {
     { no: 24, name: "last_restock_created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 25, name: "last_restock_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 26, name: "last_restock_supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 27, name: "price_tiers", kind: "message", T: ProductPriceTier, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {

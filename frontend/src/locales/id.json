@@ -98,10 +98,17 @@
   },
   "settings": {
     "title": "Pengaturan",
+    "appTitle": "Judul aplikasi",
+    "appTitleHelp": "Tampil di tab browser, sidebar, dan halaman login. Kosongkan untuk memakai nama bawaan.",
+    "businessMode": "Mode bisnis",
+    "businessModeHelp": "Retail menjalankan katalog toko; apotek menambah obat, resep, dan pemeriksaan resep di POS.",
+    "modes": {
+      "retail": "Retail",
+      "pharmacy": "Apotek"
+    },
     "tabs": {
       "general": "Umum",
       "units": "Satuan",
-      "license": "Lisensi",
       "printing": "Pencetakan",
       "backups": "Backup",
       "updates": "Pembaruan"
@@ -156,18 +163,6 @@
       "receiptHeaderPlaceholder": "TOKO JAYA\nJl. Merdeka 1\nBandung",
       "receiptFooter": "Footer (pesan penutup)",
       "receiptFooterPlaceholder": "Terima kasih!"
-    },
-    "license": {
-      "current": "Lisensi saat ini",
-      "none": "Belum ada lisensi",
-      "keyLabel": "Kunci lisensi",
-      "placeholder": "Tempel kunci lisensi di sini…",
-      "help": "Tempel kunci lisensi untuk toko ini. Kunci menentukan mode bisnis (retail atau apotek) dan tetap tersimpan setelah restart.",
-      "apply": "Terapkan lisensi",
-      "applied": "Lisensi diterapkan untuk {{name}}",
-      "modePharmacy": "Mode apotek",
-      "modeRetail": "Mode retail",
-      "modeUnset": "Tanpa lisensi"
     },
     "lowStockThreshold": "Ambang stok menipis",
     "lowStockHelp": "Tampilkan notifikasi saat stok siap $t(glossary.product) di gudang aktif ≤ angka ini.",
@@ -473,6 +468,12 @@
     "discountApply": "Terapkan",
     "discountClear": "Hapus",
     "promo": "Promo",
+    "grosir": "Grosir",
+    "grosirThreshold": "≥{{qty}}",
+    "grosirTierHint": "≥{{qty}} {{price}}",
+    "grosirTierHintMore": "≥{{qty}} {{price}} +{{n}}",
+    "grosirNudge": "Kurang {{n}} lagi → {{price}}",
+    "grosirDiscountHint": "Baris ini memakai harga grosir. Diskon manual tetap berlaku di atasnya.",
     "autoDiscountHint": "Diskon produk otomatis berlaku. Isi nilai untuk menimpanya.",
     "exactAmount": "Uang pas",
     "complete": "Selesaikan (F8)",
@@ -945,7 +946,9 @@
     "qtyNonZero": "Jumlah tidak boleh nol",
     "passwordMismatch": "Kata sandi tidak cocok",
     "passwordMin": "Kata sandi minimal 8 karakter",
-    "thresholdInvalid": "Ambang harus bilangan bulat tak negatif"
+    "thresholdInvalid": "Ambang harus bilangan bulat tak negatif",
+    "appTitleTooLong": "Judul maksimal 60 karakter",
+    "businessTypeInvalid": "Pilih mode bisnis yang valid"
   },
   "productDiscounts": {
     "section": "Diskon",
@@ -973,6 +976,27 @@
     "deleteTitle": "Hapus diskon?",
     "deleteBody": "Hapus diskon ini? Tidak dapat dibatalkan."
   },
+  "priceTiers": {
+    "section": "Grosir",
+    "add": "Tambah tingkat",
+    "addTitle": "Tambah Harga Grosir",
+    "editTitle": "Ubah Harga Grosir",
+    "unit": "Satuan",
+    "minQty": "Jumlah Beli Minimum",
+    "price": "Harga Grosir",
+    "normalPrice": "Normal",
+    "saving": "Hemat",
+    "rule": "Beli ≥ {{count}}",
+    "vsNormal": "Harga normal {{price}} per {{unit}}",
+    "unitTierCount": "grosir ×{{count}}",
+    "notDescending": "Tidak lebih murah dari tingkat di bawahnya",
+    "notCheaper": "Di atas harga normal — tidak pernah dipakai",
+    "overridesDiscount": "Harga grosir menggantikan $t(productDiscounts.section) otomatis pada baris tersebut. Diskon manual tetap berlaku di atasnya.",
+    "empty": "Belum ada harga grosir untuk $t(glossary.product) ini.",
+    "emptyHint": "Tambahkan tingkat agar pembelian banyak otomatis dapat harga grosir.",
+    "deleteTitle": "Hapus harga grosir?",
+    "deleteBody": "Hapus harga grosir ini? Tidak dapat dibatalkan."
+  },
   "serverErrors": {
     "common": {
       "itemsRequired": "Tambahkan minimal satu item",
@@ -999,6 +1023,13 @@
       "badExpiry": "Masukkan tanggal kedaluwarsa yang valid (YYYY-MM-DD)",
       "productMissing": "Pilih produk yang valid",
       "unitInvalid": "Pilih satuan yang valid untuk produk ini"
+    },
+    "productPriceTier": {
+      "productMissing": "Pilih $t(glossary.product) yang valid",
+      "unitInvalid": "Pilih satuan yang valid untuk $t(glossary.product) ini",
+      "minQtyInvalid": "Jumlah minimum minimal 2",
+      "priceInvalid": "Harga grosir tidak boleh negatif",
+      "tierTaken": "Tingkat untuk satuan dan jumlah ini sudah ada"
     },
     "warehouse": {
       "codeTaken": "Kode gudang ini sudah dipakai"

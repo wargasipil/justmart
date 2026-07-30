@@ -4,9 +4,12 @@ import { expect, test as base } from "@playwright/test";
 // Test users mirror config.yaml `bootstrap.*`. If you change those, mirror the
 // changes here. Other roles can be added once we have UI-driven user creation
 // in a fixture.
+// Override with JUSTMART_TEST_OWNER_EMAIL / JUSTMART_TEST_OWNER_PASSWORD when
+// your local config.yaml uses different bootstrap credentials — otherwise every
+// spec fails at the login setup step with a bare navigation timeout.
 export const OWNER = {
-  email: "owner@justmart.local",
-  password: "test123",
+  email: process.env.JUSTMART_TEST_OWNER_EMAIL ?? "owner@justmart.local",
+  password: process.env.JUSTMART_TEST_OWNER_PASSWORD ?? "test123",
   role: "OWNER" as const,
 };
 

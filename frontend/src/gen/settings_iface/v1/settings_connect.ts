@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyLicenseRequest, ApplyLicenseResponse, ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetLicenseInfoRequest, GetLicenseInfoResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetBussinessSettingsRequest, SetBussinessSettingsResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -33,6 +33,7 @@ export const SettingsService = {
     /**
      * Readable by every authenticated role — the business mode drives branding,
      * navigation and POS behavior for all users (cashier + apoteker included).
+     * Writing it is part of UpdateSettings (owner-only).
      *
      * @generated from rpc settings_iface.v1.SettingsService.GetBussinessSettings
      */
@@ -43,47 +44,11 @@ export const SettingsService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Setting the shop's business type is an owner-level config change.
-     *
-     * @generated from rpc settings_iface.v1.SettingsService.SetBussinessSettings
-     */
-    setBussinessSettings: {
-      name: "SetBussinessSettings",
-      I: SetBussinessSettingsRequest,
-      O: SetBussinessSettingsResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * ApplyLicense verifies a license token (entered in Settings), persists it,
-     * and applies its business type. Owner-only.
-     *
-     * @generated from rpc settings_iface.v1.SettingsService.ApplyLicense
-     */
-    applyLicense: {
-      name: "ApplyLicense",
-      I: ApplyLicenseRequest,
-      O: ApplyLicenseResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * GetLicenseInfo reports the currently-applied license (holder name + mode).
-     * Readable by every role (the holder name brands the app for all users); only
-     * applying a license (ApplyLicense) is owner-gated.
-     *
-     * @generated from rpc settings_iface.v1.SettingsService.GetLicenseInfo
-     */
-    getLicenseInfo: {
-      name: "GetLicenseInfo",
-      I: GetLicenseInfoRequest,
-      O: GetLicenseInfoResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * GetBranding exposes JUST the branding facts (business type + licensed shop
-     * name) needed to render the app chrome BEFORE the user authenticates — the
-     * login screen + browser tab title. PUBLIC by design: the shop name + mode are
-     * the storefront brand (already shown to anyone who reaches the login page),
-     * not sensitive data. All richer settings/license RPCs stay role-gated.
+     * GetBranding exposes JUST the branding facts (business mode + app title)
+     * needed to render the app chrome BEFORE the user authenticates — the login
+     * screen + browser tab title. PUBLIC by design: the shop title + mode are the
+     * storefront brand (already shown to anyone who reaches the login page), not
+     * sensitive data. All richer settings RPCs stay role-gated.
      *
      * @generated from rpc settings_iface.v1.SettingsService.GetBranding
      */

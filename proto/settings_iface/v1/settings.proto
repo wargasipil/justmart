@@ -6,12 +6,18 @@ import "auth_iface/v1/policy.proto";
 
 option go_package = "github.com/justmart/backend/gen/settings_iface/v1;settingsifacev1";
 
-// App-wide settings (one row in app_settings per key). Today only the
-// low-stock threshold is wired; the table + proto are open for future keys.
+// App-wide settings (one row in app_settings per key). The table + proto are
+// open for future keys.
 message Settings {
   // Warn when a product's ready_stock in the active warehouse is <= this
   // number. Default 10 when no row exists yet.
   int32 low_stock_threshold = 1;
+  // Shop / app title shown in the browser tab, the sidebar brand and the login
+  // screen. Empty = fall back to the mode's built-in brand.
+  string app_title = 2;
+  // The shop's business mode (retail vs pharmacy). UNSPECIFIED behaves as
+  // retail. Owner-editable in Settings ▸ General.
+  BussinessType business_type = 3;
 }
 
 service SettingsService {
@@ -25,37 +31,19 @@ service SettingsService {
 
   // Readable by every authenticated role — the business mode drives branding,
   // navigation and POS behavior for all users (cashier + apoteker included).
+  // Writing it is part of UpdateSettings (owner-only).
   rpc GetBussinessSettings(GetBussinessSettingsRequest) returns (GetBussinessSettingsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
-  // Setting the shop's business type is an owner-level config change.
-  rpc SetBussinessSettings(SetBussinessSettingsRequest) returns (SetBussinessSettingsResponse) {
-    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
-  }
 
-  // ApplyLicense verifies a license token (entered in Settings), persists it,
-  // and applies its business type. Owner-only.
-  rpc ApplyLicense(ApplyLicenseRequest) returns (ApplyLicenseResponse) {
-    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
-  }
-  // GetLicenseInfo reports the currently-applied license (holder name + mode).
-  // Readable by every role (the holder name brands the app for all users); only
-  // applying a license (ApplyLicense) is owner-gated.
-  rpc GetLicenseInfo(GetLicenseInfoRequest) returns (GetLicenseInfoResponse) {
-    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
-    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
-    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
-    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
-  }
-
-  // GetBranding exposes JUST the branding facts (business type + licensed shop
-  // name) needed to render the app chrome BEFORE the user authenticates — the
-  // login screen + browser tab title. PUBLIC by design: the shop name + mode are
-  // the storefront brand (already shown to anyone who reaches the login page),
-  // not sensitive data. All richer settings/license RPCs stay role-gated.
+  // GetBranding exposes JUST the branding facts (business mode + app title)
+  // needed to render the app chrome BEFORE the user authenticates — the login
+  // screen + browser tab title. PUBLIC by design: the shop title + mode are the
+  // storefront brand (already shown to anyone who reaches the login page), not
+  // sensitive data. All richer settings RPCs stay role-gated.
   rpc GetBranding(GetBrandingRequest) returns (GetBrandingResponse) {
     option (auth_iface.v1.public) = true;
   }
@@ -121,35 +109,13 @@ message GetBussinessSettingsRequest {}
 
 message GetBussinessSettingsResponse {
   BussinessType type = 1;   // the shop's configured business type (UNSPECIFIED when unset)
-  string name = 2;          // licensed shop/holder name (empty when unlicensed) — readable by all roles for branding
-}
-
-message SetBussinessSettingsRequest {
-  BussinessType type = 1;   // must be a concrete type (not UNSPECIFIED)
-}
-message SetBussinessSettingsResponse {
-  BussinessType type = 1;   // the persisted type, echoed back
-}
-
-message ApplyLicenseRequest {
-  string token = 1;         // the license token (JWT) pasted by the owner
-}
-message ApplyLicenseResponse {
-  string name = 1;          // verified license holder / business name
-  BussinessType type = 2;   // the business type the license applied
-}
-
-message GetLicenseInfoRequest {}
-message GetLicenseInfoResponse {
-  bool has_license = 1;     // true when a license has been applied
-  string name = 2;          // licensed holder / business name (empty when none)
-  BussinessType type = 3;   // the active business type
+  string app_title = 2;     // configured shop/app title ("" when unset) — readable by all roles for branding
 }
 
 message GetBrandingRequest {}
 message GetBrandingResponse {
-  BussinessType business_type = 1;  // active mode (UNSPECIFIED when unlicensed)
-  string shop_name = 2;             // licensed shop/holder name ("" when unlicensed)
+  BussinessType business_type = 1;  // active mode (UNSPECIFIED behaves as retail)
+  string app_title = 2;             // configured shop/app title ("" = built-in brand)
 }
 
 message GetSettingsRequest {}
@@ -159,6 +125,8 @@ message GetSettingsResponse {
 
 message UpdateSettingsRequest {
   int32 low_stock_threshold = 1;
+  string app_title = 2;             // "" clears the override (built-in brand)
+  BussinessType business_type = 3;  // UNSPECIFIED leaves the current mode unchanged
 }
 message UpdateSettingsResponse {
   Settings settings = 1;

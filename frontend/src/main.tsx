@@ -53,7 +53,6 @@ import WarehouseDetail from "./routes/WarehouseDetail";
 import Settings from "./routes/Settings";
 import SettingsGeneral from "./routes/settings/SettingsGeneral";
 import SettingsUnits from "./routes/settings/SettingsUnits";
-import SettingsLicense from "./routes/settings/SettingsLicense";
 import SettingsPrinting from "./routes/settings/SettingsPrinting";
 import SettingsBackups from "./routes/settings/SettingsBackups";
 import SettingsUpdates from "./routes/settings/SettingsUpdates";
@@ -115,7 +114,6 @@ const router = createBrowserRouter([
               { index: true, element: <Navigate to="general" replace /> },
               { path: "general", element: <SettingsGeneral /> },
               { path: "units", element: <SettingsUnits /> },
-              { path: "license", element: <SettingsLicense /> },
               { path: "printing", element: <SettingsPrinting /> },
               { path: "backups", element: <SettingsBackups /> },
               { path: "updates", element: <SettingsUpdates /> },

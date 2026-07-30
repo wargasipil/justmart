@@ -69,6 +69,8 @@ func saleItemToProto(i *model.SaleItem) *posifacev1.SaleItem {
 		UnitName:          i.UnitName,
 		UnitFactor:        i.UnitFactor,
 		BaseQty:           i.BaseQty,
+		ListPriceSnapshot: i.ListPriceSnapshot,
+		TierMinQty:        i.TierMinQty,
 	}
 	if i.BatchID != nil {
 		out.BatchId = *i.BatchID

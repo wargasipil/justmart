@@ -53,6 +53,14 @@ type SaleItem struct {
 	UnitName          string  `gorm:"not null;default:'';column:unit_name"`
 	UnitFactor        int64   `gorm:"not null;default:1;column:unit_factor"`
 	BaseQty           int32   `gorm:"not null;default:0;column:base_qty"`
+	// Grosir (wholesale tier) pricing. ListPriceSnapshot is the unit's NORMAL
+	// catalog price frozen at add time; UnitPriceSnapshot is the EFFECTIVE price
+	// and equals it unless a tier applied. Keeping the list price makes tier
+	// resolution a pure function of (ListPriceSnapshot, Qty), so lowering the qty
+	// back below a threshold restores the normal price instead of ratcheting.
+	// TierMinQty is the applied tier's threshold; 0 = no grosir (also the flag).
+	ListPriceSnapshot int64 `gorm:"not null;default:0;column:list_price_snapshot"`
+	TierMinQty        int32 `gorm:"not null;default:0;column:tier_min_qty"`
 	CreatedAt         time.Time
 }
 

@@ -10,7 +10,7 @@ export default defineConfig({
       // prefix internally), matching how the embedded SPA is served in
       // production. So forward /api/* unchanged — no rewrite.
       "/api": {
-        target: "http://localhost:8089",
+        target: "http://localhost:8080",
         changeOrigin: true,
       },
     },

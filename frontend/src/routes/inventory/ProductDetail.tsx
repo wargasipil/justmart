@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import {
   Badge,
   Box,
@@ -41,8 +41,16 @@ import {
   useDeleteProductDiscountMutation,
   useProductDiscountsQuery,
 } from "../../queries/productDiscounts";
+import { ProductPriceTier } from "../../gen/inventory_iface/v1/product_price_tier_pb";
+import type { ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
+import {
+  groupTiersByUnit,
+  useDeleteProductPriceTierMutation,
+  useProductPriceTiersQuery,
+} from "../../queries/productPriceTiers";
 import { EditProductDialog } from "./productDrawers";
 import ProductDiscountDrawer from "./ProductDiscountDrawer";
+import ProductPriceTierDrawer from "./ProductPriceTierDrawer";
 
 function fmtVariance(v: bigint): string {
   if (v === 0n) return "±0";
@@ -223,6 +231,9 @@ export default function ProductDetail() {
             <HStack gap={2} wrap="wrap">
               {med.units.map((u) => {
                 const m = marginPct(u.sellPrice, med.referenceCost * u.factor);
+                // Surface the grosir ladder where prices already live, so it's
+                // discoverable without hunting through the tab strip.
+                const tierCount = med.priceTiers.filter((pt) => pt.productUnitId === u.id).length;
                 return (
                   <HStack
                     key={u.id}
@@ -251,6 +262,11 @@ export default function ProductDetail() {
                         · {t("inventory.products.marginPct", { pct: m.toFixed(0) })}
                       </Text>
                     )}
+                    {tierCount > 0 && (
+                      <Text fontSize="xs" color="purple.fg">
+                        · {t("priceTiers.unitTierCount", { count: tierCount })}
+                      </Text>
+                    )}
                   </HStack>
                 );
               })}
@@ -266,6 +282,7 @@ export default function ProductDetail() {
             <Tabs.Trigger value="restocks">{t("inventory.products.restockPriceHistory")}</Tabs.Trigger>
             <Tabs.Trigger value="movements">{t("inventory.products.movementsSection")}</Tabs.Trigger>
             <Tabs.Trigger value="discount">{t("productDiscounts.section")}</Tabs.Trigger>
+            <Tabs.Trigger value="grosir">{t("priceTiers.section")}</Tabs.Trigger>
           </Tabs.List>
 
           <Tabs.Content value="batches">
@@ -417,6 +434,10 @@ export default function ProductDetail() {
 
           <Tabs.Content value="discount">
             <DiscountTab productId={id} />
+          </Tabs.Content>
+
+          <Tabs.Content value="grosir">
+            <GrosirTab productId={id} units={med.units} />
           </Tabs.Content>
         </Tabs.Root>
       </Stack>
@@ -582,6 +603,168 @@ function DiscountTab({ productId }: { productId: string }) {
         open={pendingDelete != null}
         title={t("productDiscounts.deleteTitle")}
         body={t("productDiscounts.deleteBody")}
+        confirmLabel={t("common.delete")}
+        confirmColorPalette="red"
+        loading={del.isPending}
+        onConfirm={async () => {
+          if (!pendingDelete) return;
+          try {
+            await del.mutateAsync(pendingDelete.id);
+          } finally {
+            setPendingDelete(null);
+          }
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </Box>
+  );
+}
+
+// Per-product grosir (wholesale) ladder manager: the Product detail "Grosir" tab.
+// Grouped by unit because a tier prices ONE unit — a pcs ladder and a box ladder
+// are independent, and a flat list would hide that.
+function GrosirTab({ productId, units }: { productId: string; units: ProductUnit[] }) {
+  const { t } = useTranslation();
+  const q = useProductPriceTiersQuery(productId);
+  const del = useDeleteProductPriceTierMutation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editing, setEditing] = useState<ProductPriceTier | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ProductPriceTier | null>(null);
+  const groups = useMemo(() => groupTiersByUnit(q.data, units), [q.data, units]);
+
+  return (
+    <Box>
+      <HStack justify="space-between" mb={3} gap={4}>
+        <Text fontSize="xs" color="fg.muted">
+          {t("priceTiers.overridesDiscount")}
+        </Text>
+        <Button
+          size="sm"
+          colorPalette="blue"
+          flexShrink={0}
+          onClick={() => {
+            setEditing(null);
+            setDrawerOpen(true);
+          }}
+        >
+          <Plus size={16} />
+          {t("priceTiers.add")}
+        </Button>
+      </HStack>
+      <Box overflowX="auto">
+        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+          <Table.Header bg="bg.muted">
+            <Table.Row>
+              <Table.ColumnHeader>{t("priceTiers.minQty")}</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">{t("priceTiers.price")}</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">{t("priceTiers.saving")}</Table.ColumnHeader>
+              <Table.ColumnHeader />
+              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {groups.map(({ unit, tiers }) => (
+              <Fragment key={unit.id}>
+                <Table.Row bg="bg.muted">
+                  <Table.Cell colSpan={5} py={1}>
+                    <HStack gap={2}>
+                      <Text fontSize="xs" fontWeight="medium">
+                        {unit.name}
+                      </Text>
+                      {!unit.isBase && (
+                        <Text fontSize="xs" color="fg.muted">
+                          ×{unit.factor.toString()}
+                        </Text>
+                      )}
+                      <Text fontSize="xs" color="fg.muted">
+                        {t("priceTiers.normalPrice")} {formatMoney(unit.sellPrice)}
+                      </Text>
+                    </HStack>
+                  </Table.Cell>
+                </Table.Row>
+                {tiers.map((tier, i) => {
+                  const saving = unit.sellPrice - tier.price;
+                  const pct = unit.sellPrice > 0n ? (Number(saving) * 100) / Number(unit.sellPrice) : 0;
+                  // A rung that isn't cheaper than the one below it never wins
+                  // (POS takes the lowest qualifying price), so flag it rather
+                  // than letting it look effective.
+                  const notDescending = i > 0 && tier.price >= tiers[i - 1].price;
+                  return (
+                    <Table.Row key={tier.id}>
+                      <Table.Cell>{t("priceTiers.rule", { count: tier.minQty })}</Table.Cell>
+                      <Table.Cell textAlign="end" fontFamily="mono">
+                        {formatMoney(tier.price)}
+                      </Table.Cell>
+                      <Table.Cell
+                        textAlign="end"
+                        fontFamily="mono"
+                        color={saving > 0n ? "green.fg" : "fg.muted"}
+                      >
+                        {saving > 0n ? `${formatMoney(saving)} (${pct.toFixed(0)}%)` : "—"}
+                      </Table.Cell>
+                      <Table.Cell>
+                        <HStack gap={1}>
+                          {saving <= 0n && (
+                            <Badge colorPalette="red">{t("priceTiers.notCheaper")}</Badge>
+                          )}
+                          {notDescending && saving > 0n && (
+                            <Badge colorPalette="orange">{t("priceTiers.notDescending")}</Badge>
+                          )}
+                        </HStack>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <HStack gap={1}>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditing(tier);
+                              setDrawerOpen(true);
+                            }}
+                          >
+                            <Pencil size={14} />
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            colorPalette="red"
+                            onClick={() => setPendingDelete(tier)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </HStack>
+                      </Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+              </Fragment>
+            ))}
+            {groups.length === 0 && (
+              <Table.Row>
+                <Table.Cell colSpan={5}>
+                  <Stack gap={1} py={4} align="center">
+                    <Text color="fg.muted">{t("priceTiers.empty")}</Text>
+                    <Text color="fg.muted" fontSize="xs">
+                      {t("priceTiers.emptyHint")}
+                    </Text>
+                  </Stack>
+                </Table.Cell>
+              </Table.Row>
+            )}
+          </Table.Body>
+        </Table.Root>
+      </Box>
+
+      <ProductPriceTierDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        productId={productId}
+        editing={editing}
+      />
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title={t("priceTiers.deleteTitle")}
+        body={t("priceTiers.deleteBody")}
         confirmLabel={t("common.delete")}
         confirmColorPalette="red"
         loading={del.isPending}

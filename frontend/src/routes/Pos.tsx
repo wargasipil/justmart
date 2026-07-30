@@ -33,6 +33,7 @@ import NumberInput from "../components/NumberInput";
 import PrinterSelect from "../components/PrinterSelect";
 import WarehouseSelect from "../components/WarehouseSelect";
 import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
+import type { ProductPriceTier } from "../gen/inventory_iface/v1/product_price_tier_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
 import { Customer } from "../gen/customer_iface/v1/customer_pb";
 import type { Prescription } from "../gen/prescription_iface/v1/prescription_pb";
@@ -44,6 +45,7 @@ import { POS_PRINTER_KEY, decodePrinter } from "../lib/printerTarget";
 import { WAREHOUSE_KEY } from "../lib/transport";
 import { useMyWarehousesQuery } from "../queries/warehouses";
 import { useAllProductsQuery } from "../queries/products";
+import { nextTier, tiersForUnit } from "../queries/productPriceTiers";
 import { useStockLevelsQuery } from "../queries/stock";
 import { useCustomerSearchQuery } from "../queries/customers";
 import { useCustomerRefs } from "../queries/refs";
@@ -142,6 +144,11 @@ function LineDiscountPopover({
                 {isAuto && (
                   <Text fontSize="xs" color="green.fg">
                     {t("pos.autoDiscountHint")}
+                  </Text>
+                )}
+                {item.tierMinQty > 0 && (
+                  <Text fontSize="xs" color="purple.fg">
+                    {t("pos.grosirDiscountHint")}
                   </Text>
                 )}
                 <DiscountField
@@ -474,7 +481,10 @@ export default function Pos() {
   // Each sellable unit of each matching product is its own search row, so one
   // click adds that exact unit. `available` = how many of that unit the current
   // base stock can make (base ÷ factor).
-  type UnitRow = { med: Product; unit: ProductUnit; available: number };
+  // `tiers` is precomputed here (not per render) so the search list stays cheap.
+  // It drives the DISPLAY hint only — a cart line's applied-grosir state always
+  // comes from the server (SaleItem.tierMinQty), never from this.
+  type UnitRow = { med: Product; unit: ProductUnit; available: number; tiers: ProductPriceTier[] };
   const MAX_ROWS = 40;
   const unitRows = useMemo<UnitRow[]>(() => {
     const q = query.trim().toLowerCase();
@@ -488,7 +498,8 @@ export default function Pos() {
       const base = Number(stockByProduct.get(med.id) ?? 0n);
       for (const unit of med.units.filter((u) => u.sellable && u.active)) {
         const factor = Number(unit.factor) || 1;
-        out.push({ med, unit, available: Math.floor(base / factor) });
+        const tiers = tiersForUnit(med.priceTiers, unit.id).filter((t) => t.price < unit.sellPrice);
+        out.push({ med, unit, available: Math.floor(base / factor), tiers });
         if (out.length >= MAX_ROWS) return out;
       }
     }
@@ -904,7 +915,7 @@ export default function Pos() {
           </Box>
           <Stack gap={1}>
             {unitRows.map((row, i) => {
-              const { med: m, unit, available } = row;
+              const { med: m, unit, available, tiers } = row;
               const out = available < 1;
               const active = i === highlight;
               // Pharmacy cue: Rx-required product with no covering Rx yet — dimmed
@@ -945,9 +956,33 @@ export default function Pos() {
                       {m.sku} · {available} {unit.name}
                     </Text>
                   </Stack>
-                  <Text fontSize="sm" fontFamily="mono">
-                    {formatMoney(unit.sellPrice)}
-                  </Text>
+                  <Stack gap={0} align="flex-end">
+                    <Text fontSize="sm" fontFamily="mono">
+                      {formatMoney(unit.sellPrice)}
+                    </Text>
+                    {/* Grosir hint: only the FIRST rung — the one crossed most
+                        often — plus a +N counter. The full ladder is back-office
+                        detail and would be noise in a 40-row scan list. */}
+                    {tiers.length > 0 && (
+                      <HStack gap={1}>
+                        <Badge size="xs" variant="subtle" colorPalette="purple">
+                          {t("pos.grosir")}
+                        </Badge>
+                        <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
+                          {tiers.length > 1
+                            ? t("pos.grosirTierHintMore", {
+                                qty: tiers[0].minQty,
+                                price: formatMoney(tiers[0].price),
+                                n: tiers.length - 1,
+                              })
+                            : t("pos.grosirTierHint", {
+                                qty: tiers[0].minQty,
+                                price: formatMoney(tiers[0].price),
+                              })}
+                        </Text>
+                      </HStack>
+                    )}
+                  </Stack>
                 </Flex>
               );
             })}
@@ -1000,9 +1035,47 @@ export default function Pos() {
                       <Text fontSize="sm" fontWeight="medium">
                         {med?.name ?? it.productId.slice(0, 8)}
                       </Text>
-                      <Text fontSize="xs" color="fg.muted" fontFamily="mono">
-                        {formatMoney(it.unitPriceSnapshot)}
-                      </Text>
+                      {/* Grosir: struck-through normal price + the rung earned,
+                          right beside the qty input the cashier is looking at.
+                          All values are server fields — no client price math. */}
+                      <HStack gap={1.5}>
+                        {it.tierMinQty > 0 && it.listPriceSnapshot > it.unitPriceSnapshot && (
+                          <Text
+                            fontSize="2xs"
+                            color="fg.muted"
+                            fontFamily="mono"
+                            textDecoration="line-through"
+                          >
+                            {formatMoney(it.listPriceSnapshot)}
+                          </Text>
+                        )}
+                        <Text fontSize="xs" color="fg.muted" fontFamily="mono">
+                          {formatMoney(it.unitPriceSnapshot)}
+                        </Text>
+                        {it.tierMinQty > 0 && (
+                          <Text fontSize="2xs" color="purple.fg" fontFamily="mono">
+                            {t("pos.grosirThreshold", { qty: it.tierMinQty })}
+                          </Text>
+                        )}
+                      </HStack>
+                      {/* "Buy N more" nudge, deliberately narrow: only when the
+                          gap is a plausible ask, and never a click target — it's
+                          for the cashier to relay, not to bump the qty. */}
+                      {(() => {
+                        const unit = med?.units.find((u) => u.id === it.productUnitId);
+                        if (!unit) return null;
+                        const nt = nextTier(med?.priceTiers, it.productUnitId, it.qty, unit.sellPrice);
+                        if (!nt) return null;
+                        const remaining = nt.minQty - it.qty;
+                        if (remaining <= 0 || remaining > Math.max(2, Math.ceil(nt.minQty * 0.2))) {
+                          return null;
+                        }
+                        return (
+                          <Text fontSize="2xs" color="orange.fg">
+                            {t("pos.grosirNudge", { n: remaining, price: formatMoney(nt.price) })}
+                          </Text>
+                        );
+                      })()}
                     </Stack>
                     <IconButton
                       aria-label="decrease quantity"
@@ -1015,6 +1088,7 @@ export default function Pos() {
                     <NumberInput
                       size="sm"
                       width="48px"
+                      aria-label="line quantity"
                       value={it.qty}
                       onChange={(raw) => onChangeQty(it.id, Number(raw || 0))}
                     />
@@ -1050,9 +1124,18 @@ export default function Pos() {
                       <Text fontSize="sm" fontFamily="mono">
                         {formatMoney(it.lineTotal)}
                       </Text>
+                      {it.tierMinQty > 0 && (
+                        <Badge size="xs" colorPalette="purple">
+                          {t("pos.grosir")}
+                        </Badge>
+                      )}
                       {Number(it.lineDiscount) > 0 && (
                         <HStack gap={1}>
-                          {!it.discountManual && (
+                          {/* Grosir and Promo are mutually exclusive: a tiered
+                              line suppresses the auto discount, so any discount
+                              shown here is the cashier's manual one. Guarded
+                              explicitly rather than trusting lineDiscount === 0. */}
+                          {!it.discountManual && it.tierMinQty === 0 && (
                             <Badge size="xs" colorPalette="green">
                               {t("pos.promo")}
                             </Badge>

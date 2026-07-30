@@ -1,3 +1,12 @@
+# cloudflare_tunnel_token: run a Cloudflare Tunnel alongside the HTTP listener
+# so this shop is reachable on a public hostname without port forwarding — for
+# a PC behind NAT/CGNAT. Empty (the default) = no tunnel. Get the token from
+# Cloudflare Zero Trust ▸ Networks ▸ Tunnels ▸ your tunnel ▸ Install connector.
+# It is a credential: prefer $JUSTMART_CLOUDFLARE_TUNNEL_TOKEN over writing it
+# here. On first run the server downloads cloudflared.exe next to the binary
+# (Windows only today — see backend/pkgs/cloudflare_tunnel).
+cloudflare_tunnel_token: ""
+
 server:
   # host: interface to bind.
   #   0.0.0.0   = all interfaces — reachable from the LAN / inside Docker (default)
@@ -33,13 +42,6 @@ auth:
 bootstrap:
   owner_email: owner@justmart.local
   owner_password: change-me-on-first-login
-
-# Optional: offline license token (a JWT minted by `cmd/license`) that selects
-# the business mode — retail or pharmacy/apotek. A token set here (or via the
-# JUSTMART_LICENSE env var) takes precedence and is re-applied every boot;
-# otherwise the server falls back to a license applied in-app under
-# Settings > License. Empty = unlicensed (mode UNSPECIFIED, behaves as retail).
-# license: ""
 
 # Optional: ESC/POS thermal printer. Leave `enabled: false` to disable Print
 # in the POS receipt dialog. Backend opens a raw TCP connection to `address`

@@ -71,15 +71,21 @@ func (BussinessType) EnumDescriptor() ([]byte, []int) {
 	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{0}
 }
 
-// App-wide settings (one row in app_settings per key). Today only the
-// low-stock threshold is wired; the table + proto are open for future keys.
+// App-wide settings (one row in app_settings per key). The table + proto are
+// open for future keys.
 type Settings struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Warn when a product's ready_stock in the active warehouse is <= this
 	// number. Default 10 when no row exists yet.
 	LowStockThreshold int32 `protobuf:"varint,1,opt,name=low_stock_threshold,json=lowStockThreshold,proto3" json:"low_stock_threshold,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Shop / app title shown in the browser tab, the sidebar brand and the login
+	// screen. Empty = fall back to the mode's built-in brand.
+	AppTitle string `protobuf:"bytes,2,opt,name=app_title,json=appTitle,proto3" json:"app_title,omitempty"`
+	// The shop's business mode (retail vs pharmacy). UNSPECIFIED behaves as
+	// retail. Owner-editable in Settings ▸ General.
+	BusinessType  BussinessType `protobuf:"varint,3,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Settings) Reset() {
@@ -117,6 +123,20 @@ func (x *Settings) GetLowStockThreshold() int32 {
 		return x.LowStockThreshold
 	}
 	return 0
+}
+
+func (x *Settings) GetAppTitle() string {
+	if x != nil {
+		return x.AppTitle
+	}
+	return ""
+}
+
+func (x *Settings) GetBusinessType() BussinessType {
+	if x != nil {
+		return x.BusinessType
+	}
+	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
 }
 
 type GetBussinessSettingsRequest struct {
@@ -158,7 +178,7 @@ func (*GetBussinessSettingsRequest) Descriptor() ([]byte, []int) {
 type GetBussinessSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Type          BussinessType          `protobuf:"varint,1,opt,name=type,proto3,enum=settings_iface.v1.BussinessType" json:"type,omitempty"` // the shop's configured business type (UNSPECIFIED when unset)
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                                       // licensed shop/holder name (empty when unlicensed) — readable by all roles for branding
+	AppTitle      string                 `protobuf:"bytes,2,opt,name=app_title,json=appTitle,proto3" json:"app_title,omitempty"`               // configured shop/app title ("" when unset) — readable by all roles for branding
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -200,291 +220,11 @@ func (x *GetBussinessSettingsResponse) GetType() BussinessType {
 	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
 }
 
-func (x *GetBussinessSettingsResponse) GetName() string {
+func (x *GetBussinessSettingsResponse) GetAppTitle() string {
 	if x != nil {
-		return x.Name
+		return x.AppTitle
 	}
 	return ""
-}
-
-type SetBussinessSettingsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          BussinessType          `protobuf:"varint,1,opt,name=type,proto3,enum=settings_iface.v1.BussinessType" json:"type,omitempty"` // must be a concrete type (not UNSPECIFIED)
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetBussinessSettingsRequest) Reset() {
-	*x = SetBussinessSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetBussinessSettingsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetBussinessSettingsRequest) ProtoMessage() {}
-
-func (x *SetBussinessSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetBussinessSettingsRequest.ProtoReflect.Descriptor instead.
-func (*SetBussinessSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *SetBussinessSettingsRequest) GetType() BussinessType {
-	if x != nil {
-		return x.Type
-	}
-	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
-}
-
-type SetBussinessSettingsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          BussinessType          `protobuf:"varint,1,opt,name=type,proto3,enum=settings_iface.v1.BussinessType" json:"type,omitempty"` // the persisted type, echoed back
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SetBussinessSettingsResponse) Reset() {
-	*x = SetBussinessSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SetBussinessSettingsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SetBussinessSettingsResponse) ProtoMessage() {}
-
-func (x *SetBussinessSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SetBussinessSettingsResponse.ProtoReflect.Descriptor instead.
-func (*SetBussinessSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SetBussinessSettingsResponse) GetType() BussinessType {
-	if x != nil {
-		return x.Type
-	}
-	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
-}
-
-type ApplyLicenseRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"` // the license token (JWT) pasted by the owner
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ApplyLicenseRequest) Reset() {
-	*x = ApplyLicenseRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ApplyLicenseRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApplyLicenseRequest) ProtoMessage() {}
-
-func (x *ApplyLicenseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApplyLicenseRequest.ProtoReflect.Descriptor instead.
-func (*ApplyLicenseRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ApplyLicenseRequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-type ApplyLicenseResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`                                       // verified license holder / business name
-	Type          BussinessType          `protobuf:"varint,2,opt,name=type,proto3,enum=settings_iface.v1.BussinessType" json:"type,omitempty"` // the business type the license applied
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ApplyLicenseResponse) Reset() {
-	*x = ApplyLicenseResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ApplyLicenseResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApplyLicenseResponse) ProtoMessage() {}
-
-func (x *ApplyLicenseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApplyLicenseResponse.ProtoReflect.Descriptor instead.
-func (*ApplyLicenseResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *ApplyLicenseResponse) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *ApplyLicenseResponse) GetType() BussinessType {
-	if x != nil {
-		return x.Type
-	}
-	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
-}
-
-type GetLicenseInfoRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLicenseInfoRequest) Reset() {
-	*x = GetLicenseInfoRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLicenseInfoRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLicenseInfoRequest) ProtoMessage() {}
-
-func (x *GetLicenseInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLicenseInfoRequest.ProtoReflect.Descriptor instead.
-func (*GetLicenseInfoRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{7}
-}
-
-type GetLicenseInfoResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	HasLicense    bool                   `protobuf:"varint,1,opt,name=has_license,json=hasLicense,proto3" json:"has_license,omitempty"`        // true when a license has been applied
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                                       // licensed holder / business name (empty when none)
-	Type          BussinessType          `protobuf:"varint,3,opt,name=type,proto3,enum=settings_iface.v1.BussinessType" json:"type,omitempty"` // the active business type
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetLicenseInfoResponse) Reset() {
-	*x = GetLicenseInfoResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetLicenseInfoResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetLicenseInfoResponse) ProtoMessage() {}
-
-func (x *GetLicenseInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetLicenseInfoResponse.ProtoReflect.Descriptor instead.
-func (*GetLicenseInfoResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *GetLicenseInfoResponse) GetHasLicense() bool {
-	if x != nil {
-		return x.HasLicense
-	}
-	return false
-}
-
-func (x *GetLicenseInfoResponse) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *GetLicenseInfoResponse) GetType() BussinessType {
-	if x != nil {
-		return x.Type
-	}
-	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
 }
 
 type GetBrandingRequest struct {
@@ -495,7 +235,7 @@ type GetBrandingRequest struct {
 
 func (x *GetBrandingRequest) Reset() {
 	*x = GetBrandingRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[9]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +247,7 @@ func (x *GetBrandingRequest) String() string {
 func (*GetBrandingRequest) ProtoMessage() {}
 
 func (x *GetBrandingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[9]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,20 +260,20 @@ func (x *GetBrandingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBrandingRequest.ProtoReflect.Descriptor instead.
 func (*GetBrandingRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{9}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{3}
 }
 
 type GetBrandingResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BusinessType  BussinessType          `protobuf:"varint,1,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"` // active mode (UNSPECIFIED when unlicensed)
-	ShopName      string                 `protobuf:"bytes,2,opt,name=shop_name,json=shopName,proto3" json:"shop_name,omitempty"`                                                   // licensed shop/holder name ("" when unlicensed)
+	BusinessType  BussinessType          `protobuf:"varint,1,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"` // active mode (UNSPECIFIED behaves as retail)
+	AppTitle      string                 `protobuf:"bytes,2,opt,name=app_title,json=appTitle,proto3" json:"app_title,omitempty"`                                                   // configured shop/app title ("" = built-in brand)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetBrandingResponse) Reset() {
 	*x = GetBrandingResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[10]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -545,7 +285,7 @@ func (x *GetBrandingResponse) String() string {
 func (*GetBrandingResponse) ProtoMessage() {}
 
 func (x *GetBrandingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[10]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -558,7 +298,7 @@ func (x *GetBrandingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBrandingResponse.ProtoReflect.Descriptor instead.
 func (*GetBrandingResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{10}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetBrandingResponse) GetBusinessType() BussinessType {
@@ -568,9 +308,9 @@ func (x *GetBrandingResponse) GetBusinessType() BussinessType {
 	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
 }
 
-func (x *GetBrandingResponse) GetShopName() string {
+func (x *GetBrandingResponse) GetAppTitle() string {
 	if x != nil {
-		return x.ShopName
+		return x.AppTitle
 	}
 	return ""
 }
@@ -583,7 +323,7 @@ type GetSettingsRequest struct {
 
 func (x *GetSettingsRequest) Reset() {
 	*x = GetSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[11]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -595,7 +335,7 @@ func (x *GetSettingsRequest) String() string {
 func (*GetSettingsRequest) ProtoMessage() {}
 
 func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[11]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -608,7 +348,7 @@ func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{11}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{5}
 }
 
 type GetSettingsResponse struct {
@@ -620,7 +360,7 @@ type GetSettingsResponse struct {
 
 func (x *GetSettingsResponse) Reset() {
 	*x = GetSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[12]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -632,7 +372,7 @@ func (x *GetSettingsResponse) String() string {
 func (*GetSettingsResponse) ProtoMessage() {}
 
 func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[12]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -645,7 +385,7 @@ func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{12}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetSettingsResponse) GetSettings() *Settings {
@@ -658,13 +398,15 @@ func (x *GetSettingsResponse) GetSettings() *Settings {
 type UpdateSettingsRequest struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	LowStockThreshold int32                  `protobuf:"varint,1,opt,name=low_stock_threshold,json=lowStockThreshold,proto3" json:"low_stock_threshold,omitempty"`
+	AppTitle          string                 `protobuf:"bytes,2,opt,name=app_title,json=appTitle,proto3" json:"app_title,omitempty"`                                                   // "" clears the override (built-in brand)
+	BusinessType      BussinessType          `protobuf:"varint,3,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"` // UNSPECIFIED leaves the current mode unchanged
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateSettingsRequest) Reset() {
 	*x = UpdateSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[13]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -676,7 +418,7 @@ func (x *UpdateSettingsRequest) String() string {
 func (*UpdateSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[13]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -689,7 +431,7 @@ func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{13}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateSettingsRequest) GetLowStockThreshold() int32 {
@@ -697,6 +439,20 @@ func (x *UpdateSettingsRequest) GetLowStockThreshold() int32 {
 		return x.LowStockThreshold
 	}
 	return 0
+}
+
+func (x *UpdateSettingsRequest) GetAppTitle() string {
+	if x != nil {
+		return x.AppTitle
+	}
+	return ""
+}
+
+func (x *UpdateSettingsRequest) GetBusinessType() BussinessType {
+	if x != nil {
+		return x.BusinessType
+	}
+	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
 }
 
 type UpdateSettingsResponse struct {
@@ -708,7 +464,7 @@ type UpdateSettingsResponse struct {
 
 func (x *UpdateSettingsResponse) Reset() {
 	*x = UpdateSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[14]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -720,7 +476,7 @@ func (x *UpdateSettingsResponse) String() string {
 func (*UpdateSettingsResponse) ProtoMessage() {}
 
 func (x *UpdateSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[14]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -733,7 +489,7 @@ func (x *UpdateSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{14}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateSettingsResponse) GetSettings() *Settings {
@@ -751,7 +507,7 @@ type GetPrintTargetRequest struct {
 
 func (x *GetPrintTargetRequest) Reset() {
 	*x = GetPrintTargetRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[15]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -763,7 +519,7 @@ func (x *GetPrintTargetRequest) String() string {
 func (*GetPrintTargetRequest) ProtoMessage() {}
 
 func (x *GetPrintTargetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[15]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -776,7 +532,7 @@ func (x *GetPrintTargetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrintTargetRequest.ProtoReflect.Descriptor instead.
 func (*GetPrintTargetRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{15}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{9}
 }
 
 type GetPrintTargetResponse struct {
@@ -789,7 +545,7 @@ type GetPrintTargetResponse struct {
 
 func (x *GetPrintTargetResponse) Reset() {
 	*x = GetPrintTargetResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[16]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -801,7 +557,7 @@ func (x *GetPrintTargetResponse) String() string {
 func (*GetPrintTargetResponse) ProtoMessage() {}
 
 func (x *GetPrintTargetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[16]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -814,7 +570,7 @@ func (x *GetPrintTargetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrintTargetResponse.ProtoReflect.Descriptor instead.
 func (*GetPrintTargetResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{16}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GetPrintTargetResponse) GetConnectorDeviceId() string {
@@ -841,7 +597,7 @@ type SetPrintTargetRequest struct {
 
 func (x *SetPrintTargetRequest) Reset() {
 	*x = SetPrintTargetRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[17]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -853,7 +609,7 @@ func (x *SetPrintTargetRequest) String() string {
 func (*SetPrintTargetRequest) ProtoMessage() {}
 
 func (x *SetPrintTargetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[17]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -866,7 +622,7 @@ func (x *SetPrintTargetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPrintTargetRequest.ProtoReflect.Descriptor instead.
 func (*SetPrintTargetRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{17}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SetPrintTargetRequest) GetConnectorDeviceId() string {
@@ -893,7 +649,7 @@ type SetPrintTargetResponse struct {
 
 func (x *SetPrintTargetResponse) Reset() {
 	*x = SetPrintTargetResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[18]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -905,7 +661,7 @@ func (x *SetPrintTargetResponse) String() string {
 func (*SetPrintTargetResponse) ProtoMessage() {}
 
 func (x *SetPrintTargetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[18]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -918,7 +674,7 @@ func (x *SetPrintTargetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPrintTargetResponse.ProtoReflect.Descriptor instead.
 func (*SetPrintTargetResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{18}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SetPrintTargetResponse) GetConnectorDeviceId() string {
@@ -943,7 +699,7 @@ type GetReceiptSettingsRequest struct {
 
 func (x *GetReceiptSettingsRequest) Reset() {
 	*x = GetReceiptSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[19]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -955,7 +711,7 @@ func (x *GetReceiptSettingsRequest) String() string {
 func (*GetReceiptSettingsRequest) ProtoMessage() {}
 
 func (x *GetReceiptSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[19]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -968,7 +724,7 @@ func (x *GetReceiptSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReceiptSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetReceiptSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{19}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{13}
 }
 
 type GetReceiptSettingsResponse struct {
@@ -982,7 +738,7 @@ type GetReceiptSettingsResponse struct {
 
 func (x *GetReceiptSettingsResponse) Reset() {
 	*x = GetReceiptSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[20]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -994,7 +750,7 @@ func (x *GetReceiptSettingsResponse) String() string {
 func (*GetReceiptSettingsResponse) ProtoMessage() {}
 
 func (x *GetReceiptSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[20]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1007,7 +763,7 @@ func (x *GetReceiptSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReceiptSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetReceiptSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{20}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetReceiptSettingsResponse) GetHeader() string {
@@ -1042,7 +798,7 @@ type SetReceiptSettingsRequest struct {
 
 func (x *SetReceiptSettingsRequest) Reset() {
 	*x = SetReceiptSettingsRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[21]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1054,7 +810,7 @@ func (x *SetReceiptSettingsRequest) String() string {
 func (*SetReceiptSettingsRequest) ProtoMessage() {}
 
 func (x *SetReceiptSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[21]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1067,7 +823,7 @@ func (x *SetReceiptSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetReceiptSettingsRequest.ProtoReflect.Descriptor instead.
 func (*SetReceiptSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{21}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SetReceiptSettingsRequest) GetHeader() string {
@@ -1102,7 +858,7 @@ type SetReceiptSettingsResponse struct {
 
 func (x *SetReceiptSettingsResponse) Reset() {
 	*x = SetReceiptSettingsResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[22]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1114,7 +870,7 @@ func (x *SetReceiptSettingsResponse) String() string {
 func (*SetReceiptSettingsResponse) ProtoMessage() {}
 
 func (x *SetReceiptSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[22]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1127,7 +883,7 @@ func (x *SetReceiptSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetReceiptSettingsResponse.ProtoReflect.Descriptor instead.
 func (*SetReceiptSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{22}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SetReceiptSettingsResponse) GetHeader() string {
@@ -1159,7 +915,7 @@ type GetPrintingInfoRequest struct {
 
 func (x *GetPrintingInfoRequest) Reset() {
 	*x = GetPrintingInfoRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[23]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1171,7 +927,7 @@ func (x *GetPrintingInfoRequest) String() string {
 func (*GetPrintingInfoRequest) ProtoMessage() {}
 
 func (x *GetPrintingInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[23]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1184,7 +940,7 @@ func (x *GetPrintingInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrintingInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetPrintingInfoRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{23}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{17}
 }
 
 type GetPrintingInfoResponse struct {
@@ -1197,7 +953,7 @@ type GetPrintingInfoResponse struct {
 
 func (x *GetPrintingInfoResponse) Reset() {
 	*x = GetPrintingInfoResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[24]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1209,7 +965,7 @@ func (x *GetPrintingInfoResponse) String() string {
 func (*GetPrintingInfoResponse) ProtoMessage() {}
 
 func (x *GetPrintingInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[24]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1222,7 +978,7 @@ func (x *GetPrintingInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrintingInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetPrintingInfoResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{24}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetPrintingInfoResponse) GetMode() string {
@@ -1247,7 +1003,7 @@ type CheckUpdateRequest struct {
 
 func (x *CheckUpdateRequest) Reset() {
 	*x = CheckUpdateRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[25]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1259,7 +1015,7 @@ func (x *CheckUpdateRequest) String() string {
 func (*CheckUpdateRequest) ProtoMessage() {}
 
 func (x *CheckUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[25]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1272,7 +1028,7 @@ func (x *CheckUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckUpdateRequest.ProtoReflect.Descriptor instead.
 func (*CheckUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{25}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{19}
 }
 
 type CheckUpdateResponse struct {
@@ -1294,7 +1050,7 @@ type CheckUpdateResponse struct {
 
 func (x *CheckUpdateResponse) Reset() {
 	*x = CheckUpdateResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[26]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1306,7 +1062,7 @@ func (x *CheckUpdateResponse) String() string {
 func (*CheckUpdateResponse) ProtoMessage() {}
 
 func (x *CheckUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[26]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1319,7 +1075,7 @@ func (x *CheckUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckUpdateResponse.ProtoReflect.Descriptor instead.
 func (*CheckUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{26}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CheckUpdateResponse) GetCurrentVersion() string {
@@ -1408,7 +1164,7 @@ type ApplyUpdateRequest struct {
 
 func (x *ApplyUpdateRequest) Reset() {
 	*x = ApplyUpdateRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[27]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1420,7 +1176,7 @@ func (x *ApplyUpdateRequest) String() string {
 func (*ApplyUpdateRequest) ProtoMessage() {}
 
 func (x *ApplyUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[27]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1433,7 +1189,7 @@ func (x *ApplyUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyUpdateRequest.ProtoReflect.Descriptor instead.
 func (*ApplyUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{27}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ApplyUpdateRequest) GetRestart() bool {
@@ -1453,7 +1209,7 @@ type ApplyUpdateResponse struct {
 
 func (x *ApplyUpdateResponse) Reset() {
 	*x = ApplyUpdateResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[28]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1465,7 +1221,7 @@ func (x *ApplyUpdateResponse) String() string {
 func (*ApplyUpdateResponse) ProtoMessage() {}
 
 func (x *ApplyUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[28]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1478,7 +1234,7 @@ func (x *ApplyUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApplyUpdateResponse.ProtoReflect.Descriptor instead.
 func (*ApplyUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{28}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ApplyUpdateResponse) GetStagedVersion() string {
@@ -1503,7 +1259,7 @@ type RevertUpdateRequest struct {
 
 func (x *RevertUpdateRequest) Reset() {
 	*x = RevertUpdateRequest{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[29]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1271,7 @@ func (x *RevertUpdateRequest) String() string {
 func (*RevertUpdateRequest) ProtoMessage() {}
 
 func (x *RevertUpdateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[29]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +1284,7 @@ func (x *RevertUpdateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevertUpdateRequest.ProtoReflect.Descriptor instead.
 func (*RevertUpdateRequest) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{29}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{23}
 }
 
 type RevertUpdateResponse struct {
@@ -1540,7 +1296,7 @@ type RevertUpdateResponse struct {
 
 func (x *RevertUpdateResponse) Reset() {
 	*x = RevertUpdateResponse{}
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[30]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1552,7 +1308,7 @@ func (x *RevertUpdateResponse) String() string {
 func (*RevertUpdateResponse) ProtoMessage() {}
 
 func (x *RevertUpdateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_settings_iface_v1_settings_proto_msgTypes[30]
+	mi := &file_settings_iface_v1_settings_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1565,7 +1321,7 @@ func (x *RevertUpdateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevertUpdateResponse.ProtoReflect.Descriptor instead.
 func (*RevertUpdateResponse) Descriptor() ([]byte, []int) {
-	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{30}
+	return file_settings_iface_v1_settings_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RevertUpdateResponse) GetStaged() bool {
@@ -1579,37 +1335,26 @@ var File_settings_iface_v1_settings_proto protoreflect.FileDescriptor
 
 const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\n" +
-	" settings_iface/v1/settings.proto\x12\x11settings_iface.v1\x1a\x1aauth_iface/v1/policy.proto\":\n" +
+	" settings_iface/v1/settings.proto\x12\x11settings_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\x9e\x01\n" +
 	"\bSettings\x12.\n" +
-	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\"\x1d\n" +
-	"\x1bGetBussinessSettingsRequest\"h\n" +
+	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\x12\x1b\n" +
+	"\tapp_title\x18\x02 \x01(\tR\bappTitle\x12E\n" +
+	"\rbusiness_type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\"\x1d\n" +
+	"\x1bGetBussinessSettingsRequest\"q\n" +
 	"\x1cGetBussinessSettingsResponse\x124\n" +
-	"\x04type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"S\n" +
-	"\x1bSetBussinessSettingsRequest\x124\n" +
-	"\x04type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\"T\n" +
-	"\x1cSetBussinessSettingsResponse\x124\n" +
-	"\x04type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\"+\n" +
-	"\x13ApplyLicenseRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"`\n" +
-	"\x14ApplyLicenseResponse\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x124\n" +
-	"\x04type\x18\x02 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\"\x17\n" +
-	"\x15GetLicenseInfoRequest\"\x83\x01\n" +
-	"\x16GetLicenseInfoResponse\x12\x1f\n" +
-	"\vhas_license\x18\x01 \x01(\bR\n" +
-	"hasLicense\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x124\n" +
-	"\x04type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\"\x14\n" +
+	"\x04type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\x12\x1b\n" +
+	"\tapp_title\x18\x02 \x01(\tR\bappTitle\"\x14\n" +
 	"\x12GetBrandingRequest\"y\n" +
 	"\x13GetBrandingResponse\x12E\n" +
 	"\rbusiness_type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\x12\x1b\n" +
-	"\tshop_name\x18\x02 \x01(\tR\bshopName\"\x14\n" +
+	"\tapp_title\x18\x02 \x01(\tR\bappTitle\"\x14\n" +
 	"\x12GetSettingsRequest\"N\n" +
 	"\x13GetSettingsResponse\x127\n" +
-	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"G\n" +
+	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"\xab\x01\n" +
 	"\x15UpdateSettingsRequest\x12.\n" +
-	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\"Q\n" +
+	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\x12\x1b\n" +
+	"\tapp_title\x18\x02 \x01(\tR\bappTitle\x12E\n" +
+	"\rbusiness_type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\"Q\n" +
 	"\x16UpdateSettingsResponse\x127\n" +
 	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"\x17\n" +
 	"\x15GetPrintTargetRequest\"k\n" +
@@ -1668,14 +1413,12 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\rBussinessType\x12\x1e\n" +
 	"\x1aBUSSINESS_TYPE_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cBUSSINESS_TYPE_PHARMACY_SHOP\x10\x01\x12\x19\n" +
-	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\x9c\r\n" +
+	"\x15BUSSINESS_TYPE_RETAIL\x10\x022\xc3\n" +
+	"\n" +
 	"\x0fSettingsService\x12d\n" +
 	"\vGetSettings\x12%.settings_iface.v1.GetSettingsRequest\x1a&.settings_iface.v1.GetSettingsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
 	"\x0eUpdateSettings\x12(.settings_iface.v1.UpdateSettingsRequest\x1a).settings_iface.v1.UpdateSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12\x81\x01\n" +
-	"\x14GetBussinessSettings\x12..settings_iface.v1.GetBussinessSettingsRequest\x1a/.settings_iface.v1.GetBussinessSettingsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12~\n" +
-	"\x14SetBussinessSettings\x12..settings_iface.v1.SetBussinessSettingsRequest\x1a/.settings_iface.v1.SetBussinessSettingsResponse\"\x05\x8a\xb5\x18\x01\x01\x12f\n" +
-	"\fApplyLicense\x12&.settings_iface.v1.ApplyLicenseRequest\x1a'.settings_iface.v1.ApplyLicenseResponse\"\x05\x8a\xb5\x18\x01\x01\x12o\n" +
-	"\x0eGetLicenseInfo\x12(.settings_iface.v1.GetLicenseInfoRequest\x1a).settings_iface.v1.GetLicenseInfoResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12b\n" +
+	"\x14GetBussinessSettings\x12..settings_iface.v1.GetBussinessSettingsRequest\x1a/.settings_iface.v1.GetBussinessSettingsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12b\n" +
 	"\vGetBranding\x12%.settings_iface.v1.GetBrandingRequest\x1a&.settings_iface.v1.GetBrandingResponse\"\x04\x80\xb5\x18\x01\x12m\n" +
 	"\x0eGetPrintTarget\x12(.settings_iface.v1.GetPrintTargetRequest\x1a).settings_iface.v1.GetPrintTargetResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12l\n" +
 	"\x0eSetPrintTarget\x12(.settings_iface.v1.SetPrintTargetRequest\x1a).settings_iface.v1.SetPrintTargetResponse\"\x05\x8a\xb5\x18\x01\x01\x12y\n" +
@@ -1699,85 +1442,71 @@ func file_settings_iface_v1_settings_proto_rawDescGZIP() []byte {
 }
 
 var file_settings_iface_v1_settings_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_settings_iface_v1_settings_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_settings_iface_v1_settings_proto_goTypes = []any{
 	(BussinessType)(0),                   // 0: settings_iface.v1.BussinessType
 	(*Settings)(nil),                     // 1: settings_iface.v1.Settings
 	(*GetBussinessSettingsRequest)(nil),  // 2: settings_iface.v1.GetBussinessSettingsRequest
 	(*GetBussinessSettingsResponse)(nil), // 3: settings_iface.v1.GetBussinessSettingsResponse
-	(*SetBussinessSettingsRequest)(nil),  // 4: settings_iface.v1.SetBussinessSettingsRequest
-	(*SetBussinessSettingsResponse)(nil), // 5: settings_iface.v1.SetBussinessSettingsResponse
-	(*ApplyLicenseRequest)(nil),          // 6: settings_iface.v1.ApplyLicenseRequest
-	(*ApplyLicenseResponse)(nil),         // 7: settings_iface.v1.ApplyLicenseResponse
-	(*GetLicenseInfoRequest)(nil),        // 8: settings_iface.v1.GetLicenseInfoRequest
-	(*GetLicenseInfoResponse)(nil),       // 9: settings_iface.v1.GetLicenseInfoResponse
-	(*GetBrandingRequest)(nil),           // 10: settings_iface.v1.GetBrandingRequest
-	(*GetBrandingResponse)(nil),          // 11: settings_iface.v1.GetBrandingResponse
-	(*GetSettingsRequest)(nil),           // 12: settings_iface.v1.GetSettingsRequest
-	(*GetSettingsResponse)(nil),          // 13: settings_iface.v1.GetSettingsResponse
-	(*UpdateSettingsRequest)(nil),        // 14: settings_iface.v1.UpdateSettingsRequest
-	(*UpdateSettingsResponse)(nil),       // 15: settings_iface.v1.UpdateSettingsResponse
-	(*GetPrintTargetRequest)(nil),        // 16: settings_iface.v1.GetPrintTargetRequest
-	(*GetPrintTargetResponse)(nil),       // 17: settings_iface.v1.GetPrintTargetResponse
-	(*SetPrintTargetRequest)(nil),        // 18: settings_iface.v1.SetPrintTargetRequest
-	(*SetPrintTargetResponse)(nil),       // 19: settings_iface.v1.SetPrintTargetResponse
-	(*GetReceiptSettingsRequest)(nil),    // 20: settings_iface.v1.GetReceiptSettingsRequest
-	(*GetReceiptSettingsResponse)(nil),   // 21: settings_iface.v1.GetReceiptSettingsResponse
-	(*SetReceiptSettingsRequest)(nil),    // 22: settings_iface.v1.SetReceiptSettingsRequest
-	(*SetReceiptSettingsResponse)(nil),   // 23: settings_iface.v1.SetReceiptSettingsResponse
-	(*GetPrintingInfoRequest)(nil),       // 24: settings_iface.v1.GetPrintingInfoRequest
-	(*GetPrintingInfoResponse)(nil),      // 25: settings_iface.v1.GetPrintingInfoResponse
-	(*CheckUpdateRequest)(nil),           // 26: settings_iface.v1.CheckUpdateRequest
-	(*CheckUpdateResponse)(nil),          // 27: settings_iface.v1.CheckUpdateResponse
-	(*ApplyUpdateRequest)(nil),           // 28: settings_iface.v1.ApplyUpdateRequest
-	(*ApplyUpdateResponse)(nil),          // 29: settings_iface.v1.ApplyUpdateResponse
-	(*RevertUpdateRequest)(nil),          // 30: settings_iface.v1.RevertUpdateRequest
-	(*RevertUpdateResponse)(nil),         // 31: settings_iface.v1.RevertUpdateResponse
+	(*GetBrandingRequest)(nil),           // 4: settings_iface.v1.GetBrandingRequest
+	(*GetBrandingResponse)(nil),          // 5: settings_iface.v1.GetBrandingResponse
+	(*GetSettingsRequest)(nil),           // 6: settings_iface.v1.GetSettingsRequest
+	(*GetSettingsResponse)(nil),          // 7: settings_iface.v1.GetSettingsResponse
+	(*UpdateSettingsRequest)(nil),        // 8: settings_iface.v1.UpdateSettingsRequest
+	(*UpdateSettingsResponse)(nil),       // 9: settings_iface.v1.UpdateSettingsResponse
+	(*GetPrintTargetRequest)(nil),        // 10: settings_iface.v1.GetPrintTargetRequest
+	(*GetPrintTargetResponse)(nil),       // 11: settings_iface.v1.GetPrintTargetResponse
+	(*SetPrintTargetRequest)(nil),        // 12: settings_iface.v1.SetPrintTargetRequest
+	(*SetPrintTargetResponse)(nil),       // 13: settings_iface.v1.SetPrintTargetResponse
+	(*GetReceiptSettingsRequest)(nil),    // 14: settings_iface.v1.GetReceiptSettingsRequest
+	(*GetReceiptSettingsResponse)(nil),   // 15: settings_iface.v1.GetReceiptSettingsResponse
+	(*SetReceiptSettingsRequest)(nil),    // 16: settings_iface.v1.SetReceiptSettingsRequest
+	(*SetReceiptSettingsResponse)(nil),   // 17: settings_iface.v1.SetReceiptSettingsResponse
+	(*GetPrintingInfoRequest)(nil),       // 18: settings_iface.v1.GetPrintingInfoRequest
+	(*GetPrintingInfoResponse)(nil),      // 19: settings_iface.v1.GetPrintingInfoResponse
+	(*CheckUpdateRequest)(nil),           // 20: settings_iface.v1.CheckUpdateRequest
+	(*CheckUpdateResponse)(nil),          // 21: settings_iface.v1.CheckUpdateResponse
+	(*ApplyUpdateRequest)(nil),           // 22: settings_iface.v1.ApplyUpdateRequest
+	(*ApplyUpdateResponse)(nil),          // 23: settings_iface.v1.ApplyUpdateResponse
+	(*RevertUpdateRequest)(nil),          // 24: settings_iface.v1.RevertUpdateRequest
+	(*RevertUpdateResponse)(nil),         // 25: settings_iface.v1.RevertUpdateResponse
 }
 var file_settings_iface_v1_settings_proto_depIdxs = []int32{
-	0,  // 0: settings_iface.v1.GetBussinessSettingsResponse.type:type_name -> settings_iface.v1.BussinessType
-	0,  // 1: settings_iface.v1.SetBussinessSettingsRequest.type:type_name -> settings_iface.v1.BussinessType
-	0,  // 2: settings_iface.v1.SetBussinessSettingsResponse.type:type_name -> settings_iface.v1.BussinessType
-	0,  // 3: settings_iface.v1.ApplyLicenseResponse.type:type_name -> settings_iface.v1.BussinessType
-	0,  // 4: settings_iface.v1.GetLicenseInfoResponse.type:type_name -> settings_iface.v1.BussinessType
-	0,  // 5: settings_iface.v1.GetBrandingResponse.business_type:type_name -> settings_iface.v1.BussinessType
-	1,  // 6: settings_iface.v1.GetSettingsResponse.settings:type_name -> settings_iface.v1.Settings
-	1,  // 7: settings_iface.v1.UpdateSettingsResponse.settings:type_name -> settings_iface.v1.Settings
-	12, // 8: settings_iface.v1.SettingsService.GetSettings:input_type -> settings_iface.v1.GetSettingsRequest
-	14, // 9: settings_iface.v1.SettingsService.UpdateSettings:input_type -> settings_iface.v1.UpdateSettingsRequest
-	2,  // 10: settings_iface.v1.SettingsService.GetBussinessSettings:input_type -> settings_iface.v1.GetBussinessSettingsRequest
-	4,  // 11: settings_iface.v1.SettingsService.SetBussinessSettings:input_type -> settings_iface.v1.SetBussinessSettingsRequest
-	6,  // 12: settings_iface.v1.SettingsService.ApplyLicense:input_type -> settings_iface.v1.ApplyLicenseRequest
-	8,  // 13: settings_iface.v1.SettingsService.GetLicenseInfo:input_type -> settings_iface.v1.GetLicenseInfoRequest
-	10, // 14: settings_iface.v1.SettingsService.GetBranding:input_type -> settings_iface.v1.GetBrandingRequest
-	16, // 15: settings_iface.v1.SettingsService.GetPrintTarget:input_type -> settings_iface.v1.GetPrintTargetRequest
-	18, // 16: settings_iface.v1.SettingsService.SetPrintTarget:input_type -> settings_iface.v1.SetPrintTargetRequest
-	20, // 17: settings_iface.v1.SettingsService.GetReceiptSettings:input_type -> settings_iface.v1.GetReceiptSettingsRequest
-	22, // 18: settings_iface.v1.SettingsService.SetReceiptSettings:input_type -> settings_iface.v1.SetReceiptSettingsRequest
-	24, // 19: settings_iface.v1.SettingsService.GetPrintingInfo:input_type -> settings_iface.v1.GetPrintingInfoRequest
-	26, // 20: settings_iface.v1.SettingsService.CheckUpdate:input_type -> settings_iface.v1.CheckUpdateRequest
-	28, // 21: settings_iface.v1.SettingsService.ApplyUpdate:input_type -> settings_iface.v1.ApplyUpdateRequest
-	30, // 22: settings_iface.v1.SettingsService.RevertUpdate:input_type -> settings_iface.v1.RevertUpdateRequest
-	13, // 23: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
-	15, // 24: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
-	3,  // 25: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
-	5,  // 26: settings_iface.v1.SettingsService.SetBussinessSettings:output_type -> settings_iface.v1.SetBussinessSettingsResponse
-	7,  // 27: settings_iface.v1.SettingsService.ApplyLicense:output_type -> settings_iface.v1.ApplyLicenseResponse
-	9,  // 28: settings_iface.v1.SettingsService.GetLicenseInfo:output_type -> settings_iface.v1.GetLicenseInfoResponse
-	11, // 29: settings_iface.v1.SettingsService.GetBranding:output_type -> settings_iface.v1.GetBrandingResponse
-	17, // 30: settings_iface.v1.SettingsService.GetPrintTarget:output_type -> settings_iface.v1.GetPrintTargetResponse
-	19, // 31: settings_iface.v1.SettingsService.SetPrintTarget:output_type -> settings_iface.v1.SetPrintTargetResponse
-	21, // 32: settings_iface.v1.SettingsService.GetReceiptSettings:output_type -> settings_iface.v1.GetReceiptSettingsResponse
-	23, // 33: settings_iface.v1.SettingsService.SetReceiptSettings:output_type -> settings_iface.v1.SetReceiptSettingsResponse
-	25, // 34: settings_iface.v1.SettingsService.GetPrintingInfo:output_type -> settings_iface.v1.GetPrintingInfoResponse
-	27, // 35: settings_iface.v1.SettingsService.CheckUpdate:output_type -> settings_iface.v1.CheckUpdateResponse
-	29, // 36: settings_iface.v1.SettingsService.ApplyUpdate:output_type -> settings_iface.v1.ApplyUpdateResponse
-	31, // 37: settings_iface.v1.SettingsService.RevertUpdate:output_type -> settings_iface.v1.RevertUpdateResponse
-	23, // [23:38] is the sub-list for method output_type
-	8,  // [8:23] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	0,  // 0: settings_iface.v1.Settings.business_type:type_name -> settings_iface.v1.BussinessType
+	0,  // 1: settings_iface.v1.GetBussinessSettingsResponse.type:type_name -> settings_iface.v1.BussinessType
+	0,  // 2: settings_iface.v1.GetBrandingResponse.business_type:type_name -> settings_iface.v1.BussinessType
+	1,  // 3: settings_iface.v1.GetSettingsResponse.settings:type_name -> settings_iface.v1.Settings
+	0,  // 4: settings_iface.v1.UpdateSettingsRequest.business_type:type_name -> settings_iface.v1.BussinessType
+	1,  // 5: settings_iface.v1.UpdateSettingsResponse.settings:type_name -> settings_iface.v1.Settings
+	6,  // 6: settings_iface.v1.SettingsService.GetSettings:input_type -> settings_iface.v1.GetSettingsRequest
+	8,  // 7: settings_iface.v1.SettingsService.UpdateSettings:input_type -> settings_iface.v1.UpdateSettingsRequest
+	2,  // 8: settings_iface.v1.SettingsService.GetBussinessSettings:input_type -> settings_iface.v1.GetBussinessSettingsRequest
+	4,  // 9: settings_iface.v1.SettingsService.GetBranding:input_type -> settings_iface.v1.GetBrandingRequest
+	10, // 10: settings_iface.v1.SettingsService.GetPrintTarget:input_type -> settings_iface.v1.GetPrintTargetRequest
+	12, // 11: settings_iface.v1.SettingsService.SetPrintTarget:input_type -> settings_iface.v1.SetPrintTargetRequest
+	14, // 12: settings_iface.v1.SettingsService.GetReceiptSettings:input_type -> settings_iface.v1.GetReceiptSettingsRequest
+	16, // 13: settings_iface.v1.SettingsService.SetReceiptSettings:input_type -> settings_iface.v1.SetReceiptSettingsRequest
+	18, // 14: settings_iface.v1.SettingsService.GetPrintingInfo:input_type -> settings_iface.v1.GetPrintingInfoRequest
+	20, // 15: settings_iface.v1.SettingsService.CheckUpdate:input_type -> settings_iface.v1.CheckUpdateRequest
+	22, // 16: settings_iface.v1.SettingsService.ApplyUpdate:input_type -> settings_iface.v1.ApplyUpdateRequest
+	24, // 17: settings_iface.v1.SettingsService.RevertUpdate:input_type -> settings_iface.v1.RevertUpdateRequest
+	7,  // 18: settings_iface.v1.SettingsService.GetSettings:output_type -> settings_iface.v1.GetSettingsResponse
+	9,  // 19: settings_iface.v1.SettingsService.UpdateSettings:output_type -> settings_iface.v1.UpdateSettingsResponse
+	3,  // 20: settings_iface.v1.SettingsService.GetBussinessSettings:output_type -> settings_iface.v1.GetBussinessSettingsResponse
+	5,  // 21: settings_iface.v1.SettingsService.GetBranding:output_type -> settings_iface.v1.GetBrandingResponse
+	11, // 22: settings_iface.v1.SettingsService.GetPrintTarget:output_type -> settings_iface.v1.GetPrintTargetResponse
+	13, // 23: settings_iface.v1.SettingsService.SetPrintTarget:output_type -> settings_iface.v1.SetPrintTargetResponse
+	15, // 24: settings_iface.v1.SettingsService.GetReceiptSettings:output_type -> settings_iface.v1.GetReceiptSettingsResponse
+	17, // 25: settings_iface.v1.SettingsService.SetReceiptSettings:output_type -> settings_iface.v1.SetReceiptSettingsResponse
+	19, // 26: settings_iface.v1.SettingsService.GetPrintingInfo:output_type -> settings_iface.v1.GetPrintingInfoResponse
+	21, // 27: settings_iface.v1.SettingsService.CheckUpdate:output_type -> settings_iface.v1.CheckUpdateResponse
+	23, // 28: settings_iface.v1.SettingsService.ApplyUpdate:output_type -> settings_iface.v1.ApplyUpdateResponse
+	25, // 29: settings_iface.v1.SettingsService.RevertUpdate:output_type -> settings_iface.v1.RevertUpdateResponse
+	18, // [18:30] is the sub-list for method output_type
+	6,  // [6:18] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_settings_iface_v1_settings_proto_init() }
@@ -1791,7 +1520,7 @@ func file_settings_iface_v1_settings_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_settings_iface_v1_settings_proto_rawDesc), len(file_settings_iface_v1_settings_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   31,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

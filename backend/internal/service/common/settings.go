@@ -21,12 +21,10 @@ const (
 	// BussinessType enum value (e.g. "1"). 0 (UNSPECIFIED) when unset.
 	SettingKeyBussinessType = "business_type"
 
-	// SettingKeyLicense stores the raw license token entered via the Settings UI
-	// (SettingsService.ApplyLicense); SettingKeyLicenseName caches the verified
-	// holder name for display. The server re-verifies + applies the stored token
-	// on boot when no config/env license is set.
-	SettingKeyLicense     = "license"
-	SettingKeyLicenseName = "license_name"
+	// SettingKeyAppTitle stores the shop/app title shown in the browser tab, the
+	// sidebar brand and the login screen. Empty (or absent) means "use the
+	// built-in brand for the active business mode".
+	SettingKeyAppTitle = "app_title"
 
 	// Default print target (connector mode): which connector device + printer
 	// SaleService.PrintReceipt uses when the request carries no explicit target.
@@ -88,31 +86,24 @@ func GetBussinessType(ctx context.Context, db *gorm.DB) (int32, error) {
 	return int32(n), nil
 }
 
-// SetBussinessType upserts the shop's business type into app_settings. Shared by
-// SettingsService.SetBussinessSettings and the boot-time license loader (the
-// license is the source of truth — it writes the licensed type on every boot).
+// SetBussinessType upserts the shop's business type into app_settings. Written
+// by SettingsService.UpdateSettings (Settings ▸ General, owner-only) — the
+// stored value is the single source of truth for the app's mode.
 func SetBussinessType(ctx context.Context, db *gorm.DB, t int32) error {
 	return setSetting(ctx, db, SettingKeyBussinessType, strconv.FormatInt(int64(t), 10))
 }
 
-// SetLicense persists the raw license token + the verified holder name into
-// app_settings (so a UI-applied license survives reboots and is re-applied on
-// boot). Shared by SettingsService.ApplyLicense.
-func SetLicense(ctx context.Context, db *gorm.DB, token, name string) error {
-	if err := setSetting(ctx, db, SettingKeyLicense, token); err != nil {
-		return err
-	}
-	return setSetting(ctx, db, SettingKeyLicenseName, name)
+// GetAppTitle returns the configured shop/app title ("" when unset — callers
+// fall back to the built-in brand for the active business mode). Read by the
+// public GetBranding RPC so the login screen + tab title brand correctly.
+func GetAppTitle(ctx context.Context, db *gorm.DB) (string, error) {
+	return getSetting(ctx, db, SettingKeyAppTitle)
 }
 
-// GetLicense returns the stored license token ("" when none was applied via UI).
-func GetLicense(ctx context.Context, db *gorm.DB) (string, error) {
-	return getSetting(ctx, db, SettingKeyLicense)
-}
-
-// GetLicenseName returns the cached licensed-holder name ("" when none).
-func GetLicenseName(ctx context.Context, db *gorm.DB) (string, error) {
-	return getSetting(ctx, db, SettingKeyLicenseName)
+// SetAppTitle persists the shop/app title. The value is trimmed; an empty string
+// clears the override.
+func SetAppTitle(ctx context.Context, db *gorm.DB, title string) error {
+	return setSetting(ctx, db, SettingKeyAppTitle, strings.TrimSpace(title))
 }
 
 // GetPrintTarget returns the saved default print connector device + printer

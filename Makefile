@@ -1,4 +1,4 @@
-.PHONY: up down reset-devel-data generate tidy run dev test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
+.PHONY: up down reset-devel-data generate tidy wire run dev test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows dist-connector-windows docker-build docker-up docker-down installer \
@@ -47,6 +47,13 @@ generate:
 # --- Backend (Go) ------------------------------------------------------------
 tidy:
 	go -C backend mod tidy
+
+# Regenerate the dependency-injection graph for cmd/server (google/wire). Run
+# after changing backend/cmd/server/providers.go or wire.go; wire_gen.go is
+# generated + committed. The wire CLI is a `tool` dependency in backend/go.mod,
+# so no separate install step is needed.
+wire:
+	$(GO_BACKEND) tool wire ./cmd/server
 
 run:
 	$(GO_BACKEND) run ./cmd/server

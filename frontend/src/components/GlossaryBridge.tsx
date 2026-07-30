@@ -19,9 +19,9 @@ const BUNDLES: Record<string, { glossary: object; glossaryPharmacy: object }> = 
 // retail). It overwrites the `glossary` resource bundle so all
 // `$t(glossary.*)` references resolve mode-aware. i18n.ts sets
 // `react.bindI18nStore: "added"`, so the overwrite re-renders every translation
-// consumer. Mode is license-driven (changes only on restart) — this fires once
-// the mode query resolves; a brief flash of the retail noun on cold load is
-// acceptable (same posture as the theme flash). Renders nothing.
+// consumer. Mode comes from Settings ▸ General (the save invalidates the mode
+// query, so this re-fires live) — a brief flash of the retail noun on cold load
+// is acceptable (same posture as the theme flash). Renders nothing.
 export default function GlossaryBridge() {
   const { user } = useAuth();
   const { isPharmacy } = useBusinessMode(!!user); // skip the authed RPC pre-login

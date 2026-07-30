@@ -6,12 +6,6 @@
 # Docker compose secrets (copy from .env.example)
 .env
 
-# License tokens — signed credentials minted by `cmd/license`; never commit.
-# `licence.{pharmacy,retail}.example` are local sample tokens for testing
-# Settings > License (one per business mode).
-licence*.example
-*.license
-
 # Local docker volumes (postgres data, etc.)
 data/
 
@@ -60,11 +54,10 @@ packaging/windows/.cache/
 .DS_Store
 Thumbs.db
 *.log
-
+*.exe
 
 thirdparties/bin
 server.exe
-license.exe
 graphify-out/
 
 backend/justmart-demo.db
@@ -72,3 +65,8 @@ backend/justmart-demo.db
 backend/justmart-demo.db-shm
 
 backend/justmart-demo.db-wal
+
+# Throwaway SQLite file created by the e2e suite
+backend/e2e/justmart.db
+backend/e2e/justmart.db-shm
+backend/e2e/justmart.db-wal

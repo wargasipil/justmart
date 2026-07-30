@@ -42,15 +42,6 @@ const (
 	// SettingsServiceGetBussinessSettingsProcedure is the fully-qualified name of the SettingsService's
 	// GetBussinessSettings RPC.
 	SettingsServiceGetBussinessSettingsProcedure = "/settings_iface.v1.SettingsService/GetBussinessSettings"
-	// SettingsServiceSetBussinessSettingsProcedure is the fully-qualified name of the SettingsService's
-	// SetBussinessSettings RPC.
-	SettingsServiceSetBussinessSettingsProcedure = "/settings_iface.v1.SettingsService/SetBussinessSettings"
-	// SettingsServiceApplyLicenseProcedure is the fully-qualified name of the SettingsService's
-	// ApplyLicense RPC.
-	SettingsServiceApplyLicenseProcedure = "/settings_iface.v1.SettingsService/ApplyLicense"
-	// SettingsServiceGetLicenseInfoProcedure is the fully-qualified name of the SettingsService's
-	// GetLicenseInfo RPC.
-	SettingsServiceGetLicenseInfoProcedure = "/settings_iface.v1.SettingsService/GetLicenseInfo"
 	// SettingsServiceGetBrandingProcedure is the fully-qualified name of the SettingsService's
 	// GetBranding RPC.
 	SettingsServiceGetBrandingProcedure = "/settings_iface.v1.SettingsService/GetBranding"
@@ -86,21 +77,13 @@ type SettingsServiceClient interface {
 	UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error)
 	// Readable by every authenticated role — the business mode drives branding,
 	// navigation and POS behavior for all users (cashier + apoteker included).
+	// Writing it is part of UpdateSettings (owner-only).
 	GetBussinessSettings(context.Context, *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error)
-	// Setting the shop's business type is an owner-level config change.
-	SetBussinessSettings(context.Context, *connect.Request[v1.SetBussinessSettingsRequest]) (*connect.Response[v1.SetBussinessSettingsResponse], error)
-	// ApplyLicense verifies a license token (entered in Settings), persists it,
-	// and applies its business type. Owner-only.
-	ApplyLicense(context.Context, *connect.Request[v1.ApplyLicenseRequest]) (*connect.Response[v1.ApplyLicenseResponse], error)
-	// GetLicenseInfo reports the currently-applied license (holder name + mode).
-	// Readable by every role (the holder name brands the app for all users); only
-	// applying a license (ApplyLicense) is owner-gated.
-	GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error)
-	// GetBranding exposes JUST the branding facts (business type + licensed shop
-	// name) needed to render the app chrome BEFORE the user authenticates — the
-	// login screen + browser tab title. PUBLIC by design: the shop name + mode are
-	// the storefront brand (already shown to anyone who reaches the login page),
-	// not sensitive data. All richer settings/license RPCs stay role-gated.
+	// GetBranding exposes JUST the branding facts (business mode + app title)
+	// needed to render the app chrome BEFORE the user authenticates — the login
+	// screen + browser tab title. PUBLIC by design: the shop title + mode are the
+	// storefront brand (already shown to anyone who reaches the login page), not
+	// sensitive data. All richer settings RPCs stay role-gated.
 	GetBranding(context.Context, *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error)
 	// GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
 	// (app_settings) used by SaleService.PrintReceipt when the request carries no
@@ -158,24 +141,6 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			httpClient,
 			baseURL+SettingsServiceGetBussinessSettingsProcedure,
 			connect.WithSchema(settingsServiceMethods.ByName("GetBussinessSettings")),
-			connect.WithClientOptions(opts...),
-		),
-		setBussinessSettings: connect.NewClient[v1.SetBussinessSettingsRequest, v1.SetBussinessSettingsResponse](
-			httpClient,
-			baseURL+SettingsServiceSetBussinessSettingsProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("SetBussinessSettings")),
-			connect.WithClientOptions(opts...),
-		),
-		applyLicense: connect.NewClient[v1.ApplyLicenseRequest, v1.ApplyLicenseResponse](
-			httpClient,
-			baseURL+SettingsServiceApplyLicenseProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("ApplyLicense")),
-			connect.WithClientOptions(opts...),
-		),
-		getLicenseInfo: connect.NewClient[v1.GetLicenseInfoRequest, v1.GetLicenseInfoResponse](
-			httpClient,
-			baseURL+SettingsServiceGetLicenseInfoProcedure,
-			connect.WithSchema(settingsServiceMethods.ByName("GetLicenseInfo")),
 			connect.WithClientOptions(opts...),
 		),
 		getBranding: connect.NewClient[v1.GetBrandingRequest, v1.GetBrandingResponse](
@@ -240,9 +205,6 @@ type settingsServiceClient struct {
 	getSettings          *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
 	updateSettings       *connect.Client[v1.UpdateSettingsRequest, v1.UpdateSettingsResponse]
 	getBussinessSettings *connect.Client[v1.GetBussinessSettingsRequest, v1.GetBussinessSettingsResponse]
-	setBussinessSettings *connect.Client[v1.SetBussinessSettingsRequest, v1.SetBussinessSettingsResponse]
-	applyLicense         *connect.Client[v1.ApplyLicenseRequest, v1.ApplyLicenseResponse]
-	getLicenseInfo       *connect.Client[v1.GetLicenseInfoRequest, v1.GetLicenseInfoResponse]
 	getBranding          *connect.Client[v1.GetBrandingRequest, v1.GetBrandingResponse]
 	getPrintTarget       *connect.Client[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse]
 	setPrintTarget       *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
@@ -267,21 +229,6 @@ func (c *settingsServiceClient) UpdateSettings(ctx context.Context, req *connect
 // GetBussinessSettings calls settings_iface.v1.SettingsService.GetBussinessSettings.
 func (c *settingsServiceClient) GetBussinessSettings(ctx context.Context, req *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error) {
 	return c.getBussinessSettings.CallUnary(ctx, req)
-}
-
-// SetBussinessSettings calls settings_iface.v1.SettingsService.SetBussinessSettings.
-func (c *settingsServiceClient) SetBussinessSettings(ctx context.Context, req *connect.Request[v1.SetBussinessSettingsRequest]) (*connect.Response[v1.SetBussinessSettingsResponse], error) {
-	return c.setBussinessSettings.CallUnary(ctx, req)
-}
-
-// ApplyLicense calls settings_iface.v1.SettingsService.ApplyLicense.
-func (c *settingsServiceClient) ApplyLicense(ctx context.Context, req *connect.Request[v1.ApplyLicenseRequest]) (*connect.Response[v1.ApplyLicenseResponse], error) {
-	return c.applyLicense.CallUnary(ctx, req)
-}
-
-// GetLicenseInfo calls settings_iface.v1.SettingsService.GetLicenseInfo.
-func (c *settingsServiceClient) GetLicenseInfo(ctx context.Context, req *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error) {
-	return c.getLicenseInfo.CallUnary(ctx, req)
 }
 
 // GetBranding calls settings_iface.v1.SettingsService.GetBranding.
@@ -335,21 +282,13 @@ type SettingsServiceHandler interface {
 	UpdateSettings(context.Context, *connect.Request[v1.UpdateSettingsRequest]) (*connect.Response[v1.UpdateSettingsResponse], error)
 	// Readable by every authenticated role — the business mode drives branding,
 	// navigation and POS behavior for all users (cashier + apoteker included).
+	// Writing it is part of UpdateSettings (owner-only).
 	GetBussinessSettings(context.Context, *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error)
-	// Setting the shop's business type is an owner-level config change.
-	SetBussinessSettings(context.Context, *connect.Request[v1.SetBussinessSettingsRequest]) (*connect.Response[v1.SetBussinessSettingsResponse], error)
-	// ApplyLicense verifies a license token (entered in Settings), persists it,
-	// and applies its business type. Owner-only.
-	ApplyLicense(context.Context, *connect.Request[v1.ApplyLicenseRequest]) (*connect.Response[v1.ApplyLicenseResponse], error)
-	// GetLicenseInfo reports the currently-applied license (holder name + mode).
-	// Readable by every role (the holder name brands the app for all users); only
-	// applying a license (ApplyLicense) is owner-gated.
-	GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error)
-	// GetBranding exposes JUST the branding facts (business type + licensed shop
-	// name) needed to render the app chrome BEFORE the user authenticates — the
-	// login screen + browser tab title. PUBLIC by design: the shop name + mode are
-	// the storefront brand (already shown to anyone who reaches the login page),
-	// not sensitive data. All richer settings/license RPCs stay role-gated.
+	// GetBranding exposes JUST the branding facts (business mode + app title)
+	// needed to render the app chrome BEFORE the user authenticates — the login
+	// screen + browser tab title. PUBLIC by design: the shop title + mode are the
+	// storefront brand (already shown to anyone who reaches the login page), not
+	// sensitive data. All richer settings RPCs stay role-gated.
 	GetBranding(context.Context, *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error)
 	// GetPrintTarget / SetPrintTarget store the DEFAULT print connector + printer
 	// (app_settings) used by SaleService.PrintReceipt when the request carries no
@@ -403,24 +342,6 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		SettingsServiceGetBussinessSettingsProcedure,
 		svc.GetBussinessSettings,
 		connect.WithSchema(settingsServiceMethods.ByName("GetBussinessSettings")),
-		connect.WithHandlerOptions(opts...),
-	)
-	settingsServiceSetBussinessSettingsHandler := connect.NewUnaryHandler(
-		SettingsServiceSetBussinessSettingsProcedure,
-		svc.SetBussinessSettings,
-		connect.WithSchema(settingsServiceMethods.ByName("SetBussinessSettings")),
-		connect.WithHandlerOptions(opts...),
-	)
-	settingsServiceApplyLicenseHandler := connect.NewUnaryHandler(
-		SettingsServiceApplyLicenseProcedure,
-		svc.ApplyLicense,
-		connect.WithSchema(settingsServiceMethods.ByName("ApplyLicense")),
-		connect.WithHandlerOptions(opts...),
-	)
-	settingsServiceGetLicenseInfoHandler := connect.NewUnaryHandler(
-		SettingsServiceGetLicenseInfoProcedure,
-		svc.GetLicenseInfo,
-		connect.WithSchema(settingsServiceMethods.ByName("GetLicenseInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
 	settingsServiceGetBrandingHandler := connect.NewUnaryHandler(
@@ -485,12 +406,6 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceUpdateSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceGetBussinessSettingsProcedure:
 			settingsServiceGetBussinessSettingsHandler.ServeHTTP(w, r)
-		case SettingsServiceSetBussinessSettingsProcedure:
-			settingsServiceSetBussinessSettingsHandler.ServeHTTP(w, r)
-		case SettingsServiceApplyLicenseProcedure:
-			settingsServiceApplyLicenseHandler.ServeHTTP(w, r)
-		case SettingsServiceGetLicenseInfoProcedure:
-			settingsServiceGetLicenseInfoHandler.ServeHTTP(w, r)
 		case SettingsServiceGetBrandingProcedure:
 			settingsServiceGetBrandingHandler.ServeHTTP(w, r)
 		case SettingsServiceGetPrintTargetProcedure:
@@ -528,18 +443,6 @@ func (UnimplementedSettingsServiceHandler) UpdateSettings(context.Context, *conn
 
 func (UnimplementedSettingsServiceHandler) GetBussinessSettings(context.Context, *connect.Request[v1.GetBussinessSettingsRequest]) (*connect.Response[v1.GetBussinessSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetBussinessSettings is not implemented"))
-}
-
-func (UnimplementedSettingsServiceHandler) SetBussinessSettings(context.Context, *connect.Request[v1.SetBussinessSettingsRequest]) (*connect.Response[v1.SetBussinessSettingsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetBussinessSettings is not implemented"))
-}
-
-func (UnimplementedSettingsServiceHandler) ApplyLicense(context.Context, *connect.Request[v1.ApplyLicenseRequest]) (*connect.Response[v1.ApplyLicenseResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.ApplyLicense is not implemented"))
-}
-
-func (UnimplementedSettingsServiceHandler) GetLicenseInfo(context.Context, *connect.Request[v1.GetLicenseInfoRequest]) (*connect.Response[v1.GetLicenseInfoResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetLicenseInfo is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) GetBranding(context.Context, *connect.Request[v1.GetBrandingRequest]) (*connect.Response[v1.GetBrandingResponse], error) {

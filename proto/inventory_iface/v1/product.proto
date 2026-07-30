@@ -3,6 +3,7 @@ syntax = "proto3";
 package inventory_iface.v1;
 
 import "auth_iface/v1/policy.proto";
+import "inventory_iface/v1/product_price_tier.proto";
 
 option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
 
@@ -36,6 +37,10 @@ message Product {
   int64 last_restock_created_at = 24;       // unix; PO (restock order) created
   int64 last_restock_arrived_at = 25;       // unix; receipt received_at
   string last_restock_supplier_id = 26;     // resolve to name via ResolveSuppliers
+  // Grosir (wholesale) quantity price ladders, one set per sellable unit. Hydrated
+  // on Get/List/Search so POS can hint the tier without a second RPC; tiers of an
+  // archived unit are omitted.
+  repeated ProductPriceTier price_tiers = 27;
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);

@@ -112,6 +112,13 @@ func bestProductDiscount(tx *gorm.DB, productID string, qty, baseQty int32, unit
 // MANUAL line keeps the cashier's stored type/value; otherwise the best product
 // discount is auto-applied (or cleared when none qualifies). Caller persists the
 // item afterwards. Does NOT touch sale totals — call recomputeSaleTotals after.
+//
+// Grosir precedence: when a wholesale tier priced this line (TierMinQty > 0) the
+// automatic product discount is suppressed, so a bulk buyer isn't cut twice. A
+// MANUAL cashier discount still applies, on top of the tier price. Note the
+// suppression must CLEAR the stored discount info, not merely skip resolving it
+// — otherwise a discount earned at a lower qty would survive the qty bump that
+// crossed the tier and stack on the already-reduced price.
 func recomputeLine(tx *gorm.DB, item *model.SaleItem) error {
 	gross := int64(item.Qty) * item.UnitPriceSnapshot
 	if item.DiscountManual {
@@ -122,6 +129,14 @@ func recomputeLine(tx *gorm.DB, item *model.SaleItem) error {
 		item.DiscountPerItem = false
 		item.LineDiscount = amt
 		item.LineTotal = gross - amt
+		return nil
+	}
+	if item.TierMinQty > 0 {
+		item.DiscountType = discountFixed
+		item.DiscountValue = 0
+		item.DiscountPerItem = false
+		item.LineDiscount = 0
+		item.LineTotal = gross
 		return nil
 	}
 	d, found, err := bestProductDiscount(tx, item.ProductID, item.Qty, item.BaseQty, item.UnitPriceSnapshot)

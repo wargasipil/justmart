@@ -6,7 +6,7 @@ For now, this project handle 2 kind of bussines.
 1. Pharmachy Shop or Apotek in Indonesia.
 2. Small Retail like Offline Shop that accomodate their finance, order and cashier.
 
-For now, Switching between two mode is by passing license key on settings.
+Switching between the two modes is done by the owner in Settings > General (Business mode).
 
 
 # Reference.

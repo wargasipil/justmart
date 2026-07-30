@@ -433,8 +433,17 @@ type SaleItem struct {
 	DiscountValue   int64  `protobuf:"varint,15,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`
 	DiscountPerItem bool   `protobuf:"varint,16,opt,name=discount_per_item,json=discountPerItem,proto3" json:"discount_per_item,omitempty"` // discount applies per item (×qty), from an auto product discount
 	DiscountManual  bool   `protobuf:"varint,17,opt,name=discount_manual,json=discountManual,proto3" json:"discount_manual,omitempty"`      // cashier overrode the auto product discount (false = auto/promo)
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Grosir (wholesale tier) pricing. list_price_snapshot is the unit's NORMAL
+	// catalog price frozen at add time; unit_price_snapshot (field 6) is the
+	// EFFECTIVE price, which equals it unless a tier applied. tier_min_qty is the
+	// applied tier's threshold (0 = no grosir on this line — also the "applied"
+	// flag). Keeping the list price makes tier resolution a pure function of
+	// (list_price_snapshot, qty), so lowering the qty back below a threshold
+	// restores the normal price instead of ratcheting.
+	ListPriceSnapshot int64 `protobuf:"varint,18,opt,name=list_price_snapshot,json=listPriceSnapshot,proto3" json:"list_price_snapshot,omitempty"`
+	TierMinQty        int32 `protobuf:"varint,19,opt,name=tier_min_qty,json=tierMinQty,proto3" json:"tier_min_qty,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *SaleItem) Reset() {
@@ -584,6 +593,20 @@ func (x *SaleItem) GetDiscountManual() bool {
 		return x.DiscountManual
 	}
 	return false
+}
+
+func (x *SaleItem) GetListPriceSnapshot() int64 {
+	if x != nil {
+		return x.ListPriceSnapshot
+	}
+	return 0
+}
+
+func (x *SaleItem) GetTierMinQty() int32 {
+	if x != nil {
+		return x.TierMinQty
+	}
+	return 0
 }
 
 type StartSaleRequest struct {
@@ -2891,7 +2914,7 @@ const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"refundedAt\x12#\n" +
 	"\rrefund_amount\x18\x17 \x01(\x03R\frefundAmount\x12#\n" +
 	"\rrefund_reason\x18\x18 \x01(\tR\frefundReason\x12)\n" +
-	"\x10refund_restocked\x18\x19 \x01(\bR\x0frefundRestockedJ\x04\b\x06\x10\a\"\xb8\x04\n" +
+	"\x10refund_restocked\x18\x19 \x01(\bR\x0frefundRestockedJ\x04\b\x06\x10\a\"\x8a\x05\n" +
 	"\bSaleItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\asale_id\x18\x02 \x01(\tR\x06saleId\x12\x1d\n" +
@@ -2913,7 +2936,10 @@ const file_pos_iface_v1_sale_proto_rawDesc = "" +
 	"\rdiscount_type\x18\x0e \x01(\tR\fdiscountType\x12%\n" +
 	"\x0ediscount_value\x18\x0f \x01(\x03R\rdiscountValue\x12*\n" +
 	"\x11discount_per_item\x18\x10 \x01(\bR\x0fdiscountPerItem\x12'\n" +
-	"\x0fdiscount_manual\x18\x11 \x01(\bR\x0ediscountManual\"\x12\n" +
+	"\x0fdiscount_manual\x18\x11 \x01(\bR\x0ediscountManual\x12.\n" +
+	"\x13list_price_snapshot\x18\x12 \x01(\x03R\x11listPriceSnapshot\x12 \n" +
+	"\ftier_min_qty\x18\x13 \x01(\x05R\n" +
+	"tierMinQty\"\x12\n" +
 	"\x10StartSaleRequest\";\n" +
 	"\x11StartSaleResponse\x12&\n" +
 	"\x04sale\x18\x01 \x01(\v2\x12.pos_iface.v1.SaleR\x04sale\" \n" +

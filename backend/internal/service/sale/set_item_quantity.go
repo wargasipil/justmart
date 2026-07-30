@@ -37,6 +37,14 @@ func (s *SaleService) SetItemQuantity(
 		}
 		item.Qty = req.Msg.Qty
 		item.BaseQty = req.Msg.Qty * int32(factor)
+		// Grosir: re-resolve the wholesale tier off the new qty. This works from
+		// the FROZEN list price rather than re-reading the catalog, so crossing a
+		// threshold applies the tier and dropping back below it restores the
+		// normal price (no ratchet), while a mid-cart catalog price edit still
+		// doesn't disturb an open line.
+		if err := applyTierPrice(tx, &item); err != nil {
+			return err
+		}
 		// Re-resolve the line discount off the new qty (auto product discount, or
 		// rescale a manual one — PERCENT/per-item track qty).
 		if err := recomputeLine(tx, &item); err != nil {

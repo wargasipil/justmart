@@ -37,6 +37,13 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "product_discount.threshold_invalid": { field: "minQty", i18nKey: "serverErrors.productDiscount.thresholdInvalid" },
   "product_discount.bad_expiry": { field: "expiresAt", i18nKey: "serverErrors.productDiscount.badExpiry" },
   "product_discount.unit_invalid": { field: "minQtyUnitId", i18nKey: "serverErrors.productDiscount.unitInvalid" },
+
+  // product price tier (grosir)
+  "product_price_tier.product_missing": { i18nKey: "serverErrors.productPriceTier.productMissing" },
+  "product_price_tier.unit_invalid": { field: "productUnitId", i18nKey: "serverErrors.productPriceTier.unitInvalid" },
+  "product_price_tier.min_qty_invalid": { field: "minQty", i18nKey: "serverErrors.productPriceTier.minQtyInvalid" },
+  "product_price_tier.price_invalid": { field: "price", i18nKey: "serverErrors.productPriceTier.priceInvalid" },
+  "product_price_tier.tier_taken": { field: "minQty", i18nKey: "serverErrors.productPriceTier.tierTaken" },
   // warehouse
   "warehouse.required": { i18nKey: "validation.required" },
   "warehouse.name_required": { field: "name", i18nKey: "validation.required" },
@@ -52,6 +59,8 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "auth.current_password_wrong": { field: "current", i18nKey: "serverErrors.auth.currentPasswordWrong" },
   // settings
   "settings.threshold_negative": { field: "lowStockThreshold", i18nKey: "validation.thresholdInvalid" },
+  "settings.app_title_too_long": { field: "appTitle", i18nKey: "validation.appTitleTooLong" },
+  "settings.business_type_invalid": { field: "businessType", i18nKey: "validation.businessTypeInvalid" },
   // stock movement
   "movement.batch_required": { field: "batchId", i18nKey: "validation.required" },
   "movement.qty_zero": { field: "qty", i18nKey: "validation.qtyNonZero" },

@@ -69,8 +69,14 @@ func (s *SaleService) AddItem(
 				Qty:               req.Msg.Qty,
 				BaseQty:           req.Msg.Qty * int32(unit.Factor),
 				UnitPriceSnapshot: unit.SellPrice,
+				ListPriceSnapshot: unit.SellPrice,
 			}
-			// Auto-apply the best qualifying product discount to the new line.
+			// Grosir: a qualifying wholesale tier replaces the unit price.
+			if err := applyTierPrice(tx, &item); err != nil {
+				return err
+			}
+			// Auto-apply the best qualifying product discount to the new line
+			// (suppressed when a grosir tier applied).
 			if err := recomputeLine(tx, &item); err != nil {
 				return err
 			}
@@ -83,6 +89,12 @@ func (s *SaleService) AddItem(
 			existing.UnitName = unit.Name
 			existing.UnitFactor = unit.Factor
 			existing.UnitPriceSnapshot = unit.SellPrice
+			existing.ListPriceSnapshot = unit.SellPrice
+			// Grosir: the merged qty may now cross a tier, so the WHOLE line
+			// re-prices (6 + 6 = 12 buys all 12 at the tier price).
+			if err := applyTierPrice(tx, &existing); err != nil {
+				return err
+			}
 			// Re-resolve the line discount (auto product discount, or rescale a
 			// manual one) off the new qty.
 			if err := recomputeLine(tx, &existing); err != nil {

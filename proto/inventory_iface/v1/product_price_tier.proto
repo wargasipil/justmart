@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package inventory_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+// A "grosir" (wholesale) quantity price tier, defined in the Product detail
+// "Grosir" tab and auto-applied at POS. A product unit can have several tiers
+// forming a ladder (e.g. pcs: >=12 -> 8500, >=60 -> 8000, >=144 -> 7200).
+//
+// A tier REPLACES the line's unit price for the WHOLE line once the cart qty
+// reaches min_qty — it is a price, not a discount, so gross = qty x price stays
+// exact (no per-item rounding). It binds only to a line of its OWN unit: a pcs
+// tier is not earned by buying 1 box (unlike ProductDiscount.min_qty, which
+// compares in base units). min_qty is therefore counted in this unit and must be
+// >= 2 — a 0/1 tier would just be the unit's sell_price.
+//
+// When a tier applies, POS suppresses the automatic ProductDiscount on that line
+// (no double-dipping); a MANUAL cashier discount still applies on top.
+// unit_name/unit_factor are display snapshots; the POS gate never reads them.
+message ProductPriceTier {
+  string id = 1;
+  string product_id = 2;
+  string product_unit_id = 3;
+  string unit_name = 4;   // snapshot of the unit (e.g. "pcs")
+  int64 unit_factor = 5;  // base units per 1 of the unit
+  int32 min_qty = 6;      // buy >= this many of the unit (>= 2)
+  int64 price = 7;        // price for 1 of the unit at this tier (minor units)
+  int64 created_at = 8;
+}
+
+service ProductPriceTierService {
+  rpc ListProductPriceTiers(ListProductPriceTiersRequest) returns (ListProductPriceTiersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc CreateProductPriceTier(CreateProductPriceTierRequest) returns (CreateProductPriceTierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdateProductPriceTier(UpdateProductPriceTierRequest) returns (UpdateProductPriceTierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc DeleteProductPriceTier(DeleteProductPriceTierRequest) returns (DeleteProductPriceTierResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListProductPriceTiersRequest { string product_id = 1; }
+message ListProductPriceTiersResponse { repeated ProductPriceTier tiers = 1; }
+
+message CreateProductPriceTierRequest {
+  string product_id = 1;
+  string product_unit_id = 2; // required; the unit this tier prices
+  int32 min_qty = 3;
+  int64 price = 4;
+}
+message CreateProductPriceTierResponse { ProductPriceTier tier = 1; }
+
+message UpdateProductPriceTierRequest {
+  string id = 1;
+  string product_unit_id = 2; // product_id is immutable
+  int32 min_qty = 3;
+  int64 price = 4;
+}
+message UpdateProductPriceTierResponse { ProductPriceTier tier = 1; }
+
+message DeleteProductPriceTierRequest { string id = 1; }
+message DeleteProductPriceTierResponse {}

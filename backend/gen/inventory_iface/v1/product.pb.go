@@ -104,8 +104,12 @@ type Product struct {
 	LastRestockCreatedAt     int64  `protobuf:"varint,24,opt,name=last_restock_created_at,json=lastRestockCreatedAt,proto3" json:"last_restock_created_at,omitempty"`             // unix; PO (restock order) created
 	LastRestockArrivedAt     int64  `protobuf:"varint,25,opt,name=last_restock_arrived_at,json=lastRestockArrivedAt,proto3" json:"last_restock_arrived_at,omitempty"`             // unix; receipt received_at
 	LastRestockSupplierId    string `protobuf:"bytes,26,opt,name=last_restock_supplier_id,json=lastRestockSupplierId,proto3" json:"last_restock_supplier_id,omitempty"`           // resolve to name via ResolveSuppliers
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// Grosir (wholesale) quantity price ladders, one set per sellable unit. Hydrated
+	// on Get/List/Search so POS can hint the tier without a second RPC; tiers of an
+	// archived unit are omitted.
+	PriceTiers    []*ProductPriceTier `protobuf:"bytes,27,rep,name=price_tiers,json=priceTiers,proto3" json:"price_tiers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Product) Reset() {
@@ -311,6 +315,13 @@ func (x *Product) GetLastRestockSupplierId() string {
 		return x.LastRestockSupplierId
 	}
 	return ""
+}
+
+func (x *Product) GetPriceTiers() []*ProductPriceTier {
+	if x != nil {
+		return x.PriceTiers
+	}
+	return nil
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -2322,7 +2333,7 @@ var File_inventory_iface_v1_product_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\n" +
-	" inventory_iface/v1/product.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xa4\b\n" +
+	" inventory_iface/v1/product.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a+inventory_iface/v1/product_price_tier.proto\"\xeb\b\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12\x12\n" +
@@ -2353,7 +2364,9 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\x1blast_restock_discount_value\x18\x17 \x01(\x03R\x18lastRestockDiscountValue\x125\n" +
 	"\x17last_restock_created_at\x18\x18 \x01(\x03R\x14lastRestockCreatedAt\x125\n" +
 	"\x17last_restock_arrived_at\x18\x19 \x01(\x03R\x14lastRestockArrivedAt\x127\n" +
-	"\x18last_restock_supplier_id\x18\x1a \x01(\tR\x15lastRestockSupplierIdJ\x04\b\x04\x10\x05R\fmanufacturer\"\x95\x02\n" +
+	"\x18last_restock_supplier_id\x18\x1a \x01(\tR\x15lastRestockSupplierId\x12E\n" +
+	"\vprice_tiers\x18\x1b \x03(\v2$.inventory_iface.v1.ProductPriceTierR\n" +
+	"priceTiersJ\x04\b\x04\x10\x05R\fmanufacturer\"\x95\x02\n" +
 	"\vProductUnit\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -2577,57 +2590,59 @@ var file_inventory_iface_v1_product_proto_goTypes = []any{
 	(*ResolveProductsResponse)(nil),        // 32: inventory_iface.v1.ResolveProductsResponse
 	(*ListLowStockRequest)(nil),            // 33: inventory_iface.v1.ListLowStockRequest
 	(*ListLowStockResponse)(nil),           // 34: inventory_iface.v1.ListLowStockResponse
+	(*ProductPriceTier)(nil),               // 35: inventory_iface.v1.ProductPriceTier
 }
 var file_inventory_iface_v1_product_proto_depIdxs = []int32{
 	2,  // 0: inventory_iface.v1.Product.units:type_name -> inventory_iface.v1.ProductUnit
-	1,  // 1: inventory_iface.v1.ListProductsResponse.products:type_name -> inventory_iface.v1.Product
-	1,  // 2: inventory_iface.v1.GetProductResponse.product:type_name -> inventory_iface.v1.Product
-	3,  // 3: inventory_iface.v1.CreateProductRequest.units:type_name -> inventory_iface.v1.ProductUnitInput
-	1,  // 4: inventory_iface.v1.CreateProductResponse.product:type_name -> inventory_iface.v1.Product
-	0,  // 5: inventory_iface.v1.ImportProductResult.status:type_name -> inventory_iface.v1.ImportProductStatus
-	11, // 6: inventory_iface.v1.ImportProductsRequest.products:type_name -> inventory_iface.v1.CreateProductRequest
-	13, // 7: inventory_iface.v1.ImportProductsResponse.results:type_name -> inventory_iface.v1.ImportProductResult
-	3,  // 8: inventory_iface.v1.UpdateProductRequest.units:type_name -> inventory_iface.v1.ProductUnitInput
-	1,  // 9: inventory_iface.v1.UpdateProductResponse.product:type_name -> inventory_iface.v1.Product
-	1,  // 10: inventory_iface.v1.ArchiveProductResponse.product:type_name -> inventory_iface.v1.Product
-	1,  // 11: inventory_iface.v1.UnarchiveProductResponse.product:type_name -> inventory_iface.v1.Product
-	4,  // 12: inventory_iface.v1.ListProductPricesResponse.prices:type_name -> inventory_iface.v1.ProductPrice
-	5,  // 13: inventory_iface.v1.ListProductUnitPricesResponse.prices:type_name -> inventory_iface.v1.ProductUnitPrice
-	6,  // 14: inventory_iface.v1.ListProductRestockLogsResponse.logs:type_name -> inventory_iface.v1.ProductRestockLog
-	1,  // 15: inventory_iface.v1.SearchProductsResponse.products:type_name -> inventory_iface.v1.Product
-	30, // 16: inventory_iface.v1.ResolveProductsResponse.products:type_name -> inventory_iface.v1.ProductRef
-	1,  // 17: inventory_iface.v1.ListLowStockResponse.products:type_name -> inventory_iface.v1.Product
-	7,  // 18: inventory_iface.v1.ProductService.ListProducts:input_type -> inventory_iface.v1.ListProductsRequest
-	9,  // 19: inventory_iface.v1.ProductService.GetProduct:input_type -> inventory_iface.v1.GetProductRequest
-	11, // 20: inventory_iface.v1.ProductService.CreateProduct:input_type -> inventory_iface.v1.CreateProductRequest
-	14, // 21: inventory_iface.v1.ProductService.ImportProducts:input_type -> inventory_iface.v1.ImportProductsRequest
-	16, // 22: inventory_iface.v1.ProductService.UpdateProduct:input_type -> inventory_iface.v1.UpdateProductRequest
-	18, // 23: inventory_iface.v1.ProductService.ArchiveProduct:input_type -> inventory_iface.v1.ArchiveProductRequest
-	20, // 24: inventory_iface.v1.ProductService.UnarchiveProduct:input_type -> inventory_iface.v1.UnarchiveProductRequest
-	22, // 25: inventory_iface.v1.ProductService.ListProductPrices:input_type -> inventory_iface.v1.ListProductPricesRequest
-	24, // 26: inventory_iface.v1.ProductService.ListProductUnitPrices:input_type -> inventory_iface.v1.ListProductUnitPricesRequest
-	26, // 27: inventory_iface.v1.ProductService.ListProductRestockLogs:input_type -> inventory_iface.v1.ListProductRestockLogsRequest
-	28, // 28: inventory_iface.v1.ProductService.SearchProducts:input_type -> inventory_iface.v1.SearchProductsRequest
-	31, // 29: inventory_iface.v1.ProductService.ResolveProducts:input_type -> inventory_iface.v1.ResolveProductsRequest
-	33, // 30: inventory_iface.v1.ProductService.ListLowStock:input_type -> inventory_iface.v1.ListLowStockRequest
-	8,  // 31: inventory_iface.v1.ProductService.ListProducts:output_type -> inventory_iface.v1.ListProductsResponse
-	10, // 32: inventory_iface.v1.ProductService.GetProduct:output_type -> inventory_iface.v1.GetProductResponse
-	12, // 33: inventory_iface.v1.ProductService.CreateProduct:output_type -> inventory_iface.v1.CreateProductResponse
-	15, // 34: inventory_iface.v1.ProductService.ImportProducts:output_type -> inventory_iface.v1.ImportProductsResponse
-	17, // 35: inventory_iface.v1.ProductService.UpdateProduct:output_type -> inventory_iface.v1.UpdateProductResponse
-	19, // 36: inventory_iface.v1.ProductService.ArchiveProduct:output_type -> inventory_iface.v1.ArchiveProductResponse
-	21, // 37: inventory_iface.v1.ProductService.UnarchiveProduct:output_type -> inventory_iface.v1.UnarchiveProductResponse
-	23, // 38: inventory_iface.v1.ProductService.ListProductPrices:output_type -> inventory_iface.v1.ListProductPricesResponse
-	25, // 39: inventory_iface.v1.ProductService.ListProductUnitPrices:output_type -> inventory_iface.v1.ListProductUnitPricesResponse
-	27, // 40: inventory_iface.v1.ProductService.ListProductRestockLogs:output_type -> inventory_iface.v1.ListProductRestockLogsResponse
-	29, // 41: inventory_iface.v1.ProductService.SearchProducts:output_type -> inventory_iface.v1.SearchProductsResponse
-	32, // 42: inventory_iface.v1.ProductService.ResolveProducts:output_type -> inventory_iface.v1.ResolveProductsResponse
-	34, // 43: inventory_iface.v1.ProductService.ListLowStock:output_type -> inventory_iface.v1.ListLowStockResponse
-	31, // [31:44] is the sub-list for method output_type
-	18, // [18:31] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	35, // 1: inventory_iface.v1.Product.price_tiers:type_name -> inventory_iface.v1.ProductPriceTier
+	1,  // 2: inventory_iface.v1.ListProductsResponse.products:type_name -> inventory_iface.v1.Product
+	1,  // 3: inventory_iface.v1.GetProductResponse.product:type_name -> inventory_iface.v1.Product
+	3,  // 4: inventory_iface.v1.CreateProductRequest.units:type_name -> inventory_iface.v1.ProductUnitInput
+	1,  // 5: inventory_iface.v1.CreateProductResponse.product:type_name -> inventory_iface.v1.Product
+	0,  // 6: inventory_iface.v1.ImportProductResult.status:type_name -> inventory_iface.v1.ImportProductStatus
+	11, // 7: inventory_iface.v1.ImportProductsRequest.products:type_name -> inventory_iface.v1.CreateProductRequest
+	13, // 8: inventory_iface.v1.ImportProductsResponse.results:type_name -> inventory_iface.v1.ImportProductResult
+	3,  // 9: inventory_iface.v1.UpdateProductRequest.units:type_name -> inventory_iface.v1.ProductUnitInput
+	1,  // 10: inventory_iface.v1.UpdateProductResponse.product:type_name -> inventory_iface.v1.Product
+	1,  // 11: inventory_iface.v1.ArchiveProductResponse.product:type_name -> inventory_iface.v1.Product
+	1,  // 12: inventory_iface.v1.UnarchiveProductResponse.product:type_name -> inventory_iface.v1.Product
+	4,  // 13: inventory_iface.v1.ListProductPricesResponse.prices:type_name -> inventory_iface.v1.ProductPrice
+	5,  // 14: inventory_iface.v1.ListProductUnitPricesResponse.prices:type_name -> inventory_iface.v1.ProductUnitPrice
+	6,  // 15: inventory_iface.v1.ListProductRestockLogsResponse.logs:type_name -> inventory_iface.v1.ProductRestockLog
+	1,  // 16: inventory_iface.v1.SearchProductsResponse.products:type_name -> inventory_iface.v1.Product
+	30, // 17: inventory_iface.v1.ResolveProductsResponse.products:type_name -> inventory_iface.v1.ProductRef
+	1,  // 18: inventory_iface.v1.ListLowStockResponse.products:type_name -> inventory_iface.v1.Product
+	7,  // 19: inventory_iface.v1.ProductService.ListProducts:input_type -> inventory_iface.v1.ListProductsRequest
+	9,  // 20: inventory_iface.v1.ProductService.GetProduct:input_type -> inventory_iface.v1.GetProductRequest
+	11, // 21: inventory_iface.v1.ProductService.CreateProduct:input_type -> inventory_iface.v1.CreateProductRequest
+	14, // 22: inventory_iface.v1.ProductService.ImportProducts:input_type -> inventory_iface.v1.ImportProductsRequest
+	16, // 23: inventory_iface.v1.ProductService.UpdateProduct:input_type -> inventory_iface.v1.UpdateProductRequest
+	18, // 24: inventory_iface.v1.ProductService.ArchiveProduct:input_type -> inventory_iface.v1.ArchiveProductRequest
+	20, // 25: inventory_iface.v1.ProductService.UnarchiveProduct:input_type -> inventory_iface.v1.UnarchiveProductRequest
+	22, // 26: inventory_iface.v1.ProductService.ListProductPrices:input_type -> inventory_iface.v1.ListProductPricesRequest
+	24, // 27: inventory_iface.v1.ProductService.ListProductUnitPrices:input_type -> inventory_iface.v1.ListProductUnitPricesRequest
+	26, // 28: inventory_iface.v1.ProductService.ListProductRestockLogs:input_type -> inventory_iface.v1.ListProductRestockLogsRequest
+	28, // 29: inventory_iface.v1.ProductService.SearchProducts:input_type -> inventory_iface.v1.SearchProductsRequest
+	31, // 30: inventory_iface.v1.ProductService.ResolveProducts:input_type -> inventory_iface.v1.ResolveProductsRequest
+	33, // 31: inventory_iface.v1.ProductService.ListLowStock:input_type -> inventory_iface.v1.ListLowStockRequest
+	8,  // 32: inventory_iface.v1.ProductService.ListProducts:output_type -> inventory_iface.v1.ListProductsResponse
+	10, // 33: inventory_iface.v1.ProductService.GetProduct:output_type -> inventory_iface.v1.GetProductResponse
+	12, // 34: inventory_iface.v1.ProductService.CreateProduct:output_type -> inventory_iface.v1.CreateProductResponse
+	15, // 35: inventory_iface.v1.ProductService.ImportProducts:output_type -> inventory_iface.v1.ImportProductsResponse
+	17, // 36: inventory_iface.v1.ProductService.UpdateProduct:output_type -> inventory_iface.v1.UpdateProductResponse
+	19, // 37: inventory_iface.v1.ProductService.ArchiveProduct:output_type -> inventory_iface.v1.ArchiveProductResponse
+	21, // 38: inventory_iface.v1.ProductService.UnarchiveProduct:output_type -> inventory_iface.v1.UnarchiveProductResponse
+	23, // 39: inventory_iface.v1.ProductService.ListProductPrices:output_type -> inventory_iface.v1.ListProductPricesResponse
+	25, // 40: inventory_iface.v1.ProductService.ListProductUnitPrices:output_type -> inventory_iface.v1.ListProductUnitPricesResponse
+	27, // 41: inventory_iface.v1.ProductService.ListProductRestockLogs:output_type -> inventory_iface.v1.ListProductRestockLogsResponse
+	29, // 42: inventory_iface.v1.ProductService.SearchProducts:output_type -> inventory_iface.v1.SearchProductsResponse
+	32, // 43: inventory_iface.v1.ProductService.ResolveProducts:output_type -> inventory_iface.v1.ResolveProductsResponse
+	34, // 44: inventory_iface.v1.ProductService.ListLowStock:output_type -> inventory_iface.v1.ListLowStockResponse
+	32, // [32:45] is the sub-list for method output_type
+	19, // [19:32] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_inventory_iface_v1_product_proto_init() }
@@ -2635,6 +2650,7 @@ func file_inventory_iface_v1_product_proto_init() {
 	if File_inventory_iface_v1_product_proto != nil {
 		return
 	}
+	file_inventory_iface_v1_product_price_tier_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

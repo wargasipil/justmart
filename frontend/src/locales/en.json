@@ -98,10 +98,17 @@
   },
   "settings": {
     "title": "Settings",
+    "appTitle": "App title",
+    "appTitleHelp": "Shown in the browser tab, the sidebar and the login screen. Leave empty to use the built-in name.",
+    "businessMode": "Business mode",
+    "businessModeHelp": "Retail runs the shop catalog; pharmacy adds medicines, prescriptions and the POS prescription check.",
+    "modes": {
+      "retail": "Retail",
+      "pharmacy": "Pharmacy"
+    },
     "tabs": {
       "general": "General",
       "units": "Units",
-      "license": "License",
       "printing": "Printing",
       "backups": "Backups",
       "updates": "Updates"
@@ -156,18 +163,6 @@
       "receiptHeaderPlaceholder": "TOKO JAYA\nJl. Merdeka 1\nBandung",
       "receiptFooter": "Footer (closing message)",
       "receiptFooterPlaceholder": "Thank you!"
-    },
-    "license": {
-      "current": "Current license",
-      "none": "No license applied",
-      "keyLabel": "License key",
-      "placeholder": "Paste the license key here…",
-      "help": "Paste the license key issued for this shop. It sets the business mode (retail or pharmacy) and persists across restarts.",
-      "apply": "Apply license",
-      "applied": "License applied for {{name}}",
-      "modePharmacy": "Pharmacy mode",
-      "modeRetail": "Retail mode",
-      "modeUnset": "Unlicensed"
     },
     "lowStockThreshold": "Low-stock threshold",
     "lowStockHelp": "Show a notification when a $t(glossary.product)'s ready stock in the active warehouse is at or below this number.",
@@ -473,6 +468,12 @@
     "discountApply": "Apply",
     "discountClear": "Clear",
     "promo": "Promo",
+    "grosir": "Wholesale",
+    "grosirThreshold": "≥{{qty}}",
+    "grosirTierHint": "≥{{qty}} {{price}}",
+    "grosirTierHintMore": "≥{{qty}} {{price}} +{{n}}",
+    "grosirNudge": "{{n}} more → {{price}}",
+    "grosirDiscountHint": "This line uses the wholesale price. A manual discount applies on top.",
     "autoDiscountHint": "An automatic product discount applies. Set a value to override it.",
     "exactAmount": "Exact",
     "complete": "Complete (F8)",
@@ -945,7 +946,9 @@
     "qtyNonZero": "Quantity must not be zero",
     "passwordMismatch": "Passwords do not match",
     "passwordMin": "Password must be at least 8 characters",
-    "thresholdInvalid": "Threshold must be a non-negative integer"
+    "thresholdInvalid": "Threshold must be a non-negative integer",
+    "appTitleTooLong": "Title must be 60 characters or fewer",
+    "businessTypeInvalid": "Choose a valid business mode"
   },
   "productDiscounts": {
     "section": "Discounts",
@@ -973,6 +976,27 @@
     "deleteTitle": "Delete discount?",
     "deleteBody": "Remove this discount? This cannot be undone."
   },
+  "priceTiers": {
+    "section": "Wholesale",
+    "add": "Add tier",
+    "addTitle": "Add Wholesale Price",
+    "editTitle": "Edit Wholesale Price",
+    "unit": "Unit",
+    "minQty": "Min. Quantity to Buy",
+    "price": "Wholesale Price",
+    "normalPrice": "Normal",
+    "saving": "Saving",
+    "rule": "Buy ≥ {{count}}",
+    "vsNormal": "Normal price {{price}} per {{unit}}",
+    "unitTierCount": "wholesale ×{{count}}",
+    "notDescending": "Not cheaper than the tier below",
+    "notCheaper": "Above the normal price — never applies",
+    "overridesDiscount": "A wholesale price replaces the automatic $t(productDiscounts.section) on that line. A manual discount still applies on top.",
+    "empty": "No wholesale prices for this $t(glossary.product) yet.",
+    "emptyHint": "Add a tier so a large order automatically gets the wholesale price.",
+    "deleteTitle": "Delete wholesale price?",
+    "deleteBody": "Remove this wholesale price? This cannot be undone."
+  },
   "serverErrors": {
     "common": {
       "itemsRequired": "Add at least one item",
@@ -999,6 +1023,13 @@
       "badExpiry": "Enter a valid expiry date (YYYY-MM-DD)",
       "productMissing": "Pick a valid product",
       "unitInvalid": "Pick a valid unit of this product"
+    },
+    "productPriceTier": {
+      "productMissing": "Pick a valid $t(glossary.product)",
+      "unitInvalid": "Pick a valid unit of this $t(glossary.product)",
+      "minQtyInvalid": "Minimum quantity must be at least 2",
+      "priceInvalid": "Wholesale price can't be negative",
+      "tierTaken": "A tier for this unit and quantity already exists"
     },
     "warehouse": {
       "codeTaken": "This warehouse code is already in use"

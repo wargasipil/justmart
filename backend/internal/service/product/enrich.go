@@ -197,5 +197,41 @@ func (s *ProductService) attachUnits(ctx context.Context, meds []*inventoryiface
 	for _, md := range meds {
 		md.Units = byMed[md.Id]
 	}
+	// Grosir tiers are per-unit prices, so they hydrate with the units rather than
+	// at their own call sites. Coupling them here is deliberate: POS reads the
+	// catalog through ListProducts, and a tier set that hydrated only on
+	// GetProduct would leave every POS wholesale hint silently blank.
+	return s.attachPriceTiers(ctx, meds)
+}
+
+// attachPriceTiers batch-loads each product's grosir (wholesale) quantity price
+// tiers and sets them on the protos, ordered base unit first, then by unit factor,
+// then ascending threshold — the order the Grosir tab and POS render them in.
+// Tiers of an archived unit are omitted (the join filters on pu.active), matching
+// attachUnits so a hidden unit can't leave orphan tiers on screen. No N+1.
+func (s *ProductService) attachPriceTiers(ctx context.Context, meds []*inventoryifacev1.Product) error {
+	if len(meds) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(meds))
+	for _, md := range meds {
+		ids = append(ids, md.Id)
+	}
+	var rows []model.ProductPriceTier
+	if err := s.db.WithContext(ctx).
+		Model(&model.ProductPriceTier{}).
+		Joins("JOIN product_units pu ON pu.id = product_price_tiers.product_unit_id AND pu.active").
+		Where("product_price_tiers.product_id IN ?", ids).
+		Order("pu.is_base DESC, pu.factor ASC, product_price_tiers.min_qty ASC").
+		Find(&rows).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	byMed := make(map[string][]*inventoryifacev1.ProductPriceTier, len(meds))
+	for i := range rows {
+		byMed[rows[i].ProductID] = append(byMed[rows[i].ProductID], productPriceTierToProto(&rows[i]))
+	}
+	for _, md := range meds {
+		md.PriceTiers = byMed[md.Id]
+	}
 	return nil
 }

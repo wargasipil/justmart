@@ -33,7 +33,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { useAuth } from "../lib/auth";
-import { useBusinessMode } from "../queries/settings";
+import { useAppTitle, useBusinessMode } from "../queries/settings";
 import { usePreferencesStore } from "../stores/preferences";
 
 type NavLeaf = {
@@ -141,10 +141,10 @@ export default function Sidebar() {
   const collapsed = usePreferencesStore((s) => s.sidebarCollapsed);
   const toggle = usePreferencesStore((s) => s.toggleSidebar);
   const { user, logout } = useAuth();
-  const { isPharmacy, shopName } = useBusinessMode();
-  // Pharmacy mode brands the top-left with the licensed shop name (like apotech),
-  // falling back to a generic pharmacy label; retail keeps the Justmart brand.
-  const brandName = isPharmacy ? shopName || t("app.pharmacyName") : t("app.name");
+  const { isPharmacy } = useBusinessMode();
+  // Top-left brand = the app title configured in Settings ▸ General, falling
+  // back to the built-in brand for the active mode (pharmacy vs retail).
+  const brandName = useAppTitle();
 
   const items = buildItems(t, isPharmacy).filter(
     (item) =>

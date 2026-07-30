@@ -72,7 +72,9 @@ test.describe("POS checkout", () => {
       await page.waitForLoadState("networkidle");
 
       // Search by SKU and click the product row.
-      const searchBox = page.getByPlaceholder(/search product|cari obat/i);
+      // The placeholder resolves through the mode glossary, so it reads "Search
+      // product" in retail and "Search medicine" in pharmacy mode — match both.
+      const searchBox = page.getByPlaceholder(/search (medicine|product)|cari/i);
       await searchBox.fill(s.sku);
       await page.waitForTimeout(400); // POS uses client-side filter; brief tick is plenty
       await page.getByText(s.name).first().click();

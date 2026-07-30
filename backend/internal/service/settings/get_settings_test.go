@@ -13,7 +13,8 @@ import (
 )
 
 // With no app_settings row present, GetSettings returns the default low-stock
-// threshold (10) via common.GetLowStockThreshold's record-not-found fallback.
+// threshold (10) via common.GetLowStockThreshold's record-not-found fallback,
+// no app title, and the UNSPECIFIED (retail-behaving) business mode.
 func TestGetSettings_DefaultWhenUnset(t *testing.T) {
 	t.Parallel()
 	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
@@ -22,15 +23,19 @@ func TestGetSettings_DefaultWhenUnset(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp.Msg.Settings)
 	require.Equal(t, int32(10), resp.Msg.Settings.LowStockThreshold)
+	require.Empty(t, resp.Msg.Settings.AppTitle)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_UNSPECIFIED, resp.Msg.Settings.BusinessType)
 }
 
-// After UpdateSettings writes a value, GetSettings reads it back.
+// After UpdateSettings writes values, GetSettings reads them all back.
 func TestGetSettings_ReflectsStoredValue(t *testing.T) {
 	t.Parallel()
 	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
 
 	_, err := svc.UpdateSettings(context.Background(), connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
 		LowStockThreshold: 42,
+		AppTitle:          "Toko Maju",
+		BusinessType:      settingsifacev1.BussinessType_BUSSINESS_TYPE_RETAIL,
 	}))
 	require.NoError(t, err)
 
@@ -38,4 +43,6 @@ func TestGetSettings_ReflectsStoredValue(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp.Msg.Settings)
 	require.Equal(t, int32(42), resp.Msg.Settings.LowStockThreshold)
+	require.Equal(t, "Toko Maju", resp.Msg.Settings.AppTitle)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RETAIL, resp.Msg.Settings.BusinessType)
 }

@@ -10,7 +10,9 @@ import (
 )
 
 // GetBussinessSettings returns the shop's configured business type (UNSPECIFIED
-// when it has never been set).
+// when it has never been set) plus the configured app title. Readable by every
+// authenticated role — the mode + title drive branding, navigation and POS
+// behavior for all users.
 func (s *SettingsService) GetBussinessSettings(
 	ctx context.Context,
 	_ *connect.Request[settingsifacev1.GetBussinessSettingsRequest],
@@ -19,14 +21,12 @@ func (s *SettingsService) GetBussinessSettings(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	// Licensed shop name — surfaced to every role so the app chrome can brand by
-	// it (e.g. the pharmacy-mode header). Empty when unlicensed.
-	name, err := common.GetLicenseName(ctx, s.db)
+	title, err := common.GetAppTitle(ctx, s.db)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&settingsifacev1.GetBussinessSettingsResponse{
-		Type: settingsifacev1.BussinessType(n),
-		Name: name,
+		Type:     settingsifacev1.BussinessType(n),
+		AppTitle: title,
 	}), nil
 }

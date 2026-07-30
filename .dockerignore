@@ -25,7 +25,6 @@ backend/justmart.db-shm
 backend/justmart.db-wal
 backend/backups/
 backend/connector-identity.json
-backend/*.license
 # The embedded SPA is rebuilt in-image; never copy a host build of it in.
 backend/internal/web/dist/assets
 # Local runtime config (secrets) — provided via env / compose, never baked in.
