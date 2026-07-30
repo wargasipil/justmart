@@ -4,10 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import CashierFilterSelect from "../../components/CashierFilterSelect";
 import ColumnsPopover, { type GroupSpec } from "../../components/ColumnsPopover";
-import DateRangeFilter, {
-  resolveRange,
-  type DateRange,
-} from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import EnumSelect from "../../components/EnumSelect";
 import MetricGraphs from "../../components/MetricGraphs";
 import MetricTable from "../../components/MetricTable";
@@ -16,6 +13,7 @@ import {
   DEFAULT_DAILY_FIELDS,
   fieldsToMetricTypes,
 } from "../../lib/analyticsFields";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { useDailyMetricQuery } from "../../queries/analytics";
 
 // Daily menu — one row per day/week/month bucket. Two tabs: Table + Graphs.

@@ -3,10 +3,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ColumnsPopover from "../../components/ColumnsPopover";
-import DateRangeFilter, {
-  resolveRange,
-  type DateRange,
-} from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import MetricTable from "../../components/MetricTable";
 import Pagination from "../../components/Pagination";
 import { type Sort } from "../../gen/analytics_iface/v1/analytics_pb";
@@ -14,6 +11,7 @@ import {
   DEFAULT_USER_FIELDS,
   fieldsToMetricTypes,
 } from "../../lib/analyticsFields";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { usePageState } from "../../lib/pagination";
 import { useUserMetricQuery } from "../../queries/analytics";
 import { useUserRefs } from "../../queries/refs";

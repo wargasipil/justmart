@@ -400,6 +400,45 @@ const q = useProductsQuery({ page, pageSize });
         Demo: demo.MetricTableDemo,
       },
       {
+        id: "chart-card",
+        name: "ChartCard",
+        file: "src/components/ChartCard.tsx",
+        summary: "The frame every chart sits in: title, description, actions slot + loading / empty states.",
+        props: [
+          { name: "title", type: "string", required: true, desc: "Localized chart title. Names the single series, so no legend is needed." },
+          { name: "description", type: "string", desc: "Muted sub-line under the title." },
+          { name: "actions", type: "ReactNode", desc: "Right-aligned header slot (a filter, a toggle)." },
+          { name: "height", type: "string", desc: 'Plot height. Default "240px".' },
+          { name: "isLoading", type: "boolean", desc: "Centered spinner instead of the plot." },
+          { name: "isEmpty", type: "boolean", desc: 'Centered t("common.noResults") instead of the plot.' },
+        ],
+        usage: `<ChartCard title={t("dashboard.trend.last7d")} isLoading={q.isLoading} isEmpty={rows.length === 0}>
+  <TrendChart data={rows} xKey="day" money series={[{ dataKey: "revenue", label: t("…") }]} />
+</ChartCard>`,
+        notes: "Same card vocabulary as DashboardTile (bg.subtle + border + radius lg). Don't hand-roll a Box around a ResponsiveContainer.",
+        Demo: demo.ChartCardDemo,
+      },
+      {
+        id: "trend-chart",
+        name: "TrendChart",
+        file: "src/components/TrendChart.tsx",
+        summary: "The app's line/area chart — Chakra-tokened axes, grid, crosshair and tooltip; follows light/dark.",
+        props: [
+          { name: "data", type: "Record<string, string | number>[]", required: true, desc: "One row per X point." },
+          { name: "xKey", type: "string", required: true, desc: "Row key for the X axis (day string / bucket label)." },
+          { name: "series", type: "TrendSeries[]", required: true, desc: "{ dataKey, label, colorIndex? }. One series → filled area; 2+ → lines + legend." },
+          { name: "money", type: "boolean", desc: "Compact currency ticks on the axis, exact formatMoney in the tooltip." },
+        ],
+        usage: `<TrendChart
+  data={trendData}
+  xKey="day"
+  money
+  series={[{ dataKey: "revenue", label: t("analytics.metric.order.terjual"), colorIndex: 0 }]}
+/>`,
+        notes: "Colours come from CHART_SERIES in lib/chartTheme.ts — a fixed 4-slot order (blue, orange, teal, purple), never cycled, validated for colour-blind separation and contrast in both modes. Pin `colorIndex` so a metric keeps one colour across pages (revenue = slot 0). Never a second Y axis: two measures of different scale = two charts.",
+        Demo: demo.TrendChartDemo,
+      },
+      {
         id: "expiry-badge",
         name: "ExpiryBadge",
         file: "src/components/ExpiryBadge.tsx",
@@ -421,14 +460,18 @@ const q = useProductsQuery({ page, pageSize });
         id: "date-range-filter",
         name: "DateRangeFilter",
         file: "src/components/DateRangeFilter.tsx",
-        summary: "Preset range picker (Today / 7d / 30d / 90d / YTD / custom) resolving to unix bounds.",
+        summary: "Grafana-style time-range picker: shift ◀ ▶ / zoom-out arrows + a popover with an absolute range and searchable quick ranges.",
         props: [
-          { name: "value", type: "DateRange", required: true, desc: "{ preset, fromUnix, toUnix, customFrom?, customTo? }." },
+          { name: "value", type: "DateRange", required: true, desc: "{ preset, fromUnix, toUnix, customFrom?, customTo? } — from lib/dateRange." },
           { name: "onChange", type: "(next: DateRange) => void", required: true, desc: "Already resolved — send fromUnix/toUnix straight to the RPC." },
+          { name: "size", type: '"xs" | "sm" | "md"', desc: "Control height. Default sm (toolbar size)." },
         ],
-        usage: `const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
-<DateRangeFilter value={range} onChange={setRange} />`,
-        notes: "resolveRange(preset, customFrom?, customTo?) is exported for deriving the initial value.",
+        usage: `import { resolveRange, type DateRange } from "../lib/dateRange";
+
+const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
+<DateRangeFilter value={range} onChange={setRange} />
+// then: useListSalesQuery({ fromUnix: BigInt(range.fromUnix), toUnix: BigInt(range.toUnix) })`,
+        notes: "The model lives in lib/dateRange.ts, not here: resolveRange (quick range → bounds, re-resolved against now), absoluteRange, shiftRange, zoomOutRange, rangeLabel, parseAbsolute/formatAbsolute. Day-aligned ranges are [from, to) — the end is the start of the next day. Shifting or zooming always yields an absolute range, since stepping off \"now\" pins the window.",
         Demo: demo.DateRangeFilterDemo,
       },
       {

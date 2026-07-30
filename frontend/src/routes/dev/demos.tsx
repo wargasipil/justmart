@@ -14,11 +14,12 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import BackButton from "../../components/BackButton";
+import ChartCard from "../../components/ChartCard";
 import ColumnsPopover from "../../components/ColumnsPopover";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import DashboardTile from "../../components/DashboardTile";
 import DatePickerField from "../../components/DatePicker";
-import DateRangeFilter, { resolveRange, type DateRange } from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import DiscountField, { type DiscountType } from "../../components/DiscountField";
 import EntityDialog from "../../components/EntityDialog";
 import EntityDrawer from "../../components/EntityDrawer";
@@ -34,6 +35,7 @@ import Pagination from "../../components/Pagination";
 import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import TrendChart from "../../components/TrendChart";
 import WarehouseSelect from "../../components/WarehouseSelect";
 import {
   MetricOrder,
@@ -42,6 +44,12 @@ import {
   Sort,
 } from "../../gen/analytics_iface/v1/analytics_pb";
 import { Warehouse } from "../../gen/warehouse_iface/v1/warehouse_pb";
+import {
+  formatAbsolute,
+  rangeBounds,
+  resolveRange,
+  type DateRange,
+} from "../../lib/dateRange";
 import { usePageState } from "../../lib/pagination";
 import type { StockUnitGroup, StockUnitsByBase } from "../../lib/stockUnit";
 import { toast } from "../../lib/toaster";
@@ -459,6 +467,55 @@ export function MetricTableDemo() {
   );
 }
 
+const TREND_DATA = [
+  { day: "2026-07-24", revenue: 1_250_000, profit: 450_000 },
+  { day: "2026-07-25", revenue: 2_100_000, profit: 760_000 },
+  { day: "2026-07-26", revenue: 880_000, profit: 270_000 },
+  { day: "2026-07-27", revenue: 1_640_000, profit: 520_000 },
+  { day: "2026-07-28", revenue: 1_980_000, profit: 690_000 },
+  { day: "2026-07-29", revenue: 2_540_000, profit: 910_000 },
+  { day: "2026-07-30", revenue: 1_420_000, profit: 380_000 },
+];
+
+export function ChartCardDemo() {
+  return (
+    <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+      <ChartCard title="Revenue" description="Last 7 days" height="180px">
+        <TrendChart data={TREND_DATA} xKey="day" money series={[{ dataKey: "revenue", label: "Revenue" }]} />
+      </ChartCard>
+      <ChartCard title="Revenue" description="No data in range" height="180px" isEmpty>
+        <span />
+      </ChartCard>
+    </SimpleGrid>
+  );
+}
+
+export function TrendChartDemo() {
+  const [multi, setMulti] = useState(false);
+  return (
+    <Stack gap={3}>
+      <Button size="sm" variant="outline" alignSelf="flex-start" onClick={() => setMulti((v) => !v)}>
+        {multi ? "single series (filled area)" : "two series (lines + legend)"}
+      </Button>
+      <ChartCard title="Revenue vs profit" height="220px">
+        <TrendChart
+          data={TREND_DATA}
+          xKey="day"
+          money
+          series={
+            multi
+              ? [
+                  { dataKey: "revenue", label: "Revenue" },
+                  { dataKey: "profit", label: "Profit" },
+                ]
+              : [{ dataKey: "revenue", label: "Revenue" }]
+          }
+        />
+      </ChartCard>
+    </Stack>
+  );
+}
+
 export function ExpiryBadgeDemo() {
   return (
     <HStack gap={3} flexWrap="wrap">
@@ -475,10 +532,12 @@ export function ExpiryBadgeDemo() {
 
 export function DateRangeFilterDemo() {
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
+  const { from, to } = rangeBounds(range);
   return (
-    <Stack gap={2}>
+    <Stack gap={2} align="flex-start">
       <DateRangeFilter value={range} onChange={setRange} />
-      <Emitted>{`${range.preset} · ${range.fromUnix} → ${range.toUnix}`}</Emitted>
+      <Emitted>{`${range.preset} · ${formatAbsolute(from)} → ${formatAbsolute(to)}`}</Emitted>
+      <Emitted>{`fromUnix ${range.fromUnix} · toUnix ${range.toUnix}`}</Emitted>
     </Stack>
   );
 }

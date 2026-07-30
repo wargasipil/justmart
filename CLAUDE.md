@@ -101,6 +101,7 @@ justmart/
 │       │   ├── toaster.tsx   # AppToaster + toast.success/error/fromError
 │       │   ├── i18n.ts       # react-i18next init (id + en)
 │       │   ├── format.ts     # locale-aware money/date helpers
+│       │   ├── dateRange.ts  # time-range model (quick ranges, absolute, shift/zoom)
 │       │   └── pagination.ts # DEFAULT_PAGE_SIZE/ALL_LIMIT + usePageState helper
 │       ├── stores/
 │       │   └── preferences.ts # theme + locale + sidebar (Zustand, persisted)
@@ -293,6 +294,13 @@ When you touch any component that still calls a native dialog, refactor it to th
 
 **Dialog mount HARD RULE — never `if (!open) return null` (and never `{open && <Dialog…>}`).** A Chakra/Ark `Dialog.Root` must stay mounted and be controlled purely by its `open` prop (see `<ConfirmDialog>`). When a modal opens, Ark locks the page (`pointer-events:none` + `overflow:hidden` on `<body>`, `aria-hidden` on `#root`) and restores it only on a proper `open → false` **close transition**. If you unmount the dialog while it's still `open` — by returning `null` on close, conditionally rendering it, or navigating away — Ark never restores the lock and **the whole page freezes** (nothing clickable/typable). Always render `Dialog.Root open={open}` and guard the *content* on the data instead (`<Dialog.Content>{record && (<>…</>)}</Dialog.Content>`). For the unavoidable case of routing away while a dialog is open (e.g. POS "Buat resep baru"), close the dialog first AND release the residual lock manually before navigating (`releaseModalBodyLock` in [routes/Pos.tsx](frontend/src/routes/Pos.tsx)).
 
+### Time ranges (HARD RULE)
+**Every date/time range filter is the shared `<DateRangeFilter>`** ([components/DateRangeFilter.tsx](frontend/src/components/DateRangeFilter.tsx)) — a **Grafana-style time-range picker**: `[◀] [🕐 Last 30 days ▾] [▶] [🔍−]`, where the arrows shift the window by its own width, 🔍− zooms out 2× around the midpoint, and the button opens a two-pane popover — **absolute** range on the left (From/To text inputs down to the second + an inline range calendar) and the **searchable quick-range list** on the right (Today · Yesterday · This/Last week · This/Last month · This/Last year · Year to date · Last 15m/1h/6h/12h/24h · Last 7/30/90 days · Last 6 months · Last 1 year). Don't hand-roll a preset `<EnumSelect>` + two `<DatePickerField>`s — that's what this replaced.
+- **The model is [lib/dateRange.ts](frontend/src/lib/dateRange.ts), not the component**: `resolveRange(preset)` (quick range → bounds, re-resolved against *now* at pick time), `absoluteRange(from, to)`, `shiftRange`, `zoomOutRange`, `rangeLabel`, `parseAbsolute` / `formatAbsolute` (`YYYY-MM-DD HH:mm:ss`, local time). Pages import the model from `lib/dateRange` and the component from `components/DateRangeFilter`.
+- **Contract**: a `DateRange` always carries resolved `fromUnix` / `toUnix` (seconds), so a caller hands those straight to the RPC (`fromUnix: BigInt(range.fromUnix)`) and never branches on quick-vs-absolute. Day-aligned ranges are **`[from, to)`** — the end is the start of the next day, matching how the backend filters. Shifting/zooming always yields `preset: "custom"`, since stepping off "now" pins the window.
+- **Usage**: `const [range, setRange] = useState<DateRange>(() => resolveRange("30d"))` + `<DateRangeFilter value={range} onChange={setRange} />`, and put `range.fromUnix|toUnix` in the `usePageState` reset key so changing the range returns to page 0. Live on `/orders`, `/analytics/{daily,product,user}`, `/my-performance`, `/purchasing`, `/inventory/{batches,movements,transfers}`.
+- **One calendar implementation**: the day/month/year grids live in `CalendarViews` ([components/DatePicker.tsx](frontend/src/components/DatePicker.tsx)), mounted both by the single-date `<DatePickerField>` popover and by this picker's inline range calendar. A new calendar surface reuses `CalendarViews` — it never re-implements the grids. The picker's popover is `lazyMount unmountOnExit` so the From/To draft re-seeds from the current range on every open (Chakra keeps closed popover content mounted otherwise).
+
 ### Shared-component gallery — `/components` (dev only)
 **The curated catalog of shared components lives at `/components`** ([routes/dev/Components.tsx](frontend/src/routes/dev/Components.tsx)) — a dev-build-only page listing every reusable component with a **live preview**, its **props table**, a **copy-pasteable call site**, and the gotcha that bit us. It's grouped by *context* (Layout & page chrome · Forms & inputs · Selects & pickers · Overlays · Data display · Toolbar & filters · Feedback) with a sticky grouped rail; each group is its own route (`/components/forms`) and each component its own anchor (`/components/forms#money-input`), so links are shareable. Read it before writing new UI — it's how you find out a `MoneyInput` / `ConfirmDialog` / `SearchableSelect` already exists.
 - **Three files**: `registry.ts` (the catalog: group → entries with summary/props/usage/notes), `demos.tsx` (one self-contained live demo per component — local state only, **no query hooks, no server calls**; fixture text is sample data, like SKUs), `Components.tsx` (page + grouped nav).
@@ -321,6 +329,14 @@ The only carve-out for `items` (preload) mode: **≤20 hardcoded options** — s
 4. In edit-mode drawers (drawer mounts with `value` pre-set), pass `selectedLabel={record.name}` so the trigger immediately shows the right label instead of the raw UUID. The wrapper internally caches labels of picked items so subsequent renders stay correct.
 
 **Note on display maps**: list/table pages that currently use `useXxxQuery()` for a `customerNameById` / `medById` display map can keep that preload as a separate concern (it's for the **table cells**, not the select). Future work: denormalize the name into the parent record's response so the preload can go away. The hard rule is about the SELECT's option source, not about every page-level data fetch.
+
+### Charts (HARD RULE)
+**Never style a Recharts element per page.** Every chart is `<ChartCard>` (the frame) wrapping `<TrendChart>` (the plot); all visual values come from [lib/chartTheme.ts](frontend/src/lib/chartTheme.ts).
+- **[components/ChartCard.tsx](frontend/src/components/ChartCard.tsx)** — title + description + `actions` slot + `isLoading` / `isEmpty` states, in the same card vocabulary as `DashboardTile` (`bg.subtle` + 1px border + radius `lg`). Don't hand-roll a `<Box>` around a `ResponsiveContainer`.
+- **[components/TrendChart.tsx](frontend/src/components/TrendChart.tsx)** — the one line/area chart: `{ data, xKey, series[], money }`. **One series → gradient-filled area; 2+ → plain lines + a legend** (translucent fills muddy each other). Tooltip is a Chakra `bg.panel` card, NOT Recharts' default (which stayed white in dark mode). **No second Y axis, ever** — two measures of different scale are two charts.
+- **[lib/chartTheme.ts](frontend/src/lib/chartTheme.ts)** — Recharts draws raw SVG and can't read Chakra props, so every colour is the CSS variable Chakra already emits for a **stock `defaultSystem` token** (`var(--chakra-colors-border)`, `…-fg-muted`, `…-bg-subtle`, `…-border-emphasized`). That's what makes charts flip with the `data-theme` attribute — no JS colour-mode branch, no custom theme, no hardcoded hex (the old charts had a literal `#3B82F6` and a white-in-dark-mode tooltip). Also exports `formatAxisTick` (compact money — "1,3 jt" / "1.3M", so the Y axis never truncates) and `formatChartValue` (exact, for tooltips).
+- **`CHART_SERIES` is a fixed 4-slot order** — blue, orange, teal, purple (Chakra's own `600` steps, identical in both modes). **Never cycle it and never reorder by rank**: colour belongs to the entity, so hiding a series must not repaint the others. A 5th series is not a generated hue — fold the tail into "Other" or split into small multiples. Pin `colorIndex` when a metric should keep one colour across pages (**revenue/terjual = slot 0**, the blue accent, on both the Dashboard trend and analytics Graph tab). The palette passed the dataviz validator against `bg.subtle` in light + dark (lightness band, chroma floor, CVD separation worst adjacent ΔE 13.8, normal-vision ΔE 28.8, ≥3:1 contrast); **re-run that validator before changing a step**.
+- Axis/legend text wears **text tokens** (`fg.muted`), never a series colour; the grid is horizontal-only + dashed (it supports reading values, it isn't a mark).
 
 ### Tabs (HARD RULE)
 **Never hand-roll a tab UI.** All tab strips in the app use Chakra v3's `Tabs` primitive (default `variant="line"`). Two choices depending on whether each tab is a route:
@@ -407,13 +423,13 @@ The app ships as one binary that runs in one of two **business modes**, selected
 - **Day/Week/Month granularity**: enumerated in Go (`enumerateBuckets`/`bucketStart`/`bucketNext` helpers) — portable and matches the per-bucket subquery style; avoids Postgres `generate_series` overload mismatches.
 - **All RPCs are OWNER + PHARMACIST only** via proto-declared `allowed_roles`. CASHIER doesn't see analytics.
 - **Frontend**:
-  - Routes: `/analytics/daily` ([routes/analytics/Daily.tsx](frontend/src/routes/analytics/Daily.tsx)) with Table + Graph tabs; `/analytics/product` ([routes/analytics/Product.tsx](frontend/src/routes/analytics/Product.tsx)); `/analytics/user` ([routes/analytics/User.tsx](frontend/src/routes/analytics/User.tsx)). All three reuse the shared `<MetricTable>` ([components/MetricTable.tsx](frontend/src/components/MetricTable.tsx)) — sortable column headers, money + integer cells, label lookup via the `labelById` map. Daily additionally uses `<MetricGraphs>` ([components/MetricGraphs.tsx](frontend/src/components/MetricGraphs.tsx)) — one Recharts `<LineChart>` per active metric field.
+  - Routes: `/analytics/daily` ([routes/analytics/Daily.tsx](frontend/src/routes/analytics/Daily.tsx)) with Table + Graph tabs; `/analytics/product` ([routes/analytics/Product.tsx](frontend/src/routes/analytics/Product.tsx)); `/analytics/user` ([routes/analytics/User.tsx](frontend/src/routes/analytics/User.tsx)). All three reuse the shared `<MetricTable>` ([components/MetricTable.tsx](frontend/src/components/MetricTable.tsx)) — sortable column headers, money + integer cells, label lookup via the `labelById` map. Daily additionally uses `<MetricGraphs>` ([components/MetricGraphs.tsx](frontend/src/components/MetricGraphs.tsx)) — one `<ChartCard>` + `<TrendChart>` per active metric field, each pinning its own `CHART_SERIES` slot (terjual/ready = blue, hpp/ongoing = orange, profit = teal) so a metric keeps one colour across pages. See the Charts HARD RULE.
   - **Column / metric visibility** is driven by a single **`<ColumnsPopover>`** ([components/ColumnsPopover.tsx](frontend/src/components/ColumnsPopover.tsx)) on each page's toolbar — a popover button (with a `visible/total` counter badge + Reset action) listing per-field checkboxes sectioned by metric group. Per-field granularity (`order.terjual` / `order.hpp` / `order.profit` / `stock.ready` / `stock.ongoing`); each page owns its own `Set<string>` of visible fields. The frontend derives the backend's `MetricType[]` from the selection via `fieldsToMetricTypes` ([lib/analyticsFields.ts](frontend/src/lib/analyticsFields.ts)) — any field in a group → group included. Backend stays unchanged: it ships the whole group's block; the table/charts hide unchecked columns client-side. On the User page the whole Stock section in the popover is disabled inline (tooltip `analytics.errors.userStockUnsupported`). Scales to any number of metric groups added later — same single-button affordance regardless of how many fields exist. Un-checking the sort column auto-clears the sort (`clearSortIfHidden` helper in Daily.tsx).
   - Resolve hooks: `useMedicineRefs` (Product), `useUserRefs` (User — new RPC `UserService.ResolveUsers` mirrors `ResolveCustomers`). Daily needs no resolve (day strings are the labels).
   - Query hooks: `useDailyMetricQuery` / `useProductMetricQuery` / `useUserMetricQuery` in [queries/analytics.ts](frontend/src/queries/analytics.ts).
 - **Legacy URL shims** ([main.tsx](frontend/src/main.tsx)): `/analytics/{sales,margins,operations,profitability,inventory}` all `<Navigate>` to `/analytics/daily`. The 13 old RPCs (`GetRevenueTrend`, `GetTopSellers`, `GetPaymentMix`, `GetSalesByCashier`, `GetHourOfDayHeatmap`, `GetTurnover`, `GetDeadStock`, `GetDaysOfStockRemaining`, `GetExpiryRiskForecast`, `GetMarginPerMedicine`, `GetTopMargin`, `GetSupplierCostTrend`) and the `HourHeatmap` component are deleted.
 - **CSV export**: deferred this round (was attached to old per-RPC tables; new MetricTable is generic and will get a column-aware export in a follow-up if asked). The shared `<ExportButton>` + `downloadCsv` infrastructure stays for the list pages.
-- **Date range filter**: shared [components/DateRangeFilter.tsx](frontend/src/components/DateRangeFilter.tsx) with presets (Today / 7d / 30d / 90d / YTD / custom).
+- **Date range filter**: the shared Grafana-style `<DateRangeFilter>` — see "Time ranges" under Frontend conventions.
 
 ## Sales model (Phase 3)
 - **Customers**: light table (`name`, `phone`, `bpjs_no`, `notes`, `active`). Sales may attach a customer or stay anonymous. CASHIER+PHARMACIST+OWNER can list/get/search/create; only OWNER+PHARMACIST can update/archive. `bpjs_no` column reserved for the BPJS integration phase.
@@ -667,3 +683,27 @@ Update this file when any of the following changes:
 - The "current phase" or scope changes.
 
 **Roadmap section is mandatory.** This file is the only place a fresh agent looking at the repo will learn what comes next. Keep the Roadmap table current: move the 🚧 pointer at the start of each phase; flip its row to ✓ shipped at the end. Per-phase implementation detail (schemas, RPC lists, file lists) lives in the per-user plan file, not here.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+## graphify — project notes
+
+The `## graphify` section above is **generated** by `graphify claude install`, which rewrites
+everything from that heading to the next `##`. Project-specific guidance therefore lives in
+[docs/graphify.md](docs/graphify.md) so a reinstall cannot overwrite it. Read that file before
+relying on the graph.
+
+The one thing the generated section gets wrong for this repo: `graphify update .` / `make graph`
+is **AST-only**, so it cannot see the frontend↔backend ConnectRPC boundary (an HTTP call, not an
+import — `queries/*.ts` will look disconnected from `service/*/*.go`), the `.proto` → generated
+code chain, or the docs. Run **`make graph-full`** (`graphify extract . --backend claude-cli` — no
+API key, uses the local `claude` CLI) when the graph must answer cross-stack or doc-aware
+questions.

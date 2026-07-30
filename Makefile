@@ -1,8 +1,9 @@
-.PHONY: up down reset-devel-data generate tidy run test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
+.PHONY: up down reset-devel-data generate tidy run dev test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows dist-connector-windows docker-build docker-up docker-down installer \
         portable-windows backup \
+        graph graph-full graph-label graph-viz \
         fly-app fly-volume fly-secrets fly-setup fly-deploy fly-status fly-logs fly-ssh
 
 # `go -C backend run ...` runs the binary with CWD = backend/, so we point
@@ -18,6 +19,10 @@ GO_BACKEND := go -C backend
 # autoupdater's current-version display.
 VERSION ?= dev
 GO_LDFLAGS := -s -w -X main.version=$(VERSION)
+
+# Model the graphify semantic pass drives through the local `claude` CLI.
+# Override per-run, e.g. `make graph-full GRAPHIFY_MODEL=haiku` for a cheaper pass.
+GRAPHIFY_MODEL ?= sonnet
 
 # --- Docker ------------------------------------------------------------------
 up:
@@ -45,6 +50,51 @@ tidy:
 
 run:
 	$(GO_BACKEND) run ./cmd/server
+
+# --- Development (live preview) ----------------------------------------------
+# One command for the whole dev loop: the Go API (config.yaml `server.port`,
+# 8089 locally) plus the Vite dev server with HMR, which proxies /api -> the
+# backend (see frontend/vite.config.ts). Open the Vite URL, not :8089 — the
+# `go run` backend serves the *embedded* SPA (a stale build, or the "frontend
+# not built" stub on a fresh checkout), so live preview only comes from Vite.
+#
+# Implemented as a recursive `make -j2` over the existing `run` + `web` targets
+# rather than shell `&`/`wait`, so it works under any shell make picks on the
+# host (sh, bash, cmd.exe) — same reason JUSTMART_CONFIG is exported as a Make
+# directive above. Ctrl-C stops both; if a server ever outlives it, find the pid
+# with `netstat -ano | findstr LISTENING` and taskkill it.
+#
+# The order-only prerequisite installs frontend deps on a fresh checkout and is
+# skipped once node_modules exists. $(MAKE) is quoted because the mingw make on
+# a Windows host can live under a path with a space (C:\Users\First Last\...),
+# which make would otherwise hand to CreateProcess unquoted and split.
+dev: | frontend/node_modules
+	@echo "backend  -> http://localhost:8089/api"
+	@echo "frontend -> http://localhost:5175   <- open this one"
+	@"$(MAKE)" -j2 --no-print-directory run web
+
+frontend/node_modules:
+	npm --prefix frontend install
+
+# --- Knowledge graph (graphify) ----------------------------------------------
+# Builds graphify-out/ (graph.json + GRAPH_REPORT.md + graph.html), which the
+# coding agent queries instead of grepping. graphify-out/ is gitignored — it is
+# per-machine, rebuilt, never committed. See docs/graphify.md.
+graph: ## Refresh the knowledge graph after code changes (AST-only, no LLM cost)
+	graphify update .
+
+graph-full: export GRAPHIFY_CLAUDE_CLI_MODEL = $(GRAPHIFY_MODEL)
+graph-full: ## Rebuild the graph incl. semantic extraction (local claude CLI, no API key)
+	graphify extract . --backend claude-cli
+
+graph-label: export GRAPHIFY_CLAUDE_CLI_MODEL = $(GRAPHIFY_MODEL)
+graph-label: ## Re-name graph communities + regenerate GRAPH_REPORT.md
+	graphify label . --backend claude-cli
+
+# graphify skips its force-directed graph.html above 5000 nodes (this repo is
+# ~12k), so the browsable viz here is the collapsible tree instead.
+graph-viz: ## Emit graphify-out/GRAPH_TREE.html (browsable code tree)
+	graphify tree --label justmart
 
 # --- Packaging (single self-contained binary) --------------------------------
 # embed-web builds the SPA and copies it into the Go embed dir. `build` and

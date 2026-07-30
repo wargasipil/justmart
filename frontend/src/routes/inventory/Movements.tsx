@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import DateRangeFilter, { resolveRange, type DateRange } from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import EntityDrawer from "../../components/EntityDrawer";
 import EnumSelect from "../../components/EnumSelect";
 import FormField from "../../components/FormField";
@@ -25,6 +25,7 @@ import SearchableSelect from "../../components/SearchableSelect";
 import { searchBatches } from "../../queries/batches";
 import { MovementType } from "../../gen/inventory_iface/v1/stock_pb";
 import { downloadCsv } from "../../lib/csv";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatUnix } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";

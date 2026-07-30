@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import DateRangeFilter, { resolveRange, type DateRange } from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import EnumSelect from "../../components/EnumSelect";
 import EntityDrawer from "../../components/EntityDrawer";
 import ExpiryBadge from "../../components/ExpiryBadge";
@@ -27,6 +27,7 @@ import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
 import { searchProducts } from "../../queries/products";
 import { searchSuppliers } from "../../queries/suppliers";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";

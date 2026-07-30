@@ -66,3 +66,9 @@ thirdparties/bin
 server.exe
 license.exe
 graphify-out/
+
+backend/justmart-demo.db
+
+backend/justmart-demo.db-shm
+
+backend/justmart-demo.db-wal

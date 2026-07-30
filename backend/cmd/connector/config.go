@@ -35,7 +35,7 @@ func loadConfig() (config, error) {
 		c.DefaultPrinter = v
 	}
 	if c.ServerURL == "" {
-		c.ServerURL = "http://localhost:8080/api"
+		c.ServerURL = "http://localhost:8089/api"
 	}
 	return c, nil
 }

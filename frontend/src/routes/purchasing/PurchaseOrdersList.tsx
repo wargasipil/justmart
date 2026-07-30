@@ -15,7 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import DateRangeFilter, { resolveRange, type DateRange } from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import EnumSelect from "../../components/EnumSelect";
 import ExportButton from "../../components/ExportButton";
 import Pagination from "../../components/Pagination";
@@ -25,6 +25,7 @@ import {
   type PurchaseOrder,
 } from "../../gen/purchasing_iface/v1/order_pb";
 import { downloadCsv } from "../../lib/csv";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatMoney, formatDate } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { fetchPurchaseOrdersForExport, usePurchaseOrdersQuery } from "../../queries/purchasing";

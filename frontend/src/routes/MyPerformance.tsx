@@ -1,21 +1,15 @@
-import { Box, Grid, HStack, Heading, Stack } from "@chakra-ui/react";
+import { Box, Grid, HStack } from "@chakra-ui/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
+import ChartCard from "../components/ChartCard";
 import DashboardTile from "../components/DashboardTile";
-import DateRangeFilter, { resolveRange, type DateRange } from "../components/DateRangeFilter";
+import DateRangeFilter from "../components/DateRangeFilter";
 import EnumSelect from "../components/EnumSelect";
 import PageHeader from "../components/PageHeader";
+import TrendChart from "../components/TrendChart";
 import { PerformanceGranularity } from "../gen/pos_iface/v1/sale_pb";
+import { resolveRange, type DateRange } from "../lib/dateRange";
 import { formatMoney } from "../lib/format";
 import { useMyPerformanceQuery } from "../queries/myPerformance";
 
@@ -75,22 +69,19 @@ export default function MyPerformance() {
         <DashboardTile label={t("myPerformance.tiles.items")} value={String(items)} to="/orders" />
       </Grid>
 
-      <Stack gap={3}>
-        <Heading size="sm" color="fg.muted">
-          {t("myPerformance.trend.revenue")}
-        </Heading>
-        <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4} h="280px">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chakra-colors-border)" />
-              <XAxis dataKey="day" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={(v) => formatMoney(v).replace("Rp", "")} />
-              <Tooltip formatter={(v: number) => formatMoney(v)} />
-              <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-      </Stack>
+      <ChartCard
+        title={t("myPerformance.trend.revenue")}
+        height="280px"
+        isLoading={q.isLoading}
+        isEmpty={trendData.length === 0}
+      >
+        <TrendChart
+          data={trendData}
+          xKey="day"
+          money
+          series={[{ dataKey: "revenue", label: t("myPerformance.tiles.revenue") }]}
+        />
+      </ChartCard>
     </Box>
   );
 }
