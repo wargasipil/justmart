@@ -57,28 +57,6 @@ export default function DatePickerField({
   const minValue = toDateValue(min);
   const maxValue = toDateValue(max);
 
-  // The day / month / year grids share the same nav header; factor it out so
-  // the three <DatePicker.View> blocks below stay readable.
-  const viewControl = (label: string) => (
-    <DatePicker.ViewControl>
-      <DatePicker.PrevTrigger asChild>
-        <IconButton aria-label={t("datepicker.prev")} variant="ghost" size="sm">
-          <ChevronLeft size={16} />
-        </IconButton>
-      </DatePicker.PrevTrigger>
-      <DatePicker.ViewTrigger asChild>
-        <IconButton aria-label={label} variant="ghost" size="sm" width="auto" px={3}>
-          <DatePicker.RangeText />
-        </IconButton>
-      </DatePicker.ViewTrigger>
-      <DatePicker.NextTrigger asChild>
-        <IconButton aria-label={t("datepicker.next")} variant="ghost" size="sm">
-          <ChevronRight size={16} />
-        </IconButton>
-      </DatePicker.NextTrigger>
-    </DatePicker.ViewControl>
-  );
-
   return (
     <DatePicker.Root
       value={selected ? [selected] : []}
@@ -121,97 +99,126 @@ export default function DatePickerField({
       <Portal>
         <DatePicker.Positioner>
           <DatePicker.Content>
-            {/* Day view */}
-            <DatePicker.View view="day">
-              <DatePicker.Context>
-                {(api) => (
-                  <>
-                    {viewControl(t("datepicker.switchMonth"))}
-                    <DatePicker.Table>
-                      <DatePicker.TableHead>
-                        <DatePicker.TableRow>
-                          {api.weekDays.map((weekDay, i) => (
-                            <DatePicker.TableHeader key={i}>
-                              {weekDay.narrow}
-                            </DatePicker.TableHeader>
-                          ))}
-                        </DatePicker.TableRow>
-                      </DatePicker.TableHead>
-                      <DatePicker.TableBody>
-                        {api.weeks.map((week, i) => (
-                          <DatePicker.TableRow key={i}>
-                            {week.map((day, j) => (
-                              <DatePicker.TableCell key={j} value={day}>
-                                <DatePicker.TableCellTrigger>
-                                  {day.day}
-                                </DatePicker.TableCellTrigger>
-                              </DatePicker.TableCell>
-                            ))}
-                          </DatePicker.TableRow>
-                        ))}
-                      </DatePicker.TableBody>
-                    </DatePicker.Table>
-                  </>
-                )}
-              </DatePicker.Context>
-            </DatePicker.View>
-
-            {/* Month view */}
-            <DatePicker.View view="month">
-              <DatePicker.Context>
-                {(api) => (
-                  <>
-                    {viewControl(t("datepicker.switchYear"))}
-                    <DatePicker.Table>
-                      <DatePicker.TableBody>
-                        {api
-                          .getMonthsGrid({ columns: 4, format: "short" })
-                          .map((months, i) => (
-                            <DatePicker.TableRow key={i}>
-                              {months.map((month, j) => (
-                                <DatePicker.TableCell key={j} value={month.value}>
-                                  <DatePicker.TableCellTrigger>
-                                    {month.label}
-                                  </DatePicker.TableCellTrigger>
-                                </DatePicker.TableCell>
-                              ))}
-                            </DatePicker.TableRow>
-                          ))}
-                      </DatePicker.TableBody>
-                    </DatePicker.Table>
-                  </>
-                )}
-              </DatePicker.Context>
-            </DatePicker.View>
-
-            {/* Year view */}
-            <DatePicker.View view="year">
-              <DatePicker.Context>
-                {(api) => (
-                  <>
-                    {viewControl(t("datepicker.switchDecade"))}
-                    <DatePicker.Table>
-                      <DatePicker.TableBody>
-                        {api.getYearsGrid({ columns: 4 }).map((years, i) => (
-                          <DatePicker.TableRow key={i}>
-                            {years.map((year, j) => (
-                              <DatePicker.TableCell key={j} value={year.value}>
-                                <DatePicker.TableCellTrigger>
-                                  {year.label}
-                                </DatePicker.TableCellTrigger>
-                              </DatePicker.TableCell>
-                            ))}
-                          </DatePicker.TableRow>
-                        ))}
-                      </DatePicker.TableBody>
-                    </DatePicker.Table>
-                  </>
-                )}
-              </DatePicker.Context>
-            </DatePicker.View>
+            <CalendarViews />
           </DatePicker.Content>
         </DatePicker.Positioner>
       </Portal>
     </DatePicker.Root>
+  );
+}
+
+/**
+ * The day / month / year grids of a Chakra `DatePicker`, with their shared nav
+ * header. Extracted so there is exactly ONE calendar implementation in the app:
+ * mounted inside a `<DatePicker.Content>` by this file's popover field, and by
+ * the inline range calendar in <DateRangeFilter>. Must be rendered inside a
+ * `DatePicker.Root`.
+ */
+export function CalendarViews() {
+  const { t } = useTranslation();
+
+  // The day / month / year grids share the same nav header; factor it out so
+  // the three <DatePicker.View> blocks below stay readable.
+  const viewControl = (label: string) => (
+    <DatePicker.ViewControl>
+      <DatePicker.PrevTrigger asChild>
+        <IconButton aria-label={t("datepicker.prev")} variant="ghost" size="sm">
+          <ChevronLeft size={16} />
+        </IconButton>
+      </DatePicker.PrevTrigger>
+      <DatePicker.ViewTrigger asChild>
+        <IconButton aria-label={label} variant="ghost" size="sm" width="auto" px={3}>
+          <DatePicker.RangeText />
+        </IconButton>
+      </DatePicker.ViewTrigger>
+      <DatePicker.NextTrigger asChild>
+        <IconButton aria-label={t("datepicker.next")} variant="ghost" size="sm">
+          <ChevronRight size={16} />
+        </IconButton>
+      </DatePicker.NextTrigger>
+    </DatePicker.ViewControl>
+  );
+
+  return (
+    <>
+      {/* Day view */}
+      <DatePicker.View view="day">
+        <DatePicker.Context>
+          {(api) => (
+            <>
+              {viewControl(t("datepicker.switchMonth"))}
+              <DatePicker.Table>
+                <DatePicker.TableHead>
+                  <DatePicker.TableRow>
+                    {api.weekDays.map((weekDay, i) => (
+                      <DatePicker.TableHeader key={i}>{weekDay.narrow}</DatePicker.TableHeader>
+                    ))}
+                  </DatePicker.TableRow>
+                </DatePicker.TableHead>
+                <DatePicker.TableBody>
+                  {api.weeks.map((week, i) => (
+                    <DatePicker.TableRow key={i}>
+                      {week.map((day, j) => (
+                        <DatePicker.TableCell key={j} value={day}>
+                          <DatePicker.TableCellTrigger>{day.day}</DatePicker.TableCellTrigger>
+                        </DatePicker.TableCell>
+                      ))}
+                    </DatePicker.TableRow>
+                  ))}
+                </DatePicker.TableBody>
+              </DatePicker.Table>
+            </>
+          )}
+        </DatePicker.Context>
+      </DatePicker.View>
+
+      {/* Month view */}
+      <DatePicker.View view="month">
+        <DatePicker.Context>
+          {(api) => (
+            <>
+              {viewControl(t("datepicker.switchYear"))}
+              <DatePicker.Table>
+                <DatePicker.TableBody>
+                  {api.getMonthsGrid({ columns: 4, format: "short" }).map((months, i) => (
+                    <DatePicker.TableRow key={i}>
+                      {months.map((month, j) => (
+                        <DatePicker.TableCell key={j} value={month.value}>
+                          <DatePicker.TableCellTrigger>{month.label}</DatePicker.TableCellTrigger>
+                        </DatePicker.TableCell>
+                      ))}
+                    </DatePicker.TableRow>
+                  ))}
+                </DatePicker.TableBody>
+              </DatePicker.Table>
+            </>
+          )}
+        </DatePicker.Context>
+      </DatePicker.View>
+
+      {/* Year view */}
+      <DatePicker.View view="year">
+        <DatePicker.Context>
+          {(api) => (
+            <>
+              {viewControl(t("datepicker.switchDecade"))}
+              <DatePicker.Table>
+                <DatePicker.TableBody>
+                  {api.getYearsGrid({ columns: 4 }).map((years, i) => (
+                    <DatePicker.TableRow key={i}>
+                      {years.map((year, j) => (
+                        <DatePicker.TableCell key={j} value={year.value}>
+                          <DatePicker.TableCellTrigger>{year.label}</DatePicker.TableCellTrigger>
+                        </DatePicker.TableCell>
+                      ))}
+                    </DatePicker.TableRow>
+                  ))}
+                </DatePicker.TableBody>
+              </DatePicker.Table>
+            </>
+          )}
+        </DatePicker.Context>
+      </DatePicker.View>
+    </>
   );
 }

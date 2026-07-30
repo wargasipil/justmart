@@ -13,7 +13,7 @@ import {
 import { ArrowRight, Plus, Search, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import DateRangeFilter, { resolveRange, type DateRange } from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import EntityDrawer from "../../components/EntityDrawer";
 import EnumSelect from "../../components/EnumSelect";
 import Pagination from "../../components/Pagination";
@@ -25,6 +25,7 @@ import { WAREHOUSE_KEY } from "../../lib/transport";
 import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
 import type { ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { downloadCsv } from "../../lib/csv";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatUnix } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";

@@ -75,16 +75,19 @@ test.describe("analytics", () => {
     await page.goto("/analytics/daily");
     await expect(page.getByRole("heading", { name: "Daily" }).first()).toBeVisible();
 
-    // Driving the date-range combobox: the analytics page header has the
-    // granularity selector first + the DateRangeFilter second. Pick the
-    // second combobox in <main>.
-    const cycle = async (label: string) => {
-      await page.locator("main").getByRole("combobox").nth(1).click();
-      await page.getByRole("option", { name: label }).click();
+    // Driving the Grafana-style <DateRangeFilter>: its trigger button carries
+    // the CURRENT range label, and the popover lists the quick ranges as
+    // buttons. The popover is unmountOnExit, so a closed list can never
+    // collide with the trigger's own name.
+    let current = "Last 30 days"; // the page's initial range
+    const pick = async (label: string) => {
+      await page.locator("main").getByRole("button", { name: current, exact: true }).click();
+      await page.getByRole("button", { name: label, exact: true }).click();
+      current = label;
     };
-    await cycle("7 days");
-    await cycle("Today");
-    await cycle("30 days");
+    await pick("Last 7 days");
+    await pick("Today");
+    await pick("Last 30 days");
 
     // No further assertion — the page fixture in _helpers.ts fails the test
     // on any console error. waitForLoadState lets refetches complete first.

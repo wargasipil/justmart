@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import CashierFilterSelect from "../components/CashierFilterSelect";
-import DateRangeFilter, { resolveRange, type DateRange } from "../components/DateRangeFilter";
+import DateRangeFilter from "../components/DateRangeFilter";
 import ExportButton from "../components/ExportButton";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
@@ -23,6 +23,7 @@ import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
 import { useAuth } from "../lib/auth";
 import { downloadCsv } from "../lib/csv";
+import { resolveRange, type DateRange } from "../lib/dateRange";
 import { formatMoney, formatUnix } from "../lib/format";
 import { usePageState } from "../lib/pagination";
 import { resolveUserMap, useUserRefs } from "../queries/refs";

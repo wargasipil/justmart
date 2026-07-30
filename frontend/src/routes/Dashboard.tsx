@@ -1,18 +1,11 @@
 import { Box, Grid, Heading, Stack } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
+import ChartCard from "../components/ChartCard";
 import DashboardTile from "../components/DashboardTile";
 import PageHeader from "../components/PageHeader";
+import TrendChart from "../components/TrendChart";
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import {
   Granularity,
@@ -145,22 +138,18 @@ function OwnerHealth() {
           tone={expiringCount > 0 ? "warning" : "default"}
         />
       </Grid>
-      <Box>
-        <Heading size="sm" mb={3} color="fg.muted">
-          {t("dashboard.trend.last7d")}
-        </Heading>
-        <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4} h="240px">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--chakra-colors-border)" />
-              <XAxis dataKey="day" fontSize={11} />
-              <YAxis fontSize={11} tickFormatter={(v) => formatMoney(v).replace("Rp", "")} />
-              <Tooltip formatter={(v: number) => formatMoney(v)} />
-              <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-      </Box>
+      <ChartCard
+        title={t("dashboard.trend.last7d")}
+        isLoading={trendQ.isLoading}
+        isEmpty={trendData.length === 0}
+      >
+        <TrendChart
+          data={trendData}
+          xKey="day"
+          money
+          series={[{ dataKey: "revenue", label: t("analytics.metric.order.terjual") }]}
+        />
+      </ChartCard>
     </Stack>
   );
 }

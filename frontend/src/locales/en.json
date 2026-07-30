@@ -78,7 +78,8 @@
     "orders": "Order history",
     "myPerformance": "My performance",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "components": "Components"
   },
   "filters": {
     "cashierAll": "All cashiers"
@@ -377,11 +378,39 @@
     },
     "range": {
       "today": "Today",
-      "7d": "7 days",
-      "30d": "30 days",
-      "90d": "90 days",
+      "yesterday": "Yesterday",
+      "dayBeforeYesterday": "Day before yesterday",
+      "thisDayLastWeek": "This day last week",
+      "thisWeek": "This week",
+      "lastWeek": "Last week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "lastYear": "Last year",
       "ytd": "Year to date",
-      "custom": "Custom"
+      "15m": "Last 15 minutes",
+      "1h": "Last 1 hour",
+      "6h": "Last 6 hours",
+      "12h": "Last 12 hours",
+      "24h": "Last 24 hours",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "6M": "Last 6 months",
+      "1y": "Last 1 year",
+      "custom": "Custom",
+      "picker": {
+        "absoluteTitle": "Absolute time range",
+        "from": "From",
+        "to": "To",
+        "apply": "Apply time range",
+        "searchPlaceholder": "Search quick ranges",
+        "invalidFormat": "Use YYYY-MM-DD HH:mm:ss",
+        "invalidOrder": "\"From\" must be before \"To\"",
+        "shiftBack": "Shift range back",
+        "shiftForward": "Shift range forward",
+        "zoomOut": "Zoom out (2×)"
+      }
     },
     "exportCsv": "Export CSV",
     "metric": {
@@ -1080,6 +1109,35 @@
       "unitPrice": "Unit price",
       "lineDiscount": "Discount",
       "lineTotal": "Line total"
+    }
+  },
+  "dev": {
+    "components": {
+      "title": "Component gallery",
+      "description": "{{total}} curated shared components — live preview, props and call site. Dev builds only.",
+      "badge": "dev only",
+      "preview": "Preview",
+      "props": "Props",
+      "usage": "Usage",
+      "notes": "Watch out",
+      "propName": "Prop",
+      "propType": "Type",
+      "propDesc": "Description",
+      "required": "required",
+      "groups": {
+        "layout": "Layout & page chrome",
+        "forms": "Forms & inputs",
+        "selects": "Selects & pickers",
+        "overlays": "Overlays",
+        "data": "Data display",
+        "toolbar": "Toolbar & filters",
+        "feedback": "Feedback"
+      },
+      "demo": {
+        "routeTabsHint": "These tabs switch the gallery group — that is the component doing its job (each tab is a route).",
+        "asyncMode": "Async mode — loadOptions, debounced 250ms",
+        "syncMode": "Sync mode — items, static list"
+      }
     }
   }
 }

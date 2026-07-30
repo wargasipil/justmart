@@ -4,10 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import CashierFilterSelect from "../../components/CashierFilterSelect";
 import ColumnsPopover from "../../components/ColumnsPopover";
-import DateRangeFilter, {
-  resolveRange,
-  type DateRange,
-} from "../../components/DateRangeFilter";
+import DateRangeFilter from "../../components/DateRangeFilter";
 import MetricTable from "../../components/MetricTable";
 import Pagination from "../../components/Pagination";
 import { type Sort } from "../../gen/analytics_iface/v1/analytics_pb";
@@ -15,6 +12,7 @@ import {
   DEFAULT_PRODUCT_FIELDS,
   fieldsToMetricTypes,
 } from "../../lib/analyticsFields";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { usePageState } from "../../lib/pagination";
 import { useProductMetricQuery } from "../../queries/analytics";
 import { useProductRefs } from "../../queries/refs";
