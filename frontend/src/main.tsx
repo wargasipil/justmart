@@ -65,12 +65,38 @@ import PurchaseOrderDetail from "./routes/purchasing/PurchaseOrderDetail";
 import { POStatus } from "./gen/purchasing_iface/v1/order_pb";
 import { Role } from "./gen/auth_iface/v1/policy_pb";
 
+// Dev-only component gallery (/components). Lazy-loaded and registered only
+// under `import.meta.env.DEV`, so a production build never routes to it.
+const ComponentGallery = React.lazy(() => import("./routes/dev/Components"));
+const devRoutes = import.meta.env.DEV
+  ? [
+      {
+        element: <ProtectedRoute />,
+        children: [
+          // Both paths hit the same page; it redirects to the first group when
+          // :group is missing or unknown.
+          { path: "components", element: <ComponentGalleryRoute /> },
+          { path: "components/:group", element: <ComponentGalleryRoute /> },
+        ],
+      },
+    ]
+  : [];
+
+function ComponentGalleryRoute() {
+  return (
+    <React.Suspense fallback={null}>
+      <ComponentGallery />
+    </React.Suspense>
+  );
+}
+
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
     children: [
       { path: "login", element: <Login /> },
+      ...devRoutes,
       {
         element: <ProtectedRoute />,
         children: [

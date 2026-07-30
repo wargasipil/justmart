@@ -78,7 +78,8 @@
     "orders": "Order history",
     "myPerformance": "My performance",
     "settings": "Settings",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "components": "Components"
   },
   "filters": {
     "cashierAll": "All cashiers"
@@ -1080,6 +1081,35 @@
       "unitPrice": "Unit price",
       "lineDiscount": "Discount",
       "lineTotal": "Line total"
+    }
+  },
+  "dev": {
+    "components": {
+      "title": "Component gallery",
+      "description": "{{total}} curated shared components — live preview, props and call site. Dev builds only.",
+      "badge": "dev only",
+      "preview": "Preview",
+      "props": "Props",
+      "usage": "Usage",
+      "notes": "Watch out",
+      "propName": "Prop",
+      "propType": "Type",
+      "propDesc": "Description",
+      "required": "required",
+      "groups": {
+        "layout": "Layout & page chrome",
+        "forms": "Forms & inputs",
+        "selects": "Selects & pickers",
+        "overlays": "Overlays",
+        "data": "Data display",
+        "toolbar": "Toolbar & filters",
+        "feedback": "Feedback"
+      },
+      "demo": {
+        "routeTabsHint": "These tabs switch the gallery group — that is the component doing its job (each tab is a route).",
+        "asyncMode": "Async mode — loadOptions, debounced 250ms",
+        "syncMode": "Sync mode — items, static list"
+      }
     }
   }
 }

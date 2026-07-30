@@ -2,6 +2,7 @@ import { Box, HStack, IconButton, Spacer, Stack, Text } from "@chakra-ui/react";
 import {
   ArrowLeftRight,
   BarChart3,
+  Blocks,
   Boxes,
   Building2,
   ChevronDown,
@@ -41,6 +42,7 @@ type NavLeaf = {
   icon: typeof Package;
   roles?: Role[];
   pharmacyOnly?: boolean; // hidden unless the shop is in pharmacy mode
+  devOnly?: boolean; // dev builds only (the /components gallery)
 };
 
 type NavGroup = {
@@ -128,6 +130,9 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
     { to: "/warehouses", label: t("nav.warehouses"), icon: WarehouseIcon, roles: [Role.OWNER] },
     { to: "/users", label: t("nav.users"), icon: UsersIcon, roles: [Role.OWNER] },
     { to: "/settings", label: t("nav.settings"), icon: SettingsIcon, roles: [Role.OWNER] },
+    // Dev tool: the curated shared-component gallery. Stripped from the rail
+    // (and from the router) in a production build.
+    { to: "/components", label: t("nav.components"), icon: Blocks, devOnly: true },
   ];
 }
 
@@ -144,7 +149,8 @@ export default function Sidebar() {
   const items = buildItems(t, isPharmacy).filter(
     (item) =>
       (!item.roles || (user && item.roles.includes(user.role))) &&
-      (!("pharmacyOnly" in item && item.pharmacyOnly) || isPharmacy),
+      (!("pharmacyOnly" in item && item.pharmacyOnly) || isPharmacy) &&
+      (!("devOnly" in item && item.devOnly) || import.meta.env.DEV),
   );
 
   const width = collapsed ? "64px" : "240px";

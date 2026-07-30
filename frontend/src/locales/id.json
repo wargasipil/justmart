@@ -78,7 +78,8 @@
     "orders": "Riwayat order",
     "myPerformance": "Performa saya",
     "settings": "Pengaturan",
-    "signOut": "Keluar"
+    "signOut": "Keluar",
+    "components": "Komponen"
   },
   "filters": {
     "cashierAll": "Semua kasir"
@@ -1080,6 +1081,35 @@
       "unitPrice": "Harga satuan",
       "lineDiscount": "Diskon",
       "lineTotal": "Total baris"
+    }
+  },
+  "dev": {
+    "components": {
+      "title": "Galeri komponen",
+      "description": "{{total}} komponen bersama terkurasi — pratinjau langsung, props, dan contoh pemakaian. Hanya di build development.",
+      "badge": "khusus dev",
+      "preview": "Pratinjau",
+      "props": "Props",
+      "usage": "Pemakaian",
+      "notes": "Perhatian",
+      "propName": "Prop",
+      "propType": "Tipe",
+      "propDesc": "Keterangan",
+      "required": "wajib",
+      "groups": {
+        "layout": "Tata letak & kerangka halaman",
+        "forms": "Formulir & input",
+        "selects": "Select & pemilih",
+        "overlays": "Overlay",
+        "data": "Tampilan data",
+        "toolbar": "Toolbar & filter",
+        "feedback": "Umpan balik"
+      },
+      "demo": {
+        "routeTabsHint": "Tab ini memindah grup galeri — memang itu cara kerjanya (tiap tab adalah satu route).",
+        "asyncMode": "Mode async — loadOptions, debounce 250ms",
+        "syncMode": "Mode sync — items, daftar statis"
+      }
     }
   }
 }

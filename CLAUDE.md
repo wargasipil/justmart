@@ -138,6 +138,7 @@ justmart/
 │       ├── routes/Warehouses.tsx     # gudang admin (OWNER); replaces Branches.tsx (dormant)
 │       ├── routes/purchasing/{Purchasing,PurchaseOrdersList,SuppliersLedger,NewPurchaseOrder,PurchaseOrderDetail}.tsx
 │       ├── routes/Prescriptions.tsx
+│       ├── routes/dev/{Components,registry,demos}.tsx  # DEV-ONLY /components gallery
 │       ├── App.tsx           # picks AppShell vs bare layout (login)
 │       └── main.tsx          # ErrorBoundary > QueryClient > Chakra > Auth > Router + AppToaster
 │   ├── playwright.config.ts  # Playwright config (headless Chromium, single worker)
@@ -291,6 +292,12 @@ All validation/error copy is translated; nothing user-facing is raw English (Zod
 When you touch any component that still calls a native dialog, refactor it to the above. Keep the frontend free of native dialogs.
 
 **Dialog mount HARD RULE — never `if (!open) return null` (and never `{open && <Dialog…>}`).** A Chakra/Ark `Dialog.Root` must stay mounted and be controlled purely by its `open` prop (see `<ConfirmDialog>`). When a modal opens, Ark locks the page (`pointer-events:none` + `overflow:hidden` on `<body>`, `aria-hidden` on `#root`) and restores it only on a proper `open → false` **close transition**. If you unmount the dialog while it's still `open` — by returning `null` on close, conditionally rendering it, or navigating away — Ark never restores the lock and **the whole page freezes** (nothing clickable/typable). Always render `Dialog.Root open={open}` and guard the *content* on the data instead (`<Dialog.Content>{record && (<>…</>)}</Dialog.Content>`). For the unavoidable case of routing away while a dialog is open (e.g. POS "Buat resep baru"), close the dialog first AND release the residual lock manually before navigating (`releaseModalBodyLock` in [routes/Pos.tsx](frontend/src/routes/Pos.tsx)).
+
+### Shared-component gallery — `/components` (dev only)
+**The curated catalog of shared components lives at `/components`** ([routes/dev/Components.tsx](frontend/src/routes/dev/Components.tsx)) — a dev-build-only page listing every reusable component with a **live preview**, its **props table**, a **copy-pasteable call site**, and the gotcha that bit us. It's grouped by *context* (Layout & page chrome · Forms & inputs · Selects & pickers · Overlays · Data display · Toolbar & filters · Feedback) with a sticky grouped rail; each group is its own route (`/components/forms`) and each component its own anchor (`/components/forms#money-input`), so links are shareable. Read it before writing new UI — it's how you find out a `MoneyInput` / `ConfirmDialog` / `SearchableSelect` already exists.
+- **Three files**: `registry.ts` (the catalog: group → entries with summary/props/usage/notes), `demos.tsx` (one self-contained live demo per component — local state only, **no query hooks, no server calls**; fixture text is sample data, like SKUs), `Components.tsx` (page + grouped nav).
+- **HARD RULE — a new shared component in `frontend/src/components/` ships with its registry entry in the same change** (and an entry gets updated when its props change). That's what keeps the gallery the source of truth for "what already exists" instead of drifting into a second, hand-rolled vocabulary. Page-local JSX does NOT belong here — only genuinely reusable pieces.
+- **Dev-gated in two places**: the routes are registered in [main.tsx](frontend/src/main.tsx) behind `import.meta.env.DEV` (lazy chunk, so a production build never routes there) and the Sidebar entry carries the `devOnly` flag (same filter as `pharmacyOnly`). Chrome copy is translated under `dev.components.*` in [locales/{en,id}.json](frontend/src/locales/en.json).
 
 ### Selects (HARD RULE)
 **Prefer richer Chakra select widgets over `NativeSelect`.** The native `<select>` element renders with OS-default chrome which looks inconsistent against the rest of the Chakra UI. Two reusable wrappers live in `frontend/src/components/`:
