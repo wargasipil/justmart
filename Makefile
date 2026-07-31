@@ -227,8 +227,18 @@ portable-windows:
 # SQLite DB (one temp file per test, see internal/service/servicetest). Self-
 # contained: no dev Postgres, no config.yaml, no server. `-count=1` skips the
 # test cache. Safe to run in parallel (each test has its own DB file).
-test-unit:
+test-unit: test-migrations
 	$(GO_BACKEND) test ./internal/service/... -count=1
+
+# Migration guards. A committed migration has already run in production, so
+# editing one desynchronises every existing database from a fresh install —
+# twice already (repair migrations 00040 and 00052). These two tests make that
+# impossible to land silently: TestMigrationsAreImmutable pins every migration's
+# bytes, and TestSQLite_FrozenBaselineConvergesWithFresh proves a legacy DB
+# upgraded in place reaches the same schema as a fresh one. SQLite-only and
+# engine-independent, so they run once (not per-engine) and are cheap.
+test-migrations:
+	$(GO_BACKEND) test ./migrations/... ./internal/dbmigrate/... -count=1
 
 # The SAME co-located unit suite, run against the dev Postgres (run `make up`
 # first). JUSTMART_TEST_DB_DRIVER=postgres makes servicetest give every test its
@@ -278,6 +288,12 @@ migrate-status:
 # Usage: make migrate-create name=add_medicines_table
 migrate-create:
 	$(GO_BACKEND) run ./cmd/server migrate create $(name) sql
+
+# Pin newly added migrations in backend/migrations/checksums.txt. APPEND-ONLY on
+# purpose: an already-pinned migration has run in production, so a changed hash
+# is a bug (TestMigrationsAreImmutable), not something to regenerate away.
+migrate-checksums:
+	$(GO_BACKEND) run ./cmd/pinmigrations
 
 # --- Frontend (React + Vite) -------------------------------------------------
 web-install:

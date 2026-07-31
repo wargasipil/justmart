@@ -21,11 +21,16 @@ export type ProductsQueryOpts = {
   opnameBefore?: string; // YYYY-MM-DD; filter to products counted before this date OR never counted
   page?: number;
   pageSize?: number;
+  // Off by default for callers that mount before they should fetch — e.g. a
+  // picker dialog that stays mounted (Ark body-lock rule) but must stay idle
+  // until it is opened.
+  enabled?: boolean;
 };
 
 export const productKeys = {
   all: ["products"] as const,
-  list: (opts: Required<ProductsQueryOpts>) =>
+  // `enabled` is a gate, not a filter — it stays out of the key.
+  list: (opts: Required<Omit<ProductsQueryOpts, "enabled">>) =>
     [...productKeys.all, "list", opts] as const,
   one: (id: string) => [...productKeys.all, "one", id] as const,
   prices: (productId: string, page: number, pageSize: number) =>
@@ -101,6 +106,7 @@ export function useProductsQuery(opts: ProductsQueryOpts = {}) {
     opnameBefore = "",
     page = 0,
     pageSize = DEFAULT_PAGE_SIZE,
+    enabled = true,
   } = opts;
   const q = useQuery({
     queryKey: productKeys.list({ includeInactive, onlyArchived, query, opnameBefore, page, pageSize }),
@@ -115,6 +121,7 @@ export function useProductsQuery(opts: ProductsQueryOpts = {}) {
       });
       return { rows: res.products, total: res.total };
     },
+    enabled,
   });
   return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }

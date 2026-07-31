@@ -19,11 +19,13 @@ test.describe("purchasing", () => {
     await expect(page.getByPlaceholder(/Search PO/i)).toBeVisible();
   });
 
-  test("create PO shows a total-cost input and code-labelled supplier", async ({ page }) => {
+  test("create PO shows a per-item cost input and the derived per-base cost", async ({ page }) => {
     await page.goto("/purchasing/new");
-    // The line cost column is now "Total cost"; the derived per-base cost shows
-    // as "Cost / base unit" (relabelled when buy-in-units landed).
-    await expect(page.getByText("Total cost (IDR)")).toBeVisible();
+    // The line cost column is entered PER ITEM ("Cost / item (IDR)" — it was
+    // once the line total, hence the old "Total cost" label); the derived
+    // per-base cost shows as "Cost / base unit" (relabelled when buy-in-units
+    // landed). Both headers render even with no lines picked yet.
+    await expect(page.getByText("Cost / item (IDR)")).toBeVisible();
     await expect(page.getByText("Cost / base unit")).toBeVisible();
   });
 });

@@ -382,6 +382,28 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
         notes: "HARD RULE: never window.confirm / alert / prompt.",
         Demo: demo.ConfirmDialogDemo,
       },
+      {
+        id: "product-picker-dialog",
+        name: "ProductPickerDialog",
+        file: "src/components/ProductPickerDialog.tsx",
+        summary:
+          "Multi-select product picker — searchable, server-paginated modal. For building a LIST of products (restock lines); <SearchableSelect loadOptions={searchProducts}> stays the single-value tool.",
+        props: [
+          { name: "open / onClose", type: "boolean / () => void", required: true, desc: "Controlled. onClose fires on Cancel / Esc / backdrop and does NOT commit." },
+          { name: "selectedIds", type: "readonly string[]", required: true, desc: "Read at open time — the dialog opens pre-checked with these. Re-renders mid-edit do not clobber the draft." },
+          { name: "onConfirm", type: "(ids: string[], byId: Map<string, Product>) => void", required: true, desc: "The full checked set + every Product loaded this session (so a newly-checked id always resolves to its Product, incl. `units`)." },
+          { name: "title", type: "string", desc: "Defaults to t(\"productPicker.title\")." },
+        ],
+        usage: `<ProductPickerDialog
+  open={pickerOpen}
+  onClose={() => setPickerOpen(false)}
+  selectedIds={lines.map((l) => l.productId)}
+  onConfirm={applyPicked}
+/>`,
+        notes:
+          "The check set IS the caller's list: reconcile on confirm (new ids → rows, dropped ids → removed, kept ids keep their edits). Stays mounted while closed (body-lock rule) but idle — the query is `enabled: open`. Its gallery demo is the one that performs a real request; server-paginated search can't be shown with fixtures.",
+        Demo: demo.ProductPickerDialogDemo,
+      },
     ],
   },
   {

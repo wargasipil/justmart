@@ -15,6 +15,31 @@ import { expect, test } from "./_helpers";
 
 type Seed = { productId: string; supplierId: string };
 
+// Products are added to the restock form through <ProductPickerDialog> — a
+// searchable, server-paginated multi-select. One line per checked product, so
+// this is also how you'd REMOVE one (re-open, untick, Done).
+async function addProductLine(page: Page, name: string) {
+  // Glossary-aware: "Add product" in retail, "Add medicine" in pharmacy mode.
+  await page.getByRole("button", { name: /^Add (product|medicine)$/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByPlaceholder(/Search by name or SKU/i).fill(name);
+  await page.waitForTimeout(700); // debounced ListProducts
+  await dialog.getByRole("row", { name: new RegExp(name) }).click();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(dialog).toBeHidden();
+}
+
+// Fill the first line's qty + cost-per-item. Both are <MoneyInput>/<NumberInput>
+// text inputs (role "textbox", NOT "spinbutton"), and the row has three of them
+// (qty, cost, discount value), so address them by CELL position:
+// [0] product [1] unit [2] qty [3] cost [4] discount [5] derived [6] subtotal.
+async function fillFirstLine(page: Page, qty: string, cost: string) {
+  const cells = page.getByRole("table").getByRole("row").nth(1).getByRole("cell");
+  await cells.nth(2).getByRole("textbox").fill(qty);
+  await cells.nth(3).getByRole("textbox").fill(cost);
+}
+
 async function seed(page: Page, marker: string): Promise<Seed> {
   await page.goto("/");
   return await page.evaluate(async (m: string) => {
@@ -93,24 +118,20 @@ test.describe("restock (purchase order) end-to-end", () => {
       await page.waitForTimeout(700); // debounced SearchSuppliers
       await page.getByRole("option", { name: new RegExp(`Restock Supplier ${m}`) }).click();
 
-      // Product (line) — async SearchableSelect. Picking it sets the line's
+      // Product (line) — checked in the picker dialog. That seeds the line's
       // units and defaults the unit to base ("tablet").
-      await page.getByPlaceholder("Select product").fill(`Restock Med ${m}`);
-      await page.waitForTimeout(700); // debounced SearchProducts
-      await page.getByRole("option", { name: new RegExp(`Restock Med ${m}`) }).click();
+      await addProductLine(page, `Restock Med ${m}`);
 
-      // Switch the line unit to "box". EnumSelect's trigger is the only
-      // <button role="combobox"> in the items table (the product select is an
-      // <input>, the hidden form select is a <select>).
-      const unitTrigger = page.getByRole("table").locator('button[role="combobox"]');
+      // Switch the line unit to "box". The row has TWO EnumSelect triggers
+      // (<button role="combobox">) — unit, then line-discount mode — so take the
+      // first, which is the unit cell.
+      const unitTrigger = page.getByRole("table").locator('button[role="combobox"]').first();
       await expect(unitTrigger).toBeVisible();
       await unitTrigger.click();
       await page.getByRole("option", { name: "box" }).click();
 
-      // Qty 5 (the only number input / spinbutton) + line total (the formatted
-      // MoneyInput, now a text input → role "textbox").
-      await page.getByRole("table").getByRole("spinbutton").first().fill("5");
-      await page.getByRole("table").getByRole("textbox").fill("300000");
+      // Qty 5 box @ 300 000 per box.
+      await fillFirstLine(page, "5", "300000");
 
       // Create → navigates to the restock detail page.
       await page.getByRole("button", { name: "Create" }).click();
@@ -150,14 +171,11 @@ test.describe("restock (purchase order) end-to-end", () => {
       await page.getByPlaceholder("Select supplier").fill(`Restock Supplier ${m}`);
       await page.waitForTimeout(700);
       await page.getByRole("option", { name: new RegExp(`Restock Supplier ${m}`) }).click();
-      await page.getByPlaceholder("Select product").fill(`Restock Med ${m}`);
-      await page.waitForTimeout(700);
-      await page.getByRole("option", { name: new RegExp(`Restock Med ${m}`) }).click();
-      const unitTrigger = page.getByRole("table").locator('button[role="combobox"]');
+      await addProductLine(page, `Restock Med ${m}`);
+      const unitTrigger = page.getByRole("table").locator('button[role="combobox"]').first();
       await unitTrigger.click();
       await page.getByRole("option", { name: "box" }).click();
-      await page.getByRole("table").getByRole("spinbutton").first().fill("5");
-      await page.getByRole("table").getByRole("textbox").fill("300000");
+      await fillFirstLine(page, "5", "300000");
       await page.getByRole("button", { name: "Create" }).click();
       await page.waitForURL(/\/purchasing\/[0-9a-f-]{36}$/);
       poId = page.url().split("/").pop();
@@ -171,14 +189,17 @@ test.describe("restock (purchase order) end-to-end", () => {
       const dialog = page.getByRole("dialog");
       await expect(dialog).toBeVisible();
 
-      // Fill batch number + expiry inside the row. The receive table has 1
-      // spinbutton (qty, already defaulted to 5) + 3 textboxes per row:
-      // nth(0) = unit cost (defaulted), nth(1) = batch number, nth(2) = expiry.
-      const rowTextboxes = dialog.getByRole("table").getByRole("textbox");
-      await rowTextboxes.nth(1).fill(`RS-B1-${m}`);
+      // Fill batch number + expiry inside the row. Every input here is a
+      // textbox (qty is a <NumberInput>, NOT role "spinbutton"), so address them
+      // by CELL: [0] product [1] qty [2] unit cost [3] batch # [4] expiry.
+      // Indexing the row's textboxes flat put the batch number into unit cost
+      // and left expiry empty, which silently kept Receive disabled.
+      const receiveCells = dialog.getByRole("table").getByRole("row").nth(1).getByRole("cell");
+      await receiveCells.nth(3).getByRole("textbox").fill(`RS-B1-${m}`);
       // DatePicker.Input under en locale takes MM/DD/YYYY.
-      await rowTextboxes.nth(2).fill("12/31/2099");
-      await rowTextboxes.nth(2).blur();
+      const expiry = receiveCells.nth(4).getByRole("textbox");
+      await expiry.fill("12/31/2099");
+      await expiry.blur();
 
       // Submit (dialog footer's Receive button).
       await dialog.getByRole("button", { name: "Receive", exact: true }).click();
@@ -216,12 +237,11 @@ test.describe("restock (purchase order) end-to-end", () => {
       await page.waitForTimeout(700);
       await page.getByRole("option", { name: new RegExp(`Restock Supplier ${m}`) }).click();
 
-      // Item line: base unit (tablet), qty 10 @ line total 100_000.
-      await page.getByPlaceholder("Select product").fill(`Restock Med ${m}`);
-      await page.waitForTimeout(700);
-      await page.getByRole("option", { name: new RegExp(`Restock Med ${m}`) }).click();
-      await page.getByRole("table").getByRole("spinbutton").first().fill("10");
-      await page.getByRole("table").getByRole("textbox").fill("100000");
+      // Item line: base unit (tablet), qty 10 @ 10 000 PER ITEM → gross 100 000.
+      // (The cost column is cost-per-item, not the line total — the DPP the PPN
+      // assertions below are built on is the 100 000 product, not the input.)
+      await addProductLine(page, `Restock Med ${m}`);
+      await fillFirstLine(page, "10", "10000");
 
       // Toggle PPN on at the default rate (11). Chakra Switch.HiddenInput is
       // display:none, so force-click the only checkbox on this page.

@@ -46,7 +46,15 @@ func (s *SupplierService) UpdateSupplier(
 		"bank_account_holder": strings.TrimSpace(req.Msg.BankAccountHolder),
 	}
 	if err := db.Model(sup).Updates(updates).Error; err != nil {
-		return nil, common.TokenError(connect.CodeAlreadyExists, "supplier.code_taken")
+		// Same backstop as CreateSupplier: re-check instead of reporting every
+		// update failure as a duplicate code.
+		if taken, e := common.ExistsBy(db, &model.Supplier{}, "code = ? AND id <> ?", code, sup.ID); e == nil && taken {
+			return nil, common.TokenError(connect.CodeAlreadyExists, "supplier.code_taken")
+		}
+		if taken, e := common.ExistsBy(db, &model.Supplier{}, "name = ? AND active = ? AND id <> ?", name, true, sup.ID); e == nil && taken {
+			return nil, common.TokenError(connect.CodeAlreadyExists, "supplier.name_taken")
+		}
+		return nil, common.AsConnectErr(err)
 	}
 	return connect.NewResponse(&inventoryifacev1.UpdateSupplierResponse{Supplier: supplierToProto(sup)}), nil
 }

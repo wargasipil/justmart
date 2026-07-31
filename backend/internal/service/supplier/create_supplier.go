@@ -44,8 +44,20 @@ func (s *SupplierService) CreateSupplier(
 		Active:            true,
 	}
 	if err := db.Create(&sup).Error; err != nil {
-		// Backstop: a rare race lost the pre-check; never leak the raw constraint.
-		return nil, common.TokenError(connect.CodeAlreadyExists, "supplier.code_taken")
+		// Backstop for the rare race that loses a pre-check above. RE-CHECK
+		// rather than assume: reporting every insert failure as "code_taken"
+		// masked a schema fault (a SQLite DB missing suppliers.address — see
+		// migration 00052) as a duplicate code for a long time, and there is no
+		// way to tell the two apart from the client. Anything that is NOT a
+		// uniqueness collision is an honest Internal; the frontend genericizes
+		// unknown/raw-DB messages, so nothing leaks.
+		if taken, e := common.ExistsBy(db, &model.Supplier{}, "code = ?", code); e == nil && taken {
+			return nil, common.TokenError(connect.CodeAlreadyExists, "supplier.code_taken")
+		}
+		if taken, e := common.ExistsBy(db, &model.Supplier{}, "name = ? AND active = ?", name, true); e == nil && taken {
+			return nil, common.TokenError(connect.CodeAlreadyExists, "supplier.name_taken")
+		}
+		return nil, common.AsConnectErr(err)
 	}
 	return connect.NewResponse(&inventoryifacev1.CreateSupplierResponse{Supplier: supplierToProto(&sup)}), nil
 }

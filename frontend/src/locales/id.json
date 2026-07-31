@@ -266,7 +266,8 @@
     "received": "Diterima",
     "outstanding": "Tertunggak",
     "paid": "Dibayar",
-    "addLine": "Tambah baris",
+    "addProduct": "Tambah $t(glossary.product)",
+    "noLines": "Belum ada $t(glossary.products) — pakai “Tambah $t(glossary.product)”.",
     "selectProduct": "Pilih $t(glossary.product)",
     "selectSupplier": "Pilih pemasok",
     "addSupplierLink": "Tambah pemasok",
@@ -957,6 +958,17 @@
     "inMonths_one": "{{count}} bulan lagi",
     "inMonths_other": "{{count}} bulan lagi",
     "inOverYear": "lebih dari setahun"
+  },
+  "productPicker": {
+    "title": "Pilih $t(glossary.products)",
+    "searchPlaceholder": "Cari nama atau SKU…",
+    "empty": "Tidak ada $t(glossary.products) yang cocok.",
+    "product": "$t(glossary.productCap)",
+    "ready": "Siap",
+    "lastCost": "Harga terakhir",
+    "selectedCount_one": "{{count}} dipilih",
+    "selectedCount_other": "{{count}} dipilih",
+    "confirm": "Selesai"
   },
   "transfers": {
     "intro": "Pindahkan stok antar gudang. Setiap transfer dicatat dengan nomor dan riwayat.",

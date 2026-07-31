@@ -21,6 +21,11 @@ data/
 /backend/justmart.db
 /backend/justmart.db-shm
 /backend/justmart.db-wal
+# Same file when the binary is run from the REPO ROOT rather than backend/
+# (database.path is CWD-relative, so `./justmart.db` lands wherever it started).
+/justmart.db
+/justmart.db-shm
+/justmart.db-wal
 
 # Node / frontend
 node_modules/

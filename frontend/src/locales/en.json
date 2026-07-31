@@ -266,7 +266,8 @@
     "received": "Received",
     "outstanding": "Outstanding",
     "paid": "Paid",
-    "addLine": "Add line",
+    "addProduct": "Add $t(glossary.product)",
+    "noLines": "No $t(glossary.products) yet — use “Add $t(glossary.product)”.",
     "selectProduct": "Select $t(glossary.product)",
     "selectSupplier": "Select supplier",
     "addSupplierLink": "Add supplier",
@@ -957,6 +958,17 @@
     "inMonths_one": "in {{count}} month",
     "inMonths_other": "in {{count}} months",
     "inOverYear": "in over a year"
+  },
+  "productPicker": {
+    "title": "Select $t(glossary.products)",
+    "searchPlaceholder": "Search by name or SKU…",
+    "empty": "No $t(glossary.products) match this search.",
+    "product": "$t(glossary.productCap)",
+    "ready": "Ready",
+    "lastCost": "Last cost",
+    "selectedCount_one": "{{count}} selected",
+    "selectedCount_other": "{{count}} selected",
+    "confirm": "Done"
   },
   "transfers": {
     "intro": "Move stock between warehouses. Each transfer is recorded with a number and history.",

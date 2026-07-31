@@ -43,6 +43,7 @@ import TableScroll from "../../components/TableScroll";
 import TrendChart from "../../components/TrendChart";
 import UserAvatar from "../../components/UserAvatar";
 import ProductImage from "../../components/ProductImage";
+import ProductPickerDialog from "../../components/ProductPickerDialog";
 import WarehouseSelect from "../../components/WarehouseSelect";
 import {
   MetricOrder,
@@ -422,6 +423,33 @@ export function WarehouseSelectDemo() {
     <Stack gap={2} maxW="280px">
       <WarehouseSelect warehouses={FAKE_WAREHOUSES} value={value} onChange={setValue} />
       <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
+// NOTE: the one demo in this file that talks to the server. ProductPickerDialog
+// IS server-paginated search — a fixture list would demo the opposite of the
+// thing. It stays idle until opened (`enabled: open`), so browsing the gallery
+// costs nothing.
+export function ProductPickerDialogDemo() {
+  const [open, setOpen] = useState(false);
+  const [ids, setIds] = useState<string[]>([]);
+  const [names, setNames] = useState<string[]>([]);
+  return (
+    <Stack gap={2} maxW="360px">
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Add products
+      </Button>
+      <Emitted>{names.length ? names.join(", ") : ""}</Emitted>
+      <ProductPickerDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        selectedIds={ids}
+        onConfirm={(picked, byId) => {
+          setIds(picked);
+          setNames(picked.map((id) => byId.get(id)?.name ?? id));
+        }}
+      />
     </Stack>
   );
 }
