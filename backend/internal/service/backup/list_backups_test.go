@@ -17,7 +17,7 @@ import (
 // TestListBackups_NewestFirst creates two backups and asserts the listing
 // returns both, newest-first.
 func TestListBackups_NewestFirst(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())
@@ -51,7 +51,7 @@ func TestListBackups_NewestFirst(t *testing.T) {
 // The listing is a filesystem scan, so the page is sliced in Go — but the
 // response still has to be bounded and `total` still has to be the full count.
 func TestListBackups_Paginates(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	dir := t.TempDir()
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, dir)
@@ -103,7 +103,7 @@ func TestListBackups_Paginates(t *testing.T) {
 // TestListBackups_MissingDirIsEmpty proves a never-created backup root returns
 // an empty list, NOT an error (errors.Is(os.ErrNotExist) is swallowed).
 func TestListBackups_MissingDirIsEmpty(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	// Point at a path that does not exist yet (no CreateBackup ever ran, so
 	// ensureDir never created it).
@@ -118,7 +118,7 @@ func TestListBackups_MissingDirIsEmpty(t *testing.T) {
 // TestListBackups_IgnoresForeignEntries proves the regex filter: files and
 // foreign directories under the backup root are silently skipped.
 func TestListBackups_IgnoresForeignEntries(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()

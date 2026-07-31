@@ -18,7 +18,7 @@ import (
 // fresh per-timestamp directory, then assert the response + on-disk layout
 // (database.sqlite + manifest.txt) the listing relies on.
 func TestCreateBackup_RoundTrip(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()
@@ -50,7 +50,7 @@ func TestCreateBackup_RoundTrip(t *testing.T) {
 // the timestamp until the dir name is free, since VACUUM INTO refuses to
 // overwrite an existing file).
 func TestCreateBackup_TwoInSameSecond(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())

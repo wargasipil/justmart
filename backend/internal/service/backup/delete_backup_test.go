@@ -17,7 +17,7 @@ import (
 // TestDeleteBackup_RoundTrip creates a backup then deletes it, asserting the
 // directory is gone and the listing no longer shows it.
 func TestDeleteBackup_RoundTrip(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()
@@ -45,7 +45,7 @@ func TestDeleteBackup_RoundTrip(t *testing.T) {
 // TestDeleteBackup_NotFound deletes a well-formed but nonexistent backup name —
 // expect CodeNotFound.
 func TestDeleteBackup_NotFound(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())
 
@@ -59,7 +59,7 @@ func TestDeleteBackup_NotFound(t *testing.T) {
 // TestDeleteBackup_InvalidName proves the regex guard rejects path-traversal /
 // arbitrary names with CodeInvalidArgument before any filesystem op.
 func TestDeleteBackup_InvalidName(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())
 
