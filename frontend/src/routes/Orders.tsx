@@ -19,6 +19,7 @@ import DateRangeFilter from "../components/DateRangeFilter";
 import ExportButton from "../components/ExportButton";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
+import TableScroll from "../components/TableScroll";
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
 import { useAuth } from "../lib/auth";
@@ -150,7 +151,7 @@ export default function Orders() {
 
   return (
     <Box>
-      <PageHeader breadcrumbs={[{ label: t("orders.title") }]} title={t("orders.title")} />
+      <PageHeader title={t("orders.title")} description={t("orders.description")} />
 
       {/* Status filter as tabs (state-driven; one route). */}
       <Tabs.Root
@@ -210,54 +211,56 @@ export default function Orders() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("orders.saleNo")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("orders.date")}</Table.ColumnHeader>
-              {isManager && <Table.ColumnHeader>{t("orders.createdBy")}</Table.ColumnHeader>}
-              <Table.ColumnHeader>{t("orders.customer")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("orders.items")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("orders.payment")}</Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">{t("orders.total")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("orders.status")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {salesQ.rows.map((s) => (
-              <Table.Row
-                key={s.id}
-                cursor="pointer"
-                _hover={{ bg: "bg.muted" }}
-                onClick={() => navigate(`/orders/${s.id}`)}
-              >
-                <Table.Cell fontFamily="mono">{s.saleNo || s.id.slice(0, 8)}</Table.Cell>
-                <Table.Cell>{formatUnix(s.createdAt)}</Table.Cell>
-                {isManager && <Table.Cell>{createdByLabel(s.cashierUserId)}</Table.Cell>}
-                <Table.Cell>{s.customerName || "—"}</Table.Cell>
-                <Table.Cell>
-                  <ItemsSummary items={s.items} moreLabel={t("orders.itemsMore")} />
-                </Table.Cell>
-                <Table.Cell>{t(`orders.payments.${PAYMENT_KEY[s.paymentSource] ?? "unspecified"}`)}</Table.Cell>
-                <Table.Cell textAlign="end" fontFamily="mono">{formatMoney(s.total)}</Table.Cell>
-                <Table.Cell>
-                  <Badge colorPalette={STATUS_BADGE[s.status] ?? "gray"}>
-                    {t(`orders.states.${statusKey(s.status)}`)}
-                  </Badge>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-            {salesQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={isManager ? 8 : 7}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("orders.saleNo")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("orders.date")}</Table.ColumnHeader>
+                {isManager && <Table.ColumnHeader>{t("orders.createdBy")}</Table.ColumnHeader>}
+                <Table.ColumnHeader>{t("orders.customer")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("orders.items")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("orders.payment")}</Table.ColumnHeader>
+                <Table.ColumnHeader textAlign="end">{t("orders.total")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("orders.status")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {salesQ.rows.map((s) => (
+                <Table.Row
+                  key={s.id}
+                  cursor="pointer"
+                  _hover={{ bg: "bg.muted" }}
+                  onClick={() => navigate(`/orders/${s.id}`)}
+                >
+                  <Table.Cell fontFamily="mono">{s.saleNo || s.id.slice(0, 8)}</Table.Cell>
+                  <Table.Cell>{formatUnix(s.createdAt)}</Table.Cell>
+                  {isManager && <Table.Cell>{createdByLabel(s.cashierUserId)}</Table.Cell>}
+                  <Table.Cell>{s.customerName || "—"}</Table.Cell>
+                  <Table.Cell>
+                    <ItemsSummary items={s.items} moreLabel={t("orders.itemsMore")} />
+                  </Table.Cell>
+                  <Table.Cell>{t(`orders.payments.${PAYMENT_KEY[s.paymentSource] ?? "unspecified"}`)}</Table.Cell>
+                  <Table.Cell textAlign="end" fontFamily="mono">{formatMoney(s.total)}</Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={STATUS_BADGE[s.status] ?? "gray"}>
+                      {t(`orders.states.${statusKey(s.status)}`)}
+                    </Badge>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+              {salesQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={isManager ? 8 : 7}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Box mt={3}>

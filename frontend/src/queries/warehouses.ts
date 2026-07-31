@@ -58,10 +58,15 @@ export function useAllWarehousesQuery(includeInactive = false) {
   return useWarehousesQuery({ includeInactive, pageSize: ALL_LIMIT });
 }
 
+// The caller's own accessible warehouses, driving the TopBar/POS selector. Asks
+// for ALL_LIMIT rather than a page: a selector must offer every warehouse the
+// user can reach, and memberships are a small bounded set (same carve-out as
+// useAllWarehousesQuery). The RPC is paginated; this caller opts out explicitly.
 export function useMyWarehousesQuery() {
   return useQuery({
     queryKey: warehouseKeys.user("self"),
-    queryFn: async () => warehouseClient.listUserWarehouses({ userId: "" }),
+    queryFn: async () =>
+      warehouseClient.listUserWarehouses({ userId: "", limit: ALL_LIMIT, offset: 0 }),
   });
 }
 
@@ -93,7 +98,14 @@ export function useWarehouseUsersQuery(warehouseId: string) {
 // code/name. Used by the TopBar warehouse popup so each keystroke (debounced)
 // hits the backend. Mirrors the searchSuppliers / searchProducts pattern.
 export async function searchMyWarehouses(query: string) {
-  const res = await warehouseClient.listUserWarehouses({ userId: "", query });
+  // A search picker shows the top matches, not a pager — one bounded page is
+  // the right request shape here.
+  const res = await warehouseClient.listUserWarehouses({
+    userId: "",
+    query,
+    limit: 20,
+    offset: 0,
+  });
   return [...res.warehouses];
 }
 

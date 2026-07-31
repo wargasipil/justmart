@@ -19,6 +19,7 @@ import EnumSelect from "../components/EnumSelect";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
 import SearchableSelect from "../components/SearchableSelect";
+import TableScroll from "../components/TableScroll";
 import type { Prescription } from "../gen/prescription_iface/v1/prescription_pb";
 import { formatDate } from "../lib/format";
 import { usePageState } from "../lib/pagination";
@@ -80,8 +81,8 @@ export default function Prescriptions() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[{ label: t("prescriptions.title") }]}
         title={t("prescriptions.title")}
+        description={t("prescriptions.description")}
         actions={
           <Button colorPalette="blue" onClick={() => navigate("/prescriptions/new")}>
             <Plus size={16} />
@@ -133,65 +134,67 @@ export default function Prescriptions() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("prescriptions.rxNo")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("prescriptions.customer")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("prescriptions.issuerName")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("prescriptions.issuedAt")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("prescriptions.expiresAt")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("prescriptions.filterStatus")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("prescriptions.items")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rxQ.rows.map((rx) => {
-              const dispensedAny = rx.items.some((it) => it.dispensedQty > 0);
-              return (
-                <Table.Row key={rx.id}>
-                  <Table.Cell fontFamily="mono">{rx.rxNo}</Table.Cell>
-                  <Table.Cell>{customerRefs.get(rx.customerId)?.name ?? "—"}</Table.Cell>
-                  <Table.Cell>{rx.issuerName}</Table.Cell>
-                  <Table.Cell>{rx.issuedAt}</Table.Cell>
-                  <Table.Cell>{rx.expiresAt}</Table.Cell>
-                  <Table.Cell>
-                    <Badge colorPalette={statusBadge(rx.status)}>
-                      {t(`prescriptions.states.${rx.status.toLowerCase()}`)}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell>{rx.items.length}</Table.Cell>
-                  <Table.Cell>
-                    <HStack gap={1}>
-                      {rx.status === "ACTIVE" && !dispensedAny && (
-                        <Button size="xs" variant="ghost" onClick={() => setEditing(rx)}>
-                          <Pencil size={14} />
-                          {t("common.edit")}
-                        </Button>
-                      )}
-                      {rx.status === "ACTIVE" && (
-                        <Button size="xs" variant="ghost" onClick={() => setVoidConfirmId(rx.id)}>
-                          <X size={14} />
-                          {t("prescriptions.void")}
-                        </Button>
-                      )}
-                    </HStack>
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
+              <Table.Row>
+                <Table.ColumnHeader>{t("prescriptions.rxNo")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("prescriptions.customer")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("prescriptions.issuerName")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("prescriptions.issuedAt")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("prescriptions.expiresAt")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("prescriptions.filterStatus")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("prescriptions.items")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {rxQ.rows.map((rx) => {
+                const dispensedAny = rx.items.some((it) => it.dispensedQty > 0);
+                return (
+                  <Table.Row key={rx.id}>
+                    <Table.Cell fontFamily="mono">{rx.rxNo}</Table.Cell>
+                    <Table.Cell>{customerRefs.get(rx.customerId)?.name ?? "—"}</Table.Cell>
+                    <Table.Cell>{rx.issuerName}</Table.Cell>
+                    <Table.Cell>{rx.issuedAt}</Table.Cell>
+                    <Table.Cell>{rx.expiresAt}</Table.Cell>
+                    <Table.Cell>
+                      <Badge colorPalette={statusBadge(rx.status)}>
+                        {t(`prescriptions.states.${rx.status.toLowerCase()}`)}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>{rx.items.length}</Table.Cell>
+                    <Table.Cell>
+                      <HStack gap={1}>
+                        {rx.status === "ACTIVE" && !dispensedAny && (
+                          <Button size="xs" variant="ghost" onClick={() => setEditing(rx)}>
+                            <Pencil size={14} />
+                            {t("common.edit")}
+                          </Button>
+                        )}
+                        {rx.status === "ACTIVE" && (
+                          <Button size="xs" variant="ghost" onClick={() => setVoidConfirmId(rx.id)}>
+                            <X size={14} />
+                            {t("prescriptions.void")}
+                          </Button>
+                        )}
+                      </HStack>
+                    </Table.Cell>
+                  </Table.Row>
+                );
+              })}
+              {rxQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={8}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
                   </Table.Cell>
                 </Table.Row>
-              );
-            })}
-            {rxQ.rows.length === 0 && (
-              <Table.Row>
-                <Table.Cell colSpan={8}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
-              </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Box mt={3}>

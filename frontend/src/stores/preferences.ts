@@ -7,9 +7,9 @@ export type Locale = "id" | "en";
 // Default-visible product-list columns. The restock columns (lastRestock*,
 // lastSupplier) are intentionally OFF by default to keep the table uncluttered;
 // the user opts in via the Columns selector (persisted in productListColumns).
-// `name` is always shown (identity) and is not part of this toggle set.
+// The `name` column is always shown and is not part of this toggle set: it is
+// the identity cell, carrying the photo + name + SKU together.
 export const DEFAULT_PRODUCT_COLUMNS = [
-  "sku",
   "unit",
   "unitPrice",
   "ready",
@@ -72,6 +72,21 @@ export const usePreferencesStore = create<PreferencesState>()(
     }),
     {
       name: "justmart_preferences",
+      // Bumped when the set of toggleable product-list columns changes shape:
+      // the persisted array is a full replacement, so a retired id would sit
+      // there forever matching nothing.
+      // v1 — `sku` folded into the always-on `name` identity cell (which also
+      //      carries the product photo), so it is no longer toggleable.
+      version: 1,
+      migrate: (persisted, from) => {
+        const state = persisted as PreferencesState;
+        if (from < 1 && state?.productListColumns) {
+          state.productListColumns = state.productListColumns.filter(
+            (id) => id !== "sku" && id !== "image",
+          );
+        }
+        return state;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) applyTheme(state.theme);
       },

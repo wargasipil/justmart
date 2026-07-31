@@ -39,6 +39,53 @@ func TestListUsers_ReturnsCreated(t *testing.T) {
 	}
 	require.True(t, emails[servicetest.OwnerEmail])
 	require.True(t, emails["pharma@test.local"])
+	// Unpaged callers still get everything: NormPage's default page size applies.
+	require.Equal(t, int32(len(resp.Msg.Users)), resp.Msg.Total)
+}
+
+// The users list is the one genuinely unbounded surface here, so paging must
+// walk it exactly once and `total` must report the full count.
+func TestListUsers_Paginates(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	servicetest.EnsureOwner(t, gormDB, cfg) // 1 user
+	svc := usersvc.NewUserService(gormDB)
+	ctx := context.Background()
+
+	for _, e := range []string{"a@t.local", "b@t.local", "c@t.local", "d@t.local"} {
+		_, err := svc.CreateUser(ctx, connect.NewRequest(&userifacev1.CreateUserRequest{
+			Email: e, Name: e, Password: "supersecret", Role: authifacev1.Role_ROLE_CASHIER,
+		}))
+		require.NoError(t, err)
+	}
+
+	page := func(limit, offset int32) *userifacev1.ListUsersResponse {
+		t.Helper()
+		resp, err := svc.ListUsers(ctx, connect.NewRequest(&userifacev1.ListUsersRequest{
+			Limit: limit, Offset: offset,
+		}))
+		require.NoError(t, err)
+		return resp.Msg
+	}
+
+	first := page(2, 0)
+	require.Equal(t, int32(5), first.Total) // owner + 4, not the page length
+	require.Len(t, first.Users, 2)
+
+	seen := map[string]bool{}
+	for off := int32(0); off < first.Total; off += 2 {
+		pg := page(2, off)
+		require.Equal(t, first.Total, pg.Total) // total ignores the window
+		for _, u := range pg.Users {
+			require.False(t, seen[u.Id], "user %s appeared on two pages", u.Email)
+			seen[u.Id] = true
+		}
+	}
+	require.Len(t, seen, 5)
+
+	// Past the end: empty page, total unchanged.
+	require.Empty(t, page(2, 99).Users)
+	require.Equal(t, int32(5), page(2, 99).Total)
 }
 
 // An APOTEKER user created in pharmacy mode stays visible after switching to

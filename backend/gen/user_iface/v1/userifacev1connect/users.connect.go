@@ -51,6 +51,14 @@ const (
 	// UserServiceChangePasswordProcedure is the fully-qualified name of the UserService's
 	// ChangePassword RPC.
 	UserServiceChangePasswordProcedure = "/user_iface.v1.UserService/ChangePassword"
+	// UserServiceUploadAvatarProcedure is the fully-qualified name of the UserService's UploadAvatar
+	// RPC.
+	UserServiceUploadAvatarProcedure = "/user_iface.v1.UserService/UploadAvatar"
+	// UserServiceGetAvatarProcedure is the fully-qualified name of the UserService's GetAvatar RPC.
+	UserServiceGetAvatarProcedure = "/user_iface.v1.UserService/GetAvatar"
+	// UserServiceDeleteAvatarProcedure is the fully-qualified name of the UserService's DeleteAvatar
+	// RPC.
+	UserServiceDeleteAvatarProcedure = "/user_iface.v1.UserService/DeleteAvatar"
 	// UserServiceIssuePasswordResetTokenProcedure is the fully-qualified name of the UserService's
 	// IssuePasswordResetToken RPC.
 	UserServiceIssuePasswordResetTokenProcedure = "/user_iface.v1.UserService/IssuePasswordResetToken"
@@ -67,15 +75,28 @@ type UserServiceClient interface {
 	// history "Created by" column — CASHIER is allowed for the latter (resolves
 	// only ids it already sees in its warehouse's sales).
 	ResolveUsers(context.Context, *connect.Request[v1.ResolveUsersRequest]) (*connect.Response[v1.ResolveUsersResponse], error)
-	// Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
-	// PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
-	// prescriptions). Returns only the minimal UserRef {id,name,email} that
-	// ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
+	// Server-side fuzzy search over ACTIVE users only — a deactivated account is
+	// never a valid pick for any of these surfaces. OWNER for the warehouse-detail
+	// "Add user" picker; PHARMACIST + APOTEKER for the resep "doctor / penerbit"
+	// picker (they author prescriptions). Returns the same UserRef that
+	// ResolveUsers exposes — which now carries `role` and `avatar_updated_at`
+	// alongside the name, so a picker can render a face and a role badge. Neither
+	// is sensitive: avatar bytes are already readable by any signed-in user via
+	// GetAvatar, and staff roles are visible in the shop.
 	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
 	CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error)
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
 	SetUserActive(context.Context, *connect.Request[v1.SetUserActiveRequest]) (*connect.Response[v1.SetUserActiveResponse], error)
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	// Profile picture. Upload/Delete are SELF-ONLY by construction — neither
+	// request carries a user_id, so there is no "edit someone else's avatar" path
+	// to guard. GetAvatar takes an id because any signed-in user may see a
+	// colleague's picture (user lists, the order-history "Created by" column);
+	// it returns bytes only, never anything the caller can't already see.
+	// All three are authenticated-only (no allowed_roles = every role).
+	UploadAvatar(context.Context, *connect.Request[v1.UploadAvatarRequest]) (*connect.Response[v1.UploadAvatarResponse], error)
+	GetAvatar(context.Context, *connect.Request[v1.GetAvatarRequest]) (*connect.Response[v1.GetAvatarResponse], error)
+	DeleteAvatar(context.Context, *connect.Request[v1.DeleteAvatarRequest]) (*connect.Response[v1.DeleteAvatarResponse], error)
 	// Owner mints a one-shot reset token that the user can redeem to set a new
 	// password without knowing the old one. The raw token is returned to the
 	// owner (display in UI), who hands it to the user out-of-band. No SMTP wired.
@@ -136,6 +157,24 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("ChangePassword")),
 			connect.WithClientOptions(opts...),
 		),
+		uploadAvatar: connect.NewClient[v1.UploadAvatarRequest, v1.UploadAvatarResponse](
+			httpClient,
+			baseURL+UserServiceUploadAvatarProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UploadAvatar")),
+			connect.WithClientOptions(opts...),
+		),
+		getAvatar: connect.NewClient[v1.GetAvatarRequest, v1.GetAvatarResponse](
+			httpClient,
+			baseURL+UserServiceGetAvatarProcedure,
+			connect.WithSchema(userServiceMethods.ByName("GetAvatar")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteAvatar: connect.NewClient[v1.DeleteAvatarRequest, v1.DeleteAvatarResponse](
+			httpClient,
+			baseURL+UserServiceDeleteAvatarProcedure,
+			connect.WithSchema(userServiceMethods.ByName("DeleteAvatar")),
+			connect.WithClientOptions(opts...),
+		),
 		issuePasswordResetToken: connect.NewClient[v1.IssuePasswordResetTokenRequest, v1.IssuePasswordResetTokenResponse](
 			httpClient,
 			baseURL+UserServiceIssuePasswordResetTokenProcedure,
@@ -160,6 +199,9 @@ type userServiceClient struct {
 	updateUserRole           *connect.Client[v1.UpdateUserRoleRequest, v1.UpdateUserRoleResponse]
 	setUserActive            *connect.Client[v1.SetUserActiveRequest, v1.SetUserActiveResponse]
 	changePassword           *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	uploadAvatar             *connect.Client[v1.UploadAvatarRequest, v1.UploadAvatarResponse]
+	getAvatar                *connect.Client[v1.GetAvatarRequest, v1.GetAvatarResponse]
+	deleteAvatar             *connect.Client[v1.DeleteAvatarRequest, v1.DeleteAvatarResponse]
 	issuePasswordResetToken  *connect.Client[v1.IssuePasswordResetTokenRequest, v1.IssuePasswordResetTokenResponse]
 	redeemPasswordResetToken *connect.Client[v1.RedeemPasswordResetTokenRequest, v1.RedeemPasswordResetTokenResponse]
 }
@@ -199,6 +241,21 @@ func (c *userServiceClient) ChangePassword(ctx context.Context, req *connect.Req
 	return c.changePassword.CallUnary(ctx, req)
 }
 
+// UploadAvatar calls user_iface.v1.UserService.UploadAvatar.
+func (c *userServiceClient) UploadAvatar(ctx context.Context, req *connect.Request[v1.UploadAvatarRequest]) (*connect.Response[v1.UploadAvatarResponse], error) {
+	return c.uploadAvatar.CallUnary(ctx, req)
+}
+
+// GetAvatar calls user_iface.v1.UserService.GetAvatar.
+func (c *userServiceClient) GetAvatar(ctx context.Context, req *connect.Request[v1.GetAvatarRequest]) (*connect.Response[v1.GetAvatarResponse], error) {
+	return c.getAvatar.CallUnary(ctx, req)
+}
+
+// DeleteAvatar calls user_iface.v1.UserService.DeleteAvatar.
+func (c *userServiceClient) DeleteAvatar(ctx context.Context, req *connect.Request[v1.DeleteAvatarRequest]) (*connect.Response[v1.DeleteAvatarResponse], error) {
+	return c.deleteAvatar.CallUnary(ctx, req)
+}
+
 // IssuePasswordResetToken calls user_iface.v1.UserService.IssuePasswordResetToken.
 func (c *userServiceClient) IssuePasswordResetToken(ctx context.Context, req *connect.Request[v1.IssuePasswordResetTokenRequest]) (*connect.Response[v1.IssuePasswordResetTokenResponse], error) {
 	return c.issuePasswordResetToken.CallUnary(ctx, req)
@@ -217,15 +274,28 @@ type UserServiceHandler interface {
 	// history "Created by" column — CASHIER is allowed for the latter (resolves
 	// only ids it already sees in its warehouse's sales).
 	ResolveUsers(context.Context, *connect.Request[v1.ResolveUsersRequest]) (*connect.Response[v1.ResolveUsersResponse], error)
-	// Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
-	// PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
-	// prescriptions). Returns only the minimal UserRef {id,name,email} that
-	// ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
+	// Server-side fuzzy search over ACTIVE users only — a deactivated account is
+	// never a valid pick for any of these surfaces. OWNER for the warehouse-detail
+	// "Add user" picker; PHARMACIST + APOTEKER for the resep "doctor / penerbit"
+	// picker (they author prescriptions). Returns the same UserRef that
+	// ResolveUsers exposes — which now carries `role` and `avatar_updated_at`
+	// alongside the name, so a picker can render a face and a role badge. Neither
+	// is sensitive: avatar bytes are already readable by any signed-in user via
+	// GetAvatar, and staff roles are visible in the shop.
 	SearchUsers(context.Context, *connect.Request[v1.SearchUsersRequest]) (*connect.Response[v1.SearchUsersResponse], error)
 	CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error)
 	UpdateUserRole(context.Context, *connect.Request[v1.UpdateUserRoleRequest]) (*connect.Response[v1.UpdateUserRoleResponse], error)
 	SetUserActive(context.Context, *connect.Request[v1.SetUserActiveRequest]) (*connect.Response[v1.SetUserActiveResponse], error)
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	// Profile picture. Upload/Delete are SELF-ONLY by construction — neither
+	// request carries a user_id, so there is no "edit someone else's avatar" path
+	// to guard. GetAvatar takes an id because any signed-in user may see a
+	// colleague's picture (user lists, the order-history "Created by" column);
+	// it returns bytes only, never anything the caller can't already see.
+	// All three are authenticated-only (no allowed_roles = every role).
+	UploadAvatar(context.Context, *connect.Request[v1.UploadAvatarRequest]) (*connect.Response[v1.UploadAvatarResponse], error)
+	GetAvatar(context.Context, *connect.Request[v1.GetAvatarRequest]) (*connect.Response[v1.GetAvatarResponse], error)
+	DeleteAvatar(context.Context, *connect.Request[v1.DeleteAvatarRequest]) (*connect.Response[v1.DeleteAvatarResponse], error)
 	// Owner mints a one-shot reset token that the user can redeem to set a new
 	// password without knowing the old one. The raw token is returned to the
 	// owner (display in UI), who hands it to the user out-of-band. No SMTP wired.
@@ -282,6 +352,24 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("ChangePassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceUploadAvatarHandler := connect.NewUnaryHandler(
+		UserServiceUploadAvatarProcedure,
+		svc.UploadAvatar,
+		connect.WithSchema(userServiceMethods.ByName("UploadAvatar")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceGetAvatarHandler := connect.NewUnaryHandler(
+		UserServiceGetAvatarProcedure,
+		svc.GetAvatar,
+		connect.WithSchema(userServiceMethods.ByName("GetAvatar")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceDeleteAvatarHandler := connect.NewUnaryHandler(
+		UserServiceDeleteAvatarProcedure,
+		svc.DeleteAvatar,
+		connect.WithSchema(userServiceMethods.ByName("DeleteAvatar")),
+		connect.WithHandlerOptions(opts...),
+	)
 	userServiceIssuePasswordResetTokenHandler := connect.NewUnaryHandler(
 		UserServiceIssuePasswordResetTokenProcedure,
 		svc.IssuePasswordResetToken,
@@ -310,6 +398,12 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceSetUserActiveHandler.ServeHTTP(w, r)
 		case UserServiceChangePasswordProcedure:
 			userServiceChangePasswordHandler.ServeHTTP(w, r)
+		case UserServiceUploadAvatarProcedure:
+			userServiceUploadAvatarHandler.ServeHTTP(w, r)
+		case UserServiceGetAvatarProcedure:
+			userServiceGetAvatarHandler.ServeHTTP(w, r)
+		case UserServiceDeleteAvatarProcedure:
+			userServiceDeleteAvatarHandler.ServeHTTP(w, r)
 		case UserServiceIssuePasswordResetTokenProcedure:
 			userServiceIssuePasswordResetTokenHandler.ServeHTTP(w, r)
 		case UserServiceRedeemPasswordResetTokenProcedure:
@@ -349,6 +443,18 @@ func (UnimplementedUserServiceHandler) SetUserActive(context.Context, *connect.R
 
 func (UnimplementedUserServiceHandler) ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("user_iface.v1.UserService.ChangePassword is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UploadAvatar(context.Context, *connect.Request[v1.UploadAvatarRequest]) (*connect.Response[v1.UploadAvatarResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("user_iface.v1.UserService.UploadAvatar is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) GetAvatar(context.Context, *connect.Request[v1.GetAvatarRequest]) (*connect.Response[v1.GetAvatarResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("user_iface.v1.UserService.GetAvatar is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) DeleteAvatar(context.Context, *connect.Request[v1.DeleteAvatarRequest]) (*connect.Response[v1.DeleteAvatarResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("user_iface.v1.UserService.DeleteAvatar is not implemented"))
 }
 
 func (UnimplementedUserServiceHandler) IssuePasswordResetToken(context.Context, *connect.Request[v1.IssuePasswordResetTokenRequest]) (*connect.Response[v1.IssuePasswordResetTokenResponse], error) {

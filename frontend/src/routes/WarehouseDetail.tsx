@@ -16,11 +16,13 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useCrumbLabel } from "../lib/breadcrumbs";
 import BackButton from "../components/BackButton";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import SearchableSelect from "../components/SearchableSelect";
 import WarehouseDrawer from "../components/WarehouseDrawer";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../components/TableScroll";
 import type { UserRef } from "../gen/user_iface/v1/users_pb";
 import type { WarehouseUser } from "../gen/warehouse_iface/v1/warehouse_pb";
 import { useAuth } from "../lib/auth";
@@ -47,6 +49,7 @@ export default function WarehouseDetail() {
   const [pendingPromote, setPendingPromote] = useState(false);
 
   const whQ = useWarehouseQuery(id);
+  useCrumbLabel(whQ.data?.name);
   const usersQ = useWarehouseUsersQuery(id);
   const archive = useArchiveWarehouseMutation();
   const setGlobalDefault = useSetGlobalDefaultWarehouseMutation();
@@ -152,11 +155,8 @@ export default function WarehouseDetail() {
     <Box>
       <BackButton to="/warehouses" />
       <PageHeader
-        breadcrumbs={[
-          { label: t("nav.warehouses"), to: "/warehouses" },
-          { label: w.name },
-        ]}
         title={w.name}
+        description={t("warehouses.detailDescription")}
         actions={
           <HStack gap={2}>
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
@@ -253,53 +253,55 @@ export default function WarehouseDetail() {
               {t("warehouses.noUsers")}
             </Text>
           ) : (
-            <Table.Root size="sm" variant="line">
-              <Table.Header bg="bg.muted">
-                <Table.Row>
-                  <Table.ColumnHeader>{t("users.email")}</Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("users.name")}</Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("users.role")}</Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("warehouses.defaultForUser")}</Table.ColumnHeader>
-                  <Table.ColumnHeader />
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {users.map((u) => {
-                  const isSelf = me?.id === u.userId;
-                  return (
-                    <Table.Row key={u.userId}>
-                      <Table.Cell>{u.email}</Table.Cell>
-                      <Table.Cell>{u.name || "—"}</Table.Cell>
-                      <Table.Cell>{u.role}</Table.Cell>
-                      <Table.Cell>
-                        <Switch.Root
-                          checked={u.isDefault}
-                          disabled={u.isDefault}
-                          title={u.isDefault ? t("warehouses.defaultLockedTooltip") : undefined}
-                          onCheckedChange={() => onSetUserDefault(u)}
-                        >
-                          <Switch.HiddenInput />
-                          <Switch.Control />
-                        </Switch.Root>
-                      </Table.Cell>
-                      <Table.Cell textAlign="end">
-                        {!isSelf && (
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            colorPalette="red"
-                            onClick={() => setRevoking(u)}
+            <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+              <Table.Root size="sm" variant="line" stickyHeader>
+                <Table.Header bg="bg.muted">
+                  <Table.Row>
+                    <Table.ColumnHeader>{t("users.email")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("users.name")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("users.role")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("warehouses.defaultForUser")}</Table.ColumnHeader>
+                    <Table.ColumnHeader />
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {users.map((u) => {
+                    const isSelf = me?.id === u.userId;
+                    return (
+                      <Table.Row key={u.userId}>
+                        <Table.Cell>{u.email}</Table.Cell>
+                        <Table.Cell>{u.name || "—"}</Table.Cell>
+                        <Table.Cell>{u.role}</Table.Cell>
+                        <Table.Cell>
+                          <Switch.Root
+                            checked={u.isDefault}
+                            disabled={u.isDefault}
+                            title={u.isDefault ? t("warehouses.defaultLockedTooltip") : undefined}
+                            onCheckedChange={() => onSetUserDefault(u)}
                           >
-                            <UserMinus size={14} />
-                            {t("warehouses.revokeAccess")}
-                          </Button>
-                        )}
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })}
-              </Table.Body>
-            </Table.Root>
+                            <Switch.HiddenInput />
+                            <Switch.Control />
+                          </Switch.Root>
+                        </Table.Cell>
+                        <Table.Cell textAlign="end">
+                          {!isSelf && (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              colorPalette="red"
+                              onClick={() => setRevoking(u)}
+                            >
+                              <UserMinus size={14} />
+                              {t("warehouses.revokeAccess")}
+                            </Button>
+                          )}
+                        </Table.Cell>
+                      </Table.Row>
+                    );
+                  })}
+                </Table.Body>
+              </Table.Root>
+            </TableScroll>
           )}
         </Box>
       </Stack>

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ChangePasswordRequest, ChangePasswordResponse, CreateUserRequest, CreateUserResponse, IssuePasswordResetTokenRequest, IssuePasswordResetTokenResponse, ListUsersRequest, ListUsersResponse, RedeemPasswordResetTokenRequest, RedeemPasswordResetTokenResponse, ResolveUsersRequest, ResolveUsersResponse, SearchUsersRequest, SearchUsersResponse, SetUserActiveRequest, SetUserActiveResponse, UpdateUserRoleRequest, UpdateUserRoleResponse } from "./users_pb.js";
+import { ChangePasswordRequest, ChangePasswordResponse, CreateUserRequest, CreateUserResponse, DeleteAvatarRequest, DeleteAvatarResponse, GetAvatarRequest, GetAvatarResponse, IssuePasswordResetTokenRequest, IssuePasswordResetTokenResponse, ListUsersRequest, ListUsersResponse, RedeemPasswordResetTokenRequest, RedeemPasswordResetTokenResponse, ResolveUsersRequest, ResolveUsersResponse, SearchUsersRequest, SearchUsersResponse, SetUserActiveRequest, SetUserActiveResponse, UpdateUserRoleRequest, UpdateUserRoleResponse, UploadAvatarRequest, UploadAvatarResponse } from "./users_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -36,10 +36,14 @@ export const UserService = {
       kind: MethodKind.Unary,
     },
     /**
-     * Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
-     * PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
-     * prescriptions). Returns only the minimal UserRef {id,name,email} that
-     * ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
+     * Server-side fuzzy search over ACTIVE users only — a deactivated account is
+     * never a valid pick for any of these surfaces. OWNER for the warehouse-detail
+     * "Add user" picker; PHARMACIST + APOTEKER for the resep "doctor / penerbit"
+     * picker (they author prescriptions). Returns the same UserRef that
+     * ResolveUsers exposes — which now carries `role` and `avatar_updated_at`
+     * alongside the name, so a picker can render a face and a role badge. Neither
+     * is sensitive: avatar bytes are already readable by any signed-in user via
+     * GetAvatar, and staff roles are visible in the shop.
      *
      * @generated from rpc user_iface.v1.UserService.SearchUsers
      */
@@ -83,6 +87,40 @@ export const UserService = {
       name: "ChangePassword",
       I: ChangePasswordRequest,
       O: ChangePasswordResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Profile picture. Upload/Delete are SELF-ONLY by construction — neither
+     * request carries a user_id, so there is no "edit someone else's avatar" path
+     * to guard. GetAvatar takes an id because any signed-in user may see a
+     * colleague's picture (user lists, the order-history "Created by" column);
+     * it returns bytes only, never anything the caller can't already see.
+     * All three are authenticated-only (no allowed_roles = every role).
+     *
+     * @generated from rpc user_iface.v1.UserService.UploadAvatar
+     */
+    uploadAvatar: {
+      name: "UploadAvatar",
+      I: UploadAvatarRequest,
+      O: UploadAvatarResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc user_iface.v1.UserService.GetAvatar
+     */
+    getAvatar: {
+      name: "GetAvatar",
+      I: GetAvatarRequest,
+      O: GetAvatarResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc user_iface.v1.UserService.DeleteAvatar
+     */
+    deleteAvatar: {
+      name: "DeleteAvatar",
+      I: DeleteAvatarRequest,
+      O: DeleteAvatarResponse,
       kind: MethodKind.Unary,
     },
     /**

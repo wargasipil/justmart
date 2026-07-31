@@ -46,8 +46,15 @@ service ProductDiscountService {
   }
 }
 
-message ListProductDiscountsRequest { string product_id = 1; }
-message ListProductDiscountsResponse { repeated ProductDiscount discounts = 1; }
+message ListProductDiscountsRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListProductDiscountsResponse {
+  repeated ProductDiscount discounts = 1;
+  int32 total = 2; // all discounts for the product, ignoring the page window
+}
 
 message CreateProductDiscountRequest {
   string product_id = 1;

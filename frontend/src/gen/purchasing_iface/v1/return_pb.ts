@@ -365,6 +365,16 @@ export class ListPurchaseReturnsRequest extends Message<ListPurchaseReturnsReque
    */
   purchaseOrderId = "";
 
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListPurchaseReturnsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -374,6 +384,8 @@ export class ListPurchaseReturnsRequest extends Message<ListPurchaseReturnsReque
   static readonly typeName = "purchasing_iface.v1.ListPurchaseReturnsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "purchase_order_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListPurchaseReturnsRequest {
@@ -402,6 +414,11 @@ export class ListPurchaseReturnsResponse extends Message<ListPurchaseReturnsResp
    */
   returns: PurchaseReturn[] = [];
 
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListPurchaseReturnsResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -411,6 +428,7 @@ export class ListPurchaseReturnsResponse extends Message<ListPurchaseReturnsResp
   static readonly typeName = "purchasing_iface.v1.ListPurchaseReturnsResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "returns", kind: "message", T: PurchaseReturn, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListPurchaseReturnsResponse {

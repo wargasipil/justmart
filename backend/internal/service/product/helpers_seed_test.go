@@ -55,6 +55,39 @@ func seedRestockLast(t *testing.T, db *gorm.DB, warehouseID, productID, supplier
 	}).Error)
 }
 
+// seedOpenPOItem inserts a SENT purchase order carrying one line for the product,
+// so the on-order enrich (qty + valuation) has data. `subtotal` is the line NET
+// (post-discount) and `unitCost` the gross per-base rate — pass them apart to
+// exercise the discounted case. Returns the purchase order id.
+func seedOpenPOItem(
+	t *testing.T,
+	db *gorm.DB,
+	productID, supplierID, warehouseID, userID string,
+	orderedQty, receivedQty int32,
+	unitCost, subtotal int64,
+) string {
+	t.Helper()
+	po := model.PurchaseOrder{
+		SupplierID:   supplierID,
+		Status:       "SENT",
+		Subtotal:     subtotal,
+		OrderedTotal: subtotal,
+		CreatedBy:    userID,
+		WarehouseID:  warehouseID,
+	}
+	require.NoError(t, db.Create(&po).Error)
+	require.NoError(t, db.Create(&model.PurchaseOrderItem{
+		PurchaseOrderID: po.ID,
+		ProductID:       productID,
+		OrderedQty:      orderedQty,
+		ReceivedQty:     receivedQty,
+		UnitCostPrice:   unitCost,
+		Subtotal:        subtotal,
+		UnitFactor:      1,
+	}).Error)
+	return po.ID
+}
+
 // seedBatchWithStock inserts a batch for the product plus one PURCHASE stock
 // movement of `qty` base units in the given warehouse, so stock-aggregating
 // reads (GetProduct, ListLowStock) see real on-hand quantity. Returns batch id.

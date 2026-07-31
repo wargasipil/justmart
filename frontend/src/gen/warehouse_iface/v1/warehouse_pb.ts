@@ -898,6 +898,16 @@ export class ListUserWarehousesRequest extends Message<ListUserWarehousesRequest
    */
   query = "";
 
+  /**
+   * @generated from field: int32 limit = 3;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 4;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListUserWarehousesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -908,6 +918,8 @@ export class ListUserWarehousesRequest extends Message<ListUserWarehousesRequest
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUserWarehousesRequest {
@@ -943,6 +955,13 @@ export class ListUserWarehousesResponse extends Message<ListUserWarehousesRespon
    */
   warehouses: Warehouse[] = [];
 
+  /**
+   * all memberships, ignoring the page window
+   *
+   * @generated from field: int32 total = 3;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListUserWarehousesResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -953,6 +972,7 @@ export class ListUserWarehousesResponse extends Message<ListUserWarehousesRespon
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "memberships", kind: "message", T: UserWarehouseMembership, repeated: true },
     { no: 2, name: "warehouses", kind: "message", T: Warehouse, repeated: true },
+    { no: 3, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUserWarehousesResponse {

@@ -147,6 +147,16 @@ export class ListUnitBasesRequest extends Message<ListUnitBasesRequest> {
    */
   includeInactive = false;
 
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListUnitBasesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -156,6 +166,8 @@ export class ListUnitBasesRequest extends Message<ListUnitBasesRequest> {
   static readonly typeName = "unit_iface.v1.ListUnitBasesRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "include_inactive", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUnitBasesRequest {
@@ -184,6 +196,11 @@ export class ListUnitBasesResponse extends Message<ListUnitBasesResponse> {
    */
   bases: UnitBase[] = [];
 
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListUnitBasesResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -193,6 +210,7 @@ export class ListUnitBasesResponse extends Message<ListUnitBasesResponse> {
   static readonly typeName = "unit_iface.v1.ListUnitBasesResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "bases", kind: "message", T: UnitBase, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUnitBasesResponse {

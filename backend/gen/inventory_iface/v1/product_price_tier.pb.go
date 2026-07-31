@@ -139,6 +139,8 @@ func (x *ProductPriceTier) GetCreatedAt() int64 {
 type ListProductPriceTiersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,9 +182,24 @@ func (x *ListProductPriceTiersRequest) GetProductId() string {
 	return ""
 }
 
+func (x *ListProductPriceTiersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListProductPriceTiersRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListProductPriceTiersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Tiers         []*ProductPriceTier    `protobuf:"bytes,1,rep,name=tiers,proto3" json:"tiers,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"` // all tiers for the product, ignoring the page window
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -222,6 +239,13 @@ func (x *ListProductPriceTiersResponse) GetTiers() []*ProductPriceTier {
 		return x.Tiers
 	}
 	return nil
+}
+
+func (x *ListProductPriceTiersResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type CreateProductPriceTierRequest struct {
@@ -544,12 +568,15 @@ const file_inventory_iface_v1_product_price_tier_proto_rawDesc = "" +
 	"\amin_qty\x18\x06 \x01(\x05R\x06minQty\x12\x14\n" +
 	"\x05price\x18\a \x01(\x03R\x05price\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\x03R\tcreatedAt\"=\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\"k\n" +
 	"\x1cListProductPriceTiersRequest\x12\x1d\n" +
 	"\n" +
-	"product_id\x18\x01 \x01(\tR\tproductId\"[\n" +
+	"product_id\x18\x01 \x01(\tR\tproductId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"q\n" +
 	"\x1dListProductPriceTiersResponse\x12:\n" +
-	"\x05tiers\x18\x01 \x03(\v2$.inventory_iface.v1.ProductPriceTierR\x05tiers\"\x95\x01\n" +
+	"\x05tiers\x18\x01 \x03(\v2$.inventory_iface.v1.ProductPriceTierR\x05tiers\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\x95\x01\n" +
 	"\x1dCreateProductPriceTierRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12&\n" +

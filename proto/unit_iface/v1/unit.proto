@@ -58,8 +58,15 @@ service UnitService {
   }
 }
 
-message ListUnitBasesRequest { bool include_inactive = 1; }
-message ListUnitBasesResponse { repeated UnitBase bases = 1; }
+message ListUnitBasesRequest {
+  bool include_inactive = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListUnitBasesResponse {
+  repeated UnitBase bases = 1;
+  int32 total = 2;
+}
 
 message CreateUnitBaseRequest { string name = 1; }
 message CreateUnitBaseResponse { UnitBase base = 1; }

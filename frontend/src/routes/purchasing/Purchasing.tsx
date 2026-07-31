@@ -41,12 +41,8 @@ export default function Purchasing() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={
-          isSubpage
-            ? [{ label: t("purchasing.title"), to: "/purchasing" }]
-            : [{ label: t("purchasing.title") }]
-        }
         title={t("purchasing.title")}
+        description={t("purchasing.description")}
       />
       <Stack gap={4}>
         {!isSubpage && <RouteTabs items={tabs} />}

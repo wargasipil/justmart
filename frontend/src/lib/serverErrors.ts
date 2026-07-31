@@ -30,6 +30,18 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "price_agreement.supplier_missing": { field: "supplierId", i18nKey: "serverErrors.priceAgreement.supplierMissing" },
   "price_agreement.product_missing": { field: "productId", i18nKey: "serverErrors.priceAgreement.productMissing" },
   "price_agreement.exists": { field: "productUnitId", i18nKey: "serverErrors.priceAgreement.exists" },
+  // avatar (profile picture upload)
+  "avatar.image_required": { i18nKey: "serverErrors.avatar.imageRequired" },
+  "avatar.thumb_required": { i18nKey: "serverErrors.avatar.thumbRequired" },
+  "avatar.image_too_large": { i18nKey: "serverErrors.avatar.imageTooLarge" },
+  "avatar.thumb_too_large": { i18nKey: "serverErrors.avatar.thumbTooLarge" },
+  "avatar.content_type_invalid": { i18nKey: "serverErrors.avatar.contentTypeInvalid" },
+  // product image (catalog photo upload)
+  "product_image.image_required": { i18nKey: "serverErrors.productImage.imageRequired" },
+  "product_image.thumb_required": { i18nKey: "serverErrors.productImage.thumbRequired" },
+  "product_image.image_too_large": { i18nKey: "serverErrors.productImage.imageTooLarge" },
+  "product_image.thumb_too_large": { i18nKey: "serverErrors.productImage.thumbTooLarge" },
+  "product_image.content_type_invalid": { i18nKey: "serverErrors.productImage.contentTypeInvalid" },
   // product discount
   "product_discount.product_missing": { i18nKey: "serverErrors.productDiscount.productMissing" },
   "product_discount.value_invalid": { field: "value", i18nKey: "serverErrors.productDiscount.valueInvalid" },

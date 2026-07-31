@@ -45,8 +45,14 @@ service BackupService {
 message CreateBackupRequest {}
 message CreateBackupResponse { Backup backup = 1; }
 
-message ListBackupsRequest {}
-message ListBackupsResponse { repeated Backup backups = 1; }
+message ListBackupsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+message ListBackupsResponse {
+  repeated Backup backups = 1;
+  int32 total = 2;
+}
 
 message DeleteBackupRequest { string name = 1; }
 message DeleteBackupResponse {}

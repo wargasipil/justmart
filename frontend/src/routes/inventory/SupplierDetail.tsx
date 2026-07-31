@@ -4,10 +4,12 @@ import { Archive, ArchiveRestore, Pencil, Plus, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import { formatDiscount, formatMoney, formatUnixOrDash } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
@@ -27,6 +29,7 @@ export default function SupplierDetail() {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const supQ = useSupplierQuery(id);
+  useCrumbLabel(supQ.data?.name);
   const archive = useArchiveSupplierMutation();
   const unarchive = useUnarchiveSupplierMutation();
   const [editing, setEditing] = useState(false);
@@ -87,8 +90,8 @@ export default function SupplierDetail() {
     <Box>
       <BackButton to="/inventory/suppliers" />
       <PageHeader
-        breadcrumbs={[{ label: t("inventory.suppliers.title"), to: "/inventory/suppliers" }, { label: sup.name }]}
         title={sup.name}
+        description={t("inventory.suppliers.detailDescription")}
         actions={
           <HStack>
             <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
@@ -156,8 +159,8 @@ export default function SupplierDetail() {
                 />
               </Box>
             </HStack>
-            <Box overflowX="auto">
-              <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+            <TableScroll maxH={TABLE_MAX_H_NESTED}>
+              <Table.Root size="sm" stickyHeader>
                 <Table.Header bg="bg.muted">
                   <Table.Row>
                     <Table.ColumnHeader>{t("inventory.suppliers.restockProduct")}</Table.ColumnHeader>
@@ -193,7 +196,7 @@ export default function SupplierDetail() {
                   )}
                 </Table.Body>
               </Table.Root>
-            </Box>
+            </TableScroll>
             <Pagination
               page={page}
               pageSize={pageSize}
@@ -260,8 +263,8 @@ function PriceAgreementsSection({ supplierId }: { supplierId: string }) {
           {t("inventory.priceAgreements.addTitle")}
         </Button>
       </HStack>
-      <Box overflowX="auto">
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+      <TableScroll maxH={TABLE_MAX_H_NESTED}>
+        <Table.Root size="sm" stickyHeader>
           <Table.Header bg="bg.muted">
             <Table.Row>
               <Table.ColumnHeader>{t("inventory.priceAgreements.product")}</Table.ColumnHeader>
@@ -315,7 +318,7 @@ function PriceAgreementsSection({ supplierId }: { supplierId: string }) {
             )}
           </Table.Body>
         </Table.Root>
-      </Box>
+      </TableScroll>
       <Pagination page={page} pageSize={pageSize} total={q.total} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
       <PriceAgreementDrawer

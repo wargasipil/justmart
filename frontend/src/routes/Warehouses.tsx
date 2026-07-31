@@ -17,6 +17,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
 import WarehouseDrawer from "../components/WarehouseDrawer";
+import TableScroll from "../components/TableScroll";
 import type { Warehouse } from "../gen/warehouse_iface/v1/warehouse_pb";
 import { usePageState } from "../lib/pagination";
 import { toast } from "../lib/toaster";
@@ -60,8 +61,8 @@ export default function Warehouses() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[{ label: t("warehouses.title") }]}
         title={t("warehouses.title")}
+        description={t("warehouses.description")}
         actions={
           <Button colorPalette="blue" onClick={() => setCreateOpen(true)}>
             <Plus size={16} />
@@ -87,83 +88,85 @@ export default function Warehouses() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("warehouses.code")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("warehouses.name")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("warehouses.address")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("warehouses.phone")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {warehousesQ.rows.map((w) => (
-              <Table.Row
-                key={w.id}
-                cursor="pointer"
-                _hover={{ bg: "bg.muted" }}
-                onClick={() => navigate(`/warehouses/${w.id}`)}
-              >
-                <Table.Cell fontFamily="mono">
-                  <HStack gap={2}>
-                    <Text>{w.code}</Text>
-                    {w.isDefault && (
-                      <Badge size="xs" colorPalette="blue">
-                        {t("warehouses.default")}
-                      </Badge>
-                    )}
-                  </HStack>
-                </Table.Cell>
-                <Table.Cell>{w.name}</Table.Cell>
-                <Table.Cell>{w.address}</Table.Cell>
-                <Table.Cell>{w.phone}</Table.Cell>
-                <Table.Cell>{w.active ? t("common.yes") : t("common.no")}</Table.Cell>
-                <Table.Cell onClick={(e) => e.stopPropagation()}>
-                  <HStack gap={1}>
-                    <Button size="xs" variant="ghost" onClick={() => setEditing(w)}>
-                      <Pencil size={14} />
-                      {t("common.edit")}
-                    </Button>
-                    {w.active && !w.isDefault && (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        colorPalette="blue"
-                        onClick={() => setPendingDefault(w)}
-                        loading={setGlobalDefault.isPending}
-                      >
-                        <Star size={14} />
-                        {t("warehouses.setAsDefault")}
-                      </Button>
-                    )}
-                    {w.active && !w.isDefault && (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        colorPalette="red"
-                        onClick={() => archive.mutate(w.id)}
-                      >
-                        <Archive size={14} />
-                        {t("common.archive")}
-                      </Button>
-                    )}
-                  </HStack>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-            {warehousesQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={6}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("warehouses.code")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("warehouses.name")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("warehouses.address")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("warehouses.phone")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {warehousesQ.rows.map((w) => (
+                <Table.Row
+                  key={w.id}
+                  cursor="pointer"
+                  _hover={{ bg: "bg.muted" }}
+                  onClick={() => navigate(`/warehouses/${w.id}`)}
+                >
+                  <Table.Cell fontFamily="mono">
+                    <HStack gap={2}>
+                      <Text>{w.code}</Text>
+                      {w.isDefault && (
+                        <Badge size="xs" colorPalette="blue">
+                          {t("warehouses.default")}
+                        </Badge>
+                      )}
+                    </HStack>
+                  </Table.Cell>
+                  <Table.Cell>{w.name}</Table.Cell>
+                  <Table.Cell>{w.address}</Table.Cell>
+                  <Table.Cell>{w.phone}</Table.Cell>
+                  <Table.Cell>{w.active ? t("common.yes") : t("common.no")}</Table.Cell>
+                  <Table.Cell onClick={(e) => e.stopPropagation()}>
+                    <HStack gap={1}>
+                      <Button size="xs" variant="ghost" onClick={() => setEditing(w)}>
+                        <Pencil size={14} />
+                        {t("common.edit")}
+                      </Button>
+                      {w.active && !w.isDefault && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorPalette="blue"
+                          onClick={() => setPendingDefault(w)}
+                          loading={setGlobalDefault.isPending}
+                        >
+                          <Star size={14} />
+                          {t("warehouses.setAsDefault")}
+                        </Button>
+                      )}
+                      {w.active && !w.isDefault && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorPalette="red"
+                          onClick={() => archive.mutate(w.id)}
+                        >
+                          <Archive size={14} />
+                          {t("common.archive")}
+                        </Button>
+                      )}
+                    </HStack>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+              {warehousesQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={6}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Box mt={3}>

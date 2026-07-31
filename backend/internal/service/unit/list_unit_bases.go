@@ -4,25 +4,42 @@ import (
 	"context"
 
 	"connectrpc.com/connect"
+	"gorm.io/gorm"
 
 	unitifacev1 "github.com/justmart/backend/gen/unit_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (u *UnitService) ListUnitBases(
 	ctx context.Context,
 	req *connect.Request[unitifacev1.ListUnitBasesRequest],
 ) (*connect.Response[unitifacev1.ListUnitBasesResponse], error) {
-	var bases []model.UnitBase
-	q := u.db.WithContext(ctx).Order("name")
-	if !req.Msg.IncludeInactive {
-		q = q.Where("active")
+	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
+
+	// One filter closure feeds both the count and the page, so the two can't drift.
+	// Only BASES are paged; each base's derivatives are hydrated in full below,
+	// since a base without its full derivative set is a broken row, not a page.
+	applyFilters := func(q *gorm.DB) *gorm.DB {
+		q = q.Model(&model.UnitBase{})
+		if !req.Msg.IncludeInactive {
+			q = q.Where("active")
+		}
+		return q
 	}
-	if err := q.Find(&bases).Error; err != nil {
+	var total int64
+	if err := applyFilters(u.db.WithContext(ctx)).Count(&total).Error; err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	var bases []model.UnitBase
+	if err := applyFilters(u.db.WithContext(ctx)).
+		Order("name, id").
+		Offset(offset).Limit(limit).
+		Find(&bases).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	if len(bases) == 0 {
-		return connect.NewResponse(&unitifacev1.ListUnitBasesResponse{}), nil
+		return connect.NewResponse(&unitifacev1.ListUnitBasesResponse{Total: int32(total)}), nil
 	}
 	ids := make([]string, 0, len(bases))
 	for _, b := range bases {
@@ -52,5 +69,8 @@ func (u *UnitService) ListUnitBases(
 			Derivatives: byBase[b.ID],
 		})
 	}
-	return connect.NewResponse(&unitifacev1.ListUnitBasesResponse{Bases: out}), nil
+	return connect.NewResponse(&unitifacev1.ListUnitBasesResponse{
+		Bases: out,
+		Total: int32(total),
+	}), nil
 }

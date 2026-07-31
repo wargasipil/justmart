@@ -66,8 +66,15 @@ message CreatePurchaseReturnRequest {
 }
 message CreatePurchaseReturnResponse { PurchaseReturn purchase_return = 1; }
 
-message ListPurchaseReturnsRequest { string purchase_order_id = 1; }
-message ListPurchaseReturnsResponse { repeated PurchaseReturn returns = 1; }
+message ListPurchaseReturnsRequest {
+  string purchase_order_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListPurchaseReturnsResponse {
+  repeated PurchaseReturn returns = 1;
+  int32 total = 2;
+}
 
 message GetPurchaseReturnRequest { string id = 1; }
 message GetPurchaseReturnResponse { PurchaseReturn purchase_return = 1; }

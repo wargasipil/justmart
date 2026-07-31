@@ -22,6 +22,7 @@ import FormField from "../../components/FormField";
 import ExportButton from "../../components/ExportButton";
 import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll from "../../components/TableScroll";
 import { searchBatches } from "../../queries/batches";
 import { MovementType } from "../../gen/inventory_iface/v1/stock_pb";
 import { downloadCsv } from "../../lib/csv";
@@ -178,42 +179,44 @@ export default function Movements() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("inventory.movements.when")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.movements.batch")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.movements.type")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.movements.qty")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.movements.reason")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {movementsQ.rows.map((m) => {
-              const ref = batchRefs.get(m.batchId);
-              return (
-                <Table.Row key={m.id}>
-                  <Table.Cell>{formatUnix(m.createdAt)}</Table.Cell>
-                  <Table.Cell>
-                    {ref?.productName ?? "—"} · {ref?.batchNumber || "—"}
-                  </Table.Cell>
-                  <Table.Cell>{t(`inventory.movements.types.${typeKey(m.type)}`)}</Table.Cell>
-                  <Table.Cell>{m.qty > 0 ? `+${m.qty}` : m.qty}</Table.Cell>
-                  <Table.Cell>{m.reason}</Table.Cell>
-                </Table.Row>
-              );
-            })}
-            {movementsQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={5}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("inventory.movements.when")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.movements.batch")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.movements.type")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.movements.qty")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.movements.reason")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {movementsQ.rows.map((m) => {
+                const ref = batchRefs.get(m.batchId);
+                return (
+                  <Table.Row key={m.id}>
+                    <Table.Cell>{formatUnix(m.createdAt)}</Table.Cell>
+                    <Table.Cell>
+                      {ref?.productName ?? "—"} · {ref?.batchNumber || "—"}
+                    </Table.Cell>
+                    <Table.Cell>{t(`inventory.movements.types.${typeKey(m.type)}`)}</Table.Cell>
+                    <Table.Cell>{m.qty > 0 ? `+${m.qty}` : m.qty}</Table.Cell>
+                    <Table.Cell>{m.reason}</Table.Cell>
+                  </Table.Row>
+                );
+              })}
+              {movementsQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={5}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Pagination

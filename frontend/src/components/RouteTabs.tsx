@@ -1,6 +1,8 @@
 import { Tabs } from "@chakra-ui/react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import type { TabsOrientation } from "../lib/tabs";
+
 // URL-driven tabs that look and behave like Chakra v3's `Tabs.Root` (default
 // `variant="line"` — underline on active). Each tab is a `react-router-dom`
 // route under an `<Outlet/>` rendered by the parent page. The active state is
@@ -29,11 +31,20 @@ export type RouteTabItem = {
 
 export type RouteTabsProps = {
   items: RouteTabItem[];
+  /**
+   * `"vertical"` renders a left-hand rail instead of a strip; the caller then
+   * lays the `<Outlet/>` out BESIDE it (see `routes/Settings.tsx`). Resolve it
+   * with `useTabsOrientation()` rather than hard-coding `"vertical"`, so the
+   * rail degrades to a strip on a narrow viewport where it would not fit.
+   * Defaults to the horizontal strip.
+   */
+  orientation?: TabsOrientation;
 };
 
-export default function RouteTabs({ items }: RouteTabsProps) {
+export default function RouteTabs({ items, orientation = "horizontal" }: RouteTabsProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const vertical = orientation === "vertical";
 
   // Pick the tab whose `to` is the LONGEST prefix of the current pathname.
   // This avoids the wrong tab lighting up when one tab's path is itself a
@@ -46,6 +57,7 @@ export default function RouteTabs({ items }: RouteTabsProps) {
 
   return (
     <Tabs.Root
+      orientation={orientation}
       value={activeValue}
       variant="line"
       onValueChange={(d) => {
@@ -55,9 +67,23 @@ export default function RouteTabs({ items }: RouteTabsProps) {
         if (to && d.value !== activeValue) navigate(to);
       }}
     >
-      <Tabs.List>
+      {/* Triggers never shrink: squeezing them overlaps the labels (a strip of
+          8 status tabs, or one holding "Default warehouse", does not fit a
+          phone). The strip scrolls instead. A vertical rail is a fixed-width
+          column, so it neither shrinks nor scrolls. */}
+      <Tabs.List
+        minW={vertical ? "180px" : undefined}
+        flexShrink={0}
+        overflowX={vertical ? undefined : "auto"}
+      >
         {items.map((it) => (
-          <Tabs.Trigger key={it.value} value={it.value}>
+          <Tabs.Trigger
+            key={it.value}
+            value={it.value}
+            flexShrink={0}
+            justifyContent={vertical ? "flex-start" : undefined}
+            w={vertical ? "full" : undefined}
+          >
             {it.label}
           </Tabs.Trigger>
         ))}

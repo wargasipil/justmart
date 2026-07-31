@@ -29,7 +29,6 @@ export default function Branches() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[{ label: t("branches.title") }]}
         title={t("branches.title")}
         actions={
           <Button colorPalette="blue" onClick={() => setCreateOpen(true)}>

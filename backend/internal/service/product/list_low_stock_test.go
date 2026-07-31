@@ -2,6 +2,7 @@ package product_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -38,6 +39,49 @@ func TestListLowStock_ReturnsBelowThreshold(t *testing.T) {
 	require.Contains(t, got, lowID)
 	require.Equal(t, int64(3), got[lowID].ReadyStock)
 	require.NotContains(t, got, highID) // above threshold, excluded
+}
+
+// `total` is the FULL match count, not the page length — the TopBar bell badge
+// reads it, and it previously reported len(products) under a hard Limit(100).
+func TestListLowStock_PaginatesAndTotalIgnoresWindow(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+	whID := defaultWarehouseID(t, gormDB)
+
+	// 5 products under the default threshold of 10.
+	for i := 0; i < 5; i++ {
+		pid := seedProduct(t, svc, ctx, fmt.Sprintf("SKU-LOWPAGE-%d", i), fmt.Sprintf("LowPaged %d", i), 1000)
+		seedBatchWithStock(t, gormDB, pid, whID, ownerID, int32(i+1), 500)
+	}
+
+	page := func(limit, offset int32) *inventoryifacev1.ListLowStockResponse {
+		t.Helper()
+		resp, err := svc.ListLowStock(ctx, connect.NewRequest(
+			&inventoryifacev1.ListLowStockRequest{Limit: limit, Offset: offset}))
+		require.NoError(t, err)
+		return resp.Msg
+	}
+
+	first := page(2, 0)
+	require.Equal(t, int32(5), first.Total) // the badge count, not the page size
+	require.Len(t, first.Products, 2)
+	require.Equal(t, int32(10), first.Threshold)
+	// Ordered by ready ASC, so the emptiest lands first.
+	require.Equal(t, int64(1), first.Products[0].ReadyStock)
+
+	seen := map[string]bool{}
+	for off := int32(0); off < first.Total; off += 2 {
+		pg := page(2, off)
+		require.Equal(t, first.Total, pg.Total)
+		for _, p := range pg.Products {
+			require.False(t, seen[p.Id], "product %s appeared on two pages", p.Sku)
+			seen[p.Id] = true
+		}
+	}
+	require.Len(t, seen, 5)
 }
 
 func TestListLowStock_Unauthenticated(t *testing.T) {

@@ -20,6 +20,7 @@ import EnumSelect from "../../components/EnumSelect";
 import MoneyInput from "../../components/MoneyInput";
 import PageHeader from "../../components/PageHeader";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { toast } from "../../lib/toaster";
 import { useCreatePriceAgreementsMutation } from "../../queries/priceAgreements";
@@ -131,11 +132,8 @@ export default function NewPriceAgreement() {
   return (
     <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={5}>
       <PageHeader
-        breadcrumbs={[
-          { label: t("nav.priceAgreements"), to: "/inventory/price-agreements" },
-          { label: t("inventory.priceAgreements.newTitle") },
-        ]}
         title={t("inventory.priceAgreements.newTitle")}
+        description={t("inventory.priceAgreements.newDescription")}
       />
       <Stack gap={4}>
         <Flex gap={3} wrap="wrap">
@@ -164,8 +162,8 @@ export default function NewPriceAgreement() {
               {t("inventory.priceAgreements.addLine")}
             </Button>
           </HStack>
-          <Box overflowX="auto">
-            <Table.Root size="sm">
+          <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+            <Table.Root size="sm" stickyHeader>
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader minW="240px">{t("inventory.priceAgreements.product")}</Table.ColumnHeader>
@@ -262,7 +260,7 @@ export default function NewPriceAgreement() {
                 ))}
               </Table.Body>
             </Table.Root>
-          </Box>
+          </TableScroll>
         </Box>
 
         <HStack justify="flex-end" gap={2} pt={2}>

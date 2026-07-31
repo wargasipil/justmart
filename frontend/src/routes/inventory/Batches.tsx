@@ -18,13 +18,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import DateRangeFilter from "../../components/DateRangeFilter";
-import EnumSelect from "../../components/EnumSelect";
 import EntityDrawer from "../../components/EntityDrawer";
 import ExpiryBadge from "../../components/ExpiryBadge";
 import ImportStockDialog from "./ImportStockDialog";
 import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll from "../../components/TableScroll";
 import { searchProducts } from "../../queries/products";
 import { searchSuppliers } from "../../queries/suppliers";
 import { resolveRange, type DateRange } from "../../lib/dateRange";
@@ -55,12 +55,18 @@ export default function Batches() {
     const h = setTimeout(() => setQuery(searchInput.trim()), 250);
     return () => clearTimeout(h);
   }, [searchInput]);
-  const [dateField, setDateField] = useState<"off" | "received" | "expiry">("off");
+  // "" = Any date (the picker's own off state) — send no bounds at all then.
+  const [dateField, setDateField] = useState("");
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
-  const useRange = dateField !== "off";
+  const dateFields = [
+    { value: "received", label: t("inventory.batches.byReceived") },
+    { value: "expiry", label: t("inventory.batches.byExpiry") },
+  ];
+  const fromUnix = dateField ? range.fromUnix : 0;
+  const toUnix = dateField ? range.toUnix : 0;
   const [supplierId, setSupplierId] = useState("");
   const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${query}|${dateField}|${useRange ? range.fromUnix : 0}|${useRange ? range.toUnix : 0}|${supplierId}`,
+    `${query}|${dateField}|${fromUnix}|${toUnix}|${supplierId}`,
   );
   const batchesQ = useBatchesQuery({
     // Scope rows to the active warehouse: only lots with stock here (backend
@@ -68,9 +74,9 @@ export default function Batches() {
     onlyInStock: true,
     query,
     supplierId,
-    dateField: useRange ? dateField : "",
-    fromUnix: useRange ? range.fromUnix : 0,
-    toUnix: useRange ? range.toUnix : 0,
+    dateField,
+    fromUnix,
+    toUnix,
     page,
     pageSize,
   });
@@ -109,20 +115,13 @@ export default function Batches() {
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </Box>
-          <EnumSelect
-            size="sm"
-            width="150px"
-            value={dateField}
-            onChange={(v) => setDateField(v as "off" | "received" | "expiry")}
-            items={[
-              { value: "off", label: t("common.anyDate") },
-              { value: "received", label: t("inventory.batches.byReceived") },
-              { value: "expiry", label: t("inventory.batches.byExpiry") },
-            ]}
-            itemToString={(o) => o.label}
-            itemToValue={(o) => o.value}
+          <DateRangeFilter
+            value={range}
+            onChange={setRange}
+            fields={dateFields}
+            field={dateField}
+            onFieldChange={setDateField}
           />
-          {useRange && <DateRangeFilter value={range} onChange={setRange} />}
           <Box width="200px">
             <SearchableSelect
               size="sm"
@@ -160,63 +159,65 @@ export default function Batches() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("inventory.batches.product")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.batches.batchNumber")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.batches.supplier")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.batches.expiry")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.batches.cost")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.batches.qty")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.batches.po")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {batchesQ.rows.map((b) => (
-              <Table.Row key={b.id}>
-                <Table.Cell>{medRefs.get(b.productId)?.name ?? "—"}</Table.Cell>
-                <Table.Cell>{b.batchNumber || "—"}</Table.Cell>
-                <Table.Cell>
-                  {b.supplierId
-                    ? (() => {
-                        const s = supplierRefs.get(b.supplierId);
-                        return s ? `${s.code} · ${s.name}` : "—";
-                      })()
-                    : "—"}
-                </Table.Cell>
-                <Table.Cell>
-                  <HStack gap={2}>
-                    <Text>{b.expiryDate}</Text>
-                    <ExpiryBadge expiry={b.expiryDate} />
-                  </HStack>
-                </Table.Cell>
-                <Table.Cell>{formatMoney(b.costPrice)}</Table.Cell>
-                <Table.Cell>{String(b.currentQuantity)}</Table.Cell>
-                <Table.Cell fontFamily="mono">
-                  {b.purchaseOrderId ? (
-                    <ChakraLink asChild colorPalette="blue">
-                      <RouterLink to={`/purchasing/${b.purchaseOrderId}`}>
-                        {b.poNo || b.purchaseOrderId.slice(0, 8)}
-                      </RouterLink>
-                    </ChakraLink>
-                  ) : (
-                    <Text color="fg.muted">—</Text>
-                  )}
-                </Table.Cell>
-              </Table.Row>
-            ))}
-            {batchesQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={7}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("inventory.batches.product")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.batches.batchNumber")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.batches.supplier")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.batches.expiry")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.batches.cost")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.batches.qty")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.batches.po")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {batchesQ.rows.map((b) => (
+                <Table.Row key={b.id}>
+                  <Table.Cell>{medRefs.get(b.productId)?.name ?? "—"}</Table.Cell>
+                  <Table.Cell>{b.batchNumber || "—"}</Table.Cell>
+                  <Table.Cell>
+                    {b.supplierId
+                      ? (() => {
+                          const s = supplierRefs.get(b.supplierId);
+                          return s ? `${s.code} · ${s.name}` : "—";
+                        })()
+                      : "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <HStack gap={2}>
+                      <Text>{b.expiryDate}</Text>
+                      <ExpiryBadge expiry={b.expiryDate} />
+                    </HStack>
+                  </Table.Cell>
+                  <Table.Cell>{formatMoney(b.costPrice)}</Table.Cell>
+                  <Table.Cell>{String(b.currentQuantity)}</Table.Cell>
+                  <Table.Cell fontFamily="mono">
+                    {b.purchaseOrderId ? (
+                      <ChakraLink asChild colorPalette="blue">
+                        <RouterLink to={`/purchasing/${b.purchaseOrderId}`}>
+                          {b.poNo || b.purchaseOrderId.slice(0, 8)}
+                        </RouterLink>
+                      </ChakraLink>
+                    ) : (
+                      <Text color="fg.muted">—</Text>
+                    )}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+              {batchesQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={7}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Pagination

@@ -12,15 +12,21 @@ import (
 	"connectrpc.com/connect"
 
 	backupifacev1 "github.com/justmart/backend/gen/backup_iface/v1"
+	"github.com/justmart/backend/internal/service/common"
 )
 
-// ListBackups returns every backup_<timestamp>/ directory under the configured
-// backup root, newest first. Non-matching entries (files, foreign dirs) are
-// silently ignored.
+// ListBackups returns one page of the backup_<timestamp>/ directories under the
+// configured backup root, newest first. Non-matching entries (files, foreign
+// dirs) are silently ignored.
+//
+// The source is a filesystem scan, not SQL, so the page is sliced in Go after
+// the full scan + sort. That still bounds the RESPONSE, which is the point — a
+// shop that has been backing up nightly for two years has ~700 directories.
 func (s *Backups) ListBackups(
 	_ context.Context,
-	_ *connect.Request[backupifacev1.ListBackupsRequest],
+	req *connect.Request[backupifacev1.ListBackupsRequest],
 ) (*connect.Response[backupifacev1.ListBackupsResponse], error) {
+	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
 	out := &backupifacev1.ListBackupsResponse{}
 	entries, err := os.ReadDir(s.directory)
 	if err != nil {
@@ -60,8 +66,20 @@ func (s *Backups) ListBackups(
 			SchemaVersion: schemaVersion,
 		})
 	}
+	// Name is the tiebreak: two backups taken in the same second would otherwise
+	// order non-deterministically and could repeat/vanish across pages. The name
+	// carries the timestamp, so it's a stable, meaningful secondary key.
 	sort.Slice(out.Backups, func(i, j int) bool {
-		return out.Backups[i].CreatedAt > out.Backups[j].CreatedAt
+		if out.Backups[i].CreatedAt != out.Backups[j].CreatedAt {
+			return out.Backups[i].CreatedAt > out.Backups[j].CreatedAt
+		}
+		return out.Backups[i].Name > out.Backups[j].Name
 	})
+	out.Total = int32(len(out.Backups))
+	if offset >= len(out.Backups) {
+		out.Backups = nil
+	} else {
+		out.Backups = out.Backups[offset:min(offset+limit, len(out.Backups))]
+	}
 	return connect.NewResponse(out), nil
 }

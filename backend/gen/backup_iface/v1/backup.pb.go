@@ -183,6 +183,8 @@ func (x *CreateBackupResponse) GetBackup() *Backup {
 
 type ListBackupsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -217,9 +219,24 @@ func (*ListBackupsRequest) Descriptor() ([]byte, []int) {
 	return file_backup_iface_v1_backup_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *ListBackupsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListBackupsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListBackupsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Backups       []*Backup              `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -259,6 +276,13 @@ func (x *ListBackupsResponse) GetBackups() []*Backup {
 		return x.Backups
 	}
 	return nil
+}
+
+func (x *ListBackupsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type DeleteBackupRequest struct {
@@ -355,10 +379,13 @@ const file_backup_iface_v1_backup_proto_rawDesc = "" +
 	"\x0eschema_version\x18\x04 \x01(\x05R\rschemaVersion\"\x15\n" +
 	"\x13CreateBackupRequest\"G\n" +
 	"\x14CreateBackupResponse\x12/\n" +
-	"\x06backup\x18\x01 \x01(\v2\x17.backup_iface.v1.BackupR\x06backup\"\x14\n" +
-	"\x12ListBackupsRequest\"H\n" +
+	"\x06backup\x18\x01 \x01(\v2\x17.backup_iface.v1.BackupR\x06backup\"B\n" +
+	"\x12ListBackupsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\"^\n" +
 	"\x13ListBackupsResponse\x121\n" +
-	"\abackups\x18\x01 \x03(\v2\x17.backup_iface.v1.BackupR\abackups\")\n" +
+	"\abackups\x18\x01 \x03(\v2\x17.backup_iface.v1.BackupR\abackups\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\")\n" +
 	"\x13DeleteBackupRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"\x16\n" +
 	"\x14DeleteBackupResponse2\xb8\x02\n" +

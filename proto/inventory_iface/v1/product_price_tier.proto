@@ -50,8 +50,15 @@ service ProductPriceTierService {
   }
 }
 
-message ListProductPriceTiersRequest { string product_id = 1; }
-message ListProductPriceTiersResponse { repeated ProductPriceTier tiers = 1; }
+message ListProductPriceTiersRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListProductPriceTiersResponse {
+  repeated ProductPriceTier tiers = 1;
+  int32 total = 2; // all tiers for the product, ignoring the page window
+}
 
 message CreateProductPriceTierRequest {
   string product_id = 1;

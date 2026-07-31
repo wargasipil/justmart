@@ -67,34 +67,58 @@ export const GROUPS: ComponentGroup[] = [
         id: "page-header",
         name: "PageHeader",
         file: "src/components/PageHeader.tsx",
-        summary: "Every page starts with this: breadcrumbs, title, description, right-aligned actions.",
+        summary: "Every page starts with this: title, optional badge + description, right-aligned actions.",
         props: [
           { name: "title", type: "string", required: true, desc: "Page title (already localized)." },
-          { name: "breadcrumbs", type: "{ label: string; to?: string }[]", desc: "Crumb trail; `to` makes it a client-side link." },
+          { name: "titleBadge", type: "ReactNode", desc: "Inline slot right after the title — put a status Badge (active/archived) here, not in the page body." },
           { name: "description", type: "string", desc: "Muted sub-line under the title." },
           { name: "actions", type: "ReactNode", desc: "Right-aligned action buttons." },
         ],
         usage: `<PageHeader
-  breadcrumbs={[{ label: t("nav.inventory"), to: "/inventory/batches" }]}
   title={t("inventory.tabs.batches")}
   actions={<Button colorPalette="blue">{t("common.add")}</Button>}
 />`,
+        notes: "No `breadcrumbs` prop — the trail lives once in the TopBar (<Breadcrumbs/>) and is derived from the URL. A detail page contributes only its entity name, via useCrumbLabel().",
         Demo: demo.PageHeaderDemo,
+      },
+      {
+        id: "breadcrumbs",
+        name: "Breadcrumbs",
+        file: "src/components/Breadcrumbs.tsx",
+        summary: "The app-wide \"you are here\" trail. Mounted once in the TopBar — never rendered by a page.",
+        props: [
+          { name: "—", type: "no props", desc: "The trail comes from the URL via the registry in src/lib/breadcrumbs.ts." },
+        ],
+        usage: `// A new route gets a crumb by adding one entry to ROUTES in lib/breadcrumbs.ts:
+{ path: "/inventory/batches", labelKey: "inventory.tabs.batches", parent: "@inventory" }
+
+// A detail page supplies its own leaf label:
+useCrumbLabel(productQ.data?.name)`,
+        notes: "Ancestors mirror the sidebar, so a \"@\"-prefixed entry (e.g. @inventory) is a nav group with no page of its own and renders unlinked. A dynamic leaf is omitted until the page registers a name — never a raw UUID. Narrow viewports collapse to the current crumb.",
+        Demo: demo.BreadcrumbsDemo,
       },
       {
         id: "route-tabs",
         name: "RouteTabs",
         file: "src/components/RouteTabs.tsx",
-        summary: "URL-driven tab strip — one route per tab, rendered above an <Outlet/>.",
+        summary: "URL-driven tabs — one route per tab, as a strip above an <Outlet/> or a rail beside it.",
         props: [
           { name: "items", type: "{ value: string; label: string; to: string }[]", required: true, desc: "Tabs; active one is the longest `to` prefix of the current path." },
+          { name: "orientation", type: '"horizontal" | "vertical"', desc: 'Default "horizontal" (strip). "vertical" renders a left rail — lay the <Outlet/> out beside it; resolve with useTabsOrientation().' },
         ],
         usage: `<RouteTabs items={[
   { value: "daily", to: "/analytics/daily", label: t("analytics.menu.daily") },
   { value: "product", to: "/analytics/product", label: t("analytics.menu.product") },
 ]} />
-<Outlet />`,
-        notes: "Tabs are buttons, not anchors (an <a href> beat NavLink's SPA handler and full-reloaded the page). For tabs that share one route, use Chakra Tabs.Root directly.",
+<Outlet />
+
+// Vertical rail (see routes/Settings.tsx) — degrades to a strip below \`md\`:
+const orientation = useTabsOrientation();
+<Flex direction={orientation === "vertical" ? "row" : "column"} gap={6}>
+  <RouteTabs items={tabs} orientation={orientation} />
+  <Box flex="1" minW={0}><Outlet /></Box>
+</Flex>`,
+        notes: "Tabs are buttons, not anchors (an <a href> beat NavLink's SPA handler and full-reloaded the page). For tabs that share one route, use Chakra Tabs.Root directly. Triggers never shrink — a horizontal strip scrolls rather than overlapping its labels. Never hard-code orientation=\"vertical\": `useTabsOrientation()` (lib/tabs.ts) degrades it to a strip on a viewport too narrow for a rail.",
         Demo: demo.RouteTabsDemo,
       },
       {
@@ -257,6 +281,8 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "itemToString / itemToValue", type: "(item: T) => string", required: true, desc: "Label + value projections." },
           { name: "selectedLabel", type: "string", desc: "Trigger label before the first search resolves (edit drawers)." },
           { name: "onSelectItem", type: "(item: T | undefined) => void", desc: "Hands back the full picked object alongside onChange." },
+          { name: "renderItem", type: "(item: T) => ReactElement", desc: "Custom dropdown-row content when one line of text can't tell options apart — e.g. CashierFilterSelect renders the Users-table identity cell (avatar + name over a muted line) with the role on that line. Must return ONE element — mounted via <Combobox.ItemText asChild>. Affects the open list only; itemToString still drives the trigger." },
+          { name: "emptyText / loadingText", type: "string", desc: "Override the (already translated) common.noResults / common.loading defaults." },
         ],
         usage: `<SearchableSelect
   value={productId}
@@ -265,8 +291,18 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
   itemToString={(p) => p.name}
   itemToValue={(p) => p.id}
   selectedLabel={record?.productName}
+/>
+
+// Rich rows — avatar + name + role badge:
+<SearchableSelect<UserRef>
+  value={cashierId || null}
+  onChange={setCashierId}
+  loadOptions={searchSellingUsers}
+  itemToString={(u) => displayName(u)}
+  itemToValue={(u) => u.id}
+  renderItem={(u) => <CashierOption user={u} />}
 />`,
-        notes: "HARD RULE: options from a queryable domain (products, customers, suppliers, batches…) must come from a Search<Domain> RPC via loadOptions — never a full-list preload.",
+        notes: "HARD RULE: options from a queryable domain (products, customers, suppliers, batches…) must come from a Search<Domain> RPC via loadOptions — never a full-list preload. renderItem returns a single element because it is mounted with asChild — returning a fragment or two siblings throws. A stub row (pre-set value not yet loaded) has no original item and falls back to the plain label.",
         Demo: demo.SearchableSelectDemo,
       },
       {
@@ -353,6 +389,28 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
     labelKey: "data",
     icon: Table2,
     entries: [
+      {
+        id: "table-scroll",
+        name: "TableScroll",
+        file: "src/components/TableScroll.tsx",
+        summary:
+          "Bounded scroll box for a data table — caps its height, keeps the header stuck, and stops a wide table pushing the page.",
+        props: [
+          { name: "children", type: "ReactNode", required: true, desc: "The <Table.Root>. Give it `stickyHeader`." },
+          { name: "maxH", type: "string", desc: "Viewport cap. Default TABLE_MAX_H (list page); use TABLE_MAX_H_NESTED inside a card/tab." },
+          { name: "framed", type: "boolean", desc: "Default true: draws the border + surface. Pass false when already inside a Card." },
+        ],
+        usage: `<TableScroll>
+  <Table.Root size="sm" stickyHeader>
+    <Table.Header>…</Table.Header>
+    <Table.Body>…</Table.Body>
+  </Table.Root>
+</TableScroll>
+<Pagination … />`,
+        notes:
+          "Wraps Chakra's Table.ScrollArea (overflow:auto + max-width:100%), so the table scrolls on BOTH axes inside its own box and can never widen the page. Move bg/borderWidth/borderRadius OFF Table.Root or you get a double border. The header background is applied here — Chakra's default `line` variant gives headers none, and a transparent sticky header lets rows scroll through it.",
+        Demo: demo.TableScrollDemo,
+      },
       {
         id: "pagination",
         name: "Pagination",
@@ -449,6 +507,41 @@ const q = useProductsQuery({ page, pageSize });
         usage: `<ExpiryBadge expiry={batch.expiryDate} />`,
         Demo: demo.ExpiryBadgeDemo,
       },
+      {
+        id: "user-avatar",
+        name: "UserAvatar",
+        file: "src/components/UserAvatar.tsx",
+        summary: "Profile picture with initials fallback; reads the THUMB rendition by default.",
+        props: [
+          { name: "userId", type: "string", required: true, desc: "Whose picture to load." },
+          { name: "name", type: "string", required: true, desc: "Display name — drives the initials fallback and alt text." },
+          { name: "version", type: "number", required: true, desc: "The user's avatarUpdatedAt (unix sec). 0 = no picture: skips the fetch entirely." },
+          { name: "size", type: '"2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl"', desc: "Chakra Avatar size. Default \"sm\"." },
+          { name: "full", type: "boolean", desc: "Load the ORIGINAL rendition instead of the thumbnail. Only for a deliberate full-size view." },
+        ],
+        usage: `<UserAvatar userId={user.id} name={displayName(user)} version={Number(user.avatarUpdatedAt)} size="xs" />`,
+        notes:
+          "Two-rendition HARD RULE: leave `full` off everywhere except a genuine full-size view — a table of 25 users on the original would pull megabytes. `version` doubles as the cache key, so a re-upload appears with no invalidate, and version=0 costs zero requests instead of fetching-then-discarding.",
+        Demo: demo.UserAvatarDemo,
+      },
+      {
+        id: "product-image",
+        name: "ProductImage",
+        file: "src/components/ProductImage.tsx",
+        summary: "Product photo with a neutral box placeholder; reads the THUMB rendition by default.",
+        props: [
+          { name: "productId", type: "string", required: true, desc: "Whose picture to load." },
+          { name: "name", type: "string", required: true, desc: "Display name — used as the alt text." },
+          { name: "version", type: "number", required: true, desc: "The product's imageUpdatedAt (unix sec). 0 = no picture: skips the fetch entirely." },
+          { name: "size", type: "number", desc: "Rendered square size in px. Default 40." },
+          { name: "full", type: "boolean", desc: "Load the ORIGINAL rendition instead of the thumbnail. Only for a deliberate full-size view." },
+          { name: "zoomable", type: "boolean", desc: "Clicking opens a lightbox with the ORIGINAL. Ignored when version === 0. The click is stopPropagation'd, so it is safe inside a clickable row." },
+        ],
+        usage: `<ProductImage productId={p.id} name={p.name} version={Number(p.imageUpdatedAt)} size={56} zoomable />`,
+        notes:
+          "Two-rendition HARD RULE: leave `full` off everywhere except a genuine full-size view (today only the product-detail picker). `zoomable` is the cheap way to offer the original — its lightbox fetches ORIGINAL only WHILE OPEN, so a list of 25 thumbnails never pulls the heavy bytes. The lightbox's Dialog.Root stays mounted and is driven by `open` (dialog-mount HARD RULE); only its content is lazyMount/unmountOnExit. In POS one product can occupy several search rows — one per sellable unit — and they all share one cache entry because `version` is the key. objectFit is `contain`, not `cover`: the thumb is already centre-cropped square, and cropping a product shot twice cuts the label off.",
+        Demo: demo.ProductImageDemo,
+      },
     ],
   },
   {
@@ -460,18 +553,32 @@ const q = useProductsQuery({ page, pageSize });
         id: "date-range-filter",
         name: "DateRangeFilter",
         file: "src/components/DateRangeFilter.tsx",
-        summary: "Grafana-style time-range picker: shift ◀ ▶ / zoom-out arrows + a popover with an absolute range and searchable quick ranges.",
+        summary: "Grafana-style time-range picker: one button opening a popover with an optional which-date row, an absolute range and searchable quick ranges.",
         props: [
           { name: "value", type: "DateRange", required: true, desc: "{ preset, fromUnix, toUnix, customFrom?, customTo? } — from lib/dateRange." },
           { name: "onChange", type: "(next: DateRange) => void", required: true, desc: "Already resolved — send fromUnix/toUnix straight to the RPC." },
           { name: "size", type: '"xs" | "sm" | "md"', desc: "Control height. Default sm (toolbar size)." },
+          { name: "fields", type: "DateFieldOption[]", desc: 'Which date columns the range can apply to, e.g. [{value:"created",label:"Created"}]. Omit on a surface with only one filterable date — the row then isn\'t rendered.' },
+          { name: "field", type: "string", desc: 'The selected column. "" = Any date (the picker\'s own off state).' },
+          { name: "onFieldChange", type: "(field: string) => void", desc: "Fires with the column value, or \"\" for Any date." },
         ],
         usage: `import { resolveRange, type DateRange } from "../lib/dateRange";
 
 const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
 <DateRangeFilter value={range} onChange={setRange} />
-// then: useListSalesQuery({ fromUnix: BigInt(range.fromUnix), toUnix: BigInt(range.toUnix) })`,
-        notes: "The model lives in lib/dateRange.ts, not here: resolveRange (quick range → bounds, re-resolved against now), absoluteRange, shiftRange, zoomOutRange, rangeLabel, parseAbsolute/formatAbsolute. Day-aligned ranges are [from, to) — the end is the start of the next day. Shifting or zooming always yields an absolute range, since stepping off \"now\" pins the window.",
+// then: useListSalesQuery({ fromUnix: BigInt(range.fromUnix), toUnix: BigInt(range.toUnix) })
+
+// With a which-date row (list has several filterable dates):
+const [dateField, setDateField] = useState("");   // "" = Any date
+<DateRangeFilter
+  value={range} onChange={setRange}
+  fields={[{ value: "created", label: t("purchasing.dateCreated") },
+           { value: "received", label: t("purchasing.dateReceived") }]}
+  field={dateField} onFieldChange={setDateField}
+/>
+// then send NO bounds while the field is "":
+//   dateField, fromUnix: dateField ? BigInt(range.fromUnix) : 0n, toUnix: ...`,
+        notes: "The model lives in lib/dateRange.ts, not here: resolveRange (quick range → bounds, re-resolved against now), absoluteRange, rangeBounds, rangeLabel, parseAbsolute/formatAbsolute. Day-aligned ranges are [from, to) — the end is the start of the next day. Picking a quick range keeps its preset (re-resolved against now on every pick); typing bounds or using the calendar yields preset \"custom\", pinned to those instants. The inline calendar is the shared CalendarViews from components/DatePicker.tsx — reuse it for any new calendar surface, never re-implement the grids. The which-date row is a SegmentGroup, not an EnumSelect: a nested select popover inside this popover fights it for outside-click. Keep the field labels bare nouns (\"Created\", not \"By created date\") — they render as segments, and the trigger already reads \"Created · Last 30 days\".",
         Demo: demo.DateRangeFilterDemo,
       },
       {

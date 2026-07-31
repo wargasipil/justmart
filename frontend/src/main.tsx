@@ -50,6 +50,7 @@ import UserAnalytics from "./routes/analytics/User";
 import Purchasing from "./routes/purchasing/Purchasing";
 import Warehouses from "./routes/Warehouses";
 import WarehouseDetail from "./routes/WarehouseDetail";
+import Profile from "./routes/Profile";
 import Settings from "./routes/Settings";
 import SettingsGeneral from "./routes/settings/SettingsGeneral";
 import SettingsUnits from "./routes/settings/SettingsUnits";
@@ -101,6 +102,9 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <Dashboard /> },
           { path: "pos", element: <Pos /> },
+          // Own account page — every authenticated role has one, so it sits
+          // here and not under the OWNER-gated /settings tabs.
+          { path: "profile", element: <Profile /> },
         ],
       },
       {

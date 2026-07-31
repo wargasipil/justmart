@@ -21,14 +21,16 @@ import type {
   PayPurchaseRequest,
 } from "../gen/purchasing_iface/v1/payment_pb";
 import type { CreatePurchaseReturnRequest } from "../gen/purchasing_iface/v1/return_pb";
-import { ALL_LIMIT } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
 
 export const purchasingKeys = {
   all: ["purchasing"] as const,
   orders: (filters: object) => [...purchasingKeys.all, "orders", filters] as const,
   order: (id: string) => [...purchasingKeys.all, "order", id] as const,
-  receipts: (poId: string) => [...purchasingKeys.all, "receipts", poId] as const,
-  returns: (poId: string) => [...purchasingKeys.all, "returns", poId] as const,
+  receipts: (poId: string, page: number, pageSize: number) =>
+    [...purchasingKeys.all, "receipts", poId, page, pageSize] as const,
+  returns: (poId: string, page: number, pageSize: number) =>
+    [...purchasingKeys.all, "returns", poId, page, pageSize] as const,
   balances: (filters: object) => [...purchasingKeys.all, "balances", filters] as const,
 };
 
@@ -107,15 +109,25 @@ export function useVoidPurchaseOrderMutation() {
 }
 
 // ---------- Receipts ----------
-export function useReceiptsQuery(req: PartialMessage<ListReceiptsRequest>) {
-  return useQuery({
-    queryKey: purchasingKeys.receipts(req.purchaseOrderId ?? ""),
+// Server-paginated; returns { rows, total }.
+export function useReceiptsQuery(
+  req: PartialMessage<ListReceiptsRequest>,
+  opts: { page?: number; pageSize?: number } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
+  const q = useQuery({
+    queryKey: purchasingKeys.receipts(req.purchaseOrderId ?? "", page, pageSize),
     queryFn: async () => {
-      const res = await purchaseReceiptClient.listReceipts(req);
-      return res.receipts;
+      const res = await purchaseReceiptClient.listReceipts({
+        ...req,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.receipts, total: res.total };
     },
     enabled: !!req.purchaseOrderId,
   });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }
 
 export function useCreateReceiptMutation() {
@@ -132,15 +144,25 @@ export function useCreateReceiptMutation() {
 }
 
 // ---------- Returns ----------
-export function usePurchaseReturnsQuery(purchaseOrderId: string) {
-  return useQuery({
-    queryKey: purchasingKeys.returns(purchaseOrderId),
+// Server-paginated; returns { rows, total }.
+export function usePurchaseReturnsQuery(
+  purchaseOrderId: string,
+  opts: { page?: number; pageSize?: number } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
+  const q = useQuery({
+    queryKey: purchasingKeys.returns(purchaseOrderId, page, pageSize),
     queryFn: async () => {
-      const res = await purchaseReturnClient.listPurchaseReturns({ purchaseOrderId });
-      return res.returns;
+      const res = await purchaseReturnClient.listPurchaseReturns({
+        purchaseOrderId,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.returns, total: res.total };
     },
     enabled: !!purchaseOrderId,
   });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }
 
 export function useCreatePurchaseReturnMutation() {

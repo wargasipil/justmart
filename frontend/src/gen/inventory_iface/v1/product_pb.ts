@@ -46,6 +46,41 @@ proto3.util.setEnumType(ImportProductStatus, "inventory_iface.v1.ImportProductSt
 ]);
 
 /**
+ * Every uploaded image is stored in TWO renditions (see the two-rendition HARD
+ * RULE in CLAUDE.md): the ORIGINAL (bounded, for a full-size view) and a small
+ * square THUMB that every list / POS row / fast-load surface reads instead.
+ * The client produces both — it already has the decoded bitmap on a canvas —
+ * and the server validates the size cap on each.
+ *
+ * @generated from enum inventory_iface.v1.ProductImageVariant
+ */
+export enum ProductImageVariant {
+  /**
+   * Unset resolves to THUMB: the fast path is the default, and callers must
+   * opt in to shipping the heavy original.
+   *
+   * @generated from enum value: PRODUCT_IMAGE_VARIANT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: PRODUCT_IMAGE_VARIANT_THUMB = 1;
+   */
+  THUMB = 1,
+
+  /**
+   * @generated from enum value: PRODUCT_IMAGE_VARIANT_ORIGINAL = 2;
+   */
+  ORIGINAL = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ProductImageVariant)
+proto3.util.setEnumType(ProductImageVariant, "inventory_iface.v1.ProductImageVariant", [
+  { no: 0, name: "PRODUCT_IMAGE_VARIANT_UNSPECIFIED" },
+  { no: 1, name: "PRODUCT_IMAGE_VARIANT_THUMB" },
+  { no: 2, name: "PRODUCT_IMAGE_VARIANT_ORIGINAL" },
+]);
+
+/**
  * @generated from message inventory_iface.v1.Product
  */
 export class Product extends Message<Product> {
@@ -118,14 +153,14 @@ export class Product extends Message<Product> {
   lastRestockSupplier = "";
 
   /**
-   * global on-hand across all warehouses (GetProduct only)
+   * on-hand in the active warehouse (GetProduct only; == ready_stock)
    *
    * @generated from field: int64 total_stock = 14;
    */
   totalStock = protoInt64.zero;
 
   /**
-   * global value at cost = Σ qty × cost_price (GetProduct only)
+   * value at cost of ready_stock = Σ qty × cost_price, active warehouse (GetProduct only)
    *
    * @generated from field: int64 stock_valuation = 15;
    */
@@ -220,6 +255,26 @@ export class Product extends Message<Product> {
    */
   priceTiers: ProductPriceTier[] = [];
 
+  /**
+   * Value at cost of on_order_stock: Σ outstanding_qty × NET per-base cost of the
+   * PO line (same rate CreateReceipt stamps on the batch, so a line discount is
+   * reflected and ongoing valuation lands where ready valuation will). Like
+   * on_order_stock it is company-wide — purchase_order_items has no warehouse.
+   *
+   * @generated from field: int64 on_order_valuation = 28;
+   */
+  onOrderValuation = protoInt64.zero;
+
+  /**
+   * Unix sec of the product picture's last upload; 0 = no picture. The bytes
+   * live in their own table and are fetched only by GetProductImage — this
+   * marker is what tells the UI whether to fetch at all, and doubles as the
+   * client cache key so a re-upload appears without an invalidate.
+   *
+   * @generated from field: int64 image_updated_at = 29;
+   */
+  imageUpdatedAt = protoInt64.zero;
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -254,6 +309,8 @@ export class Product extends Message<Product> {
     { no: 25, name: "last_restock_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 26, name: "last_restock_supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 27, name: "price_tiers", kind: "message", T: ProductPriceTier, repeated: true },
+    { no: 28, name: "on_order_valuation", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 29, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {
@@ -1445,6 +1502,16 @@ export class ListProductPricesRequest extends Message<ListProductPricesRequest> 
    */
   productId = "";
 
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListProductPricesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1454,6 +1521,8 @@ export class ListProductPricesRequest extends Message<ListProductPricesRequest> 
   static readonly typeName = "inventory_iface.v1.ListProductPricesRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductPricesRequest {
@@ -1482,6 +1551,11 @@ export class ListProductPricesResponse extends Message<ListProductPricesResponse
    */
   prices: ProductPrice[] = [];
 
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListProductPricesResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1491,6 +1565,7 @@ export class ListProductPricesResponse extends Message<ListProductPricesResponse
   static readonly typeName = "inventory_iface.v1.ListProductPricesResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "prices", kind: "message", T: ProductPrice, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductPricesResponse {
@@ -1519,6 +1594,16 @@ export class ListProductUnitPricesRequest extends Message<ListProductUnitPricesR
    */
   productId = "";
 
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListProductUnitPricesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1528,6 +1613,8 @@ export class ListProductUnitPricesRequest extends Message<ListProductUnitPricesR
   static readonly typeName = "inventory_iface.v1.ListProductUnitPricesRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductUnitPricesRequest {
@@ -1556,6 +1643,13 @@ export class ListProductUnitPricesResponse extends Message<ListProductUnitPrices
    */
   prices: ProductUnitPrice[] = [];
 
+  /**
+   * all price rows for the product, ignoring the page window
+   *
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListProductUnitPricesResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1565,6 +1659,7 @@ export class ListProductUnitPricesResponse extends Message<ListProductUnitPrices
   static readonly typeName = "inventory_iface.v1.ListProductUnitPricesResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "prices", kind: "message", T: ProductUnitPrice, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductUnitPricesResponse {
@@ -1888,9 +1983,297 @@ export class ResolveProductsResponse extends Message<ResolveProductsResponse> {
 }
 
 /**
+ * Bytes ride inline rather than through a separate upload endpoint: both
+ * renditions are downscaled client-side and capped by the handler
+ * (MaxProductImageBytes / MaxProductImageThumbBytes), so this stays a normal
+ * unary message. One picture per product — re-uploading replaces it.
+ *
+ * @generated from message inventory_iface.v1.UploadProductImageRequest
+ */
+export class UploadProductImageRequest extends Message<UploadProductImageRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * ORIGINAL rendition (bounded, not the raw camera file)
+   *
+   * @generated from field: bytes image_data = 2;
+   */
+  imageData = new Uint8Array(0);
+
+  /**
+   * THUMB rendition — required, not optional
+   *
+   * @generated from field: bytes thumb_data = 3;
+   */
+  thumbData = new Uint8Array(0);
+
+  /**
+   * applies to both renditions
+   *
+   * @generated from field: string content_type = 4;
+   */
+  contentType = "";
+
+  constructor(data?: PartialMessage<UploadProductImageRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.UploadProductImageRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "image_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 3, name: "thumb_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 4, name: "content_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UploadProductImageRequest {
+    return new UploadProductImageRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UploadProductImageRequest {
+    return new UploadProductImageRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UploadProductImageRequest {
+    return new UploadProductImageRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UploadProductImageRequest | PlainMessage<UploadProductImageRequest> | undefined, b: UploadProductImageRequest | PlainMessage<UploadProductImageRequest> | undefined): boolean {
+    return proto3.util.equals(UploadProductImageRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.UploadProductImageResponse
+ */
+export class UploadProductImageResponse extends Message<UploadProductImageResponse> {
+  /**
+   * @generated from field: int64 image_updated_at = 1;
+   */
+  imageUpdatedAt = protoInt64.zero;
+
+  constructor(data?: PartialMessage<UploadProductImageResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.UploadProductImageResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UploadProductImageResponse {
+    return new UploadProductImageResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UploadProductImageResponse {
+    return new UploadProductImageResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UploadProductImageResponse {
+    return new UploadProductImageResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UploadProductImageResponse | PlainMessage<UploadProductImageResponse> | undefined, b: UploadProductImageResponse | PlainMessage<UploadProductImageResponse> | undefined): boolean {
+    return proto3.util.equals(UploadProductImageResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.GetProductImageRequest
+ */
+export class GetProductImageRequest extends Message<GetProductImageRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * Which rendition to return. Unset = THUMB.
+   *
+   * @generated from field: inventory_iface.v1.ProductImageVariant variant = 2;
+   */
+  variant = ProductImageVariant.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetProductImageRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetProductImageRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "variant", kind: "enum", T: proto3.getEnumType(ProductImageVariant) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetProductImageRequest {
+    return new GetProductImageRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetProductImageRequest {
+    return new GetProductImageRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetProductImageRequest {
+    return new GetProductImageRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetProductImageRequest | PlainMessage<GetProductImageRequest> | undefined, b: GetProductImageRequest | PlainMessage<GetProductImageRequest> | undefined): boolean {
+    return proto3.util.equals(GetProductImageRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.GetProductImageResponse
+ */
+export class GetProductImageResponse extends Message<GetProductImageResponse> {
+  /**
+   * the requested rendition
+   *
+   * @generated from field: bytes image_data = 1;
+   */
+  imageData = new Uint8Array(0);
+
+  /**
+   * @generated from field: string content_type = 2;
+   */
+  contentType = "";
+
+  /**
+   * 0 when the product has no picture (image_data is then empty too — absence
+   * is NOT an error, so the UI renders its placeholder without a catch).
+   *
+   * @generated from field: int64 image_updated_at = 3;
+   */
+  imageUpdatedAt = protoInt64.zero;
+
+  /**
+   * echoes what was actually returned
+   *
+   * @generated from field: inventory_iface.v1.ProductImageVariant variant = 4;
+   */
+  variant = ProductImageVariant.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetProductImageResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetProductImageResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "image_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "content_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "variant", kind: "enum", T: proto3.getEnumType(ProductImageVariant) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetProductImageResponse {
+    return new GetProductImageResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetProductImageResponse {
+    return new GetProductImageResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetProductImageResponse {
+    return new GetProductImageResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetProductImageResponse | PlainMessage<GetProductImageResponse> | undefined, b: GetProductImageResponse | PlainMessage<GetProductImageResponse> | undefined): boolean {
+    return proto3.util.equals(GetProductImageResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.DeleteProductImageRequest
+ */
+export class DeleteProductImageRequest extends Message<DeleteProductImageRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  constructor(data?: PartialMessage<DeleteProductImageRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.DeleteProductImageRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteProductImageRequest {
+    return new DeleteProductImageRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteProductImageRequest {
+    return new DeleteProductImageRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteProductImageRequest {
+    return new DeleteProductImageRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteProductImageRequest | PlainMessage<DeleteProductImageRequest> | undefined, b: DeleteProductImageRequest | PlainMessage<DeleteProductImageRequest> | undefined): boolean {
+    return proto3.util.equals(DeleteProductImageRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.DeleteProductImageResponse
+ */
+export class DeleteProductImageResponse extends Message<DeleteProductImageResponse> {
+  constructor(data?: PartialMessage<DeleteProductImageResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.DeleteProductImageResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteProductImageResponse {
+    return new DeleteProductImageResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteProductImageResponse {
+    return new DeleteProductImageResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteProductImageResponse {
+    return new DeleteProductImageResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteProductImageResponse | PlainMessage<DeleteProductImageResponse> | undefined, b: DeleteProductImageResponse | PlainMessage<DeleteProductImageResponse> | undefined): boolean {
+    return proto3.util.equals(DeleteProductImageResponse, a, b);
+  }
+}
+
+/**
  * @generated from message inventory_iface.v1.ListLowStockRequest
  */
 export class ListLowStockRequest extends Message<ListLowStockRequest> {
+  /**
+   * @generated from field: int32 limit = 1;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 2;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListLowStockRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1899,6 +2282,8 @@ export class ListLowStockRequest extends Message<ListLowStockRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "inventory_iface.v1.ListLowStockRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListLowStockRequest {
@@ -1937,7 +2322,7 @@ export class ListLowStockResponse extends Message<ListLowStockResponse> {
   threshold = 0;
 
   /**
-   * count of matching products (bell badge)
+   * ALL matching products, ignoring the page window (bell badge)
    *
    * @generated from field: int32 total = 3;
    */

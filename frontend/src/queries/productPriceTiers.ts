@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { productPriceTierClient } from "../lib/clients";
+import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
 import { productKeys } from "./products";
 import type {
   CreateProductPriceTierRequest,
@@ -12,17 +13,35 @@ import type { ProductUnit } from "../gen/inventory_iface/v1/product_pb";
 
 export const productPriceTierKeys = {
   all: ["productPriceTiers"] as const,
-  list: (productId: string) => [...productPriceTierKeys.all, "list", productId] as const,
+  list: (productId: string, page: number, pageSize: number) =>
+    [...productPriceTierKeys.all, "list", productId, page, pageSize] as const,
 };
 
-// All grosir (wholesale) tiers for one product — the Product detail "Grosir" tab.
-// Server-ordered base unit first, then by factor, then ascending threshold.
-export function useProductPriceTiersQuery(productId: string, enabled = true) {
-  return useQuery({
-    queryKey: productPriceTierKeys.list(productId),
-    queryFn: async () => (await productPriceTierClient.listProductPriceTiers({ productId })).tiers,
+// One page of grosir (wholesale) tiers for a product — the Product detail
+// "Grosir" card. Server-ordered base unit first, then by factor, then ascending
+// threshold; returns { rows, total }.
+//
+// NOTE: this is the ADMIN read. POS resolves tiers from the `priceTiers` array
+// embedded on Product, which is never paginated — a partial ladder would
+// mis-price a sale. Don't route POS through this hook.
+export function useProductPriceTiersQuery(
+  productId: string,
+  opts: { page?: number; pageSize?: number; enabled?: boolean } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
+  const q = useQuery({
+    queryKey: productPriceTierKeys.list(productId, page, pageSize),
+    queryFn: async () => {
+      const res = await productPriceTierClient.listProductPriceTiers({
+        productId,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.tiers, total: res.total };
+    },
     enabled: enabled && !!productId,
   });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }
 
 // Unlike productDiscounts, tiers are EMBEDDED on Product (Get/List/SearchProducts

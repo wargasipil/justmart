@@ -1077,6 +1077,8 @@ type ListUserWarehousesRequest struct {
 	// Empty user_id = self.
 	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Query         string `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"` // ILIKE code / name
+	Limit         int32  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1125,10 +1127,25 @@ func (x *ListUserWarehousesRequest) GetQuery() string {
 	return ""
 }
 
+func (x *ListUserWarehousesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListUserWarehousesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListUserWarehousesResponse struct {
 	state         protoimpl.MessageState     `protogen:"open.v1"`
 	Memberships   []*UserWarehouseMembership `protobuf:"bytes,1,rep,name=memberships,proto3" json:"memberships,omitempty"`
 	Warehouses    []*Warehouse               `protobuf:"bytes,2,rep,name=warehouses,proto3" json:"warehouses,omitempty"` // hydrated for convenience
+	Total         int32                      `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`          // all memberships, ignoring the page window
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1175,6 +1192,13 @@ func (x *ListUserWarehousesResponse) GetWarehouses() []*Warehouse {
 		return x.Warehouses
 	}
 	return nil
+}
+
+func (x *ListUserWarehousesResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type SetDefaultWarehouseRequest struct {
@@ -1441,15 +1465,18 @@ const file_warehouse_iface_v1_warehouse_proto_rawDesc = "" +
 	"\x1cRevokeWarehouseAccessRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fwarehouse_id\x18\x02 \x01(\tR\vwarehouseId\"\x1f\n" +
-	"\x1dRevokeWarehouseAccessResponse\"J\n" +
+	"\x1dRevokeWarehouseAccessResponse\"x\n" +
 	"\x19ListUserWarehousesRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05query\x18\x02 \x01(\tR\x05query\"\xaa\x01\n" +
+	"\x05query\x18\x02 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x04 \x01(\x05R\x06offset\"\xc0\x01\n" +
 	"\x1aListUserWarehousesResponse\x12M\n" +
 	"\vmemberships\x18\x01 \x03(\v2+.warehouse_iface.v1.UserWarehouseMembershipR\vmemberships\x12=\n" +
 	"\n" +
 	"warehouses\x18\x02 \x03(\v2\x1d.warehouse_iface.v1.WarehouseR\n" +
-	"warehouses\"X\n" +
+	"warehouses\x12\x14\n" +
+	"\x05total\x18\x03 \x01(\x05R\x05total\"X\n" +
 	"\x1aSetDefaultWarehouseRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fwarehouse_id\x18\x02 \x01(\tR\vwarehouseId\"j\n" +

@@ -9,11 +9,13 @@ import DatePickerField from "../../components/DatePicker";
 import ExportButton from "../../components/ExportButton";
 import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
+import ProductImage from "../../components/ProductImage";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import TableScroll from "../../components/TableScroll";
 import { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { downloadCsv } from "../../lib/csv";
 import { formatDiscount, formatMoney, formatUnixOrDash } from "../../lib/format";
-import { usePageState } from "../../lib/pagination";
+import { ALL_LIMIT, usePageState } from "../../lib/pagination";
 import { formatStock, unitGroupsFromCatalog } from "../../lib/stockUnit";
 import { fetchProductsForExport, useProductsQuery } from "../../queries/products";
 import { useSupplierRefs } from "../../queries/refs";
@@ -51,10 +53,13 @@ export default function Products() {
   const visibleCols = usePreferencesStore((s) => s.productListColumns);
   const setVisibleCols = usePreferencesStore((s) => s.setProductListColumns);
   const visibleSet = useMemo(() => new Set(visibleCols), [visibleCols]);
-  const unitsQ = useUnitBasesQuery();
+  // The whole catalog, not a page: this builds the stock-unit grouping map for
+  // the list's Units popover, so a partial catalog would silently mis-group
+  // rows rather than just showing fewer options.
+  const unitsQ = useUnitBasesQuery({ pageSize: ALL_LIMIT });
   const stockUnitGroups = useMemo(
-    () => unitGroupsFromCatalog(unitsQ.data ?? [], productsQ.rows),
-    [unitsQ.data, productsQ.rows],
+    () => unitGroupsFromCatalog(unitsQ.rows, productsQ.rows),
+    [unitsQ.rows, productsQ.rows],
   );
 
   // Resolve the "last supplier that restocked" names for the page's rows.
@@ -76,8 +81,31 @@ export default function Products() {
   // one (lastRestockArrivedAt is the "has restock" sentinel).
   type Col = { id: string; header: string; alignEnd?: boolean; always?: boolean; render: (m: Product) => ReactNode };
   const allCols: Col[] = [
-    { id: "sku", header: t("inventory.products.sku"), render: (m) => <Text fontFamily="mono">{m.sku}</Text> },
-    { id: "name", header: t("inventory.products.name"), always: true, render: (m) => m.name },
+    // Identity cell: photo + name + SKU read as one thing (which product is
+    // this?), so they share a column rather than competing as three. Always
+    // shown and not toggleable — a row with its identity hidden is unusable.
+    {
+      id: "name",
+      header: t("inventory.products.name"),
+      always: true,
+      render: (m) => (
+        <HStack gap={3}>
+          <ProductImage
+            productId={m.id}
+            name={m.name}
+            version={Number(m.imageUpdatedAt)}
+            size={56}
+            zoomable
+          />
+          <Stack gap={0} minW={0}>
+            <Text>{m.name}</Text>
+            <Text fontSize="xs" color="fg.muted" fontFamily="mono">
+              {m.sku}
+            </Text>
+          </Stack>
+        </HStack>
+      ),
+    },
     { id: "unit", header: t("inventory.products.unit"), render: (m) => m.unit },
     { id: "unitPrice", header: t("inventory.products.unitPrice"), render: (m) => formatMoney(m.unitPrice) },
     { id: "ready", header: t("inventory.products.readyStock"), alignEnd: true, render: (m) => stockCell(m.readyStock, m) },
@@ -133,7 +161,8 @@ export default function Products() {
       id: "standard",
       label: t("inventory.products.colGroupStandard"),
       fields: [
-        { id: "sku", label: t("inventory.products.sku") },
+        // No `image` / `sku` entries: both are folded into the always-on
+        // identity column, so there is nothing to toggle.
         { id: "unit", label: t("inventory.products.unit") },
         { id: "unitPrice", label: t("inventory.products.unitPrice") },
         { id: "ready", label: t("inventory.products.readyStock") },
@@ -197,7 +226,7 @@ export default function Products() {
 
   return (
     <Box>
-      <PageHeader breadcrumbs={[{ label: catalogLabel }]} title={catalogLabel} />
+      <PageHeader title={catalogLabel} description={t("inventory.products.description")} />
       <Stack gap={4}>
         <Tabs.Root
           value={tab}
@@ -263,8 +292,8 @@ export default function Products() {
             <Spinner />
           </Box>
         ) : (
-          <Box overflowX="auto">
-            <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
+          <TableScroll>
+            <Table.Root size="sm" stickyHeader>
               <Table.Header bg="bg.muted">
                 <Table.Row>
                   {cols.map((c) => (
@@ -300,7 +329,7 @@ export default function Products() {
                 )}
               </Table.Body>
             </Table.Root>
-          </Box>
+          </TableScroll>
         )}
 
         <Pagination

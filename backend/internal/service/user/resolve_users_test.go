@@ -34,6 +34,43 @@ func TestResolveUsers_ByIDs(t *testing.T) {
 	require.Equal(t, id, resp.Msg.Users[0].Id)
 	require.Equal(t, "resolveme@test.local", resp.Msg.Users[0].Email)
 	require.Equal(t, "Resolve Me", resp.Msg.Users[0].Name)
+	// Same ref shape as SearchUsers, so a resolved row can render the same
+	// avatar + role badge a searched one does.
+	require.Equal(t, authifacev1.Role_ROLE_CASHIER, resp.Msg.Users[0].Role)
+	require.Zero(t, resp.Msg.Users[0].AvatarUpdatedAt)
+}
+
+// Resolve labels rows that already exist, so unlike SearchUsers it must still
+// return a since-deactivated user — otherwise their past sales lose their name
+// in the order-history "Created by" column.
+func TestResolveUsers_IncludesDeactivated(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	ownerCtx := servicetest.OwnerCtx(context.Background(), ownerID)
+	svc := usersvc.NewUserService(gormDB)
+
+	created, err := svc.CreateUser(ownerCtx, connect.NewRequest(&userifacev1.CreateUserRequest{
+		Email:    "gone@test.local",
+		Name:     "Gone Cashier",
+		Password: "supersecret",
+		Role:     authifacev1.Role_ROLE_CASHIER,
+	}))
+	require.NoError(t, err)
+	id := created.Msg.User.Id
+
+	_, err = svc.SetUserActive(ownerCtx, connect.NewRequest(&userifacev1.SetUserActiveRequest{
+		UserId: id,
+		Active: false,
+	}))
+	require.NoError(t, err)
+
+	resp, err := svc.ResolveUsers(ownerCtx, connect.NewRequest(&userifacev1.ResolveUsersRequest{
+		Ids: []string{id},
+	}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Users, 1)
+	require.Equal(t, "Gone Cashier", resp.Msg.Users[0].Name)
 }
 
 func TestResolveUsers_EmptyIDs(t *testing.T) {

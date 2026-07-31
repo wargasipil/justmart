@@ -77,8 +77,14 @@
     "priceAgreements": "Price agreements",
     "orders": "Order history",
     "myPerformance": "My performance",
+    "profile": "My profile",
     "settings": "Settings",
     "signOut": "Sign out",
+    "userMenu": "User menu",
+    "language": "Language",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
     "components": "Components"
   },
   "filters": {
@@ -98,6 +104,7 @@
   },
   "settings": {
     "title": "Settings",
+    "description": "Business identity, units, printing, backups and updates.",
     "appTitle": "App title",
     "appTitleHelp": "Shown in the browser tab, the sidebar and the login screen. Leave empty to use the built-in name.",
     "businessMode": "Business mode",
@@ -194,6 +201,32 @@
       "confirmBody": "This permanently removes {{name}} from the server. This action cannot be undone."
     }
   },
+  "profile": {
+    "title": "My profile",
+    "subtitle": "Your account details and personal preferences.",
+    "account": "Account",
+    "accountHelp": "Your name, email and role are managed by the owner — ask them to change these.",
+    "preferences": "Preferences",
+    "preferencesHelp": "Saved on this device only.",
+    "defaultWarehouse": "Default warehouse",
+    "defaultWarehouseHelp": "The warehouse you start in when you sign in.",
+    "security": "Security",
+    "securityHelp": "Pick a password you don't use anywhere else.",
+    "avatarUpload": "Upload photo",
+    "avatarChange": "Change photo",
+    "avatarRemove": "Remove photo",
+    "avatarRemoveConfirm": "Your photo will be removed and your initials shown instead.",
+    "avatarUpdated": "Profile picture updated",
+    "avatarHelp": "JPG, PNG or WebP. Square images look best."
+  },
+  "imageUpload": {
+    "errors": {
+      "type": "That file type isn't supported. Use JPG, PNG or WebP.",
+      "tooLarge": "That image is too large. Pick one under 15 MB.",
+      "decode": "That image couldn't be read. Try a different file.",
+      "encode": "The image couldn't be processed. Try a different file."
+    }
+  },
   "notifications": {
     "bellAria": "Notifications",
     "lowStockTitle": "Low stock · {{count}}",
@@ -203,6 +236,7 @@
   },
   "purchasing": {
     "title": "Restock",
+    "description": "Purchase orders from draft through receiving and payment.",
     "tabs": {
       "all": "All POs",
       "outstanding": "Outstanding",
@@ -282,9 +316,8 @@
     "item": "Item",
     "created": "Created",
     "searchPlaceholder": "Search PO / supplier / code / $t(glossary.product)",
-    "dateOff": "Date: off",
-    "dateCreated": "By created date",
-    "dateReceived": "By received date",
+    "dateCreated": "Created",
+    "dateReceived": "Received",
     "outstandingToggle": "Outstanding only",
     "itemsMore": "+{{count}} more",
     "lineTotalInput": "Total cost (IDR)",
@@ -350,7 +383,10 @@
   },
   "users": {
     "title": "Users",
+    "description": "Staff accounts and the role that decides what each one can open.",
     "createTitle": "Create User",
+    "user": "User",
+    "active": "Active",
     "email": "Email",
     "name": "Name",
     "password": "Password",
@@ -366,6 +402,7 @@
   },
   "analytics": {
     "title": "Analytics",
+    "description": "Sales, cost and stock figures for the period you pick.",
     "menu": {
       "daily": "Daily",
       "product": "$t(glossary.productCap)",
@@ -402,9 +439,8 @@
         "searchPlaceholder": "Search quick ranges",
         "invalidFormat": "Use YYYY-MM-DD HH:mm:ss",
         "invalidOrder": "\"From\" must be before \"To\"",
-        "shiftBack": "Shift range back",
-        "shiftForward": "Shift range forward",
-        "zoomOut": "Zoom out (2×)"
+        "fieldLabel": "Filter by",
+        "pickFieldFirst": "Pick which date to filter by first."
       }
     },
     "exportCsv": "Export CSV",
@@ -499,7 +535,9 @@
   },
   "prescriptions": {
     "title": "Prescriptions",
+    "description": "Doctor's scripts, their remaining quantities and dispensing status.",
     "addTitle": "New Prescription",
+    "addDescription": "Record a new script for a patient.",
     "editTitle": "Edit Prescription",
     "rxNo": "Rx #",
     "issuerName": "Doctor / issuer",
@@ -543,6 +581,7 @@
   },
   "customers": {
     "title": "Customers",
+    "description": "Everyone you sell to, with their contact and tax details.",
     "addTitle": "Add Customer",
     "editTitle": "Edit Customer",
     "name": "Name",
@@ -604,6 +643,7 @@
   },
   "inventory": {
     "title": "Inventory",
+    "description": "Stock on hand, suppliers, and everything that moves goods in and out.",
     "tabs": {
       "products": "$t(glossary.productsCap)",
       "suppliers": "Suppliers",
@@ -614,6 +654,8 @@
     },
     "products": {
       "title": "$t(glossary.productsCap)",
+      "description": "Your $t(glossary.product) catalog — price, units and stock at a glance.",
+      "detailDescription": "Price, units, batches and stock history for this $t(glossary.product).",
       "tabActive": "Active $t(glossary.productsCap)",
       "tabArchived": "Archived $t(glossary.productsCap)",
       "addTitle": "Add $t(glossary.productCap)",
@@ -647,7 +689,6 @@
       "unitBase": "Base",
       "unitsEmpty": "No unit catalog yet. Add base units in Settings.",
       "totalStock": "Total stock",
-      "stockValuation": "Stock valuation",
       "baseUnit": "Base unit",
       "basePrice": "Base price (per base unit)",
       "prescriptionRequired": "Requires prescription (resep)",
@@ -661,6 +702,7 @@
       "lastCost": "Last cost",
       "costLabel": "Cost",
       "marginPct": "{{pct}}% margin",
+      "marginCol": "Margin",
       "soldPriceHistory": "Sold Price History",
       "restockPriceHistory": "Restock Price History",
       "restockHistoryEmpty": "No restocks recorded yet.",
@@ -697,10 +739,20 @@
       "importRowValid": "OK",
       "importStatus": "Status",
       "importSummary": "{{created}} created · {{skipped}} skipped · {{errored}} errors",
-      "importResultError": "Errors"
+      "importResultError": "Errors",
+      "image": "Photo",
+      "imageSection": "Photo",
+      "imageUpload": "Upload photo",
+      "imageChange": "Change photo",
+      "imageRemove": "Remove photo",
+      "imageRemoveConfirm": "This product's photo will be removed and a placeholder shown instead.",
+      "imageUpdated": "Product photo updated",
+      "imageHelp": "JPG, PNG or WebP. A square photo on a plain background reads best in POS.",
+      "imagePreview": "Preview photo"
     },
     "suppliers": {
       "title": "Suppliers",
+      "detailDescription": "Contact details, restock history and price agreements for this supplier.",
       "addTitle": "Add Supplier",
       "editTitle": "Edit Supplier",
       "confirmArchive": "Archive this supplier? It will be hidden from the active list but its history is kept. You can unarchive it later.",
@@ -723,9 +775,11 @@
     },
     "priceAgreements": {
       "title": "Price agreements",
+      "description": "Agreed supplier prices per $t(glossary.product) and unit, each with its own validity period.",
       "addTitle": "Add agreement",
       "editTitle": "Edit Agreement",
       "newTitle": "New Price Agreement",
+      "newDescription": "Set agreed prices with one supplier.",
       "items": "Agreements",
       "addLine": "Add line",
       "removeLine": "Remove line",
@@ -759,8 +813,8 @@
       "title": "Batches",
       "addTitle": "Receive Batch",
       "searchPlaceholder": "Search $t(glossary.product) / batch no…",
-      "byReceived": "By received",
-      "byExpiry": "By expiry",
+      "byReceived": "Received",
+      "byExpiry": "Expiry",
       "product": "$t(glossary.productCap)",
       "supplier": "Supplier",
       "supplierNone": "— none —",
@@ -870,6 +924,8 @@
   },
   "warehouses": {
     "title": "Warehouses",
+    "description": "The locations that hold your stock, and who can work in them.",
+    "detailDescription": "Details of this warehouse and the users with access to it.",
     "addTitle": "Add Warehouse",
     "code": "Code",
     "name": "Name",
@@ -1066,10 +1122,25 @@
     "sale": {
       "cartEmpty": "The cart is empty",
       "paidTooLow": "Amount paid is less than the total"
+    },
+    "avatar": {
+      "imageRequired": "Pick an image to upload.",
+      "thumbRequired": "The image couldn't be processed. Try a different file.",
+      "imageTooLarge": "That image is too large.",
+      "thumbTooLarge": "That image is too large.",
+      "contentTypeInvalid": "That file type isn't supported. Use JPG, PNG or WebP."
+    },
+    "productImage": {
+      "imageRequired": "Pick an image to upload.",
+      "thumbRequired": "The image couldn't be processed. Try a different file.",
+      "imageTooLarge": "That image is too large.",
+      "thumbTooLarge": "That image is too large.",
+      "contentTypeInvalid": "That file type isn't supported. Use JPG, PNG or WebP."
     }
   },
   "orders": {
     "title": "Order history",
+    "description": "Every finalized sale, searchable by number, customer or $t(glossary.product).",
     "printReceipt": "Print receipt",
     "searchPlaceholder": "Search sale no, customer, or $t(glossary.product)…",
     "saleNo": "Sale no",
@@ -1119,6 +1190,7 @@
       "revenue": "Revenue"
     },
     "detail": {
+      "description": "Items, totals and payment for this order.",
       "info": "Information",
       "totals": "Totals",
       "tax": "Tax invoice",
@@ -1167,7 +1239,10 @@
       "demo": {
         "routeTabsHint": "These tabs switch the gallery group — that is the component doing its job (each tab is a route).",
         "asyncMode": "Async mode — loadOptions, debounced 250ms",
-        "syncMode": "Sync mode — items, static list"
+        "syncMode": "Sync mode — items, static list",
+        "renderItemMode": "renderItem — custom row content (avatar + name over role)",
+        "rangeOneDate": "One filterable date — no fields prop",
+        "rangeManyDates": "Several filterable dates — fields + field + onFieldChange"
       }
     }
   }

@@ -77,8 +77,14 @@
     "priceAgreements": "Kesepakatan harga",
     "orders": "Riwayat order",
     "myPerformance": "Performa saya",
+    "profile": "Profil saya",
     "settings": "Pengaturan",
     "signOut": "Keluar",
+    "userMenu": "Menu pengguna",
+    "language": "Bahasa",
+    "theme": "Tema",
+    "themeDark": "Gelap",
+    "themeLight": "Terang",
     "components": "Komponen"
   },
   "filters": {
@@ -98,6 +104,7 @@
   },
   "settings": {
     "title": "Pengaturan",
+    "description": "Identitas usaha, satuan, pencetakan, backup, dan pembaruan.",
     "appTitle": "Judul aplikasi",
     "appTitleHelp": "Tampil di tab browser, sidebar, dan halaman login. Kosongkan untuk memakai nama bawaan.",
     "businessMode": "Mode bisnis",
@@ -194,6 +201,32 @@
       "confirmBody": "Ini akan menghapus {{name}} dari server secara permanen. Tindakan ini tidak dapat dibatalkan."
     }
   },
+  "profile": {
+    "title": "Profil saya",
+    "subtitle": "Detail akun dan preferensi pribadi Anda.",
+    "account": "Akun",
+    "accountHelp": "Nama, email, dan peran Anda dikelola oleh pemilik — hubungi pemilik untuk mengubahnya.",
+    "preferences": "Preferensi",
+    "preferencesHelp": "Hanya disimpan di perangkat ini.",
+    "defaultWarehouse": "Gudang default",
+    "defaultWarehouseHelp": "Gudang yang aktif saat Anda masuk.",
+    "security": "Keamanan",
+    "securityHelp": "Gunakan kata sandi yang tidak Anda pakai di tempat lain.",
+    "avatarUpload": "Unggah foto",
+    "avatarChange": "Ganti foto",
+    "avatarRemove": "Hapus foto",
+    "avatarRemoveConfirm": "Foto Anda akan dihapus dan diganti dengan inisial nama.",
+    "avatarUpdated": "Foto profil diperbarui",
+    "avatarHelp": "JPG, PNG, atau WebP. Gambar persegi paling pas."
+  },
+  "imageUpload": {
+    "errors": {
+      "type": "Tipe berkas itu tidak didukung. Gunakan JPG, PNG, atau WebP.",
+      "tooLarge": "Gambar itu terlalu besar. Pilih yang di bawah 15 MB.",
+      "decode": "Gambar itu tidak bisa dibaca. Coba berkas lain.",
+      "encode": "Gambar tidak bisa diproses. Coba berkas lain."
+    }
+  },
   "notifications": {
     "bellAria": "Notifikasi",
     "lowStockTitle": "Stok menipis · {{count}}",
@@ -203,6 +236,7 @@
   },
   "purchasing": {
     "title": "Restok",
+    "description": "Pesanan pembelian dari draf hingga diterima dan dibayar.",
     "tabs": {
       "all": "Semua PO",
       "outstanding": "Tertunggak",
@@ -282,9 +316,8 @@
     "item": "Item",
     "created": "Dibuat",
     "searchPlaceholder": "Cari PO / pemasok / kode / $t(glossary.product)",
-    "dateOff": "Tanggal: nonaktif",
-    "dateCreated": "Per tanggal dibuat",
-    "dateReceived": "Per tanggal diterima",
+    "dateCreated": "Dibuat",
+    "dateReceived": "Diterima",
     "outstandingToggle": "Hanya tertunggak",
     "itemsMore": "+{{count}} lainnya",
     "lineTotalInput": "Harga modal total (IDR)",
@@ -350,7 +383,10 @@
   },
   "users": {
     "title": "Pengguna",
+    "description": "Akun staf dan peran yang menentukan hak akses masing-masing.",
     "createTitle": "Buat Pengguna",
+    "user": "Pengguna",
+    "active": "Aktif",
     "email": "Email",
     "name": "Nama",
     "password": "Kata sandi",
@@ -366,6 +402,7 @@
   },
   "analytics": {
     "title": "Analitik",
+    "description": "Angka penjualan, biaya, dan stok untuk periode yang Anda pilih.",
     "menu": {
       "daily": "Harian",
       "product": "$t(glossary.productCap)",
@@ -402,9 +439,8 @@
         "searchPlaceholder": "Cari rentang cepat",
         "invalidFormat": "Gunakan format YYYY-MM-DD HH:mm:ss",
         "invalidOrder": "\"Dari\" harus lebih awal dari \"Sampai\"",
-        "shiftBack": "Geser rentang ke belakang",
-        "shiftForward": "Geser rentang ke depan",
-        "zoomOut": "Perbesar rentang (2×)"
+        "fieldLabel": "Filter berdasarkan",
+        "pickFieldFirst": "Pilih dulu tanggal mana yang mau difilter."
       }
     },
     "exportCsv": "Ekspor CSV",
@@ -499,7 +535,9 @@
   },
   "prescriptions": {
     "title": "Resep",
+    "description": "Resep dokter beserta sisa kuantitas dan status penyerahannya.",
     "addTitle": "Resep Baru",
+    "addDescription": "Catat resep baru untuk seorang pasien.",
     "editTitle": "Ubah Resep",
     "rxNo": "No. Resep",
     "issuerName": "Dokter / penerbit",
@@ -543,6 +581,7 @@
   },
   "customers": {
     "title": "Pelanggan",
+    "description": "Semua pelanggan Anda, lengkap dengan kontak dan data pajaknya.",
     "addTitle": "Tambah Pelanggan",
     "editTitle": "Ubah Pelanggan",
     "name": "Nama",
@@ -604,6 +643,7 @@
   },
   "inventory": {
     "title": "Inventaris",
+    "description": "Stok tersedia, pemasok, dan semua yang menggerakkan barang masuk dan keluar.",
     "tabs": {
       "products": "$t(glossary.productsCap)",
       "suppliers": "Pemasok",
@@ -614,6 +654,8 @@
     },
     "products": {
       "title": "$t(glossary.productsCap)",
+      "description": "Katalog $t(glossary.product) Anda — harga, satuan, dan stok sekilas.",
+      "detailDescription": "Harga, satuan, batch, dan riwayat stok $t(glossary.product) ini.",
       "tabActive": "$t(glossary.productsCap) Aktif",
       "tabArchived": "$t(glossary.productsCap) Diarsipkan",
       "addTitle": "Tambah $t(glossary.productCap)",
@@ -647,7 +689,6 @@
       "unitBase": "Satuan dasar",
       "unitsEmpty": "Belum ada katalog satuan. Tambah satuan dasar di Setelan.",
       "totalStock": "Total stok",
-      "stockValuation": "Valuasi stok",
       "baseUnit": "Satuan dasar",
       "basePrice": "Harga dasar (per satuan dasar)",
       "prescriptionRequired": "Perlu resep",
@@ -661,6 +702,7 @@
       "lastCost": "Harga modal terakhir",
       "costLabel": "Modal",
       "marginPct": "margin {{pct}}%",
+      "marginCol": "Margin",
       "soldPriceHistory": "Riwayat Harga Jual",
       "restockPriceHistory": "Riwayat Harga Restok",
       "restockHistoryEmpty": "Belum ada restok.",
@@ -697,10 +739,20 @@
       "importRowValid": "OK",
       "importStatus": "Status",
       "importSummary": "{{created}} dibuat · {{skipped}} dilewati · {{errored}} error",
-      "importResultError": "Error"
+      "importResultError": "Error",
+      "image": "Foto",
+      "imageSection": "Foto",
+      "imageUpload": "Unggah foto",
+      "imageChange": "Ganti foto",
+      "imageRemove": "Hapus foto",
+      "imageRemoveConfirm": "Foto produk ini akan dihapus dan diganti dengan placeholder.",
+      "imageUpdated": "Foto produk diperbarui",
+      "imageHelp": "JPG, PNG, atau WebP. Foto persegi dengan latar polos paling terbaca di POS.",
+      "imagePreview": "Pratinjau foto"
     },
     "suppliers": {
       "title": "Pemasok",
+      "detailDescription": "Detail kontak, riwayat restok, dan kesepakatan harga pemasok ini.",
       "addTitle": "Tambah Pemasok",
       "editTitle": "Ubah Pemasok",
       "confirmArchive": "Arsipkan pemasok ini? Pemasok disembunyikan dari daftar aktif tetapi riwayatnya tetap tersimpan. Anda bisa memulihkannya nanti.",
@@ -723,9 +775,11 @@
     },
     "priceAgreements": {
       "title": "Kesepakatan harga",
+      "description": "Harga pemasok yang disepakati per $t(glossary.product) dan satuan, masing-masing dengan masa berlaku sendiri.",
       "addTitle": "Tambah kesepakatan",
       "editTitle": "Ubah Kesepakatan",
       "newTitle": "Kesepakatan Harga Baru",
+      "newDescription": "Tetapkan harga yang disepakati dengan satu pemasok.",
       "items": "Kesepakatan",
       "addLine": "Tambah baris",
       "removeLine": "Hapus baris",
@@ -759,8 +813,8 @@
       "title": "Batch",
       "addTitle": "Terima Batch",
       "searchPlaceholder": "Cari $t(glossary.product) / no batch…",
-      "byReceived": "Tgl diterima",
-      "byExpiry": "Tgl kedaluwarsa",
+      "byReceived": "Diterima",
+      "byExpiry": "Kedaluwarsa",
       "product": "$t(glossary.productCap)",
       "supplier": "Pemasok",
       "supplierNone": "— tidak ada —",
@@ -870,6 +924,8 @@
   },
   "warehouses": {
     "title": "Gudang",
+    "description": "Lokasi penyimpanan stok Anda dan siapa saja yang dapat bekerja di dalamnya.",
+    "detailDescription": "Detail gudang ini dan pengguna yang memiliki akses.",
     "addTitle": "Tambah Gudang",
     "code": "Kode",
     "name": "Nama",
@@ -1066,10 +1122,25 @@
     "sale": {
       "cartEmpty": "Keranjang kosong",
       "paidTooLow": "Jumlah bayar kurang dari total"
+    },
+    "avatar": {
+      "imageRequired": "Pilih gambar untuk diunggah.",
+      "thumbRequired": "Gambar tidak bisa diproses. Coba berkas lain.",
+      "imageTooLarge": "Gambar itu terlalu besar.",
+      "thumbTooLarge": "Gambar itu terlalu besar.",
+      "contentTypeInvalid": "Tipe berkas itu tidak didukung. Gunakan JPG, PNG, atau WebP."
+    },
+    "productImage": {
+      "imageRequired": "Pilih gambar untuk diunggah.",
+      "thumbRequired": "Gambar tidak bisa diproses. Coba berkas lain.",
+      "imageTooLarge": "Gambar itu terlalu besar.",
+      "thumbTooLarge": "Gambar itu terlalu besar.",
+      "contentTypeInvalid": "Tipe berkas itu tidak didukung. Gunakan JPG, PNG, atau WebP."
     }
   },
   "orders": {
     "title": "Riwayat order",
+    "description": "Semua transaksi final, dapat dicari per nomor, pelanggan, atau $t(glossary.product).",
     "printReceipt": "Cetak struk",
     "searchPlaceholder": "Cari no penjualan, pelanggan, atau $t(glossary.product)…",
     "saleNo": "No penjualan",
@@ -1119,6 +1190,7 @@
       "revenue": "Pendapatan"
     },
     "detail": {
+      "description": "Item, total, dan pembayaran untuk order ini.",
       "info": "Informasi",
       "totals": "Total",
       "tax": "Faktur pajak",
@@ -1167,7 +1239,10 @@
       "demo": {
         "routeTabsHint": "Tab ini memindah grup galeri — memang itu cara kerjanya (tiap tab adalah satu route).",
         "asyncMode": "Mode async — loadOptions, debounce 250ms",
-        "syncMode": "Mode sync — items, daftar statis"
+        "syncMode": "Mode sync — items, daftar statis",
+        "renderItemMode": "renderItem — isi baris kustom (avatar + nama di atas peran)",
+        "rangeOneDate": "Satu tanggal yang bisa difilter — tanpa prop fields",
+        "rangeManyDates": "Beberapa tanggal — fields + field + onFieldChange"
       }
     }
   }

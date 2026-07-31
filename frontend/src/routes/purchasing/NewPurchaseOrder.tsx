@@ -22,6 +22,7 @@ import EnumSelect from "../../components/EnumSelect";
 import MoneyInput from "../../components/MoneyInput";
 import NumberInput from "../../components/NumberInput";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import type { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { formatMoney } from "../../lib/format";
@@ -284,159 +285,161 @@ export default function NewPurchaseOrder() {
               {t("purchasing.addLine")}
             </Button>
           </HStack>
-          <Table.Root size="sm">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader minW="240px">{t("purchasing.selectProduct")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.unit")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.costPerItemInput")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.unitCostDerived")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.subtotal")}</Table.ColumnHeader>
-                <Table.ColumnHeader />
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {lines.map((l, idx) => {
-                const agreement = agreementFor(l);
-                const above = isAboveAgreement(l);
-                return (
-                <Table.Row key={idx} bg={above ? "red.subtle" : undefined}>
-                  <Table.Cell>
-                    <SearchableSelect
-                      size="sm"
-                      value={l.productId}
-                      onChange={(v) => updateLine(idx, { productId: v })}
-                      onSelectItem={(m) => onPickProduct(idx, m)}
-                      loadOptions={searchProducts}
-                      itemToString={(m) => `${m.sku} · ${m.name}`}
-                      itemToValue={(m) => m.id}
-                      placeholder={t("purchasing.selectProduct")}
-                    />
-                    {agreement && (
-                      <Stack gap={0.5} mt={1}>
-                        <Text fontSize="xs" color="fg.muted">
-                          {t("purchasing.agreedPrice", { price: formatMoney(Number(agreement.price)) })}
-                        </Text>
-                        {above && (
-                          <HStack gap={1} color="red.500">
-                            <AlertTriangle size={12} />
-                            <Text fontSize="xs">{t("purchasing.aboveAgreement")}</Text>
-                          </HStack>
-                        )}
-                      </Stack>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    {l.units.length > 1 ? (
-                      <EnumSelect
+          <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+            <Table.Root size="sm" stickyHeader>
+              <Table.Header>
+                <Table.Row>
+                  <Table.ColumnHeader minW="240px">{t("purchasing.selectProduct")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("purchasing.unit")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("purchasing.costPerItemInput")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("purchasing.unitCostDerived")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("purchasing.subtotal")}</Table.ColumnHeader>
+                  <Table.ColumnHeader />
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {lines.map((l, idx) => {
+                  const agreement = agreementFor(l);
+                  const above = isAboveAgreement(l);
+                  return (
+                  <Table.Row key={idx} bg={above ? "red.subtle" : undefined}>
+                    <Table.Cell>
+                      <SearchableSelect
                         size="sm"
-                        width="110px"
-                        value={l.productUnitId}
-                        onChange={(v) => updateLine(idx, { productUnitId: v })}
-                        items={l.units}
-                        itemToString={(u) => u.name}
-                        itemToValue={(u) => u.id}
+                        value={l.productId}
+                        onChange={(v) => updateLine(idx, { productId: v })}
+                        onSelectItem={(m) => onPickProduct(idx, m)}
+                        loadOptions={searchProducts}
+                        itemToString={(m) => `${m.sku} · ${m.name}`}
+                        itemToValue={(m) => m.id}
+                        placeholder={t("purchasing.selectProduct")}
                       />
-                    ) : (
-                      <Text fontSize="sm" color="fg.muted">
-                        {unitNameOf(l) || "—"}
-                      </Text>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <NumberInput
-                      size="sm"
-                      width="80px"
-                      value={l.orderedQty}
-                      onChange={(raw) => updateLine(idx, { orderedQty: Number(raw || 0) })}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>
-                    <MoneyInput
-                      size="sm"
-                      width="140px"
-                      value={l.costPerItem}
-                      onChange={(raw) => updateLine(idx, { costPerItem: Number(raw || 0) })}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>
-                    <HStack gap={1}>
-                      <EnumSelect
-                        size="sm"
-                        width="150px"
-                        value={modeOf(l)}
-                        onChange={(v) =>
-                          updateLine(idx, { ...modeToParts(v as DiscountMode), discountValue: 0 })
-                        }
-                        items={DISCOUNT_MODES}
-                        itemToString={(m) =>
-                          t(
-                            m === "FIXED"
-                              ? "purchasing.fixed"
-                              : m === "PERCENT"
-                                ? "purchasing.percent"
-                                : m === "FIXED_ITEM"
-                                  ? "purchasing.fixedPerItem"
-                                  : "purchasing.percentPerItem",
-                          )
-                        }
-                        itemToValue={(m) => m}
-                      />
-                      {l.discountType === "PERCENT" ? (
-                        <Input
-                          size="sm"
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          max={100}
-                          width="74px"
-                          value={l.discountValue || ""}
-                          onChange={(e) =>
-                            updateLine(idx, {
-                              discountValue: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
-                            })
-                          }
-                          aria-label={t("purchasing.lineDiscount")}
-                        />
-                      ) : (
-                        <MoneyInput
+                      {agreement && (
+                        <Stack gap={0.5} mt={1}>
+                          <Text fontSize="xs" color="fg.muted">
+                            {t("purchasing.agreedPrice", { price: formatMoney(Number(agreement.price)) })}
+                          </Text>
+                          {above && (
+                            <HStack gap={1} color="red.500">
+                              <AlertTriangle size={12} />
+                              <Text fontSize="xs">{t("purchasing.aboveAgreement")}</Text>
+                            </HStack>
+                          )}
+                        </Stack>
+                      )}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {l.units.length > 1 ? (
+                        <EnumSelect
                           size="sm"
                           width="110px"
-                          value={l.discountValue}
-                          onChange={(raw) => updateLine(idx, { discountValue: Number(raw || 0) })}
+                          value={l.productUnitId}
+                          onChange={(v) => updateLine(idx, { productUnitId: v })}
+                          items={l.units}
+                          itemToString={(u) => u.name}
+                          itemToValue={(u) => u.id}
                         />
+                      ) : (
+                        <Text fontSize="sm" color="fg.muted">
+                          {unitNameOf(l) || "—"}
+                        </Text>
                       )}
-                    </HStack>
-                  </Table.Cell>
-                  <Table.Cell fontFamily="mono" color="fg.muted">
-                    {formatMoney(netUnitCostOf(l))}
-                    {factorOf(l) > 1 && (
-                      <Text fontSize="xs">
-                        /{t("inventory.products.baseUnit").toLowerCase()}
-                      </Text>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell fontFamily="mono" fontWeight="medium">
-                    {formatMoney(lineNet(l))}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <IconButton
-                      aria-label="remove line"
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => removeLine(idx)}
-                      disabled={lines.length === 1}
-                    >
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </Table.Cell>
-                </Table.Row>
-                );
-              })}
-            </Table.Body>
-          </Table.Root>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <NumberInput
+                        size="sm"
+                        width="80px"
+                        value={l.orderedQty}
+                        onChange={(raw) => updateLine(idx, { orderedQty: Number(raw || 0) })}
+                      />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <MoneyInput
+                        size="sm"
+                        width="140px"
+                        value={l.costPerItem}
+                        onChange={(raw) => updateLine(idx, { costPerItem: Number(raw || 0) })}
+                      />
+                    </Table.Cell>
+                    <Table.Cell>
+                      <HStack gap={1}>
+                        <EnumSelect
+                          size="sm"
+                          width="150px"
+                          value={modeOf(l)}
+                          onChange={(v) =>
+                            updateLine(idx, { ...modeToParts(v as DiscountMode), discountValue: 0 })
+                          }
+                          items={DISCOUNT_MODES}
+                          itemToString={(m) =>
+                            t(
+                              m === "FIXED"
+                                ? "purchasing.fixed"
+                                : m === "PERCENT"
+                                  ? "purchasing.percent"
+                                  : m === "FIXED_ITEM"
+                                    ? "purchasing.fixedPerItem"
+                                    : "purchasing.percentPerItem",
+                            )
+                          }
+                          itemToValue={(m) => m}
+                        />
+                        {l.discountType === "PERCENT" ? (
+                          <Input
+                            size="sm"
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            max={100}
+                            width="74px"
+                            value={l.discountValue || ""}
+                            onChange={(e) =>
+                              updateLine(idx, {
+                                discountValue: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                              })
+                            }
+                            aria-label={t("purchasing.lineDiscount")}
+                          />
+                        ) : (
+                          <MoneyInput
+                            size="sm"
+                            width="110px"
+                            value={l.discountValue}
+                            onChange={(raw) => updateLine(idx, { discountValue: Number(raw || 0) })}
+                          />
+                        )}
+                      </HStack>
+                    </Table.Cell>
+                    <Table.Cell fontFamily="mono" color="fg.muted">
+                      {formatMoney(netUnitCostOf(l))}
+                      {factorOf(l) > 1 && (
+                        <Text fontSize="xs">
+                          /{t("inventory.products.baseUnit").toLowerCase()}
+                        </Text>
+                      )}
+                    </Table.Cell>
+                    <Table.Cell fontFamily="mono" fontWeight="medium">
+                      {formatMoney(lineNet(l))}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <IconButton
+                        aria-label="remove line"
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => removeLine(idx)}
+                        disabled={lines.length === 1}
+                      >
+                        <Trash2 size={14} />
+                      </IconButton>
+                    </Table.Cell>
+                  </Table.Row>
+                  );
+                })}
+              </Table.Body>
+            </Table.Root>
+          </TableScroll>
         </Box>
 
         <Box
