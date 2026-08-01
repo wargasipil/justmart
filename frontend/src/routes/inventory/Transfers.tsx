@@ -21,6 +21,7 @@ import ExportButton from "../../components/ExportButton";
 import NumberInput from "../../components/NumberInput";
 import BatchSelect from "../../components/BatchSelect";
 import WarehouseSelect from "../../components/WarehouseSelect";
+import TableScroll from "../../components/TableScroll";
 import { WAREHOUSE_KEY } from "../../lib/transport";
 import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
 import type { ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
@@ -137,43 +138,45 @@ export default function Transfers() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("transfers.transferNo")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("transfers.route")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("transfers.lines")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("transfers.note")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("transfers.when")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {transfersQ.rows.map((tr) => (
-              <Table.Row key={tr.id}>
-                <Table.Cell fontFamily="mono">{tr.transferNo}</Table.Cell>
-                <Table.Cell>
-                  <HStack gap={1}>
-                    <Text>{tr.fromWarehouseName}</Text>
-                    <ArrowRight size={14} />
-                    <Text>{tr.toWarehouseName}</Text>
-                  </HStack>
-                </Table.Cell>
-                <Table.Cell>{tr.lines.length}</Table.Cell>
-                <Table.Cell>{tr.note}</Table.Cell>
-                <Table.Cell>{formatUnix(tr.createdAt)}</Table.Cell>
-              </Table.Row>
-            ))}
-            {transfersQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={5}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("transfers.empty")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("transfers.transferNo")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("transfers.route")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("transfers.lines")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("transfers.note")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("transfers.when")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {transfersQ.rows.map((tr) => (
+                <Table.Row key={tr.id}>
+                  <Table.Cell fontFamily="mono">{tr.transferNo}</Table.Cell>
+                  <Table.Cell>
+                    <HStack gap={1}>
+                      <Text>{tr.fromWarehouseName}</Text>
+                      <ArrowRight size={14} />
+                      <Text>{tr.toWarehouseName}</Text>
+                    </HStack>
+                  </Table.Cell>
+                  <Table.Cell>{tr.lines.length}</Table.Cell>
+                  <Table.Cell>{tr.note}</Table.Cell>
+                  <Table.Cell>{formatUnix(tr.createdAt)}</Table.Cell>
+                </Table.Row>
+              ))}
+              {transfersQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={5}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("transfers.empty")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Pagination
@@ -318,93 +321,95 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           </Text>
 
           {lines.length > 0 && (
-            <Table.Root size="sm" borderWidth="1px" borderRadius="md">
-              <Table.Header bg="bg.muted">
-                <Table.Row>
-                  <Table.ColumnHeader>{t("transfers.product")}</Table.ColumnHeader>
-                  <Table.ColumnHeader textAlign="right">{t("transfers.available")}</Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("transfers.qty")}</Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("transfers.unit")}</Table.ColumnHeader>
-                  <Table.ColumnHeader />
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {lines.map((l, idx) => {
-                  const factor = factorOf(l);
-                  const baseName = l.units.find((u) => u.isBase)?.name ?? "";
-                  const maxUnitQty = Math.floor(l.available / factor);
-                  const baseQty = baseQtyOf(l);
-                  return (
-                    <Table.Row key={l.batchId}>
-                      <Table.Cell>
-                        <Stack gap={0} minW={0}>
-                          <Text fontSize="sm" fontWeight="medium" truncate>
-                            {l.productName}
-                          </Text>
-                          <Text fontSize="xs" color="fg.muted" truncate>
-                            {l.batchNumber || l.batchId.slice(0, 8)}
-                            {l.expiry ? ` · ${t("transfers.expShort")} ${l.expiry}` : ""}
-                          </Text>
-                        </Stack>
-                      </Table.Cell>
-                      <Table.Cell textAlign="right" color="fg.muted" whiteSpace="nowrap">
-                        {l.available}
-                        {baseName ? ` ${baseName}` : ""}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Stack gap={0}>
-                          <NumberInput
-                            width="80px"
-                            value={l.qty}
-                            max={maxUnitQty}
-                            placeholder={t("transfers.qty")}
-                            onChange={(raw) =>
-                              setLines((ls) => ls.map((x, i) => (i === idx ? { ...x, qty: raw } : x)))
-                            }
-                          />
-                          {factor > 1 && baseQty > 0 && (
-                            <Text fontSize="xs" color="fg.muted" whiteSpace="nowrap">
-                              = {baseQty} {baseName}
+            <TableScroll>
+              <Table.Root size="sm" stickyHeader>
+                <Table.Header bg="bg.muted">
+                  <Table.Row>
+                    <Table.ColumnHeader>{t("transfers.product")}</Table.ColumnHeader>
+                    <Table.ColumnHeader textAlign="right">{t("transfers.available")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("transfers.qty")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("transfers.unit")}</Table.ColumnHeader>
+                    <Table.ColumnHeader />
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {lines.map((l, idx) => {
+                    const factor = factorOf(l);
+                    const baseName = l.units.find((u) => u.isBase)?.name ?? "";
+                    const maxUnitQty = Math.floor(l.available / factor);
+                    const baseQty = baseQtyOf(l);
+                    return (
+                      <Table.Row key={l.batchId}>
+                        <Table.Cell>
+                          <Stack gap={0} minW={0}>
+                            <Text fontSize="sm" fontWeight="medium" truncate>
+                              {l.productName}
+                            </Text>
+                            <Text fontSize="xs" color="fg.muted" truncate>
+                              {l.batchNumber || l.batchId.slice(0, 8)}
+                              {l.expiry ? ` · ${t("transfers.expShort")} ${l.expiry}` : ""}
+                            </Text>
+                          </Stack>
+                        </Table.Cell>
+                        <Table.Cell textAlign="right" color="fg.muted" whiteSpace="nowrap">
+                          {l.available}
+                          {baseName ? ` ${baseName}` : ""}
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Stack gap={0}>
+                            <NumberInput
+                              width="80px"
+                              value={l.qty}
+                              max={maxUnitQty}
+                              placeholder={t("transfers.qty")}
+                              onChange={(raw) =>
+                                setLines((ls) => ls.map((x, i) => (i === idx ? { ...x, qty: raw } : x)))
+                              }
+                            />
+                            {factor > 1 && baseQty > 0 && (
+                              <Text fontSize="xs" color="fg.muted" whiteSpace="nowrap">
+                                = {baseQty} {baseName}
+                              </Text>
+                            )}
+                          </Stack>
+                        </Table.Cell>
+                        <Table.Cell>
+                          {l.units.length > 1 ? (
+                            <EnumSelect
+                              size="sm"
+                              width="110px"
+                              value={l.unitId}
+                              onChange={(v) =>
+                                setLines((ls) =>
+                                  ls.map((x, i) => (i === idx ? { ...x, unitId: v, qty: "" } : x)),
+                                )
+                              }
+                              items={l.units}
+                              itemToString={(u) => u.name}
+                              itemToValue={(u) => u.id}
+                            />
+                          ) : (
+                            <Text fontSize="sm" color="fg.muted">
+                              {baseName || "—"}
                             </Text>
                           )}
-                        </Stack>
-                      </Table.Cell>
-                      <Table.Cell>
-                        {l.units.length > 1 ? (
-                          <EnumSelect
+                        </Table.Cell>
+                        <Table.Cell>
+                          <IconButton
+                            aria-label={t("transfers.removeLine")}
                             size="sm"
-                            width="110px"
-                            value={l.unitId}
-                            onChange={(v) =>
-                              setLines((ls) =>
-                                ls.map((x, i) => (i === idx ? { ...x, unitId: v, qty: "" } : x)),
-                              )
-                            }
-                            items={l.units}
-                            itemToString={(u) => u.name}
-                            itemToValue={(u) => u.id}
-                          />
-                        ) : (
-                          <Text fontSize="sm" color="fg.muted">
-                            {baseName || "—"}
-                          </Text>
-                        )}
-                      </Table.Cell>
-                      <Table.Cell>
-                        <IconButton
-                          aria-label={t("transfers.removeLine")}
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setLines((ls) => ls.filter((_, i) => i !== idx))}
-                        >
-                          <Trash2 size={14} />
-                        </IconButton>
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })}
-              </Table.Body>
-            </Table.Root>
+                            variant="ghost"
+                            onClick={() => setLines((ls) => ls.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 size={14} />
+                          </IconButton>
+                        </Table.Cell>
+                      </Table.Row>
+                    );
+                  })}
+                </Table.Body>
+              </Table.Root>
+            </TableScroll>
           )}
 
           <BatchSelect

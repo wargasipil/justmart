@@ -1,0 +1,142 @@
+# The test gate. Runs on every push and pull request so the guards that protect
+# production cannot be bypassed by forgetting to run `make test-*` locally.
+#
+# The migration job is deliberately FIRST and standalone: a committed migration
+# has already run in production, so editing one desynchronises every existing
+# database from a fresh install. That has happened twice (repair migrations
+# 00040 and 00052, both from commit 2d0e784) and went unnoticed for months
+# because nothing checked. Those guards are cheap and need no services — there
+# is no excuse for them not to run on every commit.
+#
+# NOT here yet, on purpose:
+#   - Playwright (`make test-browser`) needs a built SPA + a live backend, and
+#     the suite currently has 12 pre-existing failures unrelated to any guard.
+#     Adding it now would make CI permanently red, which trains people to ignore
+#     it. Fix those first, then add a job.
+#   - `make test-e2e` shares a live dev database and resets the bootstrap owner
+#     password on every run; it needs an isolated CI database before it can be
+#     wired up safely.
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Migration immutability + legacy-vs-fresh schema convergence. SQLite-only and
+  # engine-independent, so this needs no services and finishes in seconds.
+  migrations:
+    name: Migration guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Migration guards (immutability + baseline convergence)
+        run: make test-migrations
+
+  # Co-located handler unit tests on SQLite: self-contained (throwaway temp DB
+  # per test, no config.yaml, no server).
+  backend-sqlite:
+    name: Unit tests (SQLite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Build
+        run: go -C backend build ./...
+      - name: Vet
+        run: go -C backend vet ./...
+      - name: Unit tests
+        run: go -C backend test ./internal/service/... -count=1
+
+  # The SAME unit suite against Postgres. HARD RULE: every handler test must pass
+  # on both engines. servicetest gives each test its own throwaway schema; the
+  # creds below match the docker-compose dev defaults it falls back to.
+  backend-postgres:
+    name: Unit tests (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: justmart
+          POSTGRES_USER: justmart
+          POSTGRES_PASSWORD: justmart
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U justmart -d justmart"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      # The backup tests shell out to pg_dump, which REFUSES to dump a server
+      # newer than itself ("aborting because of server version mismatch"). The
+      # runner preinstalls client 16, so without this the whole backup package
+      # fails against the postgres:18 service. Installing the matching client
+      # (rather than downgrading the server) keeps CI on the version prod runs
+      # and makes these tests actually execute — locally they usually SKIP,
+      # because pg_dump isn't on a dev machine's PATH.
+      - name: Install postgresql-client 18 (must match the service major version)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-18
+          pg_dump --version
+      # -p 1 -parallel 4 bounds the per-test CREATE/DROP SCHEMA churn so it stays
+      # under PG's default shared lock table (same reason as the Makefile target).
+      - name: Unit tests
+        env:
+          JUSTMART_TEST_DB_DRIVER: postgres
+          JUSTMART_DB_HOST: localhost
+          JUSTMART_DB_PORT: "5432"
+          JUSTMART_DB_USER: justmart
+          JUSTMART_DB_PASSWORD: justmart
+          JUSTMART_DB_NAME: justmart
+          JUSTMART_DB_SSLMODE: disable
+        run: go -C backend test ./internal/service/... -count=1 -p 1 -parallel 4
+
+  # Typecheck + production build of the SPA. `npm run build` is `tsc -b && vite
+  # build`, so this covers both.
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    # tsc resolves tsconfig.json from the WORKING DIRECTORY — `npm --prefix`
+    # only moves package resolution, so running it from the repo root makes tsc
+    # print its help and exit non-zero.
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build

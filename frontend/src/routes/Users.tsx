@@ -1,75 +1,34 @@
 import { useState } from "react";
-import {
-  Box,
-  Button,
-  Spinner,
-  Stack,
-  Switch,
-  Table,
-  Text,
-} from "@chakra-ui/react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Box, Button, Spinner, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import ChangePasswordDialog from "../components/ChangePasswordDialog";
-import EntityDrawer from "../components/EntityDrawer";
 import EnumSelect from "../components/EnumSelect";
-import FormField from "../components/FormField";
 import PageHeader from "../components/PageHeader";
+import Pagination from "../components/Pagination";
+import TableScroll from "../components/TableScroll";
+import UserAvatar from "../components/UserAvatar";
+import { usePageState } from "../lib/pagination";
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { User } from "../gen/user_iface/v1/users_pb";
 import { useAuth } from "../lib/auth";
-import { useServerFormErrors } from "../lib/formErrors";
-import { toast } from "../lib/toaster";
-import {
-  useCreateUserMutation,
-  useSetUserActiveMutation,
-  useUpdateUserRoleMutation,
-  useUsersQuery,
-} from "../queries/users";
-import { useBusinessMode } from "../queries/settings";
-
-const ROLE_OPTIONS: { value: Role; key: string }[] = [
-  { value: Role.OWNER, key: "owner" },
-  { value: Role.PHARMACIST, key: "pharmacist" }, // labeled "Admin" (manager tier, both modes)
-  { value: Role.APOTEKER, key: "apoteker" }, // pharmacy-only
-  { value: Role.CASHIER, key: "cashier" },
-];
-
-// useRoleOptions returns the assignable roles for the current business mode:
-// APOTEKER (the Rx-authority role) is pharmacy-only — kept out of retail to stop
-// roles mixing across modes (mirrors the backend rolesByMode). `include` forces a
-// role to remain even when filtered, so an existing out-of-mode user's current
-// role still renders in their row instead of showing blank.
-function useRoleOptions(include?: Role): { value: string; label: string }[] {
-  const { t } = useTranslation();
-  const { isPharmacy } = useBusinessMode();
-  return ROLE_OPTIONS.filter(
-    (o) => o.value !== Role.APOTEKER || isPharmacy || o.value === include,
-  ).map((o) => ({ value: String(o.value), label: t(`dashboard.roles.${o.key}`) }));
-}
-
-const CreateSchema = z.object({
-  email: z.string().email(),
-  name: z.string(),
-  password: z.string().min(8),
-  role: z.coerce.number().int(),
-});
-type CreateValues = z.infer<typeof CreateSchema>;
+import { displayName } from "../lib/roles";
+import { useSetUserActiveMutation, useUpdateUserRoleMutation, useUsersQuery } from "../queries/users";
+import { CreateUserDrawer } from "./users/userDrawers";
+import { useRoleOptions } from "./users/roleOptions";
 
 export default function Users() {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const usersQ = useUsersQuery();
+  const page = usePageState("users");
+  const usersQ = useUsersQuery({ page: page.page, pageSize: page.pageSize });
 
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[{ label: t("users.title") }]}
         title={t("users.title")}
+        description={t("users.description")}
         actions={
           <Button colorPalette="blue" onClick={() => setDrawerOpen(true)}>
             <Plus size={16} />
@@ -83,8 +42,15 @@ export default function Users() {
           <Spinner />
         </Box>
       ) : (
-        <UsersTable users={usersQ.data ?? []} />
+        <UsersTable users={usersQ.rows} />
       )}
+      <Pagination
+        page={page.page}
+        pageSize={page.pageSize}
+        total={usersQ.total}
+        onPageChange={page.setPage}
+        onPageSizeChange={page.setPageSize}
+      />
 
       <CreateUserDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </Box>
@@ -92,23 +58,25 @@ export default function Users() {
 }
 
 function UsersTable({ users }: { users: User[] }) {
+  const { t } = useTranslation();
   return (
-    <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg" overflow="hidden">
-      <Table.Header bg="bg.muted">
-        <Table.Row>
-          <Table.ColumnHeader>Email</Table.ColumnHeader>
-          <Table.ColumnHeader>Name</Table.ColumnHeader>
-          <Table.ColumnHeader>Role</Table.ColumnHeader>
-          <Table.ColumnHeader>Active</Table.ColumnHeader>
-          <Table.ColumnHeader />
-        </Table.Row>
-      </Table.Header>
-      <Table.Body>
-        {users.map((u) => (
-          <UserRow key={u.id} user={u} />
-        ))}
-      </Table.Body>
-    </Table.Root>
+    <TableScroll>
+      <Table.Root size="sm" stickyHeader>
+        <Table.Header bg="bg.muted">
+          <Table.Row>
+            <Table.ColumnHeader>{t("users.user")}</Table.ColumnHeader>
+            <Table.ColumnHeader>{t("users.role")}</Table.ColumnHeader>
+            <Table.ColumnHeader>{t("users.active")}</Table.ColumnHeader>
+            <Table.ColumnHeader />
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {users.map((u) => (
+            <UserRow key={u.id} user={u} />
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </TableScroll>
   );
 }
 
@@ -125,8 +93,27 @@ function UserRow({ user }: { user: User }) {
 
   return (
     <Table.Row>
-      <Table.Cell>{user.email}</Table.Cell>
-      <Table.Cell>{user.name}</Table.Cell>
+      {/* Identity cell: picture + name over email. One column instead of two —
+          the email is the fallback primary line when a user has no name set. */}
+      <Table.Cell>
+        <Stack direction="row" align="center" gap={3}>
+          <UserAvatar
+            userId={user.id}
+            name={displayName(user)}
+            version={Number(user.avatarUpdatedAt)}
+          />
+          <Stack gap={0} minW={0}>
+            <Text fontWeight="medium" truncate>
+              {user.name || user.email}
+            </Text>
+            {user.name && (
+              <Text fontSize="xs" color="fg.muted" truncate>
+                {user.email}
+              </Text>
+            )}
+          </Stack>
+        </Stack>
+      </Table.Cell>
       <Table.Cell>
         <EnumSelect
           size="sm"
@@ -169,92 +156,5 @@ function UserRow({ user }: { user: User }) {
         )}
       </Table.Cell>
     </Table.Row>
-  );
-}
-
-function CreateUserDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useTranslation();
-  const create = useCreateUserMutation();
-  const form = useForm<CreateValues>({
-    resolver: zodResolver(CreateSchema),
-    defaultValues: { email: "", name: "", password: "", role: Role.CASHIER },
-  });
-  const onServerError = useServerFormErrors(form);
-
-  const submit = form.handleSubmit(async (values) => {
-    try {
-      await create.mutateAsync({
-        email: values.email,
-        name: values.name,
-        password: values.password,
-        role: values.role as Role,
-      });
-      toast.success(t("common.create") + " ✓");
-      form.reset();
-      onClose();
-    } catch (err) {
-      onServerError(err); // user.email_taken → field error on `email`
-    }
-  });
-
-  return (
-    <EntityDrawer
-      open={open}
-      onClose={onClose}
-      title={t("users.createTitle")}
-      footer={
-        <Stack direction="row" justify="space-between">
-          <Button variant="ghost" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button colorPalette="blue" onClick={submit} loading={create.isPending}>
-            {t("common.save")}
-          </Button>
-        </Stack>
-      }
-    >
-      <form onSubmit={submit}>
-        <Stack gap={4}>
-          <FormField
-            control={form.control}
-            name="email"
-            label={t("users.email")}
-            type="email"
-            required
-            autoFocus
-          />
-          <FormField control={form.control} name="name" label={t("users.name")} />
-          <FormField
-            control={form.control}
-            name="password"
-            label={t("users.password")}
-            type="password"
-            helperText={t("users.passwordHelp")}
-            required
-          />
-          <RoleSelect form={form} />
-        </Stack>
-      </form>
-    </EntityDrawer>
-  );
-}
-
-function RoleSelect({ form }: { form: ReturnType<typeof useForm<CreateValues>> }) {
-  const { t } = useTranslation();
-  const value = form.watch("role");
-  const roleItems = useRoleOptions(); // new user → no out-of-mode role to force-include
-  return (
-    <Stack gap={1}>
-      <Text fontSize="sm" fontWeight="medium" color="fg.muted">
-        {t("users.role")}
-      </Text>
-      <EnumSelect
-        value={String(value)}
-        onChange={(v) => form.setValue("role", Number(v))}
-        items={roleItems}
-        itemToString={(o) => o.label}
-        itemToValue={(o) => o.value}
-      />
-    </Stack>
   );
 }

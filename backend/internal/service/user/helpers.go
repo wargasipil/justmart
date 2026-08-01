@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
@@ -75,13 +76,25 @@ func (s *UserService) loadByID(ctx context.Context, id string) (*model.User, err
 // (Login / Me) returns the same shape.
 func UserToProto(u *model.User) *userifacev1.User {
 	return &userifacev1.User{
-		Id:        u.ID,
-		Email:     u.Email,
-		Name:      u.Name,
-		Role:      roleToProto(u.Role),
-		Active:    u.Active,
-		CreatedAt: u.CreatedAt.Unix(),
+		Id:              u.ID,
+		Email:           u.Email,
+		Name:            u.Name,
+		Role:            roleToProto(u.Role),
+		Active:          u.Active,
+		CreatedAt:       u.CreatedAt.Unix(),
+		AvatarUpdatedAt: avatarUnix(u.AvatarUpdatedAt),
 	}
+}
+
+// avatarUnix flattens the nullable avatar marker to the proto's 0 = "no
+// picture" convention, which is what disables the avatar fetch on the client.
+// Kept as a marker (not the bytes) so the common user reads stay cheap — the
+// frontend fetches the thumbnail separately and keys its cache on this stamp.
+func avatarUnix(t *time.Time) int64 {
+	if t == nil {
+		return 0
+	}
+	return t.Unix()
 }
 
 func roleFromProto(r authifacev1.Role) (string, error) {

@@ -4,114 +4,37 @@ import {
   Flex,
   HStack,
   Heading,
-  IconButton,
   Input,
   Link as ChakraLink,
   Stack,
   Switch,
-  Table,
   Text,
 } from "@chakra-ui/react";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import DatePickerField from "../../components/DatePicker";
-import EnumSelect from "../../components/EnumSelect";
 import MoneyInput from "../../components/MoneyInput";
-import NumberInput from "../../components/NumberInput";
+import ProductPickerDialog from "../../components/ProductPickerDialog";
 import SearchableSelect from "../../components/SearchableSelect";
+import PurchaseLinesTable from "./PurchaseLinesTable";
 import type { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
-import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
+import type { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { formatMoney } from "../../lib/format";
 import { ALL_LIMIT } from "../../lib/pagination";
+import {
+  type Line,
+  emptyLine,
+  lineNet,
+  perChosenUnitGross,
+  unitCostBaseOf,
+} from "../../lib/purchaseLine";
 import { toast } from "../../lib/toaster";
 import { usePriceAgreementsQuery } from "../../queries/priceAgreements";
-import { searchProducts } from "../../queries/products";
 import { useCreatePurchaseOrderMutation } from "../../queries/purchasing";
 import { searchSuppliers } from "../../queries/suppliers";
-
-type DiscountType = "FIXED" | "PERCENT";
-// The 4 effective discount modes = (discountType, discountPerItem). The "_ITEM"
-// modes apply the discount to each item's cost (× qty) instead of the whole line.
-type DiscountMode = "FIXED" | "PERCENT" | "FIXED_ITEM" | "PERCENT_ITEM";
-const DISCOUNT_MODES: DiscountMode[] = ["FIXED", "PERCENT", "FIXED_ITEM", "PERCENT_ITEM"];
-const modeOf = (l: Line): DiscountMode =>
-  l.discountPerItem
-    ? l.discountType === "PERCENT"
-      ? "PERCENT_ITEM"
-      : "FIXED_ITEM"
-    : l.discountType;
-const modeToParts = (m: DiscountMode): { discountType: DiscountType; discountPerItem: boolean } => ({
-  discountType: m === "PERCENT" || m === "PERCENT_ITEM" ? "PERCENT" : "FIXED",
-  discountPerItem: m === "FIXED_ITEM" || m === "PERCENT_ITEM",
-});
-
-type Line = {
-  productId: string;
-  productUnitId: string; // chosen purchasable unit ("" => base)
-  units: ProductUnit[]; // purchasable + active units of the picked product
-  orderedQty: number; // in the chosen unit
-  costPerItem: number; // GROSS cost per chosen purchasable unit (entered); line total is derived
-  discountType: DiscountType;
-  discountPerItem: boolean;
-  discountValue: number; // FIXED: minor units; PERCENT: human decimal percent (e.g. 12.5)
-};
-
-const factorOf = (l: Line): number => {
-  const u = l.units.find((x) => x.id === l.productUnitId);
-  return u ? Number(u.factor) : 1;
-};
-const baseQtyOf = (l: Line): number => l.orderedQty * factorOf(l);
-// GROSS cost per BASE unit — derived from the entered cost-per-item / factor.
-// Sent to the backend as unit_cost_price; the preview below uses this same
-// rounded integer so the displayed totals agree with what the server stores.
-const unitCostBaseOf = (l: Line): number => Math.round(l.costPerItem / factorOf(l));
-// GROSS extended line amount = base qty × per-base cost.
-const grossOf = (l: Line): number => baseQtyOf(l) * unitCostBaseOf(l);
-// Per-line discount amount — mirrors the backend lineNetSubtotal EXACTLY so the
-// preview matches: per-item rounds each item then × qty; per-line rounds the
-// whole line. PERCENT value is converted to basis points first (×100), like submit.
-const lineDiscountAmount = (l: Line): number => {
-  const gross = grossOf(l);
-  const chosenQty = l.orderedQty;
-  const isPct = l.discountType === "PERCENT";
-  const val = isPct ? Math.round(l.discountValue * 100) : l.discountValue; // bp | rupiah
-  let disc: number;
-  if (l.discountPerItem && chosenQty > 0) {
-    const perItemGross = Math.floor(gross / chosenQty); // exact (gross is a multiple of qty)
-    let perItemDisc = isPct ? Math.floor((perItemGross * val + 5000) / 10000) : val;
-    if (perItemDisc > perItemGross) perItemDisc = perItemGross;
-    disc = perItemDisc * chosenQty;
-  } else if (!isPct) {
-    disc = val;
-  } else {
-    disc = Math.floor((gross * val + 5000) / 10000);
-  }
-  return Math.max(0, Math.min(disc, gross));
-};
-const lineNet = (l: Line): number => grossOf(l) - lineDiscountAmount(l);
-// NET cost per base unit — what flows to the received batch's cost_price.
-const netUnitCostOf = (l: Line): number => {
-  const base = baseQtyOf(l);
-  return base > 0 ? Math.round(lineNet(l) / base) : 0;
-};
-const unitNameOf = (l: Line): string =>
-  l.units.find((x) => x.id === l.productUnitId)?.name ?? "";
-// The entered cost per chosen unit — the basis for the price-agreement compare.
-const perChosenUnitGross = (l: Line): number => l.costPerItem;
-
-const emptyLine = (): Line => ({
-  productId: "",
-  productUnitId: "",
-  units: [],
-  orderedQty: 1,
-  costPerItem: 0,
-  discountType: "FIXED",
-  discountPerItem: false,
-  discountValue: 0,
-});
 
 export default function NewPurchaseOrder() {
   const { t } = useTranslation();
@@ -123,7 +46,8 @@ export default function NewPurchaseOrder() {
   const [invoiceDate, setInvoiceDate] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [note, setNote] = useState("");
-  const [lines, setLines] = useState<Line[]>([emptyLine()]);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [cartDiscount, setCartDiscount] = useState(0);
   const [ppnEnabled, setPpnEnabled] = useState(false);
   const [ppnRate, setPpnRate] = useState(11); // percent; current Indonesian default
@@ -167,12 +91,30 @@ export default function NewPurchaseOrder() {
     setLines((cur) => cur.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
   };
   const removeLine = (idx: number) => setLines((cur) => cur.filter((_, i) => i !== idx));
-  const addLine = () => setLines((cur) => [...cur, emptyLine()]);
 
-  const onPickProduct = (idx: number, m: Product | undefined) => {
-    const units = (m?.units ?? []).filter((u) => u.purchasable && u.active);
-    const base = units.find((u) => u.isBase);
-    updateLine(idx, { units, productUnitId: base?.id ?? units[0]?.id ?? "" });
+  // One line per checked product: the picker's check set IS this table. Ids the
+  // caller already had keep their line (qty / cost / discount survive a re-open);
+  // new ids become fresh lines seeded from the picked Product; dropped ids go.
+  // Order follows the picker so the table reads the way it was assembled.
+  const applyPicked = (ids: string[], byId: Map<string, Product>) => {
+    setLines((cur) => {
+      const kept = new Map(cur.map((l) => [l.productId, l]));
+      return ids.map((id) => {
+        const existing = kept.get(id);
+        if (existing) return existing;
+        const p = byId.get(id);
+        const units = (p?.units ?? []).filter((u) => u.purchasable && u.active);
+        const base = units.find((u) => u.isBase);
+        return {
+          ...emptyLine(),
+          productId: id,
+          productName: p?.name ?? "",
+          productSku: p?.sku ?? "",
+          units,
+          productUnitId: base?.id ?? units[0]?.id ?? "",
+        };
+      });
+    });
   };
 
   const canSubmit =
@@ -279,164 +221,18 @@ export default function NewPurchaseOrder() {
         <Box>
           <HStack justify="space-between" mb={2}>
             <Heading size="sm">{t("purchasing.items")}</Heading>
-            <Button size="xs" variant="outline" onClick={addLine}>
+            <Button size="xs" variant="outline" onClick={() => setPickerOpen(true)}>
               <Plus size={14} />
-              {t("purchasing.addLine")}
+              {t("purchasing.addProduct")}
             </Button>
           </HStack>
-          <Table.Root size="sm">
-            <Table.Header>
-              <Table.Row>
-                <Table.ColumnHeader minW="240px">{t("purchasing.selectProduct")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.unit")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.costPerItemInput")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.unitCostDerived")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("purchasing.subtotal")}</Table.ColumnHeader>
-                <Table.ColumnHeader />
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {lines.map((l, idx) => {
-                const agreement = agreementFor(l);
-                const above = isAboveAgreement(l);
-                return (
-                <Table.Row key={idx} bg={above ? "red.subtle" : undefined}>
-                  <Table.Cell>
-                    <SearchableSelect
-                      size="sm"
-                      value={l.productId}
-                      onChange={(v) => updateLine(idx, { productId: v })}
-                      onSelectItem={(m) => onPickProduct(idx, m)}
-                      loadOptions={searchProducts}
-                      itemToString={(m) => `${m.sku} · ${m.name}`}
-                      itemToValue={(m) => m.id}
-                      placeholder={t("purchasing.selectProduct")}
-                    />
-                    {agreement && (
-                      <Stack gap={0.5} mt={1}>
-                        <Text fontSize="xs" color="fg.muted">
-                          {t("purchasing.agreedPrice", { price: formatMoney(Number(agreement.price)) })}
-                        </Text>
-                        {above && (
-                          <HStack gap={1} color="red.500">
-                            <AlertTriangle size={12} />
-                            <Text fontSize="xs">{t("purchasing.aboveAgreement")}</Text>
-                          </HStack>
-                        )}
-                      </Stack>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    {l.units.length > 1 ? (
-                      <EnumSelect
-                        size="sm"
-                        width="110px"
-                        value={l.productUnitId}
-                        onChange={(v) => updateLine(idx, { productUnitId: v })}
-                        items={l.units}
-                        itemToString={(u) => u.name}
-                        itemToValue={(u) => u.id}
-                      />
-                    ) : (
-                      <Text fontSize="sm" color="fg.muted">
-                        {unitNameOf(l) || "—"}
-                      </Text>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <NumberInput
-                      size="sm"
-                      width="80px"
-                      value={l.orderedQty}
-                      onChange={(raw) => updateLine(idx, { orderedQty: Number(raw || 0) })}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>
-                    <MoneyInput
-                      size="sm"
-                      width="140px"
-                      value={l.costPerItem}
-                      onChange={(raw) => updateLine(idx, { costPerItem: Number(raw || 0) })}
-                    />
-                  </Table.Cell>
-                  <Table.Cell>
-                    <HStack gap={1}>
-                      <EnumSelect
-                        size="sm"
-                        width="150px"
-                        value={modeOf(l)}
-                        onChange={(v) =>
-                          updateLine(idx, { ...modeToParts(v as DiscountMode), discountValue: 0 })
-                        }
-                        items={DISCOUNT_MODES}
-                        itemToString={(m) =>
-                          t(
-                            m === "FIXED"
-                              ? "purchasing.fixed"
-                              : m === "PERCENT"
-                                ? "purchasing.percent"
-                                : m === "FIXED_ITEM"
-                                  ? "purchasing.fixedPerItem"
-                                  : "purchasing.percentPerItem",
-                          )
-                        }
-                        itemToValue={(m) => m}
-                      />
-                      {l.discountType === "PERCENT" ? (
-                        <Input
-                          size="sm"
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          max={100}
-                          width="74px"
-                          value={l.discountValue || ""}
-                          onChange={(e) =>
-                            updateLine(idx, {
-                              discountValue: Math.min(100, Math.max(0, Number(e.target.value) || 0)),
-                            })
-                          }
-                          aria-label={t("purchasing.lineDiscount")}
-                        />
-                      ) : (
-                        <MoneyInput
-                          size="sm"
-                          width="110px"
-                          value={l.discountValue}
-                          onChange={(raw) => updateLine(idx, { discountValue: Number(raw || 0) })}
-                        />
-                      )}
-                    </HStack>
-                  </Table.Cell>
-                  <Table.Cell fontFamily="mono" color="fg.muted">
-                    {formatMoney(netUnitCostOf(l))}
-                    {factorOf(l) > 1 && (
-                      <Text fontSize="xs">
-                        /{t("inventory.products.baseUnit").toLowerCase()}
-                      </Text>
-                    )}
-                  </Table.Cell>
-                  <Table.Cell fontFamily="mono" fontWeight="medium">
-                    {formatMoney(lineNet(l))}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <IconButton
-                      aria-label="remove line"
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => removeLine(idx)}
-                      disabled={lines.length === 1}
-                    >
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </Table.Cell>
-                </Table.Row>
-                );
-              })}
-            </Table.Body>
-          </Table.Root>
+          <PurchaseLinesTable
+            lines={lines}
+            onChange={updateLine}
+            onRemove={removeLine}
+            agreementFor={agreementFor}
+            isAboveAgreement={isAboveAgreement}
+          />
         </Box>
 
         <Box
@@ -511,6 +307,13 @@ export default function NewPurchaseOrder() {
           </Button>
         </HStack>
       </Stack>
+
+      <ProductPickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        selectedIds={lines.map((l) => l.productId)}
+        onConfirm={applyPicked}
+      />
     </Box>
   );
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { unitClient } from "../lib/clients";
+import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
 import type {
   ArchiveUnitBaseRequest,
   ArchiveUnitDerivativeRequest,
@@ -13,21 +14,31 @@ import type {
 
 export const unitKeys = {
   all: ["units"] as const,
-  bases: (includeInactive: boolean) =>
-    [...unitKeys.all, "bases", includeInactive] as const,
+  bases: (includeInactive: boolean, page: number, pageSize: number) =>
+    [...unitKeys.all, "bases", includeInactive, page, pageSize] as const,
 };
 
 // Global unit catalog. Returns base units (active by default) with their
 // active derivatives hydrated. Used by Settings + the Products list popover.
-export function useUnitBasesQuery(includeInactive = false) {
-  return useQuery({
-    queryKey: unitKeys.bases(includeInactive),
+// Server-paginated; returns { rows, total }. Callers that need the whole
+// catalog in memory (the Products list "Units" popover) pass ALL_LIMIT.
+export function useUnitBasesQuery(
+  opts: { includeInactive?: boolean; page?: number; pageSize?: number } = {},
+) {
+  const { includeInactive = false, page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
+  const q = useQuery({
+    queryKey: unitKeys.bases(includeInactive, page, pageSize),
     queryFn: async () => {
-      const res = await unitClient.listUnitBases({ includeInactive });
-      return res.bases;
+      const res = await unitClient.listUnitBases({
+        includeInactive,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.bases, total: res.total };
     },
     staleTime: 60_000,
   });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }
 
 export function useCreateUnitBaseMutation() {

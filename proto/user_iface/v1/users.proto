@@ -13,6 +13,10 @@ message User {
   auth_iface.v1.Role role = 4;
   bool active = 5;
   int64 created_at = 6;
+  // Unix sec of the last profile-picture upload; 0 = no avatar. The bytes live
+  // in their own table and are fetched only by GetAvatar — this marker is what
+  // tells the UI whether to fetch at all, and cache-busts a re-upload.
+  int64 avatar_updated_at = 7;
 }
 
 service UserService {
@@ -30,10 +34,14 @@ service UserService {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
-  // Server-side fuzzy search. OWNER for the warehouse-detail "Add user" picker;
-  // PHARMACIST + APOTEKER for the resep "doctor / penerbit" picker (they author
-  // prescriptions). Returns only the minimal UserRef {id,name,email} that
-  // ResolveUsers already exposes to OWNER/PHARMACIST/CASHIER — no new exposure.
+  // Server-side fuzzy search over ACTIVE users only — a deactivated account is
+  // never a valid pick for any of these surfaces. OWNER for the warehouse-detail
+  // "Add user" picker; PHARMACIST + APOTEKER for the resep "doctor / penerbit"
+  // picker (they author prescriptions). Returns the same UserRef that
+  // ResolveUsers exposes — which now carries `role` and `avatar_updated_at`
+  // alongside the name, so a picker can render a face and a role badge. Neither
+  // is sensitive: avatar bytes are already readable by any signed-in user via
+  // GetAvatar, and staff roles are visible in the shop.
   rpc SearchUsers(SearchUsersRequest) returns (SearchUsersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -50,6 +58,16 @@ service UserService {
   }
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 
+  // Profile picture. Upload/Delete are SELF-ONLY by construction — neither
+  // request carries a user_id, so there is no "edit someone else's avatar" path
+  // to guard. GetAvatar takes an id because any signed-in user may see a
+  // colleague's picture (user lists, the order-history "Created by" column);
+  // it returns bytes only, never anything the caller can't already see.
+  // All three are authenticated-only (no allowed_roles = every role).
+  rpc UploadAvatar(UploadAvatarRequest) returns (UploadAvatarResponse);
+  rpc GetAvatar(GetAvatarRequest) returns (GetAvatarResponse);
+  rpc DeleteAvatar(DeleteAvatarRequest) returns (DeleteAvatarResponse);
+
   // Owner mints a one-shot reset token that the user can redeem to set a new
   // password without knowing the old one. The raw token is returned to the
   // owner (display in UI), who hands it to the user out-of-band. No SMTP wired.
@@ -63,9 +81,13 @@ service UserService {
   }
 }
 
-message ListUsersRequest {}
+message ListUsersRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
 message ListUsersResponse {
   repeated User users = 1;
+  int32 total = 2;
 }
 
 // Minimal display ref for resolve-by-IDs name lookups.
@@ -73,11 +95,26 @@ message UserRef {
   string id    = 1;
   string name  = 2;
   string email = 3;
+  // Who this person is in the shop. Lets a picker label an option ("Kasir" /
+  // "Admin") instead of showing an ambiguous bare name.
+  auth_iface.v1.Role role = 4;
+  // Unix sec of the last avatar upload; 0 = none. Mirrors User.avatar_updated_at
+  // so a list row can render <UserAvatar> without a second round-trip, and so a
+  // user with no picture costs zero avatar requests.
+  int64 avatar_updated_at = 5;
 }
 message ResolveUsersRequest  { repeated string ids = 1; }
 message ResolveUsersResponse { repeated UserRef users = 1; }
 
-message SearchUsersRequest  { string query = 1; int32 limit = 2; }
+message SearchUsersRequest  {
+  string query = 1;
+  int32 limit = 2;
+  // Restrict to users with at least one COMPLETED sale. Drives the cashier-scope
+  // filter on order history + analytics, whose options must always yield rows —
+  // without it the picker offers staff who can only ever produce an empty table.
+  // Leave false for the membership/authoring pickers, which need all active users.
+  bool with_sales_only = 3;
+}
 message SearchUsersResponse { repeated UserRef users = 1; }
 
 message CreateUserRequest {
@@ -112,6 +149,49 @@ message ChangePasswordRequest {
   string new_password = 3;
 }
 message ChangePasswordResponse {}
+
+// Every uploaded image is stored in TWO renditions (see the two-rendition HARD
+// RULE in CLAUDE.md): the ORIGINAL (bounded, for a full-size view) and a small
+// square THUMB that every avatar / list / fast-load surface reads instead.
+// The client produces both — it already has the decoded bitmap on a canvas —
+// and the server validates the size cap on each.
+enum AvatarVariant {
+  // Unset resolves to THUMB: the fast path is the default, and callers must
+  // opt in to shipping the heavy original.
+  AVATAR_VARIANT_UNSPECIFIED = 0;
+  AVATAR_VARIANT_THUMB = 1;
+  AVATAR_VARIANT_ORIGINAL = 2;
+}
+
+// Bytes ride inline rather than through a separate upload endpoint: both
+// renditions are downscaled client-side and capped by the handler
+// (MaxAvatarBytes / MaxAvatarThumbBytes), so this stays a normal unary message.
+message UploadAvatarRequest {
+  bytes  image_data   = 1;  // ORIGINAL rendition (bounded, not the raw camera file)
+  bytes  thumb_data   = 2;  // THUMB rendition — required, not optional
+  string content_type = 3;  // applies to both renditions
+}
+message UploadAvatarResponse {
+  int64 avatar_updated_at = 1;
+}
+
+message GetAvatarRequest {
+  // Empty = the calling user's own avatar.
+  string user_id = 1;
+  // Which rendition to return. Unset = THUMB.
+  AvatarVariant variant = 2;
+}
+message GetAvatarResponse {
+  bytes  image_data   = 1;  // the requested rendition
+  string content_type = 2;
+  // 0 when the user has no avatar (image_data is then empty too — absence is
+  // NOT an error, so the UI can render its initials fallback without a catch).
+  int64  avatar_updated_at = 3;
+  AvatarVariant variant    = 4;  // echoes what was actually returned
+}
+
+message DeleteAvatarRequest {}
+message DeleteAvatarResponse {}
 
 message IssuePasswordResetTokenRequest {
   string user_id = 1;

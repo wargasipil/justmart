@@ -22,16 +22,76 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Every uploaded image is stored in TWO renditions (see the two-rendition HARD
+// RULE in CLAUDE.md): the ORIGINAL (bounded, for a full-size view) and a small
+// square THUMB that every avatar / list / fast-load surface reads instead.
+// The client produces both — it already has the decoded bitmap on a canvas —
+// and the server validates the size cap on each.
+type AvatarVariant int32
+
+const (
+	// Unset resolves to THUMB: the fast path is the default, and callers must
+	// opt in to shipping the heavy original.
+	AvatarVariant_AVATAR_VARIANT_UNSPECIFIED AvatarVariant = 0
+	AvatarVariant_AVATAR_VARIANT_THUMB       AvatarVariant = 1
+	AvatarVariant_AVATAR_VARIANT_ORIGINAL    AvatarVariant = 2
+)
+
+// Enum value maps for AvatarVariant.
+var (
+	AvatarVariant_name = map[int32]string{
+		0: "AVATAR_VARIANT_UNSPECIFIED",
+		1: "AVATAR_VARIANT_THUMB",
+		2: "AVATAR_VARIANT_ORIGINAL",
+	}
+	AvatarVariant_value = map[string]int32{
+		"AVATAR_VARIANT_UNSPECIFIED": 0,
+		"AVATAR_VARIANT_THUMB":       1,
+		"AVATAR_VARIANT_ORIGINAL":    2,
+	}
+)
+
+func (x AvatarVariant) Enum() *AvatarVariant {
+	p := new(AvatarVariant)
+	*p = x
+	return p
+}
+
+func (x AvatarVariant) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AvatarVariant) Descriptor() protoreflect.EnumDescriptor {
+	return file_user_iface_v1_users_proto_enumTypes[0].Descriptor()
+}
+
+func (AvatarVariant) Type() protoreflect.EnumType {
+	return &file_user_iface_v1_users_proto_enumTypes[0]
+}
+
+func (x AvatarVariant) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AvatarVariant.Descriptor instead.
+func (AvatarVariant) EnumDescriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{0}
+}
+
 type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Role          v1.Role                `protobuf:"varint,4,opt,name=role,proto3,enum=auth_iface.v1.Role" json:"role,omitempty"`
-	Active        bool                   `protobuf:"varint,5,opt,name=active,proto3" json:"active,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Email     string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Name      string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Role      v1.Role                `protobuf:"varint,4,opt,name=role,proto3,enum=auth_iface.v1.Role" json:"role,omitempty"`
+	Active    bool                   `protobuf:"varint,5,opt,name=active,proto3" json:"active,omitempty"`
+	CreatedAt int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Unix sec of the last profile-picture upload; 0 = no avatar. The bytes live
+	// in their own table and are fetched only by GetAvatar — this marker is what
+	// tells the UI whether to fetch at all, and cache-busts a re-upload.
+	AvatarUpdatedAt int64 `protobuf:"varint,7,opt,name=avatar_updated_at,json=avatarUpdatedAt,proto3" json:"avatar_updated_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -106,8 +166,17 @@ func (x *User) GetCreatedAt() int64 {
 	return 0
 }
 
+func (x *User) GetAvatarUpdatedAt() int64 {
+	if x != nil {
+		return x.AvatarUpdatedAt
+	}
+	return 0
+}
+
 type ListUsersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -142,9 +211,24 @@ func (*ListUsersRequest) Descriptor() ([]byte, []int) {
 	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{1}
 }
 
+func (x *ListUsersRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListUsersRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListUsersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Users         []*User                `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -186,14 +270,28 @@ func (x *ListUsersResponse) GetUsers() []*User {
 	return nil
 }
 
+func (x *ListUsersResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 // Minimal display ref for resolve-by-IDs name lookups.
 type UserRef struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	// Who this person is in the shop. Lets a picker label an option ("Kasir" /
+	// "Admin") instead of showing an ambiguous bare name.
+	Role v1.Role `protobuf:"varint,4,opt,name=role,proto3,enum=auth_iface.v1.Role" json:"role,omitempty"`
+	// Unix sec of the last avatar upload; 0 = none. Mirrors User.avatar_updated_at
+	// so a list row can render <UserAvatar> without a second round-trip, and so a
+	// user with no picture costs zero avatar requests.
+	AvatarUpdatedAt int64 `protobuf:"varint,5,opt,name=avatar_updated_at,json=avatarUpdatedAt,proto3" json:"avatar_updated_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UserRef) Reset() {
@@ -245,6 +343,20 @@ func (x *UserRef) GetEmail() string {
 		return x.Email
 	}
 	return ""
+}
+
+func (x *UserRef) GetRole() v1.Role {
+	if x != nil {
+		return x.Role
+	}
+	return v1.Role(0)
+}
+
+func (x *UserRef) GetAvatarUpdatedAt() int64 {
+	if x != nil {
+		return x.AvatarUpdatedAt
+	}
+	return 0
 }
 
 type ResolveUsersRequest struct {
@@ -336,9 +448,14 @@ func (x *ResolveUsersResponse) GetUsers() []*UserRef {
 }
 
 type SearchUsersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Query string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	// Restrict to users with at least one COMPLETED sale. Drives the cashier-scope
+	// filter on order history + analytics, whose options must always yield rows —
+	// without it the picker offers staff who can only ever produce an empty table.
+	// Leave false for the membership/authoring pickers, which need all active users.
+	WithSalesOnly bool `protobuf:"varint,3,opt,name=with_sales_only,json=withSalesOnly,proto3" json:"with_sales_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -385,6 +502,13 @@ func (x *SearchUsersRequest) GetLimit() int32 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *SearchUsersRequest) GetWithSalesOnly() bool {
+	if x != nil {
+		return x.WithSalesOnly
+	}
+	return false
 }
 
 type SearchUsersResponse struct {
@@ -831,6 +955,309 @@ func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
 	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{15}
 }
 
+// Bytes ride inline rather than through a separate upload endpoint: both
+// renditions are downscaled client-side and capped by the handler
+// (MaxAvatarBytes / MaxAvatarThumbBytes), so this stays a normal unary message.
+type UploadAvatarRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ImageData     []byte                 `protobuf:"bytes,1,opt,name=image_data,json=imageData,proto3" json:"image_data,omitempty"`       // ORIGINAL rendition (bounded, not the raw camera file)
+	ThumbData     []byte                 `protobuf:"bytes,2,opt,name=thumb_data,json=thumbData,proto3" json:"thumb_data,omitempty"`       // THUMB rendition — required, not optional
+	ContentType   string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // applies to both renditions
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadAvatarRequest) Reset() {
+	*x = UploadAvatarRequest{}
+	mi := &file_user_iface_v1_users_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadAvatarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadAvatarRequest) ProtoMessage() {}
+
+func (x *UploadAvatarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_iface_v1_users_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadAvatarRequest.ProtoReflect.Descriptor instead.
+func (*UploadAvatarRequest) Descriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UploadAvatarRequest) GetImageData() []byte {
+	if x != nil {
+		return x.ImageData
+	}
+	return nil
+}
+
+func (x *UploadAvatarRequest) GetThumbData() []byte {
+	if x != nil {
+		return x.ThumbData
+	}
+	return nil
+}
+
+func (x *UploadAvatarRequest) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+type UploadAvatarResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AvatarUpdatedAt int64                  `protobuf:"varint,1,opt,name=avatar_updated_at,json=avatarUpdatedAt,proto3" json:"avatar_updated_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UploadAvatarResponse) Reset() {
+	*x = UploadAvatarResponse{}
+	mi := &file_user_iface_v1_users_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadAvatarResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadAvatarResponse) ProtoMessage() {}
+
+func (x *UploadAvatarResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_iface_v1_users_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadAvatarResponse.ProtoReflect.Descriptor instead.
+func (*UploadAvatarResponse) Descriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *UploadAvatarResponse) GetAvatarUpdatedAt() int64 {
+	if x != nil {
+		return x.AvatarUpdatedAt
+	}
+	return 0
+}
+
+type GetAvatarRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty = the calling user's own avatar.
+	UserId string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// Which rendition to return. Unset = THUMB.
+	Variant       AvatarVariant `protobuf:"varint,2,opt,name=variant,proto3,enum=user_iface.v1.AvatarVariant" json:"variant,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAvatarRequest) Reset() {
+	*x = GetAvatarRequest{}
+	mi := &file_user_iface_v1_users_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAvatarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAvatarRequest) ProtoMessage() {}
+
+func (x *GetAvatarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_iface_v1_users_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAvatarRequest.ProtoReflect.Descriptor instead.
+func (*GetAvatarRequest) Descriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetAvatarRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetAvatarRequest) GetVariant() AvatarVariant {
+	if x != nil {
+		return x.Variant
+	}
+	return AvatarVariant_AVATAR_VARIANT_UNSPECIFIED
+}
+
+type GetAvatarResponse struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	ImageData   []byte                 `protobuf:"bytes,1,opt,name=image_data,json=imageData,proto3" json:"image_data,omitempty"` // the requested rendition
+	ContentType string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
+	// 0 when the user has no avatar (image_data is then empty too — absence is
+	// NOT an error, so the UI can render its initials fallback without a catch).
+	AvatarUpdatedAt int64         `protobuf:"varint,3,opt,name=avatar_updated_at,json=avatarUpdatedAt,proto3" json:"avatar_updated_at,omitempty"`
+	Variant         AvatarVariant `protobuf:"varint,4,opt,name=variant,proto3,enum=user_iface.v1.AvatarVariant" json:"variant,omitempty"` // echoes what was actually returned
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetAvatarResponse) Reset() {
+	*x = GetAvatarResponse{}
+	mi := &file_user_iface_v1_users_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAvatarResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAvatarResponse) ProtoMessage() {}
+
+func (x *GetAvatarResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_iface_v1_users_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAvatarResponse.ProtoReflect.Descriptor instead.
+func (*GetAvatarResponse) Descriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetAvatarResponse) GetImageData() []byte {
+	if x != nil {
+		return x.ImageData
+	}
+	return nil
+}
+
+func (x *GetAvatarResponse) GetContentType() string {
+	if x != nil {
+		return x.ContentType
+	}
+	return ""
+}
+
+func (x *GetAvatarResponse) GetAvatarUpdatedAt() int64 {
+	if x != nil {
+		return x.AvatarUpdatedAt
+	}
+	return 0
+}
+
+func (x *GetAvatarResponse) GetVariant() AvatarVariant {
+	if x != nil {
+		return x.Variant
+	}
+	return AvatarVariant_AVATAR_VARIANT_UNSPECIFIED
+}
+
+type DeleteAvatarRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAvatarRequest) Reset() {
+	*x = DeleteAvatarRequest{}
+	mi := &file_user_iface_v1_users_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAvatarRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAvatarRequest) ProtoMessage() {}
+
+func (x *DeleteAvatarRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_iface_v1_users_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAvatarRequest.ProtoReflect.Descriptor instead.
+func (*DeleteAvatarRequest) Descriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{20}
+}
+
+type DeleteAvatarResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAvatarResponse) Reset() {
+	*x = DeleteAvatarResponse{}
+	mi := &file_user_iface_v1_users_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAvatarResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAvatarResponse) ProtoMessage() {}
+
+func (x *DeleteAvatarResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_iface_v1_users_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAvatarResponse.ProtoReflect.Descriptor instead.
+func (*DeleteAvatarResponse) Descriptor() ([]byte, []int) {
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{21}
+}
+
 type IssuePasswordResetTokenRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -840,7 +1267,7 @@ type IssuePasswordResetTokenRequest struct {
 
 func (x *IssuePasswordResetTokenRequest) Reset() {
 	*x = IssuePasswordResetTokenRequest{}
-	mi := &file_user_iface_v1_users_proto_msgTypes[16]
+	mi := &file_user_iface_v1_users_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -852,7 +1279,7 @@ func (x *IssuePasswordResetTokenRequest) String() string {
 func (*IssuePasswordResetTokenRequest) ProtoMessage() {}
 
 func (x *IssuePasswordResetTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_iface_v1_users_proto_msgTypes[16]
+	mi := &file_user_iface_v1_users_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -865,7 +1292,7 @@ func (x *IssuePasswordResetTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IssuePasswordResetTokenRequest.ProtoReflect.Descriptor instead.
 func (*IssuePasswordResetTokenRequest) Descriptor() ([]byte, []int) {
-	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{16}
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *IssuePasswordResetTokenRequest) GetUserId() string {
@@ -885,7 +1312,7 @@ type IssuePasswordResetTokenResponse struct {
 
 func (x *IssuePasswordResetTokenResponse) Reset() {
 	*x = IssuePasswordResetTokenResponse{}
-	mi := &file_user_iface_v1_users_proto_msgTypes[17]
+	mi := &file_user_iface_v1_users_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -897,7 +1324,7 @@ func (x *IssuePasswordResetTokenResponse) String() string {
 func (*IssuePasswordResetTokenResponse) ProtoMessage() {}
 
 func (x *IssuePasswordResetTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_iface_v1_users_proto_msgTypes[17]
+	mi := &file_user_iface_v1_users_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -910,7 +1337,7 @@ func (x *IssuePasswordResetTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IssuePasswordResetTokenResponse.ProtoReflect.Descriptor instead.
 func (*IssuePasswordResetTokenResponse) Descriptor() ([]byte, []int) {
-	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{17}
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *IssuePasswordResetTokenResponse) GetToken() string {
@@ -937,7 +1364,7 @@ type RedeemPasswordResetTokenRequest struct {
 
 func (x *RedeemPasswordResetTokenRequest) Reset() {
 	*x = RedeemPasswordResetTokenRequest{}
-	mi := &file_user_iface_v1_users_proto_msgTypes[18]
+	mi := &file_user_iface_v1_users_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -949,7 +1376,7 @@ func (x *RedeemPasswordResetTokenRequest) String() string {
 func (*RedeemPasswordResetTokenRequest) ProtoMessage() {}
 
 func (x *RedeemPasswordResetTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_iface_v1_users_proto_msgTypes[18]
+	mi := &file_user_iface_v1_users_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -962,7 +1389,7 @@ func (x *RedeemPasswordResetTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedeemPasswordResetTokenRequest.ProtoReflect.Descriptor instead.
 func (*RedeemPasswordResetTokenRequest) Descriptor() ([]byte, []int) {
-	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{18}
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RedeemPasswordResetTokenRequest) GetToken() string {
@@ -987,7 +1414,7 @@ type RedeemPasswordResetTokenResponse struct {
 
 func (x *RedeemPasswordResetTokenResponse) Reset() {
 	*x = RedeemPasswordResetTokenResponse{}
-	mi := &file_user_iface_v1_users_proto_msgTypes[19]
+	mi := &file_user_iface_v1_users_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -999,7 +1426,7 @@ func (x *RedeemPasswordResetTokenResponse) String() string {
 func (*RedeemPasswordResetTokenResponse) ProtoMessage() {}
 
 func (x *RedeemPasswordResetTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_iface_v1_users_proto_msgTypes[19]
+	mi := &file_user_iface_v1_users_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1012,14 +1439,14 @@ func (x *RedeemPasswordResetTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RedeemPasswordResetTokenResponse.ProtoReflect.Descriptor instead.
 func (*RedeemPasswordResetTokenResponse) Descriptor() ([]byte, []int) {
-	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{19}
+	return file_user_iface_v1_users_proto_rawDescGZIP(), []int{25}
 }
 
 var File_user_iface_v1_users_proto protoreflect.FileDescriptor
 
 const file_user_iface_v1_users_proto_rawDesc = "" +
 	"\n" +
-	"\x19user_iface/v1/users.proto\x12\ruser_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xa0\x01\n" +
+	"\x19user_iface/v1/users.proto\x12\ruser_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xcc\x01\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -1027,21 +1454,28 @@ const file_user_iface_v1_users_proto_rawDesc = "" +
 	"\x04role\x18\x04 \x01(\x0e2\x13.auth_iface.v1.RoleR\x04role\x12\x16\n" +
 	"\x06active\x18\x05 \x01(\bR\x06active\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\x03R\tcreatedAt\"\x12\n" +
-	"\x10ListUsersRequest\">\n" +
+	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12*\n" +
+	"\x11avatar_updated_at\x18\a \x01(\x03R\x0favatarUpdatedAt\"@\n" +
+	"\x10ListUsersRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x02 \x01(\x05R\x06offset\"T\n" +
 	"\x11ListUsersResponse\x12)\n" +
-	"\x05users\x18\x01 \x03(\v2\x13.user_iface.v1.UserR\x05users\"C\n" +
+	"\x05users\x18\x01 \x03(\v2\x13.user_iface.v1.UserR\x05users\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\x98\x01\n" +
 	"\aUserRef\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\"'\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12'\n" +
+	"\x04role\x18\x04 \x01(\x0e2\x13.auth_iface.v1.RoleR\x04role\x12*\n" +
+	"\x11avatar_updated_at\x18\x05 \x01(\x03R\x0favatarUpdatedAt\"'\n" +
 	"\x13ResolveUsersRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"D\n" +
 	"\x14ResolveUsersResponse\x12,\n" +
-	"\x05users\x18\x01 \x03(\v2\x16.user_iface.v1.UserRefR\x05users\"@\n" +
+	"\x05users\x18\x01 \x03(\v2\x16.user_iface.v1.UserRefR\x05users\"h\n" +
 	"\x12SearchUsersRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\"C\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12&\n" +
+	"\x0fwith_sales_only\x18\x03 \x01(\bR\rwithSalesOnly\"C\n" +
 	"\x13SearchUsersResponse\x12,\n" +
 	"\x05users\x18\x01 \x03(\v2\x16.user_iface.v1.UserRefR\x05users\"\x82\x01\n" +
 	"\x11CreateUserRequest\x12\x14\n" +
@@ -1065,7 +1499,26 @@ const file_user_iface_v1_users_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
 	"\fold_password\x18\x02 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"\x18\n" +
-	"\x16ChangePasswordResponse\"9\n" +
+	"\x16ChangePasswordResponse\"v\n" +
+	"\x13UploadAvatarRequest\x12\x1d\n" +
+	"\n" +
+	"image_data\x18\x01 \x01(\fR\timageData\x12\x1d\n" +
+	"\n" +
+	"thumb_data\x18\x02 \x01(\fR\tthumbData\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"B\n" +
+	"\x14UploadAvatarResponse\x12*\n" +
+	"\x11avatar_updated_at\x18\x01 \x01(\x03R\x0favatarUpdatedAt\"c\n" +
+	"\x10GetAvatarRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x126\n" +
+	"\avariant\x18\x02 \x01(\x0e2\x1c.user_iface.v1.AvatarVariantR\avariant\"\xb9\x01\n" +
+	"\x11GetAvatarResponse\x12\x1d\n" +
+	"\n" +
+	"image_data\x18\x01 \x01(\fR\timageData\x12!\n" +
+	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12*\n" +
+	"\x11avatar_updated_at\x18\x03 \x01(\x03R\x0favatarUpdatedAt\x126\n" +
+	"\avariant\x18\x04 \x01(\x0e2\x1c.user_iface.v1.AvatarVariantR\avariant\"\x15\n" +
+	"\x13DeleteAvatarRequest\"\x16\n" +
+	"\x14DeleteAvatarResponse\"9\n" +
 	"\x1eIssuePasswordResetTokenRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"V\n" +
 	"\x1fIssuePasswordResetTokenResponse\x12\x14\n" +
@@ -1075,7 +1528,11 @@ const file_user_iface_v1_users_proto_rawDesc = "" +
 	"\x1fRedeemPasswordResetTokenRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\"\n" +
-	" RedeemPasswordResetTokenResponse2\xae\a\n" +
+	" RedeemPasswordResetTokenResponse*f\n" +
+	"\rAvatarVariant\x12\x1e\n" +
+	"\x1aAVATAR_VARIANT_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14AVATAR_VARIANT_THUMB\x10\x01\x12\x1b\n" +
+	"\x17AVATAR_VARIANT_ORIGINAL\x10\x022\xb0\t\n" +
 	"\vUserService\x12V\n" +
 	"\tListUsers\x12\x1f.user_iface.v1.ListUsersRequest\x1a .user_iface.v1.ListUsersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12a\n" +
 	"\fResolveUsers\x12\".user_iface.v1.ResolveUsersRequest\x1a#.user_iface.v1.ResolveUsersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12]\n" +
@@ -1084,7 +1541,10 @@ const file_user_iface_v1_users_proto_rawDesc = "" +
 	"CreateUser\x12 .user_iface.v1.CreateUserRequest\x1a!.user_iface.v1.CreateUserResponse\"\x05\x8a\xb5\x18\x01\x01\x12d\n" +
 	"\x0eUpdateUserRole\x12$.user_iface.v1.UpdateUserRoleRequest\x1a%.user_iface.v1.UpdateUserRoleResponse\"\x05\x8a\xb5\x18\x01\x01\x12a\n" +
 	"\rSetUserActive\x12#.user_iface.v1.SetUserActiveRequest\x1a$.user_iface.v1.SetUserActiveResponse\"\x05\x8a\xb5\x18\x01\x01\x12]\n" +
-	"\x0eChangePassword\x12$.user_iface.v1.ChangePasswordRequest\x1a%.user_iface.v1.ChangePasswordResponse\x12\x7f\n" +
+	"\x0eChangePassword\x12$.user_iface.v1.ChangePasswordRequest\x1a%.user_iface.v1.ChangePasswordResponse\x12W\n" +
+	"\fUploadAvatar\x12\".user_iface.v1.UploadAvatarRequest\x1a#.user_iface.v1.UploadAvatarResponse\x12N\n" +
+	"\tGetAvatar\x12\x1f.user_iface.v1.GetAvatarRequest\x1a .user_iface.v1.GetAvatarResponse\x12W\n" +
+	"\fDeleteAvatar\x12\".user_iface.v1.DeleteAvatarRequest\x1a#.user_iface.v1.DeleteAvatarResponse\x12\x7f\n" +
 	"\x17IssuePasswordResetToken\x12-.user_iface.v1.IssuePasswordResetTokenRequest\x1a..user_iface.v1.IssuePasswordResetTokenResponse\"\x05\x8a\xb5\x18\x01\x01\x12\x81\x01\n" +
 	"\x18RedeemPasswordResetToken\x12..user_iface.v1.RedeemPasswordResetTokenRequest\x1a/.user_iface.v1.RedeemPasswordResetTokenResponse\"\x04\x80\xb5\x18\x01B;Z9github.com/justmart/backend/gen/user_iface/v1;userifacev1b\x06proto3"
 
@@ -1100,63 +1560,80 @@ func file_user_iface_v1_users_proto_rawDescGZIP() []byte {
 	return file_user_iface_v1_users_proto_rawDescData
 }
 
-var file_user_iface_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_user_iface_v1_users_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_user_iface_v1_users_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_user_iface_v1_users_proto_goTypes = []any{
-	(*User)(nil),                             // 0: user_iface.v1.User
-	(*ListUsersRequest)(nil),                 // 1: user_iface.v1.ListUsersRequest
-	(*ListUsersResponse)(nil),                // 2: user_iface.v1.ListUsersResponse
-	(*UserRef)(nil),                          // 3: user_iface.v1.UserRef
-	(*ResolveUsersRequest)(nil),              // 4: user_iface.v1.ResolveUsersRequest
-	(*ResolveUsersResponse)(nil),             // 5: user_iface.v1.ResolveUsersResponse
-	(*SearchUsersRequest)(nil),               // 6: user_iface.v1.SearchUsersRequest
-	(*SearchUsersResponse)(nil),              // 7: user_iface.v1.SearchUsersResponse
-	(*CreateUserRequest)(nil),                // 8: user_iface.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),               // 9: user_iface.v1.CreateUserResponse
-	(*UpdateUserRoleRequest)(nil),            // 10: user_iface.v1.UpdateUserRoleRequest
-	(*UpdateUserRoleResponse)(nil),           // 11: user_iface.v1.UpdateUserRoleResponse
-	(*SetUserActiveRequest)(nil),             // 12: user_iface.v1.SetUserActiveRequest
-	(*SetUserActiveResponse)(nil),            // 13: user_iface.v1.SetUserActiveResponse
-	(*ChangePasswordRequest)(nil),            // 14: user_iface.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),           // 15: user_iface.v1.ChangePasswordResponse
-	(*IssuePasswordResetTokenRequest)(nil),   // 16: user_iface.v1.IssuePasswordResetTokenRequest
-	(*IssuePasswordResetTokenResponse)(nil),  // 17: user_iface.v1.IssuePasswordResetTokenResponse
-	(*RedeemPasswordResetTokenRequest)(nil),  // 18: user_iface.v1.RedeemPasswordResetTokenRequest
-	(*RedeemPasswordResetTokenResponse)(nil), // 19: user_iface.v1.RedeemPasswordResetTokenResponse
-	(v1.Role)(0),                             // 20: auth_iface.v1.Role
+	(AvatarVariant)(0),                       // 0: user_iface.v1.AvatarVariant
+	(*User)(nil),                             // 1: user_iface.v1.User
+	(*ListUsersRequest)(nil),                 // 2: user_iface.v1.ListUsersRequest
+	(*ListUsersResponse)(nil),                // 3: user_iface.v1.ListUsersResponse
+	(*UserRef)(nil),                          // 4: user_iface.v1.UserRef
+	(*ResolveUsersRequest)(nil),              // 5: user_iface.v1.ResolveUsersRequest
+	(*ResolveUsersResponse)(nil),             // 6: user_iface.v1.ResolveUsersResponse
+	(*SearchUsersRequest)(nil),               // 7: user_iface.v1.SearchUsersRequest
+	(*SearchUsersResponse)(nil),              // 8: user_iface.v1.SearchUsersResponse
+	(*CreateUserRequest)(nil),                // 9: user_iface.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),               // 10: user_iface.v1.CreateUserResponse
+	(*UpdateUserRoleRequest)(nil),            // 11: user_iface.v1.UpdateUserRoleRequest
+	(*UpdateUserRoleResponse)(nil),           // 12: user_iface.v1.UpdateUserRoleResponse
+	(*SetUserActiveRequest)(nil),             // 13: user_iface.v1.SetUserActiveRequest
+	(*SetUserActiveResponse)(nil),            // 14: user_iface.v1.SetUserActiveResponse
+	(*ChangePasswordRequest)(nil),            // 15: user_iface.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),           // 16: user_iface.v1.ChangePasswordResponse
+	(*UploadAvatarRequest)(nil),              // 17: user_iface.v1.UploadAvatarRequest
+	(*UploadAvatarResponse)(nil),             // 18: user_iface.v1.UploadAvatarResponse
+	(*GetAvatarRequest)(nil),                 // 19: user_iface.v1.GetAvatarRequest
+	(*GetAvatarResponse)(nil),                // 20: user_iface.v1.GetAvatarResponse
+	(*DeleteAvatarRequest)(nil),              // 21: user_iface.v1.DeleteAvatarRequest
+	(*DeleteAvatarResponse)(nil),             // 22: user_iface.v1.DeleteAvatarResponse
+	(*IssuePasswordResetTokenRequest)(nil),   // 23: user_iface.v1.IssuePasswordResetTokenRequest
+	(*IssuePasswordResetTokenResponse)(nil),  // 24: user_iface.v1.IssuePasswordResetTokenResponse
+	(*RedeemPasswordResetTokenRequest)(nil),  // 25: user_iface.v1.RedeemPasswordResetTokenRequest
+	(*RedeemPasswordResetTokenResponse)(nil), // 26: user_iface.v1.RedeemPasswordResetTokenResponse
+	(v1.Role)(0),                             // 27: auth_iface.v1.Role
 }
 var file_user_iface_v1_users_proto_depIdxs = []int32{
-	20, // 0: user_iface.v1.User.role:type_name -> auth_iface.v1.Role
-	0,  // 1: user_iface.v1.ListUsersResponse.users:type_name -> user_iface.v1.User
-	3,  // 2: user_iface.v1.ResolveUsersResponse.users:type_name -> user_iface.v1.UserRef
-	3,  // 3: user_iface.v1.SearchUsersResponse.users:type_name -> user_iface.v1.UserRef
-	20, // 4: user_iface.v1.CreateUserRequest.role:type_name -> auth_iface.v1.Role
-	0,  // 5: user_iface.v1.CreateUserResponse.user:type_name -> user_iface.v1.User
-	20, // 6: user_iface.v1.UpdateUserRoleRequest.role:type_name -> auth_iface.v1.Role
-	0,  // 7: user_iface.v1.UpdateUserRoleResponse.user:type_name -> user_iface.v1.User
-	0,  // 8: user_iface.v1.SetUserActiveResponse.user:type_name -> user_iface.v1.User
-	1,  // 9: user_iface.v1.UserService.ListUsers:input_type -> user_iface.v1.ListUsersRequest
-	4,  // 10: user_iface.v1.UserService.ResolveUsers:input_type -> user_iface.v1.ResolveUsersRequest
-	6,  // 11: user_iface.v1.UserService.SearchUsers:input_type -> user_iface.v1.SearchUsersRequest
-	8,  // 12: user_iface.v1.UserService.CreateUser:input_type -> user_iface.v1.CreateUserRequest
-	10, // 13: user_iface.v1.UserService.UpdateUserRole:input_type -> user_iface.v1.UpdateUserRoleRequest
-	12, // 14: user_iface.v1.UserService.SetUserActive:input_type -> user_iface.v1.SetUserActiveRequest
-	14, // 15: user_iface.v1.UserService.ChangePassword:input_type -> user_iface.v1.ChangePasswordRequest
-	16, // 16: user_iface.v1.UserService.IssuePasswordResetToken:input_type -> user_iface.v1.IssuePasswordResetTokenRequest
-	18, // 17: user_iface.v1.UserService.RedeemPasswordResetToken:input_type -> user_iface.v1.RedeemPasswordResetTokenRequest
-	2,  // 18: user_iface.v1.UserService.ListUsers:output_type -> user_iface.v1.ListUsersResponse
-	5,  // 19: user_iface.v1.UserService.ResolveUsers:output_type -> user_iface.v1.ResolveUsersResponse
-	7,  // 20: user_iface.v1.UserService.SearchUsers:output_type -> user_iface.v1.SearchUsersResponse
-	9,  // 21: user_iface.v1.UserService.CreateUser:output_type -> user_iface.v1.CreateUserResponse
-	11, // 22: user_iface.v1.UserService.UpdateUserRole:output_type -> user_iface.v1.UpdateUserRoleResponse
-	13, // 23: user_iface.v1.UserService.SetUserActive:output_type -> user_iface.v1.SetUserActiveResponse
-	15, // 24: user_iface.v1.UserService.ChangePassword:output_type -> user_iface.v1.ChangePasswordResponse
-	17, // 25: user_iface.v1.UserService.IssuePasswordResetToken:output_type -> user_iface.v1.IssuePasswordResetTokenResponse
-	19, // 26: user_iface.v1.UserService.RedeemPasswordResetToken:output_type -> user_iface.v1.RedeemPasswordResetTokenResponse
-	18, // [18:27] is the sub-list for method output_type
-	9,  // [9:18] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	27, // 0: user_iface.v1.User.role:type_name -> auth_iface.v1.Role
+	1,  // 1: user_iface.v1.ListUsersResponse.users:type_name -> user_iface.v1.User
+	27, // 2: user_iface.v1.UserRef.role:type_name -> auth_iface.v1.Role
+	4,  // 3: user_iface.v1.ResolveUsersResponse.users:type_name -> user_iface.v1.UserRef
+	4,  // 4: user_iface.v1.SearchUsersResponse.users:type_name -> user_iface.v1.UserRef
+	27, // 5: user_iface.v1.CreateUserRequest.role:type_name -> auth_iface.v1.Role
+	1,  // 6: user_iface.v1.CreateUserResponse.user:type_name -> user_iface.v1.User
+	27, // 7: user_iface.v1.UpdateUserRoleRequest.role:type_name -> auth_iface.v1.Role
+	1,  // 8: user_iface.v1.UpdateUserRoleResponse.user:type_name -> user_iface.v1.User
+	1,  // 9: user_iface.v1.SetUserActiveResponse.user:type_name -> user_iface.v1.User
+	0,  // 10: user_iface.v1.GetAvatarRequest.variant:type_name -> user_iface.v1.AvatarVariant
+	0,  // 11: user_iface.v1.GetAvatarResponse.variant:type_name -> user_iface.v1.AvatarVariant
+	2,  // 12: user_iface.v1.UserService.ListUsers:input_type -> user_iface.v1.ListUsersRequest
+	5,  // 13: user_iface.v1.UserService.ResolveUsers:input_type -> user_iface.v1.ResolveUsersRequest
+	7,  // 14: user_iface.v1.UserService.SearchUsers:input_type -> user_iface.v1.SearchUsersRequest
+	9,  // 15: user_iface.v1.UserService.CreateUser:input_type -> user_iface.v1.CreateUserRequest
+	11, // 16: user_iface.v1.UserService.UpdateUserRole:input_type -> user_iface.v1.UpdateUserRoleRequest
+	13, // 17: user_iface.v1.UserService.SetUserActive:input_type -> user_iface.v1.SetUserActiveRequest
+	15, // 18: user_iface.v1.UserService.ChangePassword:input_type -> user_iface.v1.ChangePasswordRequest
+	17, // 19: user_iface.v1.UserService.UploadAvatar:input_type -> user_iface.v1.UploadAvatarRequest
+	19, // 20: user_iface.v1.UserService.GetAvatar:input_type -> user_iface.v1.GetAvatarRequest
+	21, // 21: user_iface.v1.UserService.DeleteAvatar:input_type -> user_iface.v1.DeleteAvatarRequest
+	23, // 22: user_iface.v1.UserService.IssuePasswordResetToken:input_type -> user_iface.v1.IssuePasswordResetTokenRequest
+	25, // 23: user_iface.v1.UserService.RedeemPasswordResetToken:input_type -> user_iface.v1.RedeemPasswordResetTokenRequest
+	3,  // 24: user_iface.v1.UserService.ListUsers:output_type -> user_iface.v1.ListUsersResponse
+	6,  // 25: user_iface.v1.UserService.ResolveUsers:output_type -> user_iface.v1.ResolveUsersResponse
+	8,  // 26: user_iface.v1.UserService.SearchUsers:output_type -> user_iface.v1.SearchUsersResponse
+	10, // 27: user_iface.v1.UserService.CreateUser:output_type -> user_iface.v1.CreateUserResponse
+	12, // 28: user_iface.v1.UserService.UpdateUserRole:output_type -> user_iface.v1.UpdateUserRoleResponse
+	14, // 29: user_iface.v1.UserService.SetUserActive:output_type -> user_iface.v1.SetUserActiveResponse
+	16, // 30: user_iface.v1.UserService.ChangePassword:output_type -> user_iface.v1.ChangePasswordResponse
+	18, // 31: user_iface.v1.UserService.UploadAvatar:output_type -> user_iface.v1.UploadAvatarResponse
+	20, // 32: user_iface.v1.UserService.GetAvatar:output_type -> user_iface.v1.GetAvatarResponse
+	22, // 33: user_iface.v1.UserService.DeleteAvatar:output_type -> user_iface.v1.DeleteAvatarResponse
+	24, // 34: user_iface.v1.UserService.IssuePasswordResetToken:output_type -> user_iface.v1.IssuePasswordResetTokenResponse
+	26, // 35: user_iface.v1.UserService.RedeemPasswordResetToken:output_type -> user_iface.v1.RedeemPasswordResetTokenResponse
+	24, // [24:36] is the sub-list for method output_type
+	12, // [12:24] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_user_iface_v1_users_proto_init() }
@@ -1169,13 +1646,14 @@ func file_user_iface_v1_users_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_iface_v1_users_proto_rawDesc), len(file_user_iface_v1_users_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   20,
+			NumEnums:      1,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_user_iface_v1_users_proto_goTypes,
 		DependencyIndexes: file_user_iface_v1_users_proto_depIdxs,
+		EnumInfos:         file_user_iface_v1_users_proto_enumTypes,
 		MessageInfos:      file_user_iface_v1_users_proto_msgTypes,
 	}.Build()
 	File_user_iface_v1_users_proto = out.File

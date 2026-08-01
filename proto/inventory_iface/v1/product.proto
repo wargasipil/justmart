@@ -22,8 +22,8 @@ message Product {
   int64 on_order_stock = 11;  // incoming on open POs (list enrich)
   string last_restock_date = 12;      // YYYY-MM-DD of most recent batch receive (GetProduct only)
   string last_restock_supplier = 13;  // supplier of that batch (GetProduct only)
-  int64 total_stock = 14;             // global on-hand across all warehouses (GetProduct only)
-  int64 stock_valuation = 15;         // global value at cost = Σ qty × cost_price (GetProduct only)
+  int64 total_stock = 14;             // on-hand in the active warehouse (GetProduct only; == ready_stock)
+  int64 stock_valuation = 15;         // value at cost of ready_stock = Σ qty × cost_price, active warehouse (GetProduct only)
   repeated ProductUnit units = 16;   // units of measure (base + larger packs)
   int64 reference_cost = 17;          // latest batch cost_price, per base unit (GetProduct only; 0 if none)
   string last_stocktake_date = 18;    // YYYY-MM-DD of most recent COMPLETED stocktake touching this product in the active warehouse (GetProduct only; empty if none)
@@ -41,6 +41,16 @@ message Product {
   // on Get/List/Search so POS can hint the tier without a second RPC; tiers of an
   // archived unit are omitted.
   repeated ProductPriceTier price_tiers = 27;
+  // Value at cost of on_order_stock: Σ outstanding_qty × NET per-base cost of the
+  // PO line (same rate CreateReceipt stamps on the batch, so a line discount is
+  // reflected and ongoing valuation lands where ready valuation will). Like
+  // on_order_stock it is company-wide — purchase_order_items has no warehouse.
+  int64 on_order_valuation = 28;
+  // Unix sec of the product picture's last upload; 0 = no picture. The bytes
+  // live in their own table and are fetched only by GetProductImage — this
+  // marker is what tells the UI whether to fetch at all, and doubles as the
+  // client cache key so a re-upload appears without an invalidate.
+  int64 image_updated_at = 29;
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -176,6 +186,24 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // UploadProductImage replaces a product's single picture (both renditions).
+  // Catalog write, so it mirrors UpdateProduct's roles.
+  rpc UploadProductImage(UploadProductImageRequest) returns (UploadProductImageResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // GetProductImage returns ONE rendition. Open to every catalog reader —
+  // POS renders the thumbnail in its search rows, so a cashier needs it.
+  rpc GetProductImage(GetProductImageRequest) returns (GetProductImageResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  rpc DeleteProductImage(DeleteProductImageRequest) returns (DeleteProductImageResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 message ListProductsRequest {
@@ -250,14 +278,24 @@ message ArchiveProductResponse { Product product = 1; }
 message UnarchiveProductRequest { string id = 1; }
 message UnarchiveProductResponse { Product product = 1; }
 
-message ListProductPricesRequest { string product_id = 1; }
+message ListProductPricesRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
 message ListProductPricesResponse {
   repeated ProductPrice prices = 1;
+  int32 total = 2;
 }
 
-message ListProductUnitPricesRequest { string product_id = 1; }
+message ListProductUnitPricesRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
 message ListProductUnitPricesResponse {
   repeated ProductUnitPrice prices = 1;
+  int32 total = 2; // all price rows for the product, ignoring the page window
 }
 
 message ListProductRestockLogsRequest {
@@ -288,9 +326,56 @@ message ProductRef {
 message ResolveProductsRequest { repeated string ids = 1; }
 message ResolveProductsResponse { repeated ProductRef products = 1; }
 
-message ListLowStockRequest {}
+// Every uploaded image is stored in TWO renditions (see the two-rendition HARD
+// RULE in CLAUDE.md): the ORIGINAL (bounded, for a full-size view) and a small
+// square THUMB that every list / POS row / fast-load surface reads instead.
+// The client produces both — it already has the decoded bitmap on a canvas —
+// and the server validates the size cap on each.
+enum ProductImageVariant {
+  // Unset resolves to THUMB: the fast path is the default, and callers must
+  // opt in to shipping the heavy original.
+  PRODUCT_IMAGE_VARIANT_UNSPECIFIED = 0;
+  PRODUCT_IMAGE_VARIANT_THUMB = 1;
+  PRODUCT_IMAGE_VARIANT_ORIGINAL = 2;
+}
+
+// Bytes ride inline rather than through a separate upload endpoint: both
+// renditions are downscaled client-side and capped by the handler
+// (MaxProductImageBytes / MaxProductImageThumbBytes), so this stays a normal
+// unary message. One picture per product — re-uploading replaces it.
+message UploadProductImageRequest {
+  string product_id   = 1;
+  bytes  image_data   = 2;  // ORIGINAL rendition (bounded, not the raw camera file)
+  bytes  thumb_data   = 3;  // THUMB rendition — required, not optional
+  string content_type = 4;  // applies to both renditions
+}
+message UploadProductImageResponse {
+  int64 image_updated_at = 1;
+}
+
+message GetProductImageRequest {
+  string product_id = 1;
+  // Which rendition to return. Unset = THUMB.
+  ProductImageVariant variant = 2;
+}
+message GetProductImageResponse {
+  bytes  image_data   = 1;  // the requested rendition
+  string content_type = 2;
+  // 0 when the product has no picture (image_data is then empty too — absence
+  // is NOT an error, so the UI renders its placeholder without a catch).
+  int64  image_updated_at = 3;
+  ProductImageVariant variant = 4;  // echoes what was actually returned
+}
+
+message DeleteProductImageRequest { string product_id = 1; }
+message DeleteProductImageResponse {}
+
+message ListLowStockRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
 message ListLowStockResponse {
   repeated Product products = 1;     // ready_stock set (active warehouse)
   int32 threshold = 2;                 // the current low_stock_threshold setting
-  int32 total = 3;                     // count of matching products (bell badge)
+  int32 total = 3;                     // ALL matching products, ignoring the page window (bell badge)
 }

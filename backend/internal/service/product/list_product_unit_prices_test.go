@@ -45,6 +45,56 @@ func TestListProductUnitPrices_ReturnsBaseUnitHistory(t *testing.T) {
 	require.Equal(t, int64(90000), pricesResp.Msg.Prices[1].UnitSellPrice)
 }
 
+// Price history is the one product-detail read that grows without bound (a row
+// per price edit per unit), so paging has to walk it exactly once.
+func TestListProductUnitPrices_Paginates(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	resp, err := svc.CreateProduct(ctx, connect.NewRequest(&inventoryifacev1.CreateProductRequest{
+		Sku: "SKU-UPRC-PAGE", Name: "PagedPrices", Unit: "tablet", UnitPrice: 1000,
+	}))
+	require.NoError(t, err)
+	pid := resp.Msg.Product.Id
+
+	// Each price edit closes the open row and opens a new one -> history grows.
+	for _, p := range []int64{1100, 1200, 1300, 1400} {
+		_, err := svc.UpdateProduct(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductRequest{
+			Id: pid, Name: "PagedPrices", Unit: "tablet", UnitPrice: p,
+		}))
+		require.NoError(t, err)
+	}
+
+	page := func(limit, offset int32) *inventoryifacev1.ListProductUnitPricesResponse {
+		t.Helper()
+		r, err := svc.ListProductUnitPrices(ctx, connect.NewRequest(
+			&inventoryifacev1.ListProductUnitPricesRequest{
+				ProductId: pid, Limit: limit, Offset: offset,
+			}))
+		require.NoError(t, err)
+		return r.Msg
+	}
+
+	all := page(100, 0)
+	require.Equal(t, int32(5), all.Total) // seed + 4 edits
+	require.Len(t, all.Prices, 5)
+
+	// Walk it two at a time; every row appears exactly once.
+	seen := map[string]bool{}
+	for off := int32(0); off < all.Total; off += 2 {
+		pg := page(2, off)
+		require.Equal(t, all.Total, pg.Total) // total ignores the window
+		for _, p := range pg.Prices {
+			require.False(t, seen[p.Id], "price row %s appeared on two pages", p.Id)
+			seen[p.Id] = true
+		}
+	}
+	require.Len(t, seen, 5)
+}
+
 func TestListProductUnitPrices_MissingProductID(t *testing.T) {
 	t.Parallel()
 	gormDB := servicetest.NewDB(t, servicetest.NewConfig(t))

@@ -16,10 +16,10 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import DateRangeFilter from "../../components/DateRangeFilter";
-import EnumSelect from "../../components/EnumSelect";
 import ExportButton from "../../components/ExportButton";
 import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll from "../../components/TableScroll";
 import {
   POStatus,
   type PurchaseOrder,
@@ -44,8 +44,6 @@ const STATUS_BADGE_PALETTE: Record<POStatus, string> = {
   [POStatus.PO_STATUS_VOIDED]: "red",
 };
 
-type DateField = "off" | "created" | "received";
-
 export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECIFIED }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -54,7 +52,8 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
   const [onlyOutstanding, setOnlyOutstanding] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
-  const [dateField, setDateField] = useState<DateField>("off");
+  // "" = Any date (the picker's own off state) — send no bounds at all then.
+  const [dateField, setDateField] = useState("");
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
 
   // Debounce the search box (250ms) into the query that drives the request.
@@ -63,18 +62,23 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
     return () => clearTimeout(h);
   }, [searchInput]);
 
-  const useRange = dateField !== "off";
+  const dateFields = [
+    { value: "created", label: t("purchasing.dateCreated") },
+    { value: "received", label: t("purchasing.dateReceived") },
+  ];
+  const fromUnix = dateField ? BigInt(range.fromUnix) : 0n;
+  const toUnix = dateField ? BigInt(range.toUnix) : 0n;
   const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${status}|${supplierFilter}|${onlyOutstanding}|${query}|${dateField}|${useRange ? range.fromUnix : 0}|${useRange ? range.toUnix : 0}`,
+    `${status}|${supplierFilter}|${onlyOutstanding}|${query}|${dateField}|${fromUnix}|${toUnix}`,
   );
   const posQ = usePurchaseOrdersQuery({
     status,
     supplierId: supplierFilter,
     onlyOutstanding,
     query,
-    fromUnix: useRange ? BigInt(range.fromUnix) : 0n,
-    toUnix: useRange ? BigInt(range.toUnix) : 0n,
-    dateField: useRange ? dateField : "",
+    fromUnix,
+    toUnix,
+    dateField,
     limit: pageSize,
     offset: page * pageSize,
   });
@@ -98,9 +102,9 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
       supplierId: supplierFilter,
       onlyOutstanding,
       query,
-      fromUnix: useRange ? BigInt(range.fromUnix) : 0n,
-      toUnix: useRange ? BigInt(range.toUnix) : 0n,
-      dateField: useRange ? dateField : "",
+      fromUnix,
+      toUnix,
+      dateField,
     });
     const sup = await resolveSupplierMap(rows.map((po) => po.supplierId));
     downloadCsv(
@@ -166,20 +170,13 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
             selectedLabel={supplierLabelOf(supplierFilter)}
             placeholder={`${t("purchasing.supplier")} —`}
           />
-          <EnumSelect
-            size="sm"
-            width="150px"
-            value={dateField}
-            onChange={(v) => setDateField(v as DateField)}
-            items={[
-              { value: "off", label: t("purchasing.dateOff") },
-              { value: "created", label: t("purchasing.dateCreated") },
-              { value: "received", label: t("purchasing.dateReceived") },
-            ]}
-            itemToString={(o) => o.label}
-            itemToValue={(o) => o.value}
+          <DateRangeFilter
+            value={range}
+            onChange={setRange}
+            fields={dateFields}
+            field={dateField}
+            onFieldChange={setDateField}
           />
-          {useRange && <DateRangeFilter value={range} onChange={setRange} />}
           <Switch.Root checked={onlyOutstanding} onCheckedChange={(d) => setOnlyOutstanding(d.checked)}>
             <Switch.HiddenInput />
             <Switch.Control />
@@ -200,58 +197,60 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("purchasing.poNo")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.supplier")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.item")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.status")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.created")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.received")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.invoiceNo")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.totalOrdered")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.outstanding")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {posQ.rows.map((po: PurchaseOrder) => (
-              <Table.Row
-                key={po.id}
-                onClick={() => navigate(`/purchasing/${po.id}`)}
-                cursor="pointer"
-                _hover={{ bg: "bg.muted" }}
-              >
-                <Table.Cell fontFamily="mono">{po.poNo || po.id.slice(0, 8)}</Table.Cell>
-                <Table.Cell>{supplierLabelOf(po.supplierId) ?? "—"}</Table.Cell>
-                <Table.Cell>
-                  <ItemsList po={po} moreLabel={t("purchasing.itemsMore")} />
-                </Table.Cell>
-                <Table.Cell>
-                  <Badge colorPalette={STATUS_BADGE_PALETTE[po.status]}>
-                    {t(`purchasing.states.${statusKey(po.status)}`)}
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell>{formatDate(new Date(Number(po.createdAt) * 1000))}</Table.Cell>
-                <Table.Cell>
-                  {po.receivedAt > 0n ? formatDate(new Date(Number(po.receivedAt) * 1000)) : "—"}
-                </Table.Cell>
-                <Table.Cell fontFamily="mono">{po.invoiceNo || "—"}</Table.Cell>
-                <Table.Cell fontFamily="mono">{formatMoney(Number(po.orderedTotal))}</Table.Cell>
-                <Table.Cell fontFamily="mono">{formatMoney(Number(po.outstanding))}</Table.Cell>
-              </Table.Row>
-            ))}
-            {posQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={9}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("purchasing.poNo")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.supplier")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.item")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.status")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.created")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.received")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.invoiceNo")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.totalOrdered")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.outstanding")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {posQ.rows.map((po: PurchaseOrder) => (
+                <Table.Row
+                  key={po.id}
+                  onClick={() => navigate(`/purchasing/${po.id}`)}
+                  cursor="pointer"
+                  _hover={{ bg: "bg.muted" }}
+                >
+                  <Table.Cell fontFamily="mono">{po.poNo || po.id.slice(0, 8)}</Table.Cell>
+                  <Table.Cell>{supplierLabelOf(po.supplierId) ?? "—"}</Table.Cell>
+                  <Table.Cell>
+                    <ItemsList po={po} moreLabel={t("purchasing.itemsMore")} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge colorPalette={STATUS_BADGE_PALETTE[po.status]}>
+                      {t(`purchasing.states.${statusKey(po.status)}`)}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell>{formatDate(new Date(Number(po.createdAt) * 1000))}</Table.Cell>
+                  <Table.Cell>
+                    {po.receivedAt > 0n ? formatDate(new Date(Number(po.receivedAt) * 1000)) : "—"}
+                  </Table.Cell>
+                  <Table.Cell fontFamily="mono">{po.invoiceNo || "—"}</Table.Cell>
+                  <Table.Cell fontFamily="mono">{formatMoney(Number(po.orderedTotal))}</Table.Cell>
+                  <Table.Cell fontFamily="mono">{formatMoney(Number(po.outstanding))}</Table.Cell>
+                </Table.Row>
+              ))}
+              {posQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={9}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Pagination

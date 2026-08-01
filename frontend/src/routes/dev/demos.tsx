@@ -1,13 +1,17 @@
 import { useState } from "react";
 import {
+  Badge,
   Box,
+  Breadcrumb,
   Button,
   Code,
   HStack,
   SimpleGrid,
   Stack,
+  Table,
   Text,
 } from "@chakra-ui/react";
+import { ChevronRight } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -35,7 +39,11 @@ import Pagination from "../../components/Pagination";
 import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import TableScroll from "../../components/TableScroll";
 import TrendChart from "../../components/TrendChart";
+import UserAvatar from "../../components/UserAvatar";
+import ProductImage from "../../components/ProductImage";
+import ProductPickerDialog from "../../components/ProductPickerDialog";
 import WarehouseSelect from "../../components/WarehouseSelect";
 import {
   MetricOrder,
@@ -89,8 +97,8 @@ export function PageHeaderDemo() {
   return (
     <Box borderWidth="1px" borderRadius="md" p={4}>
       <PageHeader
-        breadcrumbs={[{ label: "Inventaris", to: "/inventory/batches" }, { label: "Batch" }]}
         title="Batch"
+        titleBadge={<Badge colorPalette="green">Aktif</Badge>}
         description="Every lot with stock in the active warehouse."
         actions={
           <Button size="sm" colorPalette="blue">
@@ -102,6 +110,44 @@ export function PageHeaderDemo() {
         Page body starts here.
       </Text>
     </Box>
+  );
+}
+
+// The real <Breadcrumbs/> reads the live URL (and the business mode, for the
+// catalog noun), so the gallery shows a static stand-in of what it renders in
+// the TopBar rather than mounting the router-driven component.
+export function BreadcrumbsDemo() {
+  return (
+    <Stack gap={3}>
+      <Box borderWidth="1px" borderRadius="md" px={4} h="56px" display="flex" alignItems="center">
+        <Breadcrumb.Root size="sm">
+          <Breadcrumb.List flexWrap="nowrap" whiteSpace="nowrap">
+            {/* A nav-group ancestor: names a sidebar section with no page of its own. */}
+            <Breadcrumb.Item>
+              <Text color="fg.muted">Inventaris</Text>
+            </Breadcrumb.Item>
+            <Breadcrumb.Separator>
+              <ChevronRight size={14} />
+            </Breadcrumb.Separator>
+            <Breadcrumb.Item>
+              <Breadcrumb.Link href="#" color="fg.muted">
+                Stok opname
+              </Breadcrumb.Link>
+            </Breadcrumb.Item>
+            <Breadcrumb.Separator>
+              <ChevronRight size={14} />
+            </Breadcrumb.Separator>
+            {/* Leaf = where you are. On a :id route this comes from useCrumbLabel(). */}
+            <Breadcrumb.Item>
+              <Breadcrumb.CurrentLink>Opname Juli 2026</Breadcrumb.CurrentLink>
+            </Breadcrumb.Item>
+          </Breadcrumb.List>
+        </Breadcrumb.Root>
+      </Box>
+      <Text fontSize="sm" color="fg.muted">
+        Mounted once in the TopBar — a page never renders it.
+      </Text>
+    </Stack>
   );
 }
 
@@ -281,10 +327,29 @@ function fakeSearch(query: string): Promise<FakeProduct[]> {
   return new Promise((resolve) => setTimeout(() => resolve(rows), 200));
 }
 
+// renderItem fixture — mirrors the shape CashierFilterSelect renders. `version: 0`
+// on the avatar means "no picture", which disables the fetch entirely, so this
+// demo stays server-free like every other one in this file.
+type FakePerson = { id: string; name: string; role: string };
+const FAKE_PEOPLE: FakePerson[] = [
+  { id: "u1", name: "Budi Santoso", role: "Cashier" },
+  { id: "u2", name: "Siti Rahayu", role: "Admin" },
+  { id: "u3", name: "Ahmad Wijaya", role: "Cashier" },
+];
+
+function fakePeopleSearch(query: string): Promise<FakePerson[]> {
+  const needle = query.trim().toLowerCase();
+  const rows = needle
+    ? FAKE_PEOPLE.filter((p) => p.name.toLowerCase().includes(needle))
+    : FAKE_PEOPLE;
+  return new Promise((resolve) => setTimeout(() => resolve(rows), 200));
+}
+
 export function SearchableSelectDemo() {
   const { t } = useTranslation();
   const [asyncValue, setAsyncValue] = useState("");
   const [syncValue, setSyncValue] = useState("");
+  const [personValue, setPersonValue] = useState("");
   return (
     <Stack gap={4} maxW="360px">
       <Stack gap={2}>
@@ -315,6 +380,33 @@ export function SearchableSelectDemo() {
         />
         <Emitted>{syncValue}</Emitted>
       </Stack>
+      <Stack gap={2}>
+        <Text fontSize="xs" color="fg.muted">
+          {t("dev.components.demo.renderItemMode")}
+        </Text>
+        <SearchableSelect
+          value={personValue}
+          onChange={setPersonValue}
+          loadOptions={fakePeopleSearch}
+          itemToString={(p: FakePerson) => p.name}
+          itemToValue={(p: FakePerson) => p.id}
+          renderItem={(p: FakePerson) => (
+            <HStack gap={3} flex="1" minW={0}>
+              <UserAvatar userId={p.id} name={p.name} version={0} />
+              <Stack gap={0} flex="1" minW={0}>
+                <Text fontWeight="medium" truncate>
+                  {p.name}
+                </Text>
+                <Text fontSize="xs" color="fg.muted" truncate>
+                  {p.role}
+                </Text>
+              </Stack>
+            </HStack>
+          )}
+          placeholder="Search person…"
+        />
+        <Emitted>{personValue}</Emitted>
+      </Stack>
     </Stack>
   );
 }
@@ -331,6 +423,33 @@ export function WarehouseSelectDemo() {
     <Stack gap={2} maxW="280px">
       <WarehouseSelect warehouses={FAKE_WAREHOUSES} value={value} onChange={setValue} />
       <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
+// NOTE: the one demo in this file that talks to the server. ProductPickerDialog
+// IS server-paginated search — a fixture list would demo the opposite of the
+// thing. It stays idle until opened (`enabled: open`), so browsing the gallery
+// costs nothing.
+export function ProductPickerDialogDemo() {
+  const [open, setOpen] = useState(false);
+  const [ids, setIds] = useState<string[]>([]);
+  const [names, setNames] = useState<string[]>([]);
+  return (
+    <Stack gap={2} maxW="360px">
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        Add products
+      </Button>
+      <Emitted>{names.length ? names.join(", ") : ""}</Emitted>
+      <ProductPickerDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        selectedIds={ids}
+        onConfirm={(picked, byId) => {
+          setIds(picked);
+          setNames(picked.map((id) => byId.get(id)?.name ?? id));
+        }}
+      />
     </Stack>
   );
 }
@@ -420,6 +539,47 @@ export function ConfirmDialogDemo() {
 }
 
 // --- Data display ---------------------------------------------------------
+
+// 24 fixture lots — enough to overflow the demo's cap so the header actually
+// sticks and the vertical scroll is visible in the preview.
+const SCROLL_ROWS = Array.from({ length: 24 }, (_, i) => ({
+  product: `Paracetamol 500mg`,
+  batch: `B-2026-${String(i + 1).padStart(4, "0")}`,
+  expiry: isoInDays(30 * (i + 1)),
+  qty: 120 - i * 3,
+}));
+
+export function TableScrollDemo() {
+  return (
+    <Stack gap={2}>
+      <TableScroll maxH="220px">
+        <Table.Root size="sm" stickyHeader>
+          <Table.Header>
+            <Table.Row>
+              <Table.ColumnHeader>Product</Table.ColumnHeader>
+              <Table.ColumnHeader>Batch no</Table.ColumnHeader>
+              <Table.ColumnHeader>Expiry</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">Qty</Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {SCROLL_ROWS.map((r) => (
+              <Table.Row key={r.batch}>
+                <Table.Cell>{r.product}</Table.Cell>
+                <Table.Cell fontFamily="mono">{r.batch}</Table.Cell>
+                <Table.Cell>{r.expiry}</Table.Cell>
+                <Table.Cell textAlign="end">{r.qty}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      </TableScroll>
+      <Text fontSize="xs" color="fg.muted">
+        Scroll the table — the header stays. The page behind it never moves.
+      </Text>
+    </Stack>
+  );
+}
 
 export function PaginationDemo() {
   const { page, setPage, pageSize, setPageSize } = usePageState("demo");
@@ -528,16 +688,77 @@ export function ExpiryBadgeDemo() {
   );
 }
 
+export function UserAvatarDemo() {
+  // version={0} means "no picture", which disables the fetch — so this demo
+  // renders the initials fallback at every size and makes no server call.
+  return (
+    <HStack gap={4} align="center" flexWrap="wrap">
+      <UserAvatar userId="demo-1" name="Siti Rahmawati" version={0} size="xs" />
+      <UserAvatar userId="demo-2" name="Budi" version={0} size="sm" />
+      <UserAvatar userId="demo-3" name="Andi Pratama" version={0} size="md" />
+      <UserAvatar userId="demo-4" name="Dewi Lestari" version={0} size="lg" />
+      <UserAvatar userId="demo-5" name="Eko" version={0} size="xl" />
+    </HStack>
+  );
+}
+
+export function ProductImageDemo() {
+  // version={0} means "no picture", which disables the fetch — so this demo
+  // renders the placeholder at every size and makes no server call.
+  return (
+    <HStack gap={4} align="center" flexWrap="wrap">
+      <ProductImage productId="demo-1" name="Paracetamol 500mg" version={0} size={28} />
+      <ProductImage productId="demo-2" name="Amoxicillin" version={0} size={36} />
+      <ProductImage productId="demo-3" name="Vitamin C" version={0} size={56} />
+      <ProductImage productId="demo-4" name="Antasida" version={0} size={96} />
+    </HStack>
+  );
+}
+
 // --- Toolbar & filters ----------------------------------------------------
 
 export function DateRangeFilterDemo() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
   const { from, to } = rangeBounds(range);
+  // Second instance: a list with several filterable dates. Sample field labels
+  // — a real page passes translated ones.
+  const [fieldRange, setFieldRange] = useState<DateRange>(() => resolveRange("30d"));
+  const [field, setField] = useState("");
   return (
-    <Stack gap={2} align="flex-start">
-      <DateRangeFilter value={range} onChange={setRange} />
-      <Emitted>{`${range.preset} · ${formatAbsolute(from)} → ${formatAbsolute(to)}`}</Emitted>
-      <Emitted>{`fromUnix ${range.fromUnix} · toUnix ${range.toUnix}`}</Emitted>
+    <Stack gap={5} align="flex-start">
+      <Stack gap={2} align="flex-start">
+        <Text fontSize="xs" color="fg.muted">
+          {t("dev.components.demo.rangeOneDate")}
+        </Text>
+        <DateRangeFilter value={range} onChange={setRange} />
+        <Emitted>{`${range.preset} · ${formatAbsolute(from)} → ${formatAbsolute(to)}`}</Emitted>
+        <Emitted>{`fromUnix ${range.fromUnix} · toUnix ${range.toUnix}`}</Emitted>
+      </Stack>
+
+      <Stack gap={2} align="flex-start">
+        <Text fontSize="xs" color="fg.muted">
+          {t("dev.components.demo.rangeManyDates")}
+        </Text>
+        <DateRangeFilter
+          value={fieldRange}
+          onChange={setFieldRange}
+          fields={[
+            { value: "created", label: "Created" },
+            { value: "received", label: "Received" },
+            { value: "voided", label: "Voided" },
+          ]}
+          field={field}
+          onFieldChange={setField}
+        />
+        <Emitted>{`dateField "${field}"`}</Emitted>
+        {/* Any date sends no bounds at all — that's the caller's half of the contract. */}
+        <Emitted>
+          {field
+            ? `fromUnix ${fieldRange.fromUnix} · toUnix ${fieldRange.toUnix}`
+            : "fromUnix 0 · toUnix 0"}
+        </Emitted>
+      </Stack>
     </Stack>
   );
 }

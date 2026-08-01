@@ -14,6 +14,19 @@ export function marginPct(
   return ((s - c) / s) * 100;
 }
 
+// marginValue returns the absolute margin (sell − cost) in whole rupiah, or null
+// under exactly the same conditions marginPct returns null — so a caller can
+// render the pair "Rp 5.000 (20%)" and never end up with one half showing "—".
+export function marginValue(
+  sell: number | bigint | string,
+  cost: number | bigint,
+): bigint | null {
+  const s = Number(typeof sell === "string" ? sell || "0" : sell);
+  const c = Number(cost);
+  if (c <= 0 || s <= 0) return null;
+  return BigInt(Math.round(s - c));
+}
+
 // priceFromMarkup derives a whole-rupiah sell price from a base cost + markup %.
 // Returns 0n when cost is non-positive or the markup isn't a finite number.
 export function priceFromMarkup(cost: number | bigint, markupPct: number): bigint {

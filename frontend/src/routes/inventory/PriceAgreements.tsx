@@ -9,6 +9,7 @@ import EnumSelect from "../../components/EnumSelect";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll from "../../components/TableScroll";
 import { PriceAgreement, PriceAgreementValidity } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
@@ -90,7 +91,10 @@ export default function PriceAgreements() {
 
   return (
     <Box>
-      <PageHeader breadcrumbs={[{ label: t("nav.priceAgreements") }]} title={t("inventory.priceAgreements.title")} />
+      <PageHeader
+        title={t("inventory.priceAgreements.title")}
+        description={t("inventory.priceAgreements.description")}
+      />
 
       <Stack gap={4}>
         <HStack justify="space-between" wrap="wrap" gap={2}>
@@ -167,79 +171,81 @@ export default function PriceAgreements() {
             <Spinner />
           </Box>
         ) : (
-          <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-            <Table.Header bg="bg.muted">
-              <Table.Row>
-                <Table.ColumnHeader>{t("inventory.priceAgreements.supplier")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.priceAgreements.product")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.priceAgreements.unit")}</Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">{t("inventory.priceAgreements.price")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.priceAgreements.valid")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {q.rows.map((a) => {
-                const s = supplierRefs.get(a.supplierId);
-                return (
-                  <Table.Row key={a.id}>
-                    <Table.Cell>{s ? `${s.code} · ${s.name}` : "—"}</Table.Cell>
-                    <Table.Cell>{productRefs.get(a.productId)?.name ?? "—"}</Table.Cell>
-                    <Table.Cell>{a.unitName || "—"}</Table.Cell>
-                    <Table.Cell textAlign="end" fontFamily="mono">
-                      {formatMoney(Number(a.price))}
-                      <Text as="span" fontSize="xs" color="fg.muted">
-                        {" "}/ {a.unitName || "?"}
+          <TableScroll>
+            <Table.Root size="sm" stickyHeader>
+              <Table.Header bg="bg.muted">
+                <Table.Row>
+                  <Table.ColumnHeader>{t("inventory.priceAgreements.supplier")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("inventory.priceAgreements.product")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("inventory.priceAgreements.unit")}</Table.ColumnHeader>
+                  <Table.ColumnHeader textAlign="end">{t("inventory.priceAgreements.price")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("inventory.priceAgreements.valid")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
+                  <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {q.rows.map((a) => {
+                  const s = supplierRefs.get(a.supplierId);
+                  return (
+                    <Table.Row key={a.id}>
+                      <Table.Cell>{s ? `${s.code} · ${s.name}` : "—"}</Table.Cell>
+                      <Table.Cell>{productRefs.get(a.productId)?.name ?? "—"}</Table.Cell>
+                      <Table.Cell>{a.unitName || "—"}</Table.Cell>
+                      <Table.Cell textAlign="end" fontFamily="mono">
+                        {formatMoney(Number(a.price))}
+                        <Text as="span" fontSize="xs" color="fg.muted">
+                          {" "}/ {a.unitName || "?"}
+                        </Text>
+                      </Table.Cell>
+                      <Table.Cell color="fg.muted" fontSize="sm">
+                        {a.validFrom || a.validUntil ? `${a.validFrom || "…"} → ${a.validUntil || "…"}` : "—"}
+                      </Table.Cell>
+                      <Table.Cell>{a.active ? t("common.yes") : t("common.no")}</Table.Cell>
+                      <Table.Cell>
+                        <HStack gap={1}>
+                          <Button size="xs" variant="ghost" onClick={() => openEdit(a)}>
+                            <Pencil size={14} />
+                          </Button>
+                          {a.active ? (
+                            <Button size="xs" variant="ghost" colorPalette="red" onClick={() => setPendingArchive(a)}>
+                              <Archive size={14} />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              colorPalette="green"
+                              loading={unarchive.isPending}
+                              onClick={async () => {
+                                try {
+                                  await unarchive.mutateAsync({ id: a.id });
+                                  toast.success(t("common.unarchive") + " ✓");
+                                } catch {
+                                  /* collision error auto-toasted by the global mutation handler */
+                                }
+                              }}
+                            >
+                              <ArchiveRestore size={14} />
+                            </Button>
+                          )}
+                        </HStack>
+                      </Table.Cell>
+                    </Table.Row>
+                  );
+                })}
+                {q.rows.length === 0 && (
+                  <Table.Row>
+                    <Table.Cell colSpan={7}>
+                      <Text color="fg.muted" textAlign="center" py={4}>
+                        {t("inventory.priceAgreements.empty")}
                       </Text>
                     </Table.Cell>
-                    <Table.Cell color="fg.muted" fontSize="sm">
-                      {a.validFrom || a.validUntil ? `${a.validFrom || "…"} → ${a.validUntil || "…"}` : "—"}
-                    </Table.Cell>
-                    <Table.Cell>{a.active ? t("common.yes") : t("common.no")}</Table.Cell>
-                    <Table.Cell>
-                      <HStack gap={1}>
-                        <Button size="xs" variant="ghost" onClick={() => openEdit(a)}>
-                          <Pencil size={14} />
-                        </Button>
-                        {a.active ? (
-                          <Button size="xs" variant="ghost" colorPalette="red" onClick={() => setPendingArchive(a)}>
-                            <Archive size={14} />
-                          </Button>
-                        ) : (
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            colorPalette="green"
-                            loading={unarchive.isPending}
-                            onClick={async () => {
-                              try {
-                                await unarchive.mutateAsync({ id: a.id });
-                                toast.success(t("common.unarchive") + " ✓");
-                              } catch {
-                                /* collision error auto-toasted by the global mutation handler */
-                              }
-                            }}
-                          >
-                            <ArchiveRestore size={14} />
-                          </Button>
-                        )}
-                      </HStack>
-                    </Table.Cell>
                   </Table.Row>
-                );
-              })}
-              {q.rows.length === 0 && (
-                <Table.Row>
-                  <Table.Cell colSpan={7}>
-                    <Text color="fg.muted" textAlign="center" py={4}>
-                      {t("inventory.priceAgreements.empty")}
-                    </Text>
-                  </Table.Cell>
-                </Table.Row>
-              )}
-            </Table.Body>
-          </Table.Root>
+                )}
+              </Table.Body>
+            </Table.Root>
+          </TableScroll>
         )}
 
         <Pagination page={page} pageSize={pageSize} total={q.total} onPageChange={setPage} onPageSizeChange={setPageSize} />

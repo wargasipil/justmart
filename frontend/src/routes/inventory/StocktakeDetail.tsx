@@ -18,9 +18,11 @@ import { Ban, Check, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
+import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
 import EnumSelect from "../../components/EnumSelect";
 import SearchableSelect from "../../components/SearchableSelect";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import type { StocktakeLine } from "../../gen/stocktake_iface/v1/stocktake_pb";
 import { searchBatches } from "../../queries/batches";
 import { searchProducts } from "../../queries/products";
@@ -55,6 +57,7 @@ export default function StocktakeDetail() {
   const { t } = useTranslation();
   const { id = "" } = useParams();
   const q = useStocktakeQuery(id);
+  useCrumbLabel(q.data?.session?.name);
 
   const addMut = useAddBatchesMutation(id);
   const addAllMut = useAddAllInStockBatchesMutation(id);
@@ -167,40 +170,42 @@ export default function StocktakeDetail() {
         )}
       </HStack>
 
-      <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-        <Table.Header bg="bg.muted">
-          <Table.Row>
-            <Table.ColumnHeader>{t("inventory.stocktake.product")}</Table.ColumnHeader>
-            <Table.ColumnHeader>{t("inventory.stocktake.batch")}</Table.ColumnHeader>
-            <Table.ColumnHeader>{t("inventory.stocktake.expiry")}</Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="right">
-              {t("inventory.stocktake.expected")}
-            </Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="right">
-              {t("inventory.stocktake.countedQty")}
-            </Table.ColumnHeader>
-            <Table.ColumnHeader textAlign="right">
-              {t("inventory.stocktake.variance")}
-            </Table.ColumnHeader>
-            <Table.ColumnHeader>{t("inventory.stocktake.disposition")}</Table.ColumnHeader>
-            {isDraft && <Table.ColumnHeader />}
-          </Table.Row>
-        </Table.Header>
-        <Table.Body>
-          {lines.map((l) => (
-            <LineRow key={l.id} line={l} sessionId={id} editable={isDraft} />
-          ))}
-          {lines.length === 0 && (
+      <TableScroll maxH={TABLE_MAX_H_NESTED}>
+        <Table.Root size="sm" stickyHeader>
+          <Table.Header bg="bg.muted">
             <Table.Row>
-              <Table.Cell colSpan={isDraft ? 8 : 7}>
-                <Text color="fg.muted" textAlign="center" py={4}>
-                  {t("inventory.stocktake.sessionEmpty")}
-                </Text>
-              </Table.Cell>
+              <Table.ColumnHeader>{t("inventory.stocktake.product")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("inventory.stocktake.batch")}</Table.ColumnHeader>
+              <Table.ColumnHeader>{t("inventory.stocktake.expiry")}</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="right">
+                {t("inventory.stocktake.expected")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="right">
+                {t("inventory.stocktake.countedQty")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="right">
+                {t("inventory.stocktake.variance")}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader>{t("inventory.stocktake.disposition")}</Table.ColumnHeader>
+              {isDraft && <Table.ColumnHeader />}
             </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+          </Table.Header>
+          <Table.Body>
+            {lines.map((l) => (
+              <LineRow key={l.id} line={l} sessionId={id} editable={isDraft} />
+            ))}
+            {lines.length === 0 && (
+              <Table.Row>
+                <Table.Cell colSpan={isDraft ? 8 : 7}>
+                  <Text color="fg.muted" textAlign="center" py={4}>
+                    {t("inventory.stocktake.sessionEmpty")}
+                  </Text>
+                </Table.Cell>
+              </Table.Row>
+            )}
+          </Table.Body>
+        </Table.Root>
+      </TableScroll>
 
       <AddBatchesDialog
         open={addOpen}

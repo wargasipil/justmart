@@ -14,6 +14,13 @@ export default function AppShell() {
       <Sidebar />
       <Box
         flex="1"
+        // A flex item defaults to min-width:auto, so this column refuses to
+        // shrink below its content's min-content width — a wide table (or a
+        // crowded TopBar) then pushes the whole document sideways, sliding the
+        // sticky TopBar off-screen while the fixed Sidebar overlaps the content.
+        // minW={0} lets it shrink; overflow is each surface's own business
+        // (see <TableScroll>).
+        minW={0}
         ml={sidebarWidth}
         transition="margin-left 150ms ease-out"
         display="flex"

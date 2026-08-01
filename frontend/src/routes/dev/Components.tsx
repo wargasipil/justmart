@@ -50,10 +50,6 @@ export default function Components() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[
-          { label: t("dev.components.title") },
-          { label: t(`dev.components.groups.${group.labelKey}`) },
-        ]}
         title={t("dev.components.title")}
         description={t("dev.components.description", { total: TOTAL_ENTRIES })}
         actions={<Badge colorPalette="orange">{t("dev.components.badge")}</Badge>}

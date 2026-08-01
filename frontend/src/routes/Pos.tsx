@@ -31,6 +31,7 @@ import EnumSelect from "../components/EnumSelect";
 import MoneyInput from "../components/MoneyInput";
 import NumberInput from "../components/NumberInput";
 import PrinterSelect from "../components/PrinterSelect";
+import ProductImage from "../components/ProductImage";
 import WarehouseSelect from "../components/WarehouseSelect";
 import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
 import type { ProductPriceTier } from "../gen/inventory_iface/v1/product_price_tier_pb";
@@ -937,7 +938,16 @@ export default function Pos() {
                   onMouseEnter={() => setHighlight(i)}
                   onClick={() => !out && onAdd(m, unit.id, available)}
                 >
-                  <Stack gap={0} flex="1">
+                  {/* Thumbnail first: a cashier scans this list by sight, and
+                      the picture is the fastest thing to match against. THUMB
+                      rendition; products without one cost zero requests. */}
+                  <ProductImage
+                    productId={m.id}
+                    name={m.name}
+                    version={Number(m.imageUpdatedAt)}
+                    size={36}
+                  />
+                  <Stack gap={0} flex="1" ml={3}>
                     <HStack gap={2}>
                       {needsRx && <Lock size={12} />}
                       <Text fontSize="sm" fontWeight="medium">

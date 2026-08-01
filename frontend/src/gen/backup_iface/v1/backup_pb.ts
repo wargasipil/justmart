@@ -148,6 +148,16 @@ export class CreateBackupResponse extends Message<CreateBackupResponse> {
  * @generated from message backup_iface.v1.ListBackupsRequest
  */
 export class ListBackupsRequest extends Message<ListBackupsRequest> {
+  /**
+   * @generated from field: int32 limit = 1;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 2;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListBackupsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -156,6 +166,8 @@ export class ListBackupsRequest extends Message<ListBackupsRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "backup_iface.v1.ListBackupsRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBackupsRequest {
@@ -184,6 +196,11 @@ export class ListBackupsResponse extends Message<ListBackupsResponse> {
    */
   backups: Backup[] = [];
 
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListBackupsResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -193,6 +210,7 @@ export class ListBackupsResponse extends Message<ListBackupsResponse> {
   static readonly typeName = "backup_iface.v1.ListBackupsResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "backups", kind: "message", T: Backup, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBackupsResponse {

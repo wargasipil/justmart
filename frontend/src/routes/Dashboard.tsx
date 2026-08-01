@@ -13,27 +13,13 @@ import {
 } from "../gen/analytics_iface/v1/analytics_pb";
 import { useAuth } from "../lib/auth";
 import { formatMoney, formatUnix } from "../lib/format";
+import { roleKey } from "../lib/roles";
 import { useDailyMetricQuery } from "../queries/analytics";
 import { useExpiringSoonCountQuery } from "../queries/batches";
 import { useActiveRxCountQuery } from "../queries/prescriptions";
 import { useLowStockQuery } from "../queries/products";
 import { useTodaySnapshotQuery } from "../queries/sales";
 import { useBusinessMode } from "../queries/settings";
-
-function roleKey(role: Role): string {
-  switch (role) {
-    case Role.OWNER:
-      return "owner";
-    case Role.PHARMACIST:
-      return "pharmacist";
-    case Role.CASHIER:
-      return "cashier";
-    case Role.APOTEKER:
-      return "apoteker";
-    default:
-      return "unknown";
-  }
-}
 
 export default function Dashboard() {
   const { t } = useTranslation();

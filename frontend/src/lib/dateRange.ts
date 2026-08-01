@@ -266,26 +266,6 @@ export function rangeBounds(range: DateRange): { from: Date; to: Date } {
 }
 
 /**
- * Move the window by its own width (Grafana's ◀ / ▶). Always yields an
- * absolute range — once you step off "now", the range is pinned.
- */
-export function shiftRange(range: DateRange, direction: -1 | 1): DateRange {
-  const { from, to } = rangeBounds(range);
-  // Guard a degenerate (zero-width) range so the arrows still do something.
-  const width = Math.max(to.getTime() - from.getTime(), 60_000);
-  const delta = width * direction;
-  return absoluteRange(new Date(from.getTime() + delta), new Date(to.getTime() + delta));
-}
-
-/** Widen the window around its midpoint (Grafana's zoom-out, 2× by default). */
-export function zoomOutRange(range: DateRange, factor = 2): DateRange {
-  const { from, to } = rangeBounds(range);
-  const center = (from.getTime() + to.getTime()) / 2;
-  const half = Math.max((to.getTime() - from.getTime()) / 2, 30_000) * factor;
-  return absoluteRange(new Date(Math.round(center - half)), new Date(Math.round(center + half)));
-}
-
-/**
  * Button label: the quick-range name, or `from → to` for an absolute range.
  * `t` is the caller's i18next translator (labels live under `analytics.range`).
  */

@@ -28,6 +28,13 @@ func (s *ProductService) load(ctx context.Context, id string) (*model.Product, e
 }
 
 func productToProto(m *model.Product) *inventoryifacev1.Product {
+	// 0 = no picture. Set here rather than in an enrich pass so EVERY product
+	// read carries it — the list, POS search and detail all key their image
+	// fetch off this marker.
+	var imageAt int64
+	if m.ImageUpdatedAt != nil {
+		imageAt = m.ImageUpdatedAt.Unix()
+	}
 	return &inventoryifacev1.Product{
 		Id:                   m.ID,
 		Sku:                  m.SKU,
@@ -37,6 +44,7 @@ func productToProto(m *model.Product) *inventoryifacev1.Product {
 		PrescriptionRequired: m.PrescriptionRequired,
 		Active:               m.Active,
 		CreatedAt:            m.CreatedAt.Unix(),
+		ImageUpdatedAt:       imageAt,
 	}
 }
 

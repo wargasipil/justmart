@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import Pagination from "../../components/Pagination";
+import TableScroll from "../../components/TableScroll";
 import { Supplier } from "../../gen/inventory_iface/v1/supplier_pb";
 import {
   useArchiveSupplierMutation,
@@ -77,34 +78,36 @@ export default function Suppliers() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("inventory.suppliers.code")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.suppliers.name")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.suppliers.email")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.suppliers.phone")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.suppliers.address")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("inventory.suppliers.bankInfo")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {suppliersQ.rows.map((s) => (
-              <Row key={s.id} supplier={s} />
-            ))}
-            {suppliersQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={8}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("inventory.suppliers.code")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.suppliers.name")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.suppliers.email")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.suppliers.phone")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.suppliers.address")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.suppliers.bankInfo")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {suppliersQ.rows.map((s) => (
+                <Row key={s.id} supplier={s} />
+              ))}
+              {suppliersQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={8}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Pagination

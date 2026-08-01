@@ -49,31 +49,59 @@ func (s *ProductService) enrichStock(
 		ready[r.ProductID] = r.Qty
 	}
 
-	// On-order: SUM(ordered_qty - received_qty) per product on open POs.
+	// On-order: outstanding qty + its value at cost, per product on open POs.
+	// Fetched per LINE rather than pre-summed in SQL because the valuation rate
+	// is the line's NET per-base cost, whose rounding must match the one
+	// CreateReceipt stamps on the batch — see netUnitCost.
 	type orderRow struct {
-		ProductID string `gorm:"column:product_id"`
-		Qty       int64  `gorm:"column:qty"`
+		ProductID   string `gorm:"column:product_id"`
+		OrderedQty  int64  `gorm:"column:ordered_qty"`
+		ReceivedQty int64  `gorm:"column:received_qty"`
+		Subtotal    int64  `gorm:"column:subtotal"`
+		UnitCost    int64  `gorm:"column:unit_cost_price"`
 	}
 	var orderRows []orderRow
 	if err := s.db.WithContext(ctx).
 		Table("purchase_order_items AS poi").
-		Select("poi.product_id AS product_id, COALESCE(SUM(poi.ordered_qty - poi.received_qty), 0) AS qty").
+		Select("poi.product_id AS product_id, poi.ordered_qty AS ordered_qty, "+
+			"poi.received_qty AS received_qty, poi.subtotal AS subtotal, "+
+			"poi.unit_cost_price AS unit_cost_price").
 		Joins("JOIN purchase_orders po ON po.id = poi.purchase_order_id").
 		Where("poi.product_id IN ? AND po.status NOT IN ?", ids,
 			[]string{common.POStatusVoided, common.POStatusClosed, common.POStatusReceived}).
-		Group("poi.product_id").Scan(&orderRows).Error; err != nil {
+		Scan(&orderRows).Error; err != nil {
 		return connect.NewError(connect.CodeInternal, err)
 	}
 	onOrder := make(map[string]int64, len(orderRows))
+	onOrderValue := make(map[string]int64, len(orderRows))
 	for _, r := range orderRows {
-		onOrder[r.ProductID] = r.Qty
+		outstanding := r.OrderedQty - r.ReceivedQty
+		if outstanding <= 0 {
+			continue
+		}
+		onOrder[r.ProductID] += outstanding
+		onOrderValue[r.ProductID] += outstanding * netUnitCost(r.Subtotal, r.OrderedQty, r.UnitCost)
 	}
 
 	for _, md := range meds {
 		md.ReadyStock = ready[md.Id]
 		md.OnOrderStock = onOrder[md.Id]
+		md.OnOrderValuation = onOrderValue[md.Id]
 	}
 	return nil
+}
+
+// netUnitCost is the per-base-unit cost of a PO line after its line discount.
+// Subtotal is NET and orderedQty is in BASE units, so this is what a receipt
+// will write to batches.cost_price — keeping "ongoing" valuation on the same
+// basis as the "ready" valuation it becomes. Mirrors CreateReceipt's derivation
+// exactly (including the half-up rounding); gross is the fallback when the line
+// carries no qty to divide by.
+func netUnitCost(subtotal, orderedQty, gross int64) int64 {
+	if orderedQty <= 0 {
+		return gross
+	}
+	return (subtotal + orderedQty/2) / orderedQty
 }
 
 // enrichLastStocktake fills last_stocktake_date for a page of products: the

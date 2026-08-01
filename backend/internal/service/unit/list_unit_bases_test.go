@@ -21,6 +21,58 @@ func TestListUnitBases_Empty(t *testing.T) {
 	require.Empty(t, resp.Msg.Bases)
 }
 
+// Only BASES page; each base on the page keeps its full derivative set, since a
+// base missing derivatives is a broken row rather than a partial page.
+func TestListUnitBases_Paginates(t *testing.T) {
+	t.Parallel()
+	svc := unitsvc.NewUnitService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+	ctx := context.Background()
+
+	for _, n := range []string{"ampoule", "bottle", "sachet", "tablet", "vial"} {
+		_, err := svc.CreateUnitBase(ctx, connect.NewRequest(&unitifacev1.CreateUnitBaseRequest{Name: n}))
+		require.NoError(t, err)
+	}
+	// Give one base a derivative so we can assert the page still hydrates it.
+	bases, err := svc.ListUnitBases(ctx, connect.NewRequest(&unitifacev1.ListUnitBasesRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, int32(5), bases.Msg.Total)
+	_, err = svc.CreateUnitDerivative(ctx, connect.NewRequest(&unitifacev1.CreateUnitDerivativeRequest{
+		BaseUnitId: bases.Msg.Bases[0].Id, Name: "box", Factor: 10,
+	}))
+	require.NoError(t, err)
+
+	page := func(limit, offset int32) *unitifacev1.ListUnitBasesResponse {
+		t.Helper()
+		resp, err := svc.ListUnitBases(ctx, connect.NewRequest(&unitifacev1.ListUnitBasesRequest{
+			Limit: limit, Offset: offset,
+		}))
+		require.NoError(t, err)
+		return resp.Msg
+	}
+
+	first := page(2, 0)
+	require.Equal(t, int32(5), first.Total)
+	require.Len(t, first.Bases, 2)
+	require.Equal(t, "ampoule", first.Bases[0].Name) // name order preserved
+	require.Len(t, first.Bases[0].Derivatives, 1)    // hydrated on the page
+
+	seen := map[string]bool{}
+	for off := int32(0); off < first.Total; off += 2 {
+		pg := page(2, off)
+		require.Equal(t, first.Total, pg.Total)
+		for _, b := range pg.Bases {
+			require.False(t, seen[b.Id], "base %s appeared on two pages", b.Name)
+			seen[b.Id] = true
+		}
+	}
+	require.Len(t, seen, 5)
+
+	// An offset past the end returns no bases but keeps the real total.
+	last := page(2, 99)
+	require.Empty(t, last.Bases)
+	require.Equal(t, int32(5), last.Total)
+}
+
 func TestListUnitBases_WithDerivativesSortedByName(t *testing.T) {
 	t.Parallel()
 	svc := unitsvc.NewUnitService(servicetest.NewDB(t, servicetest.NewConfig(t)))

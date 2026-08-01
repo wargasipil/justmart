@@ -9,18 +9,35 @@ import (
 
 	purchasingifacev1 "github.com/justmart/backend/gen/purchasing_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (p *PurchaseReceipts) ListReceipts(
 	ctx context.Context,
 	req *connect.Request[purchasingifacev1.ListReceiptsRequest],
 ) (*connect.Response[purchasingifacev1.ListReceiptsResponse], error) {
-	q := p.db.WithContext(ctx).Preload("Items").Order("created_at DESC")
-	if req.Msg.PurchaseOrderId != "" {
-		q = q.Where("purchase_order_id = ?", req.Msg.PurchaseOrderId)
+	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
+
+	// One filter closure feeds both the count and the page, so the two can't
+	// drift. Preload("Items") is on the PAGE query only — counting with a
+	// preload would load every child row just to throw them away.
+	applyFilters := func(q *gorm.DB) *gorm.DB {
+		q = q.Model(&model.PurchaseReceipt{})
+		if req.Msg.PurchaseOrderId != "" {
+			q = q.Where("purchase_order_id = ?", req.Msg.PurchaseOrderId)
+		}
+		return q
+	}
+	var total int64
+	if err := applyFilters(p.db.WithContext(ctx)).Count(&total).Error; err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	var rows []model.PurchaseReceipt
-	if err := q.Find(&rows).Error; err != nil {
+	if err := applyFilters(p.db.WithContext(ctx)).
+		Preload("Items").
+		Order("created_at DESC, id DESC").
+		Offset(offset).Limit(limit).
+		Find(&rows).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	out := make([]*purchasingifacev1.PurchaseReceipt, 0, len(rows))
@@ -29,13 +46,17 @@ func (p *PurchaseReceipts) ListReceipts(
 	}
 	// Surface each line's returnable max = its batch's current on-hand in the PO
 	// warehouse (the purchase-return dialog caps qty by this). Only when scoped
-	// to a single PO (the detail page always is).
+	// to a single PO (the detail page always is). Enriches THIS PAGE's rows only,
+	// which is the same per-page-enrich shape every other List* handler uses.
 	if req.Msg.PurchaseOrderId != "" {
 		if err := p.enrichReturnable(ctx, req.Msg.PurchaseOrderId, out); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
 	}
-	return connect.NewResponse(&purchasingifacev1.ListReceiptsResponse{Receipts: out}), nil
+	return connect.NewResponse(&purchasingifacev1.ListReceiptsResponse{
+		Receipts: out,
+		Total:    int32(total),
+	}), nil
 }
 
 // enrichReturnable sets returnable_qty (BASE units) on each receipt item = the

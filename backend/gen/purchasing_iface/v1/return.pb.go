@@ -441,6 +441,8 @@ func (x *CreatePurchaseReturnResponse) GetPurchaseReturn() *PurchaseReturn {
 type ListPurchaseReturnsRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	PurchaseOrderId string                 `protobuf:"bytes,1,opt,name=purchase_order_id,json=purchaseOrderId,proto3" json:"purchase_order_id,omitempty"`
+	Limit           int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset          int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -482,9 +484,24 @@ func (x *ListPurchaseReturnsRequest) GetPurchaseOrderId() string {
 	return ""
 }
 
+func (x *ListPurchaseReturnsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListPurchaseReturnsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListPurchaseReturnsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Returns       []*PurchaseReturn      `protobuf:"bytes,1,rep,name=returns,proto3" json:"returns,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -524,6 +541,13 @@ func (x *ListPurchaseReturnsResponse) GetReturns() []*PurchaseReturn {
 		return x.Returns
 	}
 	return nil
+}
+
+func (x *ListPurchaseReturnsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type GetPurchaseReturnRequest struct {
@@ -660,11 +684,14 @@ const file_purchasing_iface_v1_return_proto_rawDesc = "" +
 	"\x04note\x18\x04 \x01(\tR\x04note\x12:\n" +
 	"\x05lines\x18\x05 \x03(\v2$.purchasing_iface.v1.ReturnLineInputR\x05lines\"l\n" +
 	"\x1cCreatePurchaseReturnResponse\x12L\n" +
-	"\x0fpurchase_return\x18\x01 \x01(\v2#.purchasing_iface.v1.PurchaseReturnR\x0epurchaseReturn\"H\n" +
+	"\x0fpurchase_return\x18\x01 \x01(\v2#.purchasing_iface.v1.PurchaseReturnR\x0epurchaseReturn\"v\n" +
 	"\x1aListPurchaseReturnsRequest\x12*\n" +
-	"\x11purchase_order_id\x18\x01 \x01(\tR\x0fpurchaseOrderId\"\\\n" +
+	"\x11purchase_order_id\x18\x01 \x01(\tR\x0fpurchaseOrderId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"r\n" +
 	"\x1bListPurchaseReturnsResponse\x12=\n" +
-	"\areturns\x18\x01 \x03(\v2#.purchasing_iface.v1.PurchaseReturnR\areturns\"*\n" +
+	"\areturns\x18\x01 \x03(\v2#.purchasing_iface.v1.PurchaseReturnR\areturns\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"*\n" +
 	"\x18GetPurchaseReturnRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"i\n" +
 	"\x19GetPurchaseReturnResponse\x12L\n" +

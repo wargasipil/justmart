@@ -13,7 +13,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import ConfirmDialog from "../../components/ConfirmDialog";
+import Pagination from "../../components/Pagination";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { formatUnix } from "../../lib/format";
+import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
 import {
   useBackupsQuery,
@@ -25,7 +28,8 @@ import {
 // Delete prompts a small confirm dialog so a misclick can't drop a snapshot.
 export default function SettingsBackups() {
   const { t } = useTranslation();
-  const backups = useBackupsQuery();
+  const page = usePageState("backups");
+  const backups = useBackupsQuery({ page: page.page, pageSize: page.pageSize });
   const create = useCreateBackupMutation();
   const del = useDeleteBackupMutation();
 
@@ -52,7 +56,7 @@ export default function SettingsBackups() {
     }
   };
 
-  const rows = backups.data ?? [];
+  const rows = backups.rows;
 
   return (
     <Box maxW="3xl">
@@ -82,43 +86,52 @@ export default function SettingsBackups() {
           </Text>
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("settings.backups.name")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("settings.backups.created")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("settings.backups.size")}</Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
-                {t("common.actions")}
-              </Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {rows.map((b) => (
-              <Table.Row key={b.name}>
-                <Table.Cell fontFamily="mono">
-                  <HStack gap={2}>
-                    <Download size={14} />
-                    <Text>{b.name}</Text>
-                  </HStack>
-                </Table.Cell>
-                <Table.Cell>{formatUnix(b.createdAt)}</Table.Cell>
-                <Table.Cell>{formatBytes(Number(b.sizeBytes))}</Table.Cell>
-                <Table.Cell textAlign="end">
-                  <IconButton
-                    aria-label={t("common.delete")}
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => setPending(b.name)}
-                  >
-                    <Trash2 size={14} />
-                  </IconButton>
-                </Table.Cell>
+        <TableScroll maxH={TABLE_MAX_H_NESTED}>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
+              <Table.Row>
+                <Table.ColumnHeader>{t("settings.backups.name")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("settings.backups.created")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("settings.backups.size")}</Table.ColumnHeader>
+                <Table.ColumnHeader textAlign="end">
+                  {t("common.actions")}
+                </Table.ColumnHeader>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {rows.map((b) => (
+                <Table.Row key={b.name}>
+                  <Table.Cell fontFamily="mono">
+                    <HStack gap={2}>
+                      <Download size={14} />
+                      <Text>{b.name}</Text>
+                    </HStack>
+                  </Table.Cell>
+                  <Table.Cell>{formatUnix(b.createdAt)}</Table.Cell>
+                  <Table.Cell>{formatBytes(Number(b.sizeBytes))}</Table.Cell>
+                  <Table.Cell textAlign="end">
+                    <IconButton
+                      aria-label={t("common.delete")}
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => setPending(b.name)}
+                    >
+                      <Trash2 size={14} />
+                    </IconButton>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
+      <Pagination
+        page={page.page}
+        pageSize={page.pageSize}
+        total={backups.total}
+        onPageChange={page.setPage}
+        onPageSizeChange={page.setPageSize}
+      />
 
       <ConfirmDialog
         open={pending !== null}

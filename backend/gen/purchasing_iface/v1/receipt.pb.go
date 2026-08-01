@@ -480,6 +480,8 @@ func (x *CreateReceiptResponse) GetReceipt() *PurchaseReceipt {
 type ListReceiptsRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	PurchaseOrderId string                 `protobuf:"bytes,1,opt,name=purchase_order_id,json=purchaseOrderId,proto3" json:"purchase_order_id,omitempty"`
+	Limit           int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset          int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -521,9 +523,24 @@ func (x *ListReceiptsRequest) GetPurchaseOrderId() string {
 	return ""
 }
 
+func (x *ListReceiptsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListReceiptsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListReceiptsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Receipts      []*PurchaseReceipt     `protobuf:"bytes,1,rep,name=receipts,proto3" json:"receipts,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -563,6 +580,13 @@ func (x *ListReceiptsResponse) GetReceipts() []*PurchaseReceipt {
 		return x.Receipts
 	}
 	return nil
+}
+
+func (x *ListReceiptsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type GetReceiptRequest struct {
@@ -708,11 +732,14 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\n" +
 	"invoice_no\x18\x05 \x01(\tR\tinvoiceNo\"W\n" +
 	"\x15CreateReceiptResponse\x12>\n" +
-	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt\"A\n" +
+	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt\"o\n" +
 	"\x13ListReceiptsRequest\x12*\n" +
-	"\x11purchase_order_id\x18\x01 \x01(\tR\x0fpurchaseOrderId\"X\n" +
+	"\x11purchase_order_id\x18\x01 \x01(\tR\x0fpurchaseOrderId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"n\n" +
 	"\x14ListReceiptsResponse\x12@\n" +
-	"\breceipts\x18\x01 \x03(\v2$.purchasing_iface.v1.PurchaseReceiptR\breceipts\"#\n" +
+	"\breceipts\x18\x01 \x03(\v2$.purchasing_iface.v1.PurchaseReceiptR\breceipts\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"#\n" +
 	"\x11GetReceiptRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"T\n" +
 	"\x12GetReceiptResponse\x12>\n" +

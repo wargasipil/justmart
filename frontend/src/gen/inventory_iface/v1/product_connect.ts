@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, GetProductRequest, GetProductResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse } from "./product_pb.js";
+import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -143,6 +143,39 @@ export const ProductService = {
       name: "ListLowStock",
       I: ListLowStockRequest,
       O: ListLowStockResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * UploadProductImage replaces a product's single picture (both renditions).
+     * Catalog write, so it mirrors UpdateProduct's roles.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.UploadProductImage
+     */
+    uploadProductImage: {
+      name: "UploadProductImage",
+      I: UploadProductImageRequest,
+      O: UploadProductImageResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetProductImage returns ONE rendition. Open to every catalog reader —
+     * POS renders the thumbnail in its search rows, so a cashier needs it.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.GetProductImage
+     */
+    getProductImage: {
+      name: "GetProductImage",
+      I: GetProductImageRequest,
+      O: GetProductImageResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc inventory_iface.v1.ProductService.DeleteProductImage
+     */
+    deleteProductImage: {
+      name: "DeleteProductImage",
+      I: DeleteProductImageRequest,
+      O: DeleteProductImageResponse,
       kind: MethodKind.Unary,
     },
   }

@@ -141,10 +141,13 @@ message ListUserWarehousesRequest {
   // Empty user_id = self.
   string user_id = 1;
   string query   = 2;   // ILIKE code / name
+  int32  limit   = 3;
+  int32  offset  = 4;
 }
 message ListUserWarehousesResponse {
   repeated UserWarehouseMembership memberships = 1;
   repeated Warehouse warehouses = 2;        // hydrated for convenience
+  int32 total = 3;                          // all memberships, ignoring the page window
 }
 
 message SetDefaultWarehouseRequest {

@@ -41,6 +41,46 @@ func TestListProductPrices_ReturnsHistory(t *testing.T) {
 	require.NotZero(t, resp.Msg.Prices[1].EffectiveTo) // closed row
 }
 
+func TestListProductPrices_Paginates(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	pid := seedProduct(t, svc, ctx, "SKU-PRC-PAGE", "PagedPriceMed", 1000)
+	for _, p := range []int64{1100, 1200, 1300, 1400} {
+		_, err := svc.UpdateProduct(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductRequest{
+			Id: pid, Name: "PagedPriceMed", Unit: "tablet", UnitPrice: p,
+		}))
+		require.NoError(t, err)
+	}
+
+	page := func(limit, offset int32) *inventoryifacev1.ListProductPricesResponse {
+		t.Helper()
+		resp, err := svc.ListProductPrices(ctx, connect.NewRequest(
+			&inventoryifacev1.ListProductPricesRequest{ProductId: pid, Limit: limit, Offset: offset}))
+		require.NoError(t, err)
+		return resp.Msg
+	}
+
+	first := page(2, 0)
+	require.Equal(t, int32(5), first.Total) // seed + 4 edits
+	require.Len(t, first.Prices, 2)
+	require.Equal(t, int64(1400), first.Prices[0].UnitPrice) // newest first
+
+	seen := map[string]bool{}
+	for off := int32(0); off < first.Total; off += 2 {
+		pg := page(2, off)
+		require.Equal(t, first.Total, pg.Total)
+		for _, p := range pg.Prices {
+			require.False(t, seen[p.Id], "price row %s appeared on two pages", p.Id)
+			seen[p.Id] = true
+		}
+	}
+	require.Len(t, seen, 5)
+}
+
 func TestListProductPrices_MissingProductID(t *testing.T) {
 	t.Parallel()
 	gormDB := servicetest.NewDB(t, servicetest.NewConfig(t))

@@ -41,7 +41,6 @@ export default function MyPerformance() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[{ label: t("myPerformance.title") }]}
         title={t("myPerformance.title")}
         description={t("myPerformance.description")}
       />

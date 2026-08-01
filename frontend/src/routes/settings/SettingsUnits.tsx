@@ -15,6 +15,9 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import NumberInput from "../../components/NumberInput";
+import Pagination from "../../components/Pagination";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
+import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
 import {
   useArchiveUnitBaseMutation,
@@ -29,7 +32,8 @@ import {
 // "Add derivative" form. Archive flips active=false (records preserved).
 export default function SettingsUnits() {
   const { t } = useTranslation();
-  const basesQ = useUnitBasesQuery();
+  const page = usePageState("unitBases");
+  const basesQ = useUnitBasesQuery({ page: page.page, pageSize: page.pageSize });
   const createBase = useCreateUnitBaseMutation();
   const archiveBase = useArchiveUnitBaseMutation();
   const createDeriv = useCreateUnitDerivativeMutation();
@@ -72,7 +76,7 @@ export default function SettingsUnits() {
     }
   };
 
-  const bases = basesQ.data ?? [];
+  const bases = basesQ.rows;
 
   return (
     <Box maxW="3xl">
@@ -132,35 +136,37 @@ export default function SettingsUnits() {
                     {t("settings.units.derivativesEmpty")}
                   </Text>
                 ) : (
-                  <Table.Root size="sm" mb={2}>
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeader>{t("settings.units.derivative")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("settings.units.factor")}</Table.ColumnHeader>
-                        <Table.ColumnHeader textAlign="end" />
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {b.derivatives.map((d) => (
-                        <Table.Row key={d.id}>
-                          <Table.Cell>{d.name}</Table.Cell>
-                          <Table.Cell>
-                            {d.factor.toString()} × {b.name}
-                          </Table.Cell>
-                          <Table.Cell textAlign="end">
-                            <IconButton
-                              aria-label={t("common.archive")}
-                              size="xs"
-                              variant="ghost"
-                              onClick={() => archiveDeriv.mutate({ id: d.id })}
-                            >
-                              <Trash2 size={14} />
-                            </IconButton>
-                          </Table.Cell>
+                  <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+                    <Table.Root size="sm" mb={2} stickyHeader>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>{t("settings.units.derivative")}</Table.ColumnHeader>
+                          <Table.ColumnHeader>{t("settings.units.factor")}</Table.ColumnHeader>
+                          <Table.ColumnHeader textAlign="end" />
                         </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Root>
+                      </Table.Header>
+                      <Table.Body>
+                        {b.derivatives.map((d) => (
+                          <Table.Row key={d.id}>
+                            <Table.Cell>{d.name}</Table.Cell>
+                            <Table.Cell>
+                              {d.factor.toString()} × {b.name}
+                            </Table.Cell>
+                            <Table.Cell textAlign="end">
+                              <IconButton
+                                aria-label={t("common.archive")}
+                                size="xs"
+                                variant="ghost"
+                                onClick={() => archiveDeriv.mutate({ id: d.id })}
+                              >
+                                <Trash2 size={14} />
+                              </IconButton>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </TableScroll>
                 )}
 
                 <HStack gap={2}>
@@ -203,6 +209,13 @@ export default function SettingsUnits() {
           })}
         </Stack>
       )}
+      <Pagination
+        page={page.page}
+        pageSize={page.pageSize}
+        total={basesQ.total}
+        onPageChange={page.setPage}
+        onPageSizeChange={page.setPageSize}
+      />
     </Box>
   );
 }

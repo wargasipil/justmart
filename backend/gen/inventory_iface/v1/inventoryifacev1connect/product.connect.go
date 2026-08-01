@@ -72,6 +72,15 @@ const (
 	// ProductServiceListLowStockProcedure is the fully-qualified name of the ProductService's
 	// ListLowStock RPC.
 	ProductServiceListLowStockProcedure = "/inventory_iface.v1.ProductService/ListLowStock"
+	// ProductServiceUploadProductImageProcedure is the fully-qualified name of the ProductService's
+	// UploadProductImage RPC.
+	ProductServiceUploadProductImageProcedure = "/inventory_iface.v1.ProductService/UploadProductImage"
+	// ProductServiceGetProductImageProcedure is the fully-qualified name of the ProductService's
+	// GetProductImage RPC.
+	ProductServiceGetProductImageProcedure = "/inventory_iface.v1.ProductService/GetProductImage"
+	// ProductServiceDeleteProductImageProcedure is the fully-qualified name of the ProductService's
+	// DeleteProductImage RPC.
+	ProductServiceDeleteProductImageProcedure = "/inventory_iface.v1.ProductService/DeleteProductImage"
 )
 
 // ProductServiceClient is a client for the inventory_iface.v1.ProductService service.
@@ -100,6 +109,13 @@ type ProductServiceClient interface {
 	// active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
 	// Drives the TopBar bell.
 	ListLowStock(context.Context, *connect.Request[v1.ListLowStockRequest]) (*connect.Response[v1.ListLowStockResponse], error)
+	// UploadProductImage replaces a product's single picture (both renditions).
+	// Catalog write, so it mirrors UpdateProduct's roles.
+	UploadProductImage(context.Context, *connect.Request[v1.UploadProductImageRequest]) (*connect.Response[v1.UploadProductImageResponse], error)
+	// GetProductImage returns ONE rendition. Open to every catalog reader —
+	// POS renders the thumbnail in its search rows, so a cashier needs it.
+	GetProductImage(context.Context, *connect.Request[v1.GetProductImageRequest]) (*connect.Response[v1.GetProductImageResponse], error)
+	DeleteProductImage(context.Context, *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error)
 }
 
 // NewProductServiceClient constructs a client for the inventory_iface.v1.ProductService service. By
@@ -191,6 +207,24 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(productServiceMethods.ByName("ListLowStock")),
 			connect.WithClientOptions(opts...),
 		),
+		uploadProductImage: connect.NewClient[v1.UploadProductImageRequest, v1.UploadProductImageResponse](
+			httpClient,
+			baseURL+ProductServiceUploadProductImageProcedure,
+			connect.WithSchema(productServiceMethods.ByName("UploadProductImage")),
+			connect.WithClientOptions(opts...),
+		),
+		getProductImage: connect.NewClient[v1.GetProductImageRequest, v1.GetProductImageResponse](
+			httpClient,
+			baseURL+ProductServiceGetProductImageProcedure,
+			connect.WithSchema(productServiceMethods.ByName("GetProductImage")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteProductImage: connect.NewClient[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse](
+			httpClient,
+			baseURL+ProductServiceDeleteProductImageProcedure,
+			connect.WithSchema(productServiceMethods.ByName("DeleteProductImage")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -209,6 +243,9 @@ type productServiceClient struct {
 	searchProducts         *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
 	resolveProducts        *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
 	listLowStock           *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
+	uploadProductImage     *connect.Client[v1.UploadProductImageRequest, v1.UploadProductImageResponse]
+	getProductImage        *connect.Client[v1.GetProductImageRequest, v1.GetProductImageResponse]
+	deleteProductImage     *connect.Client[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse]
 }
 
 // ListProducts calls inventory_iface.v1.ProductService.ListProducts.
@@ -276,6 +313,21 @@ func (c *productServiceClient) ListLowStock(ctx context.Context, req *connect.Re
 	return c.listLowStock.CallUnary(ctx, req)
 }
 
+// UploadProductImage calls inventory_iface.v1.ProductService.UploadProductImage.
+func (c *productServiceClient) UploadProductImage(ctx context.Context, req *connect.Request[v1.UploadProductImageRequest]) (*connect.Response[v1.UploadProductImageResponse], error) {
+	return c.uploadProductImage.CallUnary(ctx, req)
+}
+
+// GetProductImage calls inventory_iface.v1.ProductService.GetProductImage.
+func (c *productServiceClient) GetProductImage(ctx context.Context, req *connect.Request[v1.GetProductImageRequest]) (*connect.Response[v1.GetProductImageResponse], error) {
+	return c.getProductImage.CallUnary(ctx, req)
+}
+
+// DeleteProductImage calls inventory_iface.v1.ProductService.DeleteProductImage.
+func (c *productServiceClient) DeleteProductImage(ctx context.Context, req *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error) {
+	return c.deleteProductImage.CallUnary(ctx, req)
+}
+
 // ProductServiceHandler is an implementation of the inventory_iface.v1.ProductService service.
 type ProductServiceHandler interface {
 	ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error)
@@ -302,6 +354,13 @@ type ProductServiceHandler interface {
 	// active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
 	// Drives the TopBar bell.
 	ListLowStock(context.Context, *connect.Request[v1.ListLowStockRequest]) (*connect.Response[v1.ListLowStockResponse], error)
+	// UploadProductImage replaces a product's single picture (both renditions).
+	// Catalog write, so it mirrors UpdateProduct's roles.
+	UploadProductImage(context.Context, *connect.Request[v1.UploadProductImageRequest]) (*connect.Response[v1.UploadProductImageResponse], error)
+	// GetProductImage returns ONE rendition. Open to every catalog reader —
+	// POS renders the thumbnail in its search rows, so a cashier needs it.
+	GetProductImage(context.Context, *connect.Request[v1.GetProductImageRequest]) (*connect.Response[v1.GetProductImageResponse], error)
+	DeleteProductImage(context.Context, *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error)
 }
 
 // NewProductServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -389,6 +448,24 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		connect.WithSchema(productServiceMethods.ByName("ListLowStock")),
 		connect.WithHandlerOptions(opts...),
 	)
+	productServiceUploadProductImageHandler := connect.NewUnaryHandler(
+		ProductServiceUploadProductImageProcedure,
+		svc.UploadProductImage,
+		connect.WithSchema(productServiceMethods.ByName("UploadProductImage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productServiceGetProductImageHandler := connect.NewUnaryHandler(
+		ProductServiceGetProductImageProcedure,
+		svc.GetProductImage,
+		connect.WithSchema(productServiceMethods.ByName("GetProductImage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productServiceDeleteProductImageHandler := connect.NewUnaryHandler(
+		ProductServiceDeleteProductImageProcedure,
+		svc.DeleteProductImage,
+		connect.WithSchema(productServiceMethods.ByName("DeleteProductImage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/inventory_iface.v1.ProductService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProductServiceListProductsProcedure:
@@ -417,6 +494,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceResolveProductsHandler.ServeHTTP(w, r)
 		case ProductServiceListLowStockProcedure:
 			productServiceListLowStockHandler.ServeHTTP(w, r)
+		case ProductServiceUploadProductImageProcedure:
+			productServiceUploadProductImageHandler.ServeHTTP(w, r)
+		case ProductServiceGetProductImageProcedure:
+			productServiceGetProductImageHandler.ServeHTTP(w, r)
+		case ProductServiceDeleteProductImageProcedure:
+			productServiceDeleteProductImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -476,4 +559,16 @@ func (UnimplementedProductServiceHandler) ResolveProducts(context.Context, *conn
 
 func (UnimplementedProductServiceHandler) ListLowStock(context.Context, *connect.Request[v1.ListLowStockRequest]) (*connect.Response[v1.ListLowStockResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ListLowStock is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) UploadProductImage(context.Context, *connect.Request[v1.UploadProductImageRequest]) (*connect.Response[v1.UploadProductImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.UploadProductImage is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) GetProductImage(context.Context, *connect.Request[v1.GetProductImageRequest]) (*connect.Response[v1.GetProductImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.GetProductImage is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) DeleteProductImage(context.Context, *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.DeleteProductImage is not implemented"))
 }

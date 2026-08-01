@@ -185,6 +185,8 @@ func (x *UnitDerivative) GetActive() bool {
 type ListUnitBasesRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	IncludeInactive bool                   `protobuf:"varint,1,opt,name=include_inactive,json=includeInactive,proto3" json:"include_inactive,omitempty"`
+	Limit           int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset          int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -226,9 +228,24 @@ func (x *ListUnitBasesRequest) GetIncludeInactive() bool {
 	return false
 }
 
+func (x *ListUnitBasesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListUnitBasesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListUnitBasesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Bases         []*UnitBase            `protobuf:"bytes,1,rep,name=bases,proto3" json:"bases,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -268,6 +285,13 @@ func (x *ListUnitBasesResponse) GetBases() []*UnitBase {
 		return x.Bases
 	}
 	return nil
+}
+
+func (x *ListUnitBasesResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type CreateUnitBaseRequest struct {
@@ -874,11 +898,14 @@ const file_unit_iface_v1_unit_proto_rawDesc = "" +
 	"\x06factor\x18\x04 \x01(\x03R\x06factor\x12\x1d\n" +
 	"\n" +
 	"sort_order\x18\x05 \x01(\x05R\tsortOrder\x12\x16\n" +
-	"\x06active\x18\x06 \x01(\bR\x06active\"A\n" +
+	"\x06active\x18\x06 \x01(\bR\x06active\"o\n" +
 	"\x14ListUnitBasesRequest\x12)\n" +
-	"\x10include_inactive\x18\x01 \x01(\bR\x0fincludeInactive\"F\n" +
+	"\x10include_inactive\x18\x01 \x01(\bR\x0fincludeInactive\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"\\\n" +
 	"\x15ListUnitBasesResponse\x12-\n" +
-	"\x05bases\x18\x01 \x03(\v2\x17.unit_iface.v1.UnitBaseR\x05bases\"+\n" +
+	"\x05bases\x18\x01 \x03(\v2\x17.unit_iface.v1.UnitBaseR\x05bases\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"+\n" +
 	"\x15CreateUnitBaseRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"E\n" +
 	"\x16CreateUnitBaseResponse\x12+\n" +

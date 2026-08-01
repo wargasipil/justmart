@@ -156,6 +156,8 @@ func (x *ProductDiscount) GetMinQtyUnitFactor() int64 {
 type ListProductDiscountsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -197,9 +199,24 @@ func (x *ListProductDiscountsRequest) GetProductId() string {
 	return ""
 }
 
+func (x *ListProductDiscountsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListProductDiscountsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
 type ListProductDiscountsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Discounts     []*ProductDiscount     `protobuf:"bytes,1,rep,name=discounts,proto3" json:"discounts,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"` // all discounts for the product, ignoring the page window
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -239,6 +256,13 @@ func (x *ListProductDiscountsResponse) GetDiscounts() []*ProductDiscount {
 		return x.Discounts
 	}
 	return nil
+}
+
+func (x *ListProductDiscountsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type CreateProductDiscountRequest struct {
@@ -613,12 +637,15 @@ const file_inventory_iface_v1_product_discount_proto_rawDesc = "" +
 	"\x0fmin_qty_unit_id\x18\t \x01(\tR\fminQtyUnitId\x12)\n" +
 	"\x11min_qty_unit_name\x18\n" +
 	" \x01(\tR\x0eminQtyUnitName\x12-\n" +
-	"\x13min_qty_unit_factor\x18\v \x01(\x03R\x10minQtyUnitFactor\"<\n" +
+	"\x13min_qty_unit_factor\x18\v \x01(\x03R\x10minQtyUnitFactor\"j\n" +
 	"\x1bListProductDiscountsRequest\x12\x1d\n" +
 	"\n" +
-	"product_id\x18\x01 \x01(\tR\tproductId\"a\n" +
+	"product_id\x18\x01 \x01(\tR\tproductId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"w\n" +
 	"\x1cListProductDiscountsResponse\x12A\n" +
-	"\tdiscounts\x18\x01 \x03(\v2#.inventory_iface.v1.ProductDiscountR\tdiscounts\"\xf2\x01\n" +
+	"\tdiscounts\x18\x01 \x03(\v2#.inventory_iface.v1.ProductDiscountR\tdiscounts\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xf2\x01\n" +
 	"\x1cCreateProductDiscountRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12#\n" +

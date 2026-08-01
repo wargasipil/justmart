@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"gorm.io/gorm"
 
 	warehouseifacev1 "github.com/justmart/backend/gen/warehouse_iface/v1"
 	"github.com/justmart/backend/internal/auth"
@@ -29,40 +30,54 @@ func (s *WarehouseService) ListUserWarehouses(
 		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("can only list own memberships"))
 	}
 
-	var mems []model.UserWarehouse
-	if err := s.db.WithContext(ctx).Where("user_id = ?", target).Find(&mems).Error; err != nil {
+	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
+
+	// Page the JOIN, not the memberships alone. `query` filters warehouses, so
+	// paging memberships separately would make the two response arrays describe
+	// different sets and make `total` ignore the search — the caller pairs them
+	// by warehouse id, and a membership whose warehouse got filtered out is a
+	// dangling row.
+	applyFilters := func(q *gorm.DB) *gorm.DB {
+		q = q.Model(&model.UserWarehouse{}).
+			Joins("JOIN warehouses w ON w.id = user_warehouses.warehouse_id").
+			Where("user_warehouses.user_id = ? AND w.active = ?", target, true)
+		if query := strings.TrimSpace(req.Msg.Query); query != "" {
+			like := "%" + query + "%"
+			q = q.Where("w.code "+common.LikeOp(q)+" ? OR w.name "+common.LikeOp(q)+" ?", like, like)
+		}
+		return q
+	}
+	var total int64
+	if err := applyFilters(s.db.WithContext(ctx)).Count(&total).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	if len(mems) == 0 {
-		return connect.NewResponse(&warehouseifacev1.ListUserWarehousesResponse{}), nil
+
+	type joined struct {
+		model.Warehouse
+		IsDefault bool `gorm:"column:is_default"`
 	}
-	ids := make([]string, 0, len(mems))
-	for _, m := range mems {
-		ids = append(ids, m.WarehouseID)
-	}
-	var whs []model.Warehouse
-	q := s.db.WithContext(ctx).Where("id IN ? AND active = ?", ids, true)
-	if query := strings.TrimSpace(req.Msg.Query); query != "" {
-		like := "%" + query + "%"
-		q = q.Where("code "+common.LikeOp(q)+" ? OR name "+common.LikeOp(q)+" ?", like, like)
-	}
-	if err := q.Order("code ASC").Find(&whs).Error; err != nil {
+	var rows []joined
+	if err := applyFilters(s.db.WithContext(ctx)).
+		Select("w.*, user_warehouses.is_default AS is_default").
+		Order("w.code ASC, w.id ASC").
+		Offset(offset).Limit(limit).
+		Scan(&rows).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	outMems := make([]*warehouseifacev1.UserWarehouseMembership, 0, len(mems))
-	for _, m := range mems {
+
+	outMems := make([]*warehouseifacev1.UserWarehouseMembership, 0, len(rows))
+	outWhs := make([]*warehouseifacev1.Warehouse, 0, len(rows))
+	for i := range rows {
 		outMems = append(outMems, &warehouseifacev1.UserWarehouseMembership{
-			UserId:      m.UserID,
-			WarehouseId: m.WarehouseID,
-			IsDefault:   m.IsDefault,
+			UserId:      target,
+			WarehouseId: rows[i].Warehouse.ID,
+			IsDefault:   rows[i].IsDefault,
 		})
-	}
-	outWhs := make([]*warehouseifacev1.Warehouse, 0, len(whs))
-	for i := range whs {
-		outWhs = append(outWhs, warehouseToProto(&whs[i]))
+		outWhs = append(outWhs, warehouseToProto(&rows[i].Warehouse))
 	}
 	return connect.NewResponse(&warehouseifacev1.ListUserWarehousesResponse{
 		Memberships: outMems,
 		Warehouses:  outWhs,
+		Total:       int32(total),
 	}), nil
 }

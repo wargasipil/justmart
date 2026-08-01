@@ -1,8 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 // Playwright config for browser E2E tests. Suite assumes the Vite dev server
-// (`make web`) and the Go backend (`make run`) are running locally on the
-// default ports. Tests share the dev DB; worker count is pinned to 1 to keep
+// (`make web`) and the Go backend (`make run`) are running locally. baseURL must
+// track vite.config.ts `server.port` (5175) — it read 5173 (Vite's stock
+// default) for a while, which made every spec fail at the login setup step. Tests share the dev DB; worker count is pinned to 1 to keep
 // writes serial.
 //
 // Run with `make test-browser` from the repo root. For interactive debugging:
@@ -15,7 +16,7 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : [["list"], ["html", { open: "never" }]],
 
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: "http://localhost:5175",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -29,7 +30,7 @@ export default defineConfig({
       testMatch: /global\.setup\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: "http://localhost:5173",
+        baseURL: "http://localhost:5175",
       },
     },
     // Authenticated suite — loads the storage state produced by setup.
@@ -39,7 +40,7 @@ export default defineConfig({
       testIgnore: /global\.setup\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: "http://localhost:5173",
+        baseURL: "http://localhost:5175",
         storageState: "tests/e2e/.auth/owner.json",
       },
     },

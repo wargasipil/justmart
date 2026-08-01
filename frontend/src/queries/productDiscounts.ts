@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { productDiscountClient } from "../lib/clients";
+import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
 import type {
   CreateProductDiscountRequest,
   UpdateProductDiscountRequest,
@@ -9,16 +10,30 @@ import type {
 
 export const productDiscountKeys = {
   all: ["productDiscounts"] as const,
-  list: (productId: string) => [...productDiscountKeys.all, "list", productId] as const,
+  list: (productId: string, page: number, pageSize: number) =>
+    [...productDiscountKeys.all, "list", productId, page, pageSize] as const,
 };
 
-// All discounts for one product (the Product detail "Discount" tab).
-export function useProductDiscountsQuery(productId: string, enabled = true) {
-  return useQuery({
-    queryKey: productDiscountKeys.list(productId),
-    queryFn: async () => (await productDiscountClient.listProductDiscounts({ productId })).discounts,
+// One page of a product's discounts (the Product detail "Discount" tab), newest
+// first. Server-paginated; returns { rows, total }.
+export function useProductDiscountsQuery(
+  productId: string,
+  opts: { page?: number; pageSize?: number; enabled?: boolean } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
+  const q = useQuery({
+    queryKey: productDiscountKeys.list(productId, page, pageSize),
+    queryFn: async () => {
+      const res = await productDiscountClient.listProductDiscounts({
+        productId,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.discounts, total: res.total };
+    },
     enabled: enabled && !!productId,
   });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }
 
 export function useCreateProductDiscountMutation() {

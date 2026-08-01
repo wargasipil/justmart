@@ -19,6 +19,7 @@ import EntityDrawer from "../components/EntityDrawer";
 import FormField from "../components/FormField";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
+import TableScroll from "../components/TableScroll";
 import { Customer } from "../gen/customer_iface/v1/customer_pb";
 import { usePageState } from "../lib/pagination";
 import { toast } from "../lib/toaster";
@@ -48,8 +49,8 @@ export default function Customers() {
   return (
     <Box>
       <PageHeader
-        breadcrumbs={[{ label: t("customers.title") }]}
         title={t("customers.title")}
+        description={t("customers.description")}
         actions={
           <Button colorPalette="blue" onClick={() => setCreateOpen(true)}>
             <Plus size={16} />
@@ -74,31 +75,33 @@ export default function Customers() {
           <Spinner />
         </Box>
       ) : (
-        <Table.Root size="sm" bg="bg.subtle" borderWidth="1px" borderRadius="lg">
-          <Table.Header bg="bg.muted">
-            <Table.Row>
-              <Table.ColumnHeader>{t("customers.name")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("customers.phone")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("customers.address")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {customersQ.rows.map((c) => (
-              <Row key={c.id} customer={c} onEdit={() => setEditing(c)} />
-            ))}
-            {customersQ.rows.length === 0 && (
+        <TableScroll>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header bg="bg.muted">
               <Table.Row>
-                <Table.Cell colSpan={5}>
-                  <Text color="fg.muted" textAlign="center" py={4}>
-                    {t("common.noResults")}
-                  </Text>
-                </Table.Cell>
+                <Table.ColumnHeader>{t("customers.name")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("customers.phone")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("customers.address")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
               </Table.Row>
-            )}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {customersQ.rows.map((c) => (
+                <Row key={c.id} customer={c} onEdit={() => setEditing(c)} />
+              ))}
+              {customersQ.rows.length === 0 && (
+                <Table.Row>
+                  <Table.Cell colSpan={5}>
+                    <Text color="fg.muted" textAlign="center" py={4}>
+                      {t("common.noResults")}
+                    </Text>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
       )}
 
       <Box mt={3}>

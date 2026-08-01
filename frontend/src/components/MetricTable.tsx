@@ -1,17 +1,18 @@
 import { Box, HStack, Spinner, Table, Text } from "@chakra-ui/react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   MetricType,
-  OrderMetricField,
   type MetricOrder,
   type MetricStock,
   Sort,
   SortDirection,
-  StockMetricField,
 } from "../gen/analytics_iface/v1/analytics_pb";
-import { formatMoney, formatUnix } from "../lib/format";
+import TableScroll from "./TableScroll";
+import { formatDate, formatMoney } from "../lib/format";
+import { matchSort, nextSort, type ColField } from "../lib/metricSort";
 
 // MetricTable renders a paginated metric grid. The page passes:
 //   - `ids` in the order the server returned (already sorted)
@@ -76,16 +77,7 @@ export default function MetricTable({
   const colSpan = 1 + orderCols + stockCols;
 
   // Column-header click toggles sort: unsorted -> DESC -> ASC -> unsorted.
-  type ColField =
-    | "order-terjual"
-    | "order-hpp"
-    | "order-profit"
-    | "order-lastOrder"
-    | "order-avgSold"
-    | "stock-ready"
-    | "stock-ongoing"
-    | "stock-lastRestock"
-    | "stock-expiring";
+  // ColField / matchSort / nextSort live in lib/metricSort.ts.
   const sortFor = (
     field: ColField,
   ): { arrow: React.ReactNode; next: Sort | undefined; hasNext: boolean } => {
@@ -98,12 +90,37 @@ export default function MetricTable({
     return { arrow, next: nextSort(field, current), hasNext: true };
   };
 
+  const hasGroupRow = hasOrder || hasStock;
+  const { ref: groupRowRef, height: groupRowH } = useStickyRowHeight(hasGroupRow);
+
   return (
-    <Box overflowX="auto">
-      <Table.Root size="sm" variant="line">
+    <TableScroll>
+      <Table.Root
+        size="sm"
+        variant="line"
+        stickyHeader
+        // Chakra's stickyHeader pins EVERY header row to the same offset
+        // (`header: { "& :where(tr)": { top: var(--table-sticky-offset, 0) } }`).
+        // This is the app's only two-row header, so without an override the field
+        // row sticks at 0 directly ON TOP of the group row and the Order/Stock
+        // spans vanish the moment you scroll. Pin the group row at 0 and push the
+        // field row down by the group row's MEASURED height — a hardcoded value is
+        // off by the collapsed border (2.25rem renders as 37px, not 36px) and would
+        // drift again with font size, zoom, or a taller translated label. The group
+        // row also takes the higher z-index so its rowSpan-ed dimension cell paints
+        // over the field row rather than under it.
+        css={
+          hasGroupRow
+            ? {
+                "& thead tr:first-of-type": { zIndex: 2 },
+                "& thead tr:nth-of-type(2)": { top: `${groupRowH}px` },
+              }
+            : undefined
+        }
+      >
         <Table.Header>
-          {(hasOrder || hasStock) && (
-            <Table.Row bg="bg.muted">
+          {hasGroupRow && (
+            <Table.Row ref={groupRowRef} bg="bg.muted">
               <Table.ColumnHeader rowSpan={2}>{dimensionHeader}</Table.ColumnHeader>
               {hasOrder && (
                 <Table.ColumnHeader colSpan={orderCols} textAlign="center">
@@ -118,7 +135,7 @@ export default function MetricTable({
             </Table.Row>
           )}
           <Table.Row>
-            {!hasOrder && !hasStock && (
+            {!hasGroupRow && (
               <Table.ColumnHeader>{dimensionHeader}</Table.ColumnHeader>
             )}
             {showTerjual && (
@@ -200,27 +217,35 @@ export default function MetricTable({
             ids.map((id) => {
               const o = order?.data[id];
               const s = stock?.data[id];
-              const label = labelById.get(id) ?? id;
+              // Never fall back to the raw id — a 36-char UUID is both a HARD-RULE
+              // violation (referenced names resolve to "—" while pending) and the
+              // single worst thing for this column's width.
+              const label = labelById.get(id) ?? "—";
               return (
                 <Table.Row key={id}>
-                  <Table.Cell>{label}</Table.Cell>
-                  {showTerjual && <Table.Cell>{formatMoney(Number(o?.terjual ?? 0n))}</Table.Cell>}
-                  {showHpp && <Table.Cell>{formatMoney(Number(o?.hpp ?? 0n))}</Table.Cell>}
-                  {showProfit && <Table.Cell>{formatMoney(Number(o?.profit ?? 0n))}</Table.Cell>}
+                  {/* Bounded + ellipsised: Table.ScrollArea sets white-space:nowrap,
+                      so an unbounded long product name stretches the table and
+                      pushes every metric column off the viewport. */}
+                  <Table.Cell maxW={LABEL_MAX_W} title={label}>
+                    <Text truncate>{label}</Text>
+                  </Table.Cell>
+                  {showTerjual && <Num>{formatMoney(Number(o?.terjual ?? 0n))}</Num>}
+                  {showHpp && <Num>{formatMoney(Number(o?.hpp ?? 0n))}</Num>}
+                  {showProfit && <Num>{formatMoney(Number(o?.profit ?? 0n))}</Num>}
                   {showLastOrder && (
-                    <Table.Cell>
-                      {(o?.lastOrderUnix ?? 0n) > 0n ? formatUnix(o!.lastOrderUnix) : "—"}
+                    <Table.Cell textAlign="end" whiteSpace="nowrap">
+                      {(o?.lastOrderUnix ?? 0n) > 0n ? formatDay(o!.lastOrderUnix) : "—"}
                     </Table.Cell>
                   )}
-                  {showAvgSold && <Table.Cell>{String(o?.avgSold ?? 0n)}</Table.Cell>}
-                  {showReady && <Table.Cell>{String(s?.ready ?? 0n)}</Table.Cell>}
-                  {showOngoing && <Table.Cell>{String(s?.ongoing ?? 0n)}</Table.Cell>}
+                  {showAvgSold && <Num>{String(o?.avgSold ?? 0n)}</Num>}
+                  {showReady && <Num>{String(s?.ready ?? 0n)}</Num>}
+                  {showOngoing && <Num>{String(s?.ongoing ?? 0n)}</Num>}
                   {showLastRestock && (
-                    <Table.Cell>
-                      {(s?.lastRestockUnix ?? 0n) > 0n ? formatUnix(s!.lastRestockUnix) : "—"}
+                    <Table.Cell textAlign="end" whiteSpace="nowrap">
+                      {(s?.lastRestockUnix ?? 0n) > 0n ? formatDay(s!.lastRestockUnix) : "—"}
                     </Table.Cell>
                   )}
-                  {showExpiring && <Table.Cell>{String(s?.expiring ?? 0n)}</Table.Cell>}
+                  {showExpiring && <Num>{String(s?.expiring ?? 0n)}</Num>}
                 </Table.Row>
               );
             })}
@@ -235,11 +260,64 @@ export default function MetricTable({
           )}
         </Table.Body>
       </Table.Root>
-    </Box>
+    </TableScroll>
   );
 }
 
-// SortableHeader = clickable column header that cycles direction.
+/** Cap for the dimension (day / product / user) column. Long product names get
+ *  ellipsised instead of stretching the grid past the viewport. */
+const LABEL_MAX_W = "22rem";
+
+// Date-only, NOT formatUnix (which appends time-of-day). "Last order" /
+// "Last restock" are the two widest cells in the grid — at ~150px each
+// ("Jul 11, 2026, 10:02 AM") the two of them are what pushed the Product table
+// past the viewport and clipped the final column. The clock time carries no
+// meaning in a roll-up spanning weeks, and dropping it recovers ~110px.
+function formatDay(sec: bigint): string {
+  return formatDate(Number(sec) * 1000);
+}
+
+/**
+ * Live height of the group header row, used as the sticky offset for the field
+ * row beneath it. Measured rather than assumed: the row's rendered height is its
+ * content height PLUS the collapsed border, so any constant is off by a pixel
+ * and drifts further with font scaling, browser zoom, or a translated label that
+ * wraps. A 1px error is visible — the field row rides up over the group row's
+ * bottom border. Returns 0 while unmeasured / when there is no group row, which
+ * is the correct offset for a single-row header anyway.
+ */
+function useStickyRowHeight(enabled: boolean) {
+  const ref = useRef<HTMLTableRowElement>(null);
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) {
+      setHeight(0);
+      return;
+    }
+    const measure = () => setHeight(el.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [enabled]);
+  return { ref, height };
+}
+
+// Num = a numeric metric cell: right-aligned + tabular mono so digits line up
+// column-wise and "Rp 1.234.567" is comparable to "Rp 12" at a glance. Matches
+// the money-cell convention used by Orders / OrderDetail / SupplierDetail.
+function Num({ children }: { children: React.ReactNode }) {
+  return (
+    <Table.Cell textAlign="end" fontFamily="mono" whiteSpace="nowrap">
+      {children}
+    </Table.Cell>
+  );
+}
+
+// SortableHeader = clickable column header that cycles direction. Right-aligned
+// to sit over its numeric column; the arrow is in a fixed-width slot so the
+// label doesn't jump sideways when the sort indicator appears or clears.
 function SortableHeader({
   label,
   meta,
@@ -252,84 +330,18 @@ function SortableHeader({
   const clickable = !!onClick && meta.hasNext;
   return (
     <Table.ColumnHeader
+      textAlign="end"
+      whiteSpace="nowrap"
       cursor={clickable ? "pointer" : "default"}
+      userSelect="none"
       onClick={clickable ? () => onClick?.(meta.next) : undefined}
     >
-      <HStack gap={1}>
+      <HStack gap={1} justify="flex-end">
         <Text>{label}</Text>
-        {meta.arrow}
+        <Box w="12px" flexShrink={0} lineHeight={0}>
+          {meta.arrow}
+        </Box>
       </HStack>
     </Table.ColumnHeader>
   );
-}
-
-// matchSort returns the current SortDirection for the column field, or null
-// when the current sort doesn't reference this column.
-type ColField =
-  | "order-terjual"
-  | "order-hpp"
-  | "order-profit"
-  | "order-lastOrder"
-  | "order-avgSold"
-  | "stock-ready"
-  | "stock-ongoing"
-  | "stock-lastRestock"
-  | "stock-expiring";
-
-const ORDER_FIELD_MAP: Record<string, OrderMetricField | undefined> = {
-  "order-terjual":   OrderMetricField.TERJUAL,
-  "order-hpp":       OrderMetricField.HPP,
-  "order-profit":    OrderMetricField.PROFIT,
-  "order-lastOrder": OrderMetricField.LAST_ORDER,
-  "order-avgSold":   OrderMetricField.AVG_SOLD,
-};
-const STOCK_FIELD_MAP: Record<string, StockMetricField | undefined> = {
-  "stock-ready":       StockMetricField.READY,
-  "stock-ongoing":     StockMetricField.ONGOING,
-  "stock-lastRestock": StockMetricField.LAST_RESTOCK,
-  "stock-expiring":    StockMetricField.EXPIRING,
-};
-
-function matchSort(sort: Sort | undefined, field: ColField): SortDirection | null {
-  if (!sort || !sort.field) return null;
-  switch (sort.field.case) {
-    case "order": {
-      const want = ORDER_FIELD_MAP[field];
-      return want !== undefined && sort.field.value === want ? sort.direction : null;
-    }
-    case "stock": {
-      const want = STOCK_FIELD_MAP[field];
-      return want !== undefined && sort.field.value === want ? sort.direction : null;
-    }
-  }
-  return null;
-}
-
-// nextSort cycles the sort direction for a column: unsorted -> DESC -> ASC ->
-// unsorted (returns undefined to clear).
-function nextSort(field: ColField, current: SortDirection | null): Sort | undefined {
-  const newDir =
-    current === null
-      ? SortDirection.DESC
-      : current === SortDirection.DESC
-      ? SortDirection.ASC
-      : null;
-  if (newDir === null) {
-    // Cycle back to "unsorted" — let the caller clear it.
-    return undefined;
-  }
-  if (field.startsWith("order-")) {
-    const orderField = ORDER_FIELD_MAP[field];
-    if (orderField === undefined) return undefined;
-    return new Sort({
-      direction: newDir,
-      field: { case: "order", value: orderField },
-    });
-  }
-  const stockField = STOCK_FIELD_MAP[field];
-  if (stockField === undefined) return undefined;
-  return new Sort({
-    direction: newDir,
-    field: { case: "stock", value: stockField },
-  });
 }

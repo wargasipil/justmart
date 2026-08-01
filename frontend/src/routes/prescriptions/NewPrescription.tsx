@@ -54,11 +54,8 @@ export default function NewPrescription() {
     <Box>
       <BackButton to={returnTo === "pos" ? "/pos" : "/prescriptions"} />
       <PageHeader
-        breadcrumbs={[
-          { label: t("prescriptions.title"), to: "/prescriptions" },
-          { label: t("prescriptions.addTitle") },
-        ]}
         title={t("prescriptions.addTitle")}
+        description={t("prescriptions.addDescription")}
       />
 
       <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={5}>

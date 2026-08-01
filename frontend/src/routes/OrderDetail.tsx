@@ -4,6 +4,7 @@ import { Printer, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
+import { useCrumbLabel } from "../lib/breadcrumbs";
 import BackButton from "../components/BackButton";
 import ConfirmDialog from "../components/ConfirmDialog";
 import PageHeader from "../components/PageHeader";
@@ -50,6 +51,7 @@ export default function OrderDetail() {
   const { id = "" } = useParams();
   const { user } = useAuth();
   const saleQ = useSaleQuery(id);
+  useCrumbLabel(saleQ.data ? saleQ.data.saleNo || saleQ.data.id.slice(0, 8) : undefined);
   const refund = useRefundSaleMutation();
   const printMut = usePrintReceiptMutation();
 
@@ -134,11 +136,8 @@ export default function OrderDetail() {
     <Box>
       <BackButton to="/orders" />
       <PageHeader
-        breadcrumbs={[
-          { label: t("orders.title"), to: "/orders" },
-          { label: saleNo },
-        ]}
         title={saleNo}
+        description={t("orders.detail.description")}
         actions={
           <HStack gap={3}>
             {sale.status === SaleStatus.COMPLETED && (

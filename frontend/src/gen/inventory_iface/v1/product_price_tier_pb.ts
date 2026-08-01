@@ -117,6 +117,16 @@ export class ListProductPriceTiersRequest extends Message<ListProductPriceTiersR
    */
   productId = "";
 
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListProductPriceTiersRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -126,6 +136,8 @@ export class ListProductPriceTiersRequest extends Message<ListProductPriceTiersR
   static readonly typeName = "inventory_iface.v1.ListProductPriceTiersRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductPriceTiersRequest {
@@ -154,6 +166,13 @@ export class ListProductPriceTiersResponse extends Message<ListProductPriceTiers
    */
   tiers: ProductPriceTier[] = [];
 
+  /**
+   * all tiers for the product, ignoring the page window
+   *
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListProductPriceTiersResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -163,6 +182,7 @@ export class ListProductPriceTiersResponse extends Message<ListProductPriceTiers
   static readonly typeName = "inventory_iface.v1.ListProductPriceTiersResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "tiers", kind: "message", T: ProductPriceTier, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductPriceTiersResponse {

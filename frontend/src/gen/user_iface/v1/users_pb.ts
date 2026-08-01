@@ -8,6 +8,41 @@ import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { Role } from "../../auth_iface/v1/policy_pb.js";
 
 /**
+ * Every uploaded image is stored in TWO renditions (see the two-rendition HARD
+ * RULE in CLAUDE.md): the ORIGINAL (bounded, for a full-size view) and a small
+ * square THUMB that every avatar / list / fast-load surface reads instead.
+ * The client produces both — it already has the decoded bitmap on a canvas —
+ * and the server validates the size cap on each.
+ *
+ * @generated from enum user_iface.v1.AvatarVariant
+ */
+export enum AvatarVariant {
+  /**
+   * Unset resolves to THUMB: the fast path is the default, and callers must
+   * opt in to shipping the heavy original.
+   *
+   * @generated from enum value: AVATAR_VARIANT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: AVATAR_VARIANT_THUMB = 1;
+   */
+  THUMB = 1,
+
+  /**
+   * @generated from enum value: AVATAR_VARIANT_ORIGINAL = 2;
+   */
+  ORIGINAL = 2,
+}
+// Retrieve enum metadata with: proto3.getEnumType(AvatarVariant)
+proto3.util.setEnumType(AvatarVariant, "user_iface.v1.AvatarVariant", [
+  { no: 0, name: "AVATAR_VARIANT_UNSPECIFIED" },
+  { no: 1, name: "AVATAR_VARIANT_THUMB" },
+  { no: 2, name: "AVATAR_VARIANT_ORIGINAL" },
+]);
+
+/**
  * @generated from message user_iface.v1.User
  */
 export class User extends Message<User> {
@@ -41,6 +76,15 @@ export class User extends Message<User> {
    */
   createdAt = protoInt64.zero;
 
+  /**
+   * Unix sec of the last profile-picture upload; 0 = no avatar. The bytes live
+   * in their own table and are fetched only by GetAvatar — this marker is what
+   * tells the UI whether to fetch at all, and cache-busts a re-upload.
+   *
+   * @generated from field: int64 avatar_updated_at = 7;
+   */
+  avatarUpdatedAt = protoInt64.zero;
+
   constructor(data?: PartialMessage<User>) {
     super();
     proto3.util.initPartial(data, this);
@@ -55,6 +99,7 @@ export class User extends Message<User> {
     { no: 4, name: "role", kind: "enum", T: proto3.getEnumType(Role) },
     { no: 5, name: "active", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 6, name: "created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 7, name: "avatar_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): User {
@@ -78,6 +123,16 @@ export class User extends Message<User> {
  * @generated from message user_iface.v1.ListUsersRequest
  */
 export class ListUsersRequest extends Message<ListUsersRequest> {
+  /**
+   * @generated from field: int32 limit = 1;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 2;
+   */
+  offset = 0;
+
   constructor(data?: PartialMessage<ListUsersRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -86,6 +141,8 @@ export class ListUsersRequest extends Message<ListUsersRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "user_iface.v1.ListUsersRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUsersRequest {
@@ -114,6 +171,11 @@ export class ListUsersResponse extends Message<ListUsersResponse> {
    */
   users: User[] = [];
 
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
   constructor(data?: PartialMessage<ListUsersResponse>) {
     super();
     proto3.util.initPartial(data, this);
@@ -123,6 +185,7 @@ export class ListUsersResponse extends Message<ListUsersResponse> {
   static readonly typeName = "user_iface.v1.ListUsersResponse";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "users", kind: "message", T: User, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListUsersResponse {
@@ -163,6 +226,23 @@ export class UserRef extends Message<UserRef> {
    */
   email = "";
 
+  /**
+   * Who this person is in the shop. Lets a picker label an option ("Kasir" /
+   * "Admin") instead of showing an ambiguous bare name.
+   *
+   * @generated from field: auth_iface.v1.Role role = 4;
+   */
+  role = Role.UNSPECIFIED;
+
+  /**
+   * Unix sec of the last avatar upload; 0 = none. Mirrors User.avatar_updated_at
+   * so a list row can render <UserAvatar> without a second round-trip, and so a
+   * user with no picture costs zero avatar requests.
+   *
+   * @generated from field: int64 avatar_updated_at = 5;
+   */
+  avatarUpdatedAt = protoInt64.zero;
+
   constructor(data?: PartialMessage<UserRef>) {
     super();
     proto3.util.initPartial(data, this);
@@ -174,6 +254,8 @@ export class UserRef extends Message<UserRef> {
     { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "email", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "role", kind: "enum", T: proto3.getEnumType(Role) },
+    { no: 5, name: "avatar_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UserRef {
@@ -281,6 +363,16 @@ export class SearchUsersRequest extends Message<SearchUsersRequest> {
    */
   limit = 0;
 
+  /**
+   * Restrict to users with at least one COMPLETED sale. Drives the cashier-scope
+   * filter on order history + analytics, whose options must always yield rows —
+   * without it the picker offers staff who can only ever produce an empty table.
+   * Leave false for the membership/authoring pickers, which need all active users.
+   *
+   * @generated from field: bool with_sales_only = 3;
+   */
+  withSalesOnly = false;
+
   constructor(data?: PartialMessage<SearchUsersRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -291,6 +383,7 @@ export class SearchUsersRequest extends Message<SearchUsersRequest> {
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
     { no: 1, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "with_sales_only", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SearchUsersRequest {
@@ -676,6 +769,273 @@ export class ChangePasswordResponse extends Message<ChangePasswordResponse> {
 
   static equals(a: ChangePasswordResponse | PlainMessage<ChangePasswordResponse> | undefined, b: ChangePasswordResponse | PlainMessage<ChangePasswordResponse> | undefined): boolean {
     return proto3.util.equals(ChangePasswordResponse, a, b);
+  }
+}
+
+/**
+ * Bytes ride inline rather than through a separate upload endpoint: both
+ * renditions are downscaled client-side and capped by the handler
+ * (MaxAvatarBytes / MaxAvatarThumbBytes), so this stays a normal unary message.
+ *
+ * @generated from message user_iface.v1.UploadAvatarRequest
+ */
+export class UploadAvatarRequest extends Message<UploadAvatarRequest> {
+  /**
+   * ORIGINAL rendition (bounded, not the raw camera file)
+   *
+   * @generated from field: bytes image_data = 1;
+   */
+  imageData = new Uint8Array(0);
+
+  /**
+   * THUMB rendition — required, not optional
+   *
+   * @generated from field: bytes thumb_data = 2;
+   */
+  thumbData = new Uint8Array(0);
+
+  /**
+   * applies to both renditions
+   *
+   * @generated from field: string content_type = 3;
+   */
+  contentType = "";
+
+  constructor(data?: PartialMessage<UploadAvatarRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "user_iface.v1.UploadAvatarRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "image_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "thumb_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 3, name: "content_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UploadAvatarRequest {
+    return new UploadAvatarRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UploadAvatarRequest {
+    return new UploadAvatarRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UploadAvatarRequest {
+    return new UploadAvatarRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UploadAvatarRequest | PlainMessage<UploadAvatarRequest> | undefined, b: UploadAvatarRequest | PlainMessage<UploadAvatarRequest> | undefined): boolean {
+    return proto3.util.equals(UploadAvatarRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message user_iface.v1.UploadAvatarResponse
+ */
+export class UploadAvatarResponse extends Message<UploadAvatarResponse> {
+  /**
+   * @generated from field: int64 avatar_updated_at = 1;
+   */
+  avatarUpdatedAt = protoInt64.zero;
+
+  constructor(data?: PartialMessage<UploadAvatarResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "user_iface.v1.UploadAvatarResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "avatar_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UploadAvatarResponse {
+    return new UploadAvatarResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): UploadAvatarResponse {
+    return new UploadAvatarResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): UploadAvatarResponse {
+    return new UploadAvatarResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: UploadAvatarResponse | PlainMessage<UploadAvatarResponse> | undefined, b: UploadAvatarResponse | PlainMessage<UploadAvatarResponse> | undefined): boolean {
+    return proto3.util.equals(UploadAvatarResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message user_iface.v1.GetAvatarRequest
+ */
+export class GetAvatarRequest extends Message<GetAvatarRequest> {
+  /**
+   * Empty = the calling user's own avatar.
+   *
+   * @generated from field: string user_id = 1;
+   */
+  userId = "";
+
+  /**
+   * Which rendition to return. Unset = THUMB.
+   *
+   * @generated from field: user_iface.v1.AvatarVariant variant = 2;
+   */
+  variant = AvatarVariant.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetAvatarRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "user_iface.v1.GetAvatarRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "user_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "variant", kind: "enum", T: proto3.getEnumType(AvatarVariant) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetAvatarRequest {
+    return new GetAvatarRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetAvatarRequest {
+    return new GetAvatarRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetAvatarRequest {
+    return new GetAvatarRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetAvatarRequest | PlainMessage<GetAvatarRequest> | undefined, b: GetAvatarRequest | PlainMessage<GetAvatarRequest> | undefined): boolean {
+    return proto3.util.equals(GetAvatarRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message user_iface.v1.GetAvatarResponse
+ */
+export class GetAvatarResponse extends Message<GetAvatarResponse> {
+  /**
+   * the requested rendition
+   *
+   * @generated from field: bytes image_data = 1;
+   */
+  imageData = new Uint8Array(0);
+
+  /**
+   * @generated from field: string content_type = 2;
+   */
+  contentType = "";
+
+  /**
+   * 0 when the user has no avatar (image_data is then empty too — absence is
+   * NOT an error, so the UI can render its initials fallback without a catch).
+   *
+   * @generated from field: int64 avatar_updated_at = 3;
+   */
+  avatarUpdatedAt = protoInt64.zero;
+
+  /**
+   * echoes what was actually returned
+   *
+   * @generated from field: user_iface.v1.AvatarVariant variant = 4;
+   */
+  variant = AvatarVariant.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<GetAvatarResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "user_iface.v1.GetAvatarResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "image_data", kind: "scalar", T: 12 /* ScalarType.BYTES */ },
+    { no: 2, name: "content_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "avatar_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "variant", kind: "enum", T: proto3.getEnumType(AvatarVariant) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetAvatarResponse {
+    return new GetAvatarResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetAvatarResponse {
+    return new GetAvatarResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetAvatarResponse {
+    return new GetAvatarResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetAvatarResponse | PlainMessage<GetAvatarResponse> | undefined, b: GetAvatarResponse | PlainMessage<GetAvatarResponse> | undefined): boolean {
+    return proto3.util.equals(GetAvatarResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message user_iface.v1.DeleteAvatarRequest
+ */
+export class DeleteAvatarRequest extends Message<DeleteAvatarRequest> {
+  constructor(data?: PartialMessage<DeleteAvatarRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "user_iface.v1.DeleteAvatarRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteAvatarRequest {
+    return new DeleteAvatarRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteAvatarRequest {
+    return new DeleteAvatarRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteAvatarRequest {
+    return new DeleteAvatarRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteAvatarRequest | PlainMessage<DeleteAvatarRequest> | undefined, b: DeleteAvatarRequest | PlainMessage<DeleteAvatarRequest> | undefined): boolean {
+    return proto3.util.equals(DeleteAvatarRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message user_iface.v1.DeleteAvatarResponse
+ */
+export class DeleteAvatarResponse extends Message<DeleteAvatarResponse> {
+  constructor(data?: PartialMessage<DeleteAvatarResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "user_iface.v1.DeleteAvatarResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DeleteAvatarResponse {
+    return new DeleteAvatarResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DeleteAvatarResponse {
+    return new DeleteAvatarResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DeleteAvatarResponse {
+    return new DeleteAvatarResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DeleteAvatarResponse | PlainMessage<DeleteAvatarResponse> | undefined, b: DeleteAvatarResponse | PlainMessage<DeleteAvatarResponse> | undefined): boolean {
+    return proto3.util.equals(DeleteAvatarResponse, a, b);
   }
 }
 

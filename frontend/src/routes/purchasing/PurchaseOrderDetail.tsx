@@ -20,10 +20,14 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
+import Pagination from "../../components/Pagination";
+import { usePageState } from "../../lib/pagination";
 import DatePickerField from "../../components/DatePicker";
 import MoneyInput from "../../components/MoneyInput";
 import NumberInput from "../../components/NumberInput";
+import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import {
   POStatus,
   type PurchaseOrder,
@@ -61,8 +65,17 @@ export default function PurchaseOrderDetail() {
   const { id = "" } = useParams();
 
   const poQ = usePurchaseOrderQuery(id);
-  const receiptsQ = useReceiptsQuery({ purchaseOrderId: id });
-  const returnsQ = usePurchaseReturnsQuery(id);
+  useCrumbLabel(poQ.data?.poNo);
+  const receiptsPage = usePageState(`receipts:${id}`);
+  const returnsPage = usePageState(`returns:${id}`);
+  const receiptsQ = useReceiptsQuery(
+    { purchaseOrderId: id },
+    { page: receiptsPage.page, pageSize: receiptsPage.pageSize },
+  );
+  const returnsQ = usePurchaseReturnsQuery(id, {
+    page: returnsPage.page,
+    pageSize: returnsPage.pageSize,
+  });
 
   const sendMut = useSendPurchaseOrderMutation();
   const voidMut = useVoidPurchaseOrderMutation();
@@ -78,9 +91,9 @@ export default function PurchaseOrderDetail() {
   const productIds = useMemo(() => {
     const ids = new Set<string>();
     po?.items.forEach((it) => ids.add(it.productId));
-    receiptsQ.data?.forEach((r) => r.items.forEach((it) => ids.add(it.productId)));
+    receiptsQ.rows.forEach((r) => r.items.forEach((it) => ids.add(it.productId)));
     return Array.from(ids);
-  }, [po, receiptsQ.data]);
+  }, [po, receiptsQ.rows]);
   const supplierRefs = useSupplierRefs(supplierIds);
   const productRefs = useProductRefs(productIds);
 
@@ -106,7 +119,7 @@ export default function PurchaseOrderDetail() {
     (po.status === POStatus.PO_STATUS_PARTIALLY_RECEIVED ||
       po.status === POStatus.PO_STATUS_RECEIVED ||
       po.status === POStatus.PO_STATUS_CLOSED) &&
-    (receiptsQ.data ?? []).some((r) => r.items.some((it) => it.returnableQty > 0n));
+    receiptsQ.rows.some((r) => r.items.some((it) => it.returnableQty > 0n));
 
   const onSend = async () => {
     try {
@@ -210,40 +223,42 @@ export default function PurchaseOrderDetail() {
         <Heading size="sm" mb={3}>
           {t("purchasing.items")}
         </Heading>
-        <Table.Root size="sm">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.ordered")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.received")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.unitCost")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
-              <Table.ColumnHeader>{t("purchasing.lineTotal")}</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {po.items.map((it) => (
-              <Table.Row key={it.id}>
-                <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
-                <Table.Cell>{fmtUnitQty(it.orderedQty, it.unitName, it.unitFactor)}</Table.Cell>
-                <Table.Cell>
-                  {fmtUnitQty(it.receivedQty, it.unitName, it.unitFactor)} /{" "}
-                  {fmtUnitQty(it.orderedQty, it.unitName, it.unitFactor)}
-                </Table.Cell>
-                <Table.Cell fontFamily="mono">{formatMoney(Number(it.unitCostPrice))}</Table.Cell>
-                <Table.Cell fontFamily="mono" color="fg.muted">
-                  {it.discountValue > 0n
-                    ? (it.discountType === "PERCENT"
-                        ? `${Number(it.discountValue) / 100}%`
-                        : `−${formatMoney(Number(it.discountValue))}`) +
-                      (it.discountPerItem ? ` ${t("purchasing.perItemSuffix")}` : "")
-                    : "—"}
-                </Table.Cell>
-                <Table.Cell fontFamily="mono">{formatMoney(Number(it.subtotal))}</Table.Cell>
+        <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+          <Table.Root size="sm" stickyHeader>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.ordered")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.received")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.unitCost")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("purchasing.lineTotal")}</Table.ColumnHeader>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {po.items.map((it) => (
+                <Table.Row key={it.id}>
+                  <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
+                  <Table.Cell>{fmtUnitQty(it.orderedQty, it.unitName, it.unitFactor)}</Table.Cell>
+                  <Table.Cell>
+                    {fmtUnitQty(it.receivedQty, it.unitName, it.unitFactor)} /{" "}
+                    {fmtUnitQty(it.orderedQty, it.unitName, it.unitFactor)}
+                  </Table.Cell>
+                  <Table.Cell fontFamily="mono">{formatMoney(Number(it.unitCostPrice))}</Table.Cell>
+                  <Table.Cell fontFamily="mono" color="fg.muted">
+                    {it.discountValue > 0n
+                      ? (it.discountType === "PERCENT"
+                          ? `${Number(it.discountValue) / 100}%`
+                          : `−${formatMoney(Number(it.discountValue))}`) +
+                        (it.discountPerItem ? ` ${t("purchasing.perItemSuffix")}` : "")
+                      : "—"}
+                  </Table.Cell>
+                  <Table.Cell fontFamily="mono">{formatMoney(Number(it.subtotal))}</Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </TableScroll>
         <Box mt={4} pt={4} borderTopWidth="1px" display="flex" justifyContent="flex-end">
           <Stack gap={1} maxW="320px" w="full">
             <HStack justify="space-between">
@@ -281,13 +296,13 @@ export default function PurchaseOrderDetail() {
         </Heading>
         {receiptsQ.isLoading ? (
           <Spinner size="sm" />
-        ) : (receiptsQ.data?.length ?? 0) === 0 ? (
+        ) : receiptsQ.rows.length === 0 ? (
           <Text fontSize="sm" color="fg.muted">
             {t("purchasing.noReceipts")}
           </Text>
         ) : (
           <Stack gap={3}>
-            {receiptsQ.data!.map((r) => (
+            {receiptsQ.rows.map((r) => (
               <Box key={r.id} borderWidth="1px" borderRadius="md" p={3}>
                 <HStack justify="space-between" mb={2}>
                   <HStack gap={3}>
@@ -304,40 +319,49 @@ export default function PurchaseOrderDetail() {
                     {formatDate(r.receivedAt)}
                   </Text>
                 </HStack>
-                <Table.Root size="sm">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.expiryDate")}</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {r.items.map((it) => (
-                      <Table.Row key={it.id}>
-                        <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
-                        <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
-                        <Table.Cell>{it.batchNumber || "—"}</Table.Cell>
-                        <Table.Cell>{formatDate(it.expiryDate)}</Table.Cell>
+                <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+                  <Table.Root size="sm" stickyHeader>
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.expiryDate")}</Table.ColumnHeader>
                       </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
+                    </Table.Header>
+                    <Table.Body>
+                      {r.items.map((it) => (
+                        <Table.Row key={it.id}>
+                          <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
+                          <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
+                          <Table.Cell>{it.batchNumber || "—"}</Table.Cell>
+                          <Table.Cell>{formatDate(it.expiryDate)}</Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </TableScroll>
               </Box>
             ))}
           </Stack>
         )}
+        <Pagination
+          page={receiptsPage.page}
+          pageSize={receiptsPage.pageSize}
+          total={receiptsQ.total}
+          onPageChange={receiptsPage.setPage}
+          onPageSizeChange={receiptsPage.setPageSize}
+        />
       </Box>
 
       {/* Returns */}
-      {(returnsQ.data?.length ?? 0) > 0 && (
+      {returnsQ.rows.length > 0 && (
         <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
           <Heading size="sm" mb={3}>
             {t("purchasing.return.section")}
           </Heading>
           <Stack gap={3}>
-            {returnsQ.data!.map((r) => (
+            {returnsQ.rows.map((r) => (
               <Box key={r.id} borderWidth="1px" borderRadius="md" p={3}>
                 <HStack justify="space-between" mb={2} wrap="wrap" gap={2}>
                   <HStack gap={3}>
@@ -357,22 +381,31 @@ export default function PurchaseOrderDetail() {
                     </Text>
                   </HStack>
                 </HStack>
-                <Table.Root size="sm">
-                  <Table.Body>
-                    {r.items.map((it) => (
-                      <Table.Row key={it.id}>
-                        <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
-                        <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
-                        <Table.Cell fontFamily="mono" color="fg.muted">
-                          {formatMoney(Number(it.unitCostPrice))}
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </Table.Body>
-                </Table.Root>
+                <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+                  <Table.Root size="sm" stickyHeader>
+                    <Table.Body>
+                      {r.items.map((it) => (
+                        <Table.Row key={it.id}>
+                          <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
+                          <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
+                          <Table.Cell fontFamily="mono" color="fg.muted">
+                            {formatMoney(Number(it.unitCostPrice))}
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </Table.Body>
+                  </Table.Root>
+                </TableScroll>
               </Box>
             ))}
           </Stack>
+          <Pagination
+            page={returnsPage.page}
+            pageSize={returnsPage.pageSize}
+            total={returnsQ.total}
+            onPageChange={returnsPage.setPage}
+            onPageSizeChange={returnsPage.setPageSize}
+          />
         </Box>
       )}
 
@@ -386,7 +419,7 @@ export default function PurchaseOrderDetail() {
         open={returnOpen}
         onClose={() => setReturnOpen(false)}
         poId={po.id}
-        receipts={receiptsQ.data ?? []}
+        receipts={receiptsQ.rows}
         productRefs={productRefs}
       />
       <PayDialog open={payOpen} onClose={() => setPayOpen(false)} poId={po.id} outstanding={Number(po.outstanding)} />
@@ -534,75 +567,77 @@ function ReceiveDialog({
                   </Box>
                 </HStack>
 
-                <Table.Root size="sm">
-                  <Table.Header>
-                    <Table.Row>
-                      <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.unitCost")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
-                      <Table.ColumnHeader>{t("purchasing.expiryDate")}</Table.ColumnHeader>
-                    </Table.Row>
-                  </Table.Header>
-                  <Table.Body>
-                    {lines.map((l, idx) => {
-                      const poItem = po.items.find((it) => it.id === l.purchaseOrderItemId);
-                      return (
-                        <Table.Row key={l.purchaseOrderItemId}>
-                          <Table.Cell>
-                            {poItem ? productRefs.get(poItem.productId)?.name ?? "—" : "—"}
-                            <Text fontSize="xs" color="fg.muted">
-                              {t("purchasing.remaining")}: {l.remaining} {l.unitName}
-                            </Text>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <HStack gap={1}>
-                              <NumberInput
+                <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+                  <Table.Root size="sm" stickyHeader>
+                    <Table.Header>
+                      <Table.Row>
+                        <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.unitCost")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
+                        <Table.ColumnHeader>{t("purchasing.expiryDate")}</Table.ColumnHeader>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body>
+                      {lines.map((l, idx) => {
+                        const poItem = po.items.find((it) => it.id === l.purchaseOrderItemId);
+                        return (
+                          <Table.Row key={l.purchaseOrderItemId}>
+                            <Table.Cell>
+                              {poItem ? productRefs.get(poItem.productId)?.name ?? "—" : "—"}
+                              <Text fontSize="xs" color="fg.muted">
+                                {t("purchasing.remaining")}: {l.remaining} {l.unitName}
+                              </Text>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <HStack gap={1}>
+                                <NumberInput
+                                  size="sm"
+                                  width="70px"
+                                  value={l.qty}
+                                  onChange={(raw) =>
+                                    updateLine(idx, { qty: Number(raw || 0) })
+                                  }
+                                  max={l.remaining}
+                                />
+                                {l.unitFactor > 1 && (
+                                  <Text fontSize="xs" color="fg.muted">
+                                    {l.unitName}
+                                  </Text>
+                                )}
+                              </HStack>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <MoneyInput
                                 size="sm"
-                                width="70px"
-                                value={l.qty}
+                                width="120px"
+                                value={l.unitCostPrice}
                                 onChange={(raw) =>
-                                  updateLine(idx, { qty: Number(raw || 0) })
+                                  updateLine(idx, { unitCostPrice: Number(raw || 0) })
                                 }
-                                max={l.remaining}
                               />
-                              {l.unitFactor > 1 && (
-                                <Text fontSize="xs" color="fg.muted">
-                                  {l.unitName}
-                                </Text>
-                              )}
-                            </HStack>
-                          </Table.Cell>
-                          <Table.Cell>
-                            <MoneyInput
-                              size="sm"
-                              width="120px"
-                              value={l.unitCostPrice}
-                              onChange={(raw) =>
-                                updateLine(idx, { unitCostPrice: Number(raw || 0) })
-                              }
-                            />
-                          </Table.Cell>
-                          <Table.Cell>
-                            <Input
-                              size="sm"
-                              value={l.batchNumber}
-                              onChange={(e) => updateLine(idx, { batchNumber: e.target.value })}
-                              w="120px"
-                            />
-                          </Table.Cell>
-                          <Table.Cell>
-                            <DatePickerField
-                              size="sm"
-                              value={l.expiryDate}
-                              onChange={(v) => updateLine(idx, { expiryDate: v })}
-                            />
-                          </Table.Cell>
-                        </Table.Row>
-                      );
-                    })}
-                  </Table.Body>
-                </Table.Root>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <Input
+                                size="sm"
+                                value={l.batchNumber}
+                                onChange={(e) => updateLine(idx, { batchNumber: e.target.value })}
+                                w="120px"
+                              />
+                            </Table.Cell>
+                            <Table.Cell>
+                              <DatePickerField
+                                size="sm"
+                                value={l.expiryDate}
+                                onChange={(v) => updateLine(idx, { expiryDate: v })}
+                              />
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })}
+                    </Table.Body>
+                  </Table.Root>
+                </TableScroll>
               </Stack>
             </Dialog.Body>
             <Dialog.Footer>
@@ -754,43 +789,45 @@ function ReturnDialog({
                     {t("purchasing.return.nothingReturnable")}
                   </Text>
                 ) : (
-                  <Table.Root size="sm">
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("purchasing.return.returnable")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {rows.map((r, idx) => (
-                        <Table.Row key={r.purchaseReceiptItemId}>
-                          <Table.Cell>{productRefs.get(r.productId)?.name ?? "—"}</Table.Cell>
-                          <Table.Cell>{r.batchNumber || "—"}</Table.Cell>
-                          <Table.Cell color="fg.muted">
-                            {r.max} {r.unitName}
-                          </Table.Cell>
-                          <Table.Cell>
-                            <HStack gap={1}>
-                              <NumberInput
-                                size="sm"
-                                width="70px"
-                                value={r.qty}
-                                onChange={(raw) => updateRow(idx, { qty: Number(raw || 0) })}
-                                max={r.max}
-                              />
-                              {r.unitFactor > 1 && (
-                                <Text fontSize="xs" color="fg.muted">
-                                  {r.unitName}
-                                </Text>
-                              )}
-                            </HStack>
-                          </Table.Cell>
+                  <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
+                    <Table.Root size="sm" stickyHeader>
+                      <Table.Header>
+                        <Table.Row>
+                          <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
+                          <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
+                          <Table.ColumnHeader>{t("purchasing.return.returnable")}</Table.ColumnHeader>
+                          <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
                         </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Root>
+                      </Table.Header>
+                      <Table.Body>
+                        {rows.map((r, idx) => (
+                          <Table.Row key={r.purchaseReceiptItemId}>
+                            <Table.Cell>{productRefs.get(r.productId)?.name ?? "—"}</Table.Cell>
+                            <Table.Cell>{r.batchNumber || "—"}</Table.Cell>
+                            <Table.Cell color="fg.muted">
+                              {r.max} {r.unitName}
+                            </Table.Cell>
+                            <Table.Cell>
+                              <HStack gap={1}>
+                                <NumberInput
+                                  size="sm"
+                                  width="70px"
+                                  value={r.qty}
+                                  onChange={(raw) => updateRow(idx, { qty: Number(raw || 0) })}
+                                  max={r.max}
+                                />
+                                {r.unitFactor > 1 && (
+                                  <Text fontSize="xs" color="fg.muted">
+                                    {r.unitName}
+                                  </Text>
+                                )}
+                              </HStack>
+                            </Table.Cell>
+                          </Table.Row>
+                        ))}
+                      </Table.Body>
+                    </Table.Root>
+                  </TableScroll>
                 )}
               </Stack>
             </Dialog.Body>

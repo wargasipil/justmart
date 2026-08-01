@@ -17,7 +17,7 @@ import (
 // TestListBackups_NewestFirst creates two backups and asserts the listing
 // returns both, newest-first.
 func TestListBackups_NewestFirst(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, t.TempDir())
@@ -45,12 +45,65 @@ func TestListBackups_NewestFirst(t *testing.T) {
 	// Sizes + schema version surface from the on-disk dump + manifest.
 	require.Positive(t, resp.Msg.Backups[0].SizeBytes)
 	require.Positive(t, resp.Msg.Backups[0].SchemaVersion)
+	require.Equal(t, int32(2), resp.Msg.Total)
+}
+
+// The listing is a filesystem scan, so the page is sliced in Go — but the
+// response still has to be bounded and `total` still has to be the full count.
+func TestListBackups_Paginates(t *testing.T) {
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
+	gormDB, cfg := servicetest.New(t)
+	dir := t.TempDir()
+	svc := backupsvc.NewBackupServiceWithDir(gormDB, cfg, dir)
+
+	// Hand-build the directories rather than running CreateBackup 5x: this test
+	// is about the slicing, and real backups need pg_dump on PATH.
+	names := []string{
+		"backup_2026-01-01_100000",
+		"backup_2026-01-02_100000",
+		"backup_2026-01-03_100000",
+		"backup_2026-01-04_100000",
+		"backup_2026-01-05_100000",
+	}
+	for _, n := range names {
+		require.NoError(t, os.MkdirAll(filepath.Join(dir, n), 0o755))
+	}
+
+	page := func(limit, offset int32) *backupifacev1.ListBackupsResponse {
+		t.Helper()
+		resp, err := svc.ListBackups(context.Background(), connect.NewRequest(
+			&backupifacev1.ListBackupsRequest{Limit: limit, Offset: offset}))
+		require.NoError(t, err)
+		return resp.Msg
+	}
+
+	first := page(2, 0)
+	require.Equal(t, int32(5), first.Total)
+	require.Len(t, first.Backups, 2)
+	// Newest first, so the Jan-05 dir leads.
+	require.Equal(t, "backup_2026-01-05_100000", first.Backups[0].Name)
+
+	seen := map[string]bool{}
+	for off := int32(0); off < first.Total; off += 2 {
+		pg := page(2, off)
+		require.Equal(t, first.Total, pg.Total)
+		for _, b := range pg.Backups {
+			require.False(t, seen[b.Name], "backup %s appeared on two pages", b.Name)
+			seen[b.Name] = true
+		}
+	}
+	require.Len(t, seen, 5)
+
+	// Offset past the end: no rows, real total (guards the slice bounds).
+	last := page(2, 99)
+	require.Empty(t, last.Backups)
+	require.Equal(t, int32(5), last.Total)
 }
 
 // TestListBackups_MissingDirIsEmpty proves a never-created backup root returns
 // an empty list, NOT an error (errors.Is(os.ErrNotExist) is swallowed).
 func TestListBackups_MissingDirIsEmpty(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	// Point at a path that does not exist yet (no CreateBackup ever ran, so
 	// ensureDir never created it).
@@ -65,7 +118,7 @@ func TestListBackups_MissingDirIsEmpty(t *testing.T) {
 // TestListBackups_IgnoresForeignEntries proves the regex filter: files and
 // foreign directories under the backup root are silently skipped.
 func TestListBackups_IgnoresForeignEntries(t *testing.T) {
-	t.Parallel()
+	// No t.Parallel: pg_dump dumps the WHOLE test database — see engine_test.go.
 	gormDB, cfg := servicetest.New(t)
 	requirePGDumpOrSkip(t, cfg)
 	dir := t.TempDir()

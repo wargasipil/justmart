@@ -8,7 +8,8 @@ import {
   useFilter,
   useListCollection,
 } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useTranslation } from "react-i18next";
 
 // Search-capable select for the justmart UI. Wraps Chakra v3's `Combobox`.
 //
@@ -47,12 +48,31 @@ export type SearchableSelectProps<T> = {
   itemToString: (item: T) => string;
   itemToValue: (item: T) => string;
 
+  /**
+   * Custom dropdown-row content — for when one line of text can't tell two
+   * options apart (a user picker showing a face + role badge, say). Receives
+   * the ORIGINAL item, not the flattened label.
+   *
+   * Must return a SINGLE element: it is mounted via `<Combobox.ItemText asChild>`,
+   * so the returned element becomes the item-text node itself and inherits its
+   * layout slot. That's what lets a row hold block children (an Avatar) without
+   * nesting a div inside the default span.
+   *
+   * `itemToString` is still required and still drives the trigger label — this
+   * only changes what the open list looks like. Rows injected as a stub (a
+   * pre-set `value` whose item hasn't loaded yet) fall back to the plain label,
+   * since the original item isn't known.
+   */
+  renderItem?: (item: T) => ReactElement;
+
   /** Trigger display when `value` is set but the matching item isn't (yet)
    * in the collection — typical for edit drawers in async mode. */
   selectedLabel?: string;
 
   placeholder?: string;
+  /** Defaults to the translated `common.noResults`. */
   emptyText?: string;
+  /** Defaults to the translated `common.loading`. */
   loadingText?: string;
   disabled?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
@@ -71,14 +91,21 @@ export default function SearchableSelect<T>({
   loadOptions,
   itemToString,
   itemToValue,
+  renderItem,
   selectedLabel,
   placeholder,
-  emptyText = "No matches",
-  loadingText = "Loading…",
+  emptyText,
+  loadingText,
   disabled,
   size = "md",
   width,
 }: SearchableSelectProps<T>) {
+  // Defaults are translated, not hardcoded English — this component is mounted
+  // by every dynamic picker in the app, so an untranslated fallback here leaks
+  // English into an otherwise Indonesian UI on every one of them.
+  const { t } = useTranslation();
+  const emptyLabel = emptyText ?? t("common.noResults");
+  const loadingLabel = loadingText ?? t("common.loading");
   // Cache labels seen so far so the trigger can keep showing the right name
   // even after the collection rotates (e.g. user types, list changes, but the
   // currently-selected item is no longer in view).
@@ -247,17 +274,26 @@ export default function SearchableSelect<T>({
               <HStack gap={2} px={3} py={2}>
                 <Spinner size="xs" />
                 <Text fontSize="sm" color="fg.muted">
-                  {loadingText}
+                  {loadingLabel}
                 </Text>
               </HStack>
             )}
-            <Combobox.Empty>{emptyText}</Combobox.Empty>
-            {collection.items.map((item) => (
-              <Combobox.Item item={item} key={item.value}>
-                <Combobox.ItemText>{item.label}</Combobox.ItemText>
-                <Combobox.ItemIndicator />
-              </Combobox.Item>
-            ))}
+            <Combobox.Empty>{emptyLabel}</Combobox.Empty>
+            {collection.items.map((item) => {
+              // renderItem needs the original T. A stub entry (pre-set value
+              // whose item hasn't loaded) has no original — fall back to the label.
+              const original = itemsByValueRef.current.get(item.value);
+              return (
+                <Combobox.Item item={item} key={item.value}>
+                  {renderItem && original ? (
+                    <Combobox.ItemText asChild>{renderItem(original)}</Combobox.ItemText>
+                  ) : (
+                    <Combobox.ItemText>{item.label}</Combobox.ItemText>
+                  )}
+                  <Combobox.ItemIndicator />
+                </Combobox.Item>
+              );
+            })}
           </Combobox.Content>
         </Combobox.Positioner>
       </Portal>

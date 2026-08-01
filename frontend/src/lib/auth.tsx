@@ -17,6 +17,13 @@ type AuthState = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /**
+   * Re-read the signed-in user from the server. `user` is context state rather
+   * than a TanStack query, so a mutation that changes the user's own row (today:
+   * the avatar, whose `avatarUpdatedAt` is the cache key every avatar renders
+   * from) has to say so explicitly — there is no query to invalidate.
+   */
+  refreshUser: () => Promise<void>;
 };
 
 const AuthCtx = createContext<AuthState | null>(null);
@@ -63,6 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user ?? null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    if (localStorage.getItem(ACCESS_KEY) === null) return;
+    try {
+      const res = await authClient.me({});
+      setUser(res.user ?? null);
+    } catch {
+      // Best-effort: a failed refresh leaves the previous user in place rather
+      // than logging them out. The transport already handles real auth failure.
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     const refreshToken = localStorage.getItem(REFRESH_KEY) ?? "";
     if (refreshToken) {
@@ -78,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ user, loading, login, logout }),
-    [user, loading, login, logout],
+    () => ({ user, loading, login, logout, refreshUser }),
+    [user, loading, login, logout, refreshUser],
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
