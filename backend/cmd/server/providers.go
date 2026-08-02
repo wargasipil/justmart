@@ -23,6 +23,7 @@ import (
 	"github.com/justmart/backend/gen/purchasing_iface/v1/purchasingifacev1connect"
 	"github.com/justmart/backend/gen/settings_iface/v1/settingsifacev1connect"
 	"github.com/justmart/backend/gen/stocktake_iface/v1/stocktakeifacev1connect"
+	"github.com/justmart/backend/gen/table_iface/v1/tableifacev1connect"
 	"github.com/justmart/backend/gen/unit_iface/v1/unitifacev1connect"
 	"github.com/justmart/backend/gen/user_iface/v1/userifacev1connect"
 	"github.com/justmart/backend/gen/warehouse_iface/v1/warehouseifacev1connect"
@@ -43,11 +44,13 @@ import (
 	"github.com/justmart/backend/internal/service/product"
 	"github.com/justmart/backend/internal/service/productdiscount"
 	"github.com/justmart/backend/internal/service/productpricetier"
+	"github.com/justmart/backend/internal/service/productrecipe"
 	"github.com/justmart/backend/internal/service/purchasing"
 	"github.com/justmart/backend/internal/service/sale"
 	"github.com/justmart/backend/internal/service/settings"
 	"github.com/justmart/backend/internal/service/stock"
 	"github.com/justmart/backend/internal/service/stocktake"
+	"github.com/justmart/backend/internal/service/table"
 	"github.com/justmart/backend/internal/service/supplier"
 	"github.com/justmart/backend/internal/service/transfer"
 	"github.com/justmart/backend/internal/service/unit"
@@ -81,6 +84,7 @@ type Handlers struct {
 	Prescriptions     *prescription.PrescriptionService
 	ProductDiscounts  *productdiscount.ProductDiscountService
 	ProductPriceTiers *productpricetier.ProductPriceTierService
+	ProductRecipes    *productrecipe.ProductRecipeService
 	Products          *product.ProductService
 	PurchaseOrders    *purchasing.PurchaseOrders
 	PurchasePayments  *purchasing.PurchasePayments
@@ -90,6 +94,7 @@ type Handlers struct {
 	Settings          *settings.SettingsService
 	Stock             *stock.StockService
 	Stocktakes        *stocktake.StocktakeService
+	Tables            *table.TableService
 	Suppliers         *supplier.SupplierService
 	Transfers         *transfer.TransferService
 	Units             *unit.UnitService
@@ -142,12 +147,14 @@ var serviceSet = wire.NewSet(
 	product.NewProductService,
 	productdiscount.NewProductDiscountService,
 	productpricetier.NewProductPriceTierService,
+	productrecipe.NewProductRecipeService,
 	purchasing.NewPurchaseOrderService,
 	purchasing.NewPurchasePaymentService,
 	purchasing.NewPurchaseReceiptService,
 	purchasing.NewPurchaseReturnService,
 	stock.NewStockService,
 	stocktake.NewStocktakeService,
+	table.NewTableService,
 	supplier.NewSupplierService,
 	transfer.NewTransferService,
 	unit.NewUnitService,
@@ -282,6 +289,7 @@ func provideRootHandler(h Handlers, interceptors connect.HandlerOption) http.Han
 	apiMux.Handle(inventoryifacev1connect.NewPriceAgreementServiceHandler(h.PriceAgreements, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductDiscountServiceHandler(h.ProductDiscounts, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductPriceTierServiceHandler(h.ProductPriceTiers, interceptors))
+	apiMux.Handle(inventoryifacev1connect.NewProductRecipeServiceHandler(h.ProductRecipes, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductServiceHandler(h.Products, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewBatchServiceHandler(h.Batches, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewStockMovementServiceHandler(h.Stock, interceptors))
@@ -295,6 +303,7 @@ func provideRootHandler(h Handlers, interceptors connect.HandlerOption) http.Han
 	apiMux.Handle(purchasingifacev1connect.NewPurchaseReturnServiceHandler(h.PurchaseReturns, interceptors))
 	apiMux.Handle(branchifacev1connect.NewBranchServiceHandler(h.Branches, interceptors))
 	apiMux.Handle(stocktakeifacev1connect.NewStocktakeServiceHandler(h.Stocktakes, interceptors))
+	apiMux.Handle(tableifacev1connect.NewTableServiceHandler(h.Tables, interceptors))
 	apiMux.Handle(prescriptionifacev1connect.NewPrescriptionServiceHandler(h.Prescriptions, interceptors))
 	apiMux.Handle(warehouseifacev1connect.NewWarehouseServiceHandler(h.Warehouses, interceptors))
 	apiMux.Handle(warehouseifacev1connect.NewStockTransferServiceHandler(h.Transfers, interceptors))

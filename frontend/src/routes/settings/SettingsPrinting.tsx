@@ -6,12 +6,15 @@ import EnumSelect from "../../components/EnumSelect";
 import { toast } from "../../lib/toaster";
 import {
   useConnectorsQuery,
+  useKitchenPrintTargetQuery,
   usePrintingInfoQuery,
   usePrintTargetQuery,
   useReceiptSettingsQuery,
+  useSetKitchenPrintTargetMutation,
   useSetPrintTargetMutation,
   useSetReceiptSettingsMutation,
 } from "../../queries/connectors";
+import { useBusinessMode } from "../../queries/settings";
 
 type Option = { value: string; label: string };
 
@@ -73,6 +76,45 @@ export default function SettingsPrinting() {
   const onSaveUsb = async () => {
     try {
       await save.mutateAsync({ connectorDeviceId: "", printerName: printerName.trim() });
+      toast.success(t("common.save") + " ✓");
+    } catch {
+      /* toast handled globally */
+    }
+  };
+
+  // Kitchen ticket target (restaurant mode). Independent of the receipt target
+  // above: an empty device means "use the receipt printer", which is what makes
+  // a one-printer shop work with no configuration.
+  const { isRestaurant } = useBusinessMode();
+  const kitchenQ = useKitchenPrintTargetQuery(isRestaurant);
+  const saveKitchen = useSetKitchenPrintTargetMutation();
+  const [kitchenDeviceId, setKitchenDeviceId] = useState("");
+  const [kitchenPrinter, setKitchenPrinter] = useState("");
+  useEffect(() => {
+    if (kitchenQ.data) {
+      setKitchenDeviceId(kitchenQ.data.connectorDeviceId);
+      setKitchenPrinter(kitchenQ.data.printerName);
+    }
+  }, [kitchenQ.data]);
+
+  const kitchenPrinters = useMemo(
+    () => connectors.find((c) => c.deviceId === kitchenDeviceId)?.printerNames ?? [],
+    [connectors, kitchenDeviceId],
+  );
+  // The empty option is the "same as the receipt printer" fallback, stated
+  // rather than left as a blank the owner has to guess about.
+  const kitchenConnectorOptions: Option[] = [
+    { value: "", label: t("settings.printing.kitchenSameAsReceipt") },
+    ...connectors.map((c) => ({ value: c.deviceId, label: c.deviceName })),
+  ];
+  const kitchenPrinterOptions: Option[] = kitchenPrinters.map((p) => ({ value: p, label: p }));
+
+  const onSaveKitchen = async () => {
+    try {
+      await saveKitchen.mutateAsync({
+        connectorDeviceId: kitchenDeviceId.trim(),
+        printerName: kitchenPrinter.trim(),
+      });
       toast.success(t("common.save") + " ✓");
     } catch {
       /* toast handled globally */
@@ -188,6 +230,54 @@ export default function SettingsPrinting() {
           <Text fontSize="xs" color="fg.muted">
             {t("settings.printing.help")}
           </Text>
+
+          {/* ---- Kitchen ticket printer (restaurant mode) ----
+              A separate target because the point of a kitchen ticket is that it
+              comes out at the PASS, not at the till. Left unset it falls back to
+              the receipt printer above, so a one-printer warung never has to
+              touch this. Shown only in restaurant mode — in a shop there is no
+              kitchen to send anything to. */}
+          {isRestaurant && (
+            <Stack gap={3} borderTopWidth="1px" pt={4}>
+              <Text fontSize="sm" fontWeight="medium">
+                {t("settings.printing.kitchenSection")}
+              </Text>
+              <Text fontSize="xs" color="fg.muted">
+                {t("settings.printing.kitchenHelp")}
+              </Text>
+              <EnumSelect
+                width="320px"
+                value={kitchenDeviceId}
+                onChange={(v) => {
+                  setKitchenDeviceId(v);
+                  setKitchenPrinter("");
+                }}
+                placeholder={t("settings.printing.kitchenSameAsReceipt")}
+                items={kitchenConnectorOptions}
+                itemToString={(o) => o.label}
+                itemToValue={(o) => o.value}
+              />
+              <EnumSelect
+                width="320px"
+                value={kitchenPrinter}
+                onChange={setKitchenPrinter}
+                placeholder={t("settings.printing.selectPrinter")}
+                items={kitchenPrinterOptions}
+                itemToString={(o) => o.label}
+                itemToValue={(o) => o.value}
+                disabled={kitchenPrinters.length === 0}
+              />
+              <HStack>
+                <Button
+                  colorPalette="blue"
+                  onClick={onSaveKitchen}
+                  loading={saveKitchen.isPending}
+                >
+                  {t("common.save")}
+                </Button>
+              </HStack>
+            </Stack>
+          )}
         </>
       )}
 

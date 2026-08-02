@@ -16,6 +16,12 @@ enum Role {
   // prescription (resep) authority. Distinct from ROLE_PHARMACIST, which this
   // app uses as a "manager" tier.
   ROLE_APOTEKER = 4;
+  // Waiter / pramusaji — the dedicated restaurant-mode floor role. Opens and
+  // serves dining tables (start an order, add/remove items, fire to kitchen,
+  // move tables) but has NO till authority: CompleteSale / VoidSale /
+  // RefundSale stay with the cashier tier. That separation is the point of the
+  // role — it is deliberately NOT a CASHIER clone.
+  ROLE_WAITER = 5;
 }
 
 // Method-level auth policy. Per rpc, declare ONE of:

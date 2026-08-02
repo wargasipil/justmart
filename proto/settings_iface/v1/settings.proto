@@ -15,8 +15,8 @@ message Settings {
   // Shop / app title shown in the browser tab, the sidebar brand and the login
   // screen. Empty = fall back to the mode's built-in brand.
   string app_title = 2;
-  // The shop's business mode (retail vs pharmacy). UNSPECIFIED behaves as
-  // retail. Owner-editable in Settings ▸ General.
+  // The shop's business mode (retail / pharmacy / restaurant). UNSPECIFIED
+  // behaves as retail. Owner-editable in Settings ▸ General.
   BussinessType business_type = 3;
 }
 
@@ -57,6 +57,18 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
   rpc SetPrintTarget(SetPrintTargetRequest) returns (SetPrintTargetResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+
+  // Get/SetKitchenPrintTarget store the KITCHEN ticket target (restaurant mode)
+  // — separate from the receipt target because the point of a kitchen ticket is
+  // that it comes out at the pass, not at the till. Unset falls back to the
+  // receipt target, so a one-printer warung works with no configuration.
+  rpc GetKitchenPrintTarget(GetKitchenPrintTargetRequest) returns (GetKitchenPrintTargetResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SetKitchenPrintTarget(SetKitchenPrintTargetRequest) returns (SetKitchenPrintTargetResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
   }
 
@@ -103,6 +115,11 @@ enum BussinessType {
   BUSSINESS_TYPE_UNSPECIFIED = 0;
   BUSSINESS_TYPE_PHARMACY_SHOP = 1;
   BUSSINESS_TYPE_RETAIL = 2;
+  // Restaurant / warung / cafe: the catalog is a MENU, menu items are assembled
+  // from ingredients via a recipe (see ProductRecipeService), orders can be
+  // bound to a dining table and stay open across rounds, and kitchen tickets
+  // print at fire time.
+  BUSSINESS_TYPE_RESTAURANT = 3;
 }
 
 message GetBussinessSettingsRequest {}
@@ -142,6 +159,20 @@ message SetPrintTargetRequest {
   string printer_name = 2;
 }
 message SetPrintTargetResponse {
+  string connector_device_id = 1;
+  string printer_name = 2;
+}
+
+message GetKitchenPrintTargetRequest {}
+message GetKitchenPrintTargetResponse {
+  string connector_device_id = 1; // saved kitchen connector ("" = use the receipt target)
+  string printer_name = 2;
+}
+message SetKitchenPrintTargetRequest {
+  string connector_device_id = 1; // both empty clears the override
+  string printer_name = 2;
+}
+message SetKitchenPrintTargetResponse {
   string connector_device_id = 1;
   string printer_name = 2;
 }

@@ -46,7 +46,7 @@ import {
   useProductDiscountsQuery,
 } from "../../queries/productDiscounts";
 import { ProductPriceTier } from "../../gen/inventory_iface/v1/product_price_tier_pb";
-import type { Product } from "../../gen/inventory_iface/v1/product_pb";
+import { ProductKind, type Product } from "../../gen/inventory_iface/v1/product_pb";
 import {
   groupTiersByUnit,
   useDeleteProductPriceTierMutation,
@@ -55,6 +55,7 @@ import {
 import { EditProductDialog } from "./productDrawers";
 import ProductDiscountDrawer from "./ProductDiscountDrawer";
 import ProductPriceTierDrawer from "./ProductPriceTierDrawer";
+import RecipePanel from "./RecipePanel";
 
 function fmtVariance(v: bigint): string {
   if (v === 0n) return "±0";
@@ -323,6 +324,15 @@ export default function ProductDetail() {
                 <GrosirPanel product={med} />
               </Box>
             </Card>
+            {/* Recipe — only for an item MADE FROM one. Rendered here rather
+                than as a tab for the same reason the Grosir card is: it is a
+                property of this item's composition, read alongside its units,
+                not a history to page through. */}
+            {med.kind === ProductKind.COMPOSITE && (
+              <Card title={t("inventory.products.recipe.title")}>
+                <RecipePanel product={med} />
+              </Card>
+            )}
           </Stack>
         </SimpleGrid>
 

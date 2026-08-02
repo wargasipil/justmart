@@ -6,6 +6,54 @@
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { ProductPriceTier } from "./product_price_tier_pb.js";
+import { ProductRecipeItem } from "./product_recipe_pb.js";
+
+/**
+ * What selling one of this product costs the inventory. Stored as the bare
+ * string ('STOCKED'|'COMPOSITE'|'SERVICE') in products.product_kind, matching
+ * how users.role is stored — rows stay readable in psql.
+ * 
+ * NOT gated on the business mode: a retail shop selling a gift bundle or
+ * repacking a sack needs COMPOSITE just as much as a warung does.
+ *
+ * @generated from enum inventory_iface.v1.ProductKind
+ */
+export enum ProductKind {
+  /**
+   * treated as STOCKED (the pre-existing default)
+   *
+   * @generated from enum value: PRODUCT_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * the product IS the stock: a sale consumes its own batches
+   *
+   * @generated from enum value: PRODUCT_KIND_STOCKED = 1;
+   */
+  STOCKED = 1,
+
+  /**
+   * assembled at sale time: consumes its recipe's components
+   *
+   * @generated from enum value: PRODUCT_KIND_COMPOSITE = 2;
+   */
+  COMPOSITE = 2,
+
+  /**
+   * consumes nothing (corkage, delivery fee, plating charge)
+   *
+   * @generated from enum value: PRODUCT_KIND_SERVICE = 3;
+   */
+  SERVICE = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ProductKind)
+proto3.util.setEnumType(ProductKind, "inventory_iface.v1.ProductKind", [
+  { no: 0, name: "PRODUCT_KIND_UNSPECIFIED" },
+  { no: 1, name: "PRODUCT_KIND_STOCKED" },
+  { no: 2, name: "PRODUCT_KIND_COMPOSITE" },
+  { no: 3, name: "PRODUCT_KIND_SERVICE" },
+]);
 
 /**
  * Per-row outcome of a CSV import.
@@ -275,6 +323,25 @@ export class Product extends Message<Product> {
    */
   imageUpdatedAt = protoInt64.zero;
 
+  /**
+   * What selling one costs the inventory. UNSPECIFIED reads as STOCKED so every
+   * pre-existing product and every caller that never sets it keeps today's
+   * behaviour exactly.
+   *
+   * @generated from field: inventory_iface.v1.ProductKind kind = 30;
+   */
+  kind = ProductKind.UNSPECIFIED;
+
+  /**
+   * The bill of materials, hydrated alongside units/price_tiers on Get/List/
+   * Search — POS reads the catalog through ListProducts, so a Get-only
+   * hydration would leave every menu item's availability hint blank. Empty for
+   * a STOCKED or SERVICE product.
+   *
+   * @generated from field: repeated inventory_iface.v1.ProductRecipeItem recipe = 31;
+   */
+  recipe: ProductRecipeItem[] = [];
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -311,6 +378,8 @@ export class Product extends Message<Product> {
     { no: 27, name: "price_tiers", kind: "message", T: ProductPriceTier, repeated: true },
     { no: 28, name: "on_order_valuation", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 29, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 30, name: "kind", kind: "enum", T: proto3.getEnumType(ProductKind) },
+    { no: 31, name: "recipe", kind: "message", T: ProductRecipeItem, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {
@@ -998,6 +1067,13 @@ export class CreateProductRequest extends Message<CreateProductRequest> {
    */
   units: ProductUnitInput[] = [];
 
+  /**
+   * UNSPECIFIED = STOCKED
+   *
+   * @generated from field: inventory_iface.v1.ProductKind kind = 8;
+   */
+  kind = ProductKind.UNSPECIFIED;
+
   constructor(data?: PartialMessage<CreateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1012,6 +1088,7 @@ export class CreateProductRequest extends Message<CreateProductRequest> {
     { no: 5, name: "unit_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
+    { no: 8, name: "kind", kind: "enum", T: proto3.getEnumType(ProductKind) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateProductRequest {
@@ -1274,6 +1351,15 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
    */
   sku = "";
 
+  /**
+   * UNSPECIFIED = STOCKED. Switching AWAY from COMPOSITE while recipe lines
+   * still exist is rejected — clear the recipe first, so a menu item can never
+   * silently stop consuming its ingredients.
+   *
+   * @generated from field: inventory_iface.v1.ProductKind kind = 9;
+   */
+  kind = ProductKind.UNSPECIFIED;
+
   constructor(data?: PartialMessage<UpdateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1289,6 +1375,7 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
     { no: 6, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
     { no: 8, name: "sku", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "kind", kind: "enum", T: proto3.getEnumType(ProductKind) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateProductRequest {

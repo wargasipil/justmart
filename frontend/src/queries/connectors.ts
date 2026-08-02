@@ -6,6 +6,7 @@ export const connectorKeys = {
   all: ["connectors"] as const,
   list: () => [...connectorKeys.all, "list"] as const,
   target: () => [...connectorKeys.all, "print-target"] as const,
+  kitchenTarget: () => [...connectorKeys.all, "kitchen-target"] as const,
   printingInfo: () => [...connectorKeys.all, "printing-info"] as const,
 };
 
@@ -59,6 +60,30 @@ export function useSetPrintTargetMutation() {
     mutationFn: (req: { connectorDeviceId: string; printerName: string }) =>
       settingsClient.setPrintTarget(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: connectorKeys.target() }),
+  });
+}
+
+// The saved KITCHEN ticket target (restaurant mode). Both fields empty = not
+// configured, in which case the server fires tickets to the RECEIPT printer —
+// so a one-printer warung works without touching this at all.
+export function useKitchenPrintTargetQuery(enabled = true) {
+  return useQuery({
+    queryKey: connectorKeys.kitchenTarget(),
+    queryFn: async () => {
+      const res = await settingsClient.getKitchenPrintTarget({});
+      return { connectorDeviceId: res.connectorDeviceId, printerName: res.printerName };
+    },
+    enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useSetKitchenPrintTargetMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: { connectorDeviceId: string; printerName: string }) =>
+      settingsClient.setKitchenPrintTarget(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: connectorKeys.kitchenTarget() }),
   });
 }
 

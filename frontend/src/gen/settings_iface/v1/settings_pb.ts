@@ -24,12 +24,23 @@ export enum BussinessType {
    * @generated from enum value: BUSSINESS_TYPE_RETAIL = 2;
    */
   RETAIL = 2,
+
+  /**
+   * Restaurant / warung / cafe: the catalog is a MENU, menu items are assembled
+   * from ingredients via a recipe (see ProductRecipeService), orders can be
+   * bound to a dining table and stay open across rounds, and kitchen tickets
+   * print at fire time.
+   *
+   * @generated from enum value: BUSSINESS_TYPE_RESTAURANT = 3;
+   */
+  RESTAURANT = 3,
 }
 // Retrieve enum metadata with: proto3.getEnumType(BussinessType)
 proto3.util.setEnumType(BussinessType, "settings_iface.v1.BussinessType", [
   { no: 0, name: "BUSSINESS_TYPE_UNSPECIFIED" },
   { no: 1, name: "BUSSINESS_TYPE_PHARMACY_SHOP" },
   { no: 2, name: "BUSSINESS_TYPE_RETAIL" },
+  { no: 3, name: "BUSSINESS_TYPE_RESTAURANT" },
 ]);
 
 /**
@@ -56,8 +67,8 @@ export class Settings extends Message<Settings> {
   appTitle = "";
 
   /**
-   * The shop's business mode (retail vs pharmacy). UNSPECIFIED behaves as
-   * retail. Owner-editable in Settings ▸ General.
+   * The shop's business mode (retail / pharmacy / restaurant). UNSPECIFIED
+   * behaves as retail. Owner-editable in Settings ▸ General.
    *
    * @generated from field: settings_iface.v1.BussinessType business_type = 3;
    */
@@ -568,6 +579,170 @@ export class SetPrintTargetResponse extends Message<SetPrintTargetResponse> {
 
   static equals(a: SetPrintTargetResponse | PlainMessage<SetPrintTargetResponse> | undefined, b: SetPrintTargetResponse | PlainMessage<SetPrintTargetResponse> | undefined): boolean {
     return proto3.util.equals(SetPrintTargetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetKitchenPrintTargetRequest
+ */
+export class GetKitchenPrintTargetRequest extends Message<GetKitchenPrintTargetRequest> {
+  constructor(data?: PartialMessage<GetKitchenPrintTargetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetKitchenPrintTargetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetKitchenPrintTargetRequest {
+    return new GetKitchenPrintTargetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetKitchenPrintTargetRequest {
+    return new GetKitchenPrintTargetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetKitchenPrintTargetRequest {
+    return new GetKitchenPrintTargetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetKitchenPrintTargetRequest | PlainMessage<GetKitchenPrintTargetRequest> | undefined, b: GetKitchenPrintTargetRequest | PlainMessage<GetKitchenPrintTargetRequest> | undefined): boolean {
+    return proto3.util.equals(GetKitchenPrintTargetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.GetKitchenPrintTargetResponse
+ */
+export class GetKitchenPrintTargetResponse extends Message<GetKitchenPrintTargetResponse> {
+  /**
+   * saved kitchen connector ("" = use the receipt target)
+   *
+   * @generated from field: string connector_device_id = 1;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 2;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<GetKitchenPrintTargetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetKitchenPrintTargetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetKitchenPrintTargetResponse {
+    return new GetKitchenPrintTargetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetKitchenPrintTargetResponse {
+    return new GetKitchenPrintTargetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetKitchenPrintTargetResponse {
+    return new GetKitchenPrintTargetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetKitchenPrintTargetResponse | PlainMessage<GetKitchenPrintTargetResponse> | undefined, b: GetKitchenPrintTargetResponse | PlainMessage<GetKitchenPrintTargetResponse> | undefined): boolean {
+    return proto3.util.equals(GetKitchenPrintTargetResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetKitchenPrintTargetRequest
+ */
+export class SetKitchenPrintTargetRequest extends Message<SetKitchenPrintTargetRequest> {
+  /**
+   * both empty clears the override
+   *
+   * @generated from field: string connector_device_id = 1;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 2;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<SetKitchenPrintTargetRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetKitchenPrintTargetRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetKitchenPrintTargetRequest {
+    return new SetKitchenPrintTargetRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetKitchenPrintTargetRequest {
+    return new SetKitchenPrintTargetRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetKitchenPrintTargetRequest {
+    return new SetKitchenPrintTargetRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetKitchenPrintTargetRequest | PlainMessage<SetKitchenPrintTargetRequest> | undefined, b: SetKitchenPrintTargetRequest | PlainMessage<SetKitchenPrintTargetRequest> | undefined): boolean {
+    return proto3.util.equals(SetKitchenPrintTargetRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetKitchenPrintTargetResponse
+ */
+export class SetKitchenPrintTargetResponse extends Message<SetKitchenPrintTargetResponse> {
+  /**
+   * @generated from field: string connector_device_id = 1;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 2;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<SetKitchenPrintTargetResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetKitchenPrintTargetResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetKitchenPrintTargetResponse {
+    return new SetKitchenPrintTargetResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetKitchenPrintTargetResponse {
+    return new SetKitchenPrintTargetResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetKitchenPrintTargetResponse {
+    return new SetKitchenPrintTargetResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetKitchenPrintTargetResponse | PlainMessage<SetKitchenPrintTargetResponse> | undefined, b: SetKitchenPrintTargetResponse | PlainMessage<SetKitchenPrintTargetResponse> | undefined): boolean {
+    return proto3.util.equals(SetKitchenPrintTargetResponse, a, b);
   }
 }
 

@@ -24,6 +24,8 @@ type RouteDef = {
   labelKey?: string;
   /** Pharmacy-mode override for the catalog noun (Produk -> Obat). */
   pharmacyLabelKey?: string;
+  /** Restaurant-mode override for the catalog noun (Produk -> Menu). */
+  restaurantLabelKey?: string;
   /** Derives the i18n key from the matched `:param` segment. */
   labelKeyFromParam?: (segment: string) => string;
   dynamic?: boolean;
@@ -41,11 +43,17 @@ const ROUTES: RouteDef[] = [
   },
 
   { path: "@order", labelKey: "nav.order" },
+  { path: "/tables", labelKey: "nav.tables", parent: "@order" },
   { path: "/pos", labelKey: "nav.pos", parent: "@order" },
   { path: "/orders", labelKey: "nav.orders", parent: "@order" },
   { path: "/orders/:id", dynamic: true, parent: "/orders" },
 
-  { path: "/products", labelKey: "nav.products", pharmacyLabelKey: "nav.medicines" },
+  {
+    path: "/products",
+    labelKey: "nav.products",
+    pharmacyLabelKey: "nav.medicines",
+    restaurantLabelKey: "nav.menu",
+  },
   { path: "/products/:id", dynamic: true, parent: "/products" },
 
   { path: "@inventory", labelKey: "nav.inventory" },
@@ -162,7 +170,7 @@ export function useCrumbLabel(label: string | undefined) {
 export function useBreadcrumbs(): Crumb[] {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const { isPharmacy } = useBusinessMode();
+  const { isPharmacy, isRestaurant } = useBusinessMode();
   const dynamicLabel = useCrumbLabelStore((s) => s.label);
 
   const match = matchRoute(pathname);
@@ -190,7 +198,12 @@ export function useBreadcrumbs(): Crumb[] {
       // redirect passing through) drops the crumb instead of printing the key.
       label = t(key, { defaultValue: "" });
     } else {
-      const key = isPharmacy && def.pharmacyLabelKey ? def.pharmacyLabelKey : def.labelKey;
+      const modeKey = isPharmacy
+        ? def.pharmacyLabelKey
+        : isRestaurant
+          ? def.restaurantLabelKey
+          : undefined;
+      const key = modeKey ?? def.labelKey;
       label = key ? t(key) : "";
     }
     if (!label) continue;

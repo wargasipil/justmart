@@ -150,6 +150,42 @@ func TestUpdateSettings_BusinessMode(t *testing.T) {
 	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RETAIL, mode2.Msg.Type)
 }
 
+// Restaurant is a first-class third mode: settable, persisted, and readable back
+// through BOTH the authenticated business-settings RPC and the public branding
+// RPC (the login screen brands off the latter, so a restaurant must not fall
+// back to the retail brand pre-login).
+func TestUpdateSettings_RestaurantMode(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+	ctx := context.Background()
+
+	resp, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		AppTitle:          "Warung Sederhana",
+		BusinessType:      settingsifacev1.BussinessType_BUSSINESS_TYPE_RESTAURANT,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RESTAURANT, resp.Msg.Settings.BusinessType)
+
+	mode, err := svc.GetBussinessSettings(ctx, connect.NewRequest(&settingsifacev1.GetBussinessSettingsRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RESTAURANT, mode.Msg.Type)
+
+	brand, err := svc.GetBranding(ctx, connect.NewRequest(&settingsifacev1.GetBrandingRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RESTAURANT, brand.Msg.BusinessType)
+	require.Equal(t, "Warung Sederhana", brand.Msg.AppTitle)
+
+	// A threshold-only edit must not silently reset a restaurant to retail —
+	// same UNSPECIFIED-preserves rule the pharmacy mode relies on.
+	resp2, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 3,
+		AppTitle:          "Warung Sederhana",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, settingsifacev1.BussinessType_BUSSINESS_TYPE_RESTAURANT, resp2.Msg.Settings.BusinessType)
+}
+
 // An unknown business type value is rejected with a stable token.
 func TestUpdateSettings_UnknownBusinessType(t *testing.T) {
 	t.Parallel()

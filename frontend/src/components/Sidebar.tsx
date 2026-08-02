@@ -1,157 +1,56 @@
 import { Box, HStack, IconButton, Spacer, Stack, Text } from "@chakra-ui/react";
 import {
-  ArrowLeftRight,
-  BarChart3,
-  Blocks,
-  Boxes,
-  Building2,
   ChevronDown,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ClipboardList,
-  FileText,
-  Handshake,
-  LayoutDashboard,
   LogOut,
-  Package,
-  Pill,
-  Receipt,
-  Repeat,
-  Settings as SettingsIcon,
-  ShoppingBag,
-  ShoppingCart,
-  Store,
-  Truck,
-  UserRound,
-  Users as UsersIcon,
-  Warehouse as WarehouseIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
 
-import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { useAuth } from "../lib/auth";
+import { brandIcon } from "../lib/brand";
+// WHAT the rail contains lives in lib/navItems.ts; this file is HOW it renders.
+import {
+  buildItems,
+  isGroup,
+  type ModeOnly,
+  type NavGroup,
+  type NavLeaf,
+} from "../lib/navItems";
 import { useAppTitle, useBusinessMode } from "../queries/settings";
 import { usePreferencesStore } from "../stores/preferences";
-
-type NavLeaf = {
-  to: string;
-  label: string;
-  icon: typeof Package;
-  roles?: Role[];
-  pharmacyOnly?: boolean; // hidden unless the shop is in pharmacy mode
-  devOnly?: boolean; // dev builds only (the /components gallery)
-};
-
-type NavGroup = {
-  kind: "group";
-  label: string;
-  icon: typeof Package;
-  roles?: Role[];
-  children: NavLeaf[];
-};
-
-type NavEntry = NavLeaf | NavGroup;
-
-function isGroup(e: NavEntry): e is NavGroup {
-  return "kind" in e && e.kind === "group";
-}
-
-function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
-  return [
-    { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard },
-    {
-      to: "/analytics",
-      label: t("nav.analytics"),
-      icon: BarChart3,
-      roles: [Role.OWNER, Role.PHARMACIST],
-    },
-    {
-      kind: "group",
-      label: t("nav.order"),
-      icon: ShoppingBag,
-      children: [
-        { to: "/pos", label: t("nav.pos"), icon: ShoppingCart },
-        {
-          to: "/orders",
-          label: t("nav.orders"),
-          icon: Receipt,
-          roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER],
-        },
-      ],
-    },
-    {
-      to: "/products",
-      // In pharmacy mode the catalog is "Obat" (medicines); in retail it's "Produk".
-      label: isPharmacy ? t("nav.medicines") : t("nav.products"),
-      icon: isPharmacy ? Pill : Package,
-      roles: [Role.OWNER, Role.PHARMACIST],
-    },
-    {
-      kind: "group",
-      label: t("nav.inventory"),
-      icon: Package,
-      roles: [Role.OWNER, Role.PHARMACIST],
-      children: [
-        { to: "/purchasing", label: t("nav.purchasing"), icon: Truck },
-        { to: "/inventory/suppliers", label: t("inventory.tabs.suppliers"), icon: Building2 },
-        { to: "/inventory/price-agreements", label: t("nav.priceAgreements"), icon: Handshake },
-        { to: "/inventory/batches", label: t("inventory.tabs.batches"), icon: Boxes },
-        { to: "/inventory/movements", label: t("inventory.tabs.movements"), icon: ArrowLeftRight },
-        { to: "/inventory/stocktake", label: t("inventory.tabs.stocktake"), icon: ClipboardList },
-        { to: "/inventory/transfers", label: t("inventory.tabs.transfers"), icon: Repeat },
-      ],
-    },
-    {
-      // Resep (prescriptions) — pharmacy mode. Visible to the Rx authority
-      // (OWNER + PHARMACIST + APOTEKER). Phase 5 will additionally gate this on
-      // the active business mode (hidden in retail mode).
-      to: "/prescriptions",
-      label: t("nav.prescriptions"),
-      icon: FileText,
-      roles: [Role.OWNER, Role.PHARMACIST, Role.APOTEKER],
-      pharmacyOnly: true,
-    },
-    {
-      to: "/customers",
-      label: t("nav.customers"),
-      icon: UserRound,
-    },
-    {
-      // Self-scoped performance view for the till roles (own sales over time).
-      // OWNER/PHARMACIST get full Analytics instead, so they don't see this.
-      to: "/my-performance",
-      label: t("nav.myPerformance"),
-      icon: BarChart3,
-      roles: [Role.CASHIER, Role.APOTEKER],
-    },
-    { to: "/warehouses", label: t("nav.warehouses"), icon: WarehouseIcon, roles: [Role.OWNER] },
-    { to: "/users", label: t("nav.users"), icon: UsersIcon, roles: [Role.OWNER] },
-    { to: "/settings", label: t("nav.settings"), icon: SettingsIcon, roles: [Role.OWNER] },
-    // Dev tool: the curated shared-component gallery. Stripped from the rail
-    // (and from the router) in a production build.
-    { to: "/components", label: t("nav.components"), icon: Blocks, devOnly: true },
-  ];
-}
 
 export default function Sidebar() {
   const { t } = useTranslation();
   const collapsed = usePreferencesStore((s) => s.sidebarCollapsed);
   const toggle = usePreferencesStore((s) => s.toggleSidebar);
   const { user, logout } = useAuth();
-  const { isPharmacy } = useBusinessMode();
+  const { mode, isPharmacy, isRestaurant } = useBusinessMode();
   // Top-left brand = the app title configured in Settings ▸ General, falling
-  // back to the built-in brand for the active mode (pharmacy vs retail).
+  // back to the built-in brand for the active mode.
   const brandName = useAppTitle();
+  const BrandIcon = brandIcon(mode);
 
-  const items = buildItems(t, isPharmacy).filter(
-    (item) =>
-      (!item.roles || (user && item.roles.includes(user.role))) &&
-      (!("pharmacyOnly" in item && item.pharmacyOnly) || isPharmacy) &&
-      (!("devOnly" in item && item.devOnly) || import.meta.env.DEV),
-  );
+  const modeAllows = (entry: { onlyIn?: ModeOnly }) =>
+    !entry.onlyIn ||
+    (entry.onlyIn === "pharmacy" ? isPharmacy : isRestaurant);
+
+  const items = buildItems(t, { isPharmacy, isRestaurant })
+    .filter(
+      (item) =>
+        (!item.roles || (user && item.roles.includes(user.role))) &&
+        modeAllows(item) &&
+        (!("devOnly" in item && item.devOnly) || import.meta.env.DEV),
+    )
+    // A group's children carry their own mode gate (e.g. Tables is
+    // restaurant-only inside the shared Order group), so filter them too.
+    .map((item) =>
+      isGroup(item) ? { ...item, children: item.children.filter(modeAllows) } : item,
+    )
+    .filter((item) => !isGroup(item) || item.children.length > 0);
 
   const width = collapsed ? "64px" : "240px";
 
@@ -173,7 +72,7 @@ export default function Sidebar() {
       {/* Brand */}
       <HStack gap={2} px={4} h="56px" borderBottomWidth="1px">
         <Box color="colorPalette.solid">
-          {isPharmacy ? <Pill size={22} /> : <Store size={22} />}
+          <BrandIcon size={22} />
         </Box>
         {!collapsed && (
           <Text

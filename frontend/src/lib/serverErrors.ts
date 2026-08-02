@@ -98,6 +98,7 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "purchasing.lines_required": { i18nKey: "serverErrors.common.itemsRequired" },
   "purchasing.amount_invalid": { i18nKey: "serverErrors.common.qtyInvalid" },
   "purchasing.po_voided": { i18nKey: "serverErrors.purchasing.poVoided" },
+  "purchasing.product_not_stocked": { i18nKey: "serverErrors.purchasing.productNotStocked" },
   "purchasing.discount_negative": { i18nKey: "serverErrors.common.discountInvalid" },
   "purchasing.discount_percent_range": { i18nKey: "serverErrors.common.discountInvalid" },
   "purchasing.discount_type_invalid": { i18nKey: "serverErrors.common.discountInvalid" },

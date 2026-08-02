@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Justmart",
-    "pharmacyName": "Apotek"
+    "pharmacyName": "Apotek",
+    "restaurantName": "Restoran"
   },
   "glossary": {
     "product": "produk",
@@ -14,6 +15,12 @@
     "products": "obat",
     "productCap": "Obat",
     "productsCap": "Obat"
+  },
+  "glossaryRestaurant": {
+    "product": "menu",
+    "products": "menu",
+    "productCap": "Menu",
+    "productsCap": "Menu"
   },
   "datepicker": {
     "open": "Buka kalender",
@@ -63,6 +70,8 @@
     "inventory": "Inventaris",
     "products": "Produk",
     "medicines": "Obat",
+    "menu": "Menu",
+    "tables": "Meja",
     "suppliers": "Pemasok",
     "batches": "Batch",
     "movements": "Mutasi stok",
@@ -112,7 +121,8 @@
     "businessModeHelp": "Retail menjalankan katalog toko; apotek menambah obat, resep, dan pemeriksaan resep di POS.",
     "modes": {
       "retail": "Retail",
-      "pharmacy": "Apotek"
+      "pharmacy": "Apotek",
+      "restaurant": "Restoran"
     },
     "tabs": {
       "general": "Umum",
@@ -161,6 +171,9 @@
       "hostDefault": "Printer default",
       "noLocalPrinters": "Tidak ada printer terdeteksi di PC ini (cetak USB hanya berfungsi di server Windows).",
       "usbHelp": "Mode USB mencetak langsung ke printer yang terpasang di PC ini. Pilih salah satu, atau biarkan pada Printer default untuk memakai default Windows.",
+      "kitchenSection": "Printer struk dapur",
+      "kitchenHelp": "Tempat pesanan dicetak saat pramusaji mengirimnya. Jika dikosongkan, struk dapur ikut printer struk di atas.",
+      "kitchenSameAsReceipt": "Sama dengan printer struk",
       "tcpMode": "Struk dicetak ke printer jaringan yang diatur di config.yaml (printer.address). Ubah connector.mode ke usb atau connector untuk memilih printer di sini.",
       "paperWidth": "Lebar kertas",
       "width58": "58 mm (kecil)",
@@ -356,6 +369,7 @@
       "owner": "Pemilik",
       "pharmacist": "Admin",
       "apoteker": "Apoteker",
+      "waiter": "Pramusaji",
       "cashier": "Kasir",
       "unknown": "Tidak diketahui"
     },
@@ -373,6 +387,7 @@
       "lowStock": "Stok menipis",
       "expiring30d": "Kedaluwarsa 30 hari",
       "activeRx": "Resep aktif",
+      "openTables": "Meja terisi",
       "myRevenue": "Pendapatan saya",
       "mySales": "Transaksi saya",
       "myItems": "Item saya",
@@ -511,6 +526,22 @@
     "grosirTierHint": "≥{{qty}} {{price}}",
     "grosirTierHintMore": "≥{{qty}} {{price}} +{{n}}",
     "grosirNudge": "Kurang {{n}} lagi → {{price}}",
+    "atTable": "Meja {{code}}",
+    "fireCount": "Kirim {{count}}",
+    "fired": "Sudah dikirim",
+    "firedToast": "{{count}} item dikirim ke dapur",
+    "lineFired": "terkirim",
+    "noteTitle": "Catatan dapur",
+    "noteLabel": "Catatan untuk dapur",
+    "notePlaceholder": "mis. tanpa es, pedas",
+    "noteHelp": "Dicetak di struk dapur. Tidak mengubah harga.",
+    "noteAfterFire": "Item ini sudah dikirim — perubahan tidak dicetak ulang, sampaikan ke dapur.",
+    "orderTypes": {
+      "counter": "Kasir",
+      "takeaway": "Bungkus",
+      "delivery": "Antar",
+      "dine_in": "Makan di tempat"
+    },
     "grosirDiscountHint": "Baris ini memakai harga grosir. Diskon manual tetap berlaku di atasnya.",
     "autoDiscountHint": "Diskon produk otomatis berlaku. Isi nilai untuk menimpanya.",
     "exactAmount": "Uang pas",
@@ -694,6 +725,35 @@
       "baseUnit": "Satuan dasar",
       "basePrice": "Harga dasar (per satuan dasar)",
       "prescriptionRequired": "Perlu resep",
+      "kind": "Jenis",
+      "kinds": {
+        "stocked": "Barang berstok",
+        "composite": "Dibuat dari resep",
+        "service": "Jasa (tanpa stok)"
+      },
+      "kindHelp": {
+        "stocked": "Menjual satu mengurangi stok batch-nya sendiri.",
+        "composite": "Menjual satu mengurangi bahan pada resepnya. Atur resep di halaman detail.",
+        "service": "Dijual dan diberi harga seperti biasa, tetapi tidak mengurangi stok — biaya atau jasa."
+      },
+      "recipe": {
+        "title": "Resep bahan",
+        "description": "Bahan pembuat satu porsi. Penjualan akan mengurangi bahan ini.",
+        "empty": "Belum ada bahan. Tambahkan agar penjualan mengurangi stok.",
+        "add": "Tambah bahan",
+        "editTitle": "Ubah bahan",
+        "component": "Bahan",
+        "qtyBase": "Jumlah per porsi",
+        "qtyBaseHelp": "Dalam satuan dasar bahan, untuk SATU item ini.",
+        "note": "Catatan",
+        "onHand": "Stok",
+        "buildable": "Bisa dibuat {{count}} porsi",
+        "buildableNone": "Ada bahan yang habis",
+        "buildableNoRecipe": "Belum ada resep",
+        "removeTitle": "Hapus bahan",
+        "removeConfirm": "Hapus {{name}} dari resep ini?",
+        "onlyComposite": "Hanya item yang dibuat dari resep yang punya bahan. Ubah jenisnya untuk menambah bahan."
+      },
       "unitsSection": "Satuan",
       "unitsBaseNote": "Satuan dasar: {{unit}}. Tambah kemasan lebih besar (box, strip…) di bawah; faktor = jumlah satuan dasar per kemasan.",
       "unitName": "Satuan",
@@ -924,6 +984,37 @@
       }
     }
   },
+  "tables": {
+    "title": "Meja",
+    "description": "Denah meja. Ketuk meja kosong untuk membuka pesanan, atau meja terisi untuk melanjutkan.",
+    "occupancy": "{{occupied}} dari {{total}} terisi",
+    "occupied": "Terisi",
+    "free": "Kosong",
+    "empty": "Belum ada meja. Tambahkan meja untuk mulai menerima tamu.",
+    "allAreas": "Semua area",
+    "showArchived": "Tampilkan arsip",
+    "hideArchived": "Sembunyikan arsip",
+    "code": "Kode",
+    "codeHelp": "Label singkat di lantai, mis. T1. Unik di antara meja aktif.",
+    "name": "Nama",
+    "area": "Area",
+    "areaHelp": "Pengelompokan opsional, mis. Indoor, Teras, Lantai 2.",
+    "seats": "Kursi",
+    "guests": "{{count}} tamu",
+    "guestCount": "Jumlah tamu",
+    "openItems": "{{count}} item",
+    "addTitle": "Tambah meja",
+    "editTitle": "Ubah meja",
+    "openTitle": "Buka meja {{code}}",
+    "openHelp": "Membuka pesanan baru untuk meja ini. Tetap terbuka sampai dibayar.",
+    "openAction": "Buka meja",
+    "archiveTitle": "Arsipkan meja",
+    "archiveConfirm": "Keluarkan meja {{code}} dari denah? Riwayat pesanannya tetap tersimpan.",
+    "unarchiveTitle": "Pulihkan meja",
+    "unarchiveConfirm": "Kembalikan meja {{code}} ke denah?",
+    "archived": "Meja diarsipkan",
+    "unarchived": "Meja dipulihkan"
+  },
   "warehouses": {
     "title": "Gudang",
     "description": "Lokasi penyimpanan stok Anda dan siapa saja yang dapat bekerja di dalamnya.",
@@ -1115,6 +1206,7 @@
     },
     "purchasing": {
       "poVoided": "Tidak bisa membayar PO yang dibatalkan",
+      "productNotStocked": "Hanya barang berstok yang bisa dipesan. Menu dibuat dari bahannya — pesan bahannya.",
       "poNotReturnable": "PO ini tidak punya barang diterima untuk diretur",
       "returnExceedsOnHand": "Tidak bisa meretur melebihi jumlah yang masih ada stok",
       "receiptItemNotFound": "Baris penerimaan tidak ditemukan pada PO ini",
@@ -1215,6 +1307,8 @@
       "change": "Kembalian",
       "prescription": "Resep",
       "completedAt": "Selesai pada",
+      "orderType": "Jenis pesanan",
+      "table": "Meja",
       "taxInvoiceNo": "No faktur",
       "taxInvoiceCode": "Kode faktur",
       "dpp": "DPP",

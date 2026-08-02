@@ -10,6 +10,7 @@ import (
 
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *ProductService) load(ctx context.Context, id string) (*model.Product, error) {
@@ -45,6 +46,35 @@ func productToProto(m *model.Product) *inventoryifacev1.Product {
 		Active:               m.Active,
 		CreatedAt:            m.CreatedAt.Unix(),
 		ImageUpdatedAt:       imageAt,
+		Kind:                 kindToProto(m.Kind),
+	}
+}
+
+// kindToProto maps the stored kind string to the proto enum. An empty or
+// unrecognized column value reads as STOCKED (never UNSPECIFIED) so a client
+// switching on the enum never has to special-case pre-migration rows.
+func kindToProto(kind string) inventoryifacev1.ProductKind {
+	switch common.NormalizeProductKind(kind) {
+	case common.ProductKindComposite:
+		return inventoryifacev1.ProductKind_PRODUCT_KIND_COMPOSITE
+	case common.ProductKindService:
+		return inventoryifacev1.ProductKind_PRODUCT_KIND_SERVICE
+	default:
+		return inventoryifacev1.ProductKind_PRODUCT_KIND_STOCKED
+	}
+}
+
+// kindFromProto maps the request enum to the stored string. UNSPECIFIED means
+// "the caller didn't say", which is STOCKED — the pre-kind default — so an old
+// client that never sets the field keeps creating ordinary stocked products.
+func kindFromProto(k inventoryifacev1.ProductKind) string {
+	switch k {
+	case inventoryifacev1.ProductKind_PRODUCT_KIND_COMPOSITE:
+		return common.ProductKindComposite
+	case inventoryifacev1.ProductKind_PRODUCT_KIND_SERVICE:
+		return common.ProductKindService
+	default:
+		return common.ProductKindStocked
 	}
 }
 

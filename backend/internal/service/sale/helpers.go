@@ -24,7 +24,7 @@ func resolveCashierFilter(caller auth.Principal, requested string) (string, erro
 	switch caller.Role {
 	case "OWNER", "PHARMACIST":
 		return requested, nil // "" = all warehouse sales, set = that cashier
-	default: // CASHIER, APOTEKER
+	default: // CASHIER, APOTEKER, WAITER — self-scoped
 		if requested != "" && requested != caller.UserID {
 			return "", connect.NewError(connect.CodeInvalidArgument,
 				errors.New("can only view own sales"))
@@ -131,6 +131,44 @@ func (s *SaleService) enrichSaleNames(ctx context.Context, sales []*posifacev1.S
 		for _, it := range sl.Items {
 			it.ProductName = medNames[it.ProductId]
 		}
+	}
+	return s.enrichTableCodes(ctx, sales)
+}
+
+// enrichTableCodes denormalizes the floor label onto dine-in sales. The order
+// list and the receipt both need to say "T4" rather than a UUID, and neither is
+// worth a Resolve round trip for a single short string — a restaurant's table
+// set is tiny and bounded, unlike the catalogs the resolve-by-IDs rule exists
+// for. Batch-loaded in one query; a no-op for every non-restaurant sale.
+func (s *SaleService) enrichTableCodes(ctx context.Context, sales []*posifacev1.Sale) error {
+	idSet := map[string]struct{}{}
+	for _, sl := range sales {
+		if sl.TableId != "" {
+			idSet[sl.TableId] = struct{}{}
+		}
+	}
+	if len(idSet) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
+	type row struct {
+		ID   string `gorm:"column:id"`
+		Code string `gorm:"column:code"`
+	}
+	var rows []row
+	if err := s.db.WithContext(ctx).Table("dining_tables").Select("id, code").
+		Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	byID := make(map[string]string, len(rows))
+	for _, r := range rows {
+		byID[r.ID] = r.Code
+	}
+	for _, sl := range sales {
+		sl.TableCode = byID[sl.TableId]
 	}
 	return nil
 }

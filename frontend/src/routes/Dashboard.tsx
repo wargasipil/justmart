@@ -18,6 +18,7 @@ import { useDailyMetricQuery } from "../queries/analytics";
 import { useExpiringSoonCountQuery } from "../queries/batches";
 import { useActiveRxCountQuery } from "../queries/prescriptions";
 import { useLowStockQuery } from "../queries/products";
+import { useTablesQuery } from "../queries/tables";
 import { useTodaySnapshotQuery } from "../queries/sales";
 import { useBusinessMode } from "../queries/settings";
 
@@ -144,18 +145,24 @@ function OwnerHealth() {
 
 function InventoryHealth() {
   const { t } = useTranslation();
-  const { isPharmacy } = useBusinessMode();
+  const { isPharmacy, isRestaurant } = useBusinessMode();
   const lowStockQ = useLowStockQuery();
   const expiringQ = useExpiringSoonCountQuery(30);
-  // Active Rx count only matters in pharmacy mode; skip the query in retail.
+  // Each mode-specific count is skipped entirely outside its mode — a retail
+  // shop should not be paying for an Rx or a floor query it will never render.
   const activeRxQ = useActiveRxCountQuery(isPharmacy);
+  const tablesQ = useTablesQuery({ enabled: isRestaurant });
 
   const lowStockCount = lowStockQ.data?.total ?? 0;
+  const hasModeTile = isPharmacy || isRestaurant;
 
   return (
     <Stack gap={5}>
       <Heading size="md">{t("dashboard.section.inventoryHealth")}</Heading>
-      <Grid templateColumns={{ base: "1fr", md: isPharmacy ? "repeat(3, 1fr)" : "repeat(2, 1fr)" }} gap={4}>
+      <Grid
+        templateColumns={{ base: "1fr", md: hasModeTile ? "repeat(3, 1fr)" : "repeat(2, 1fr)" }}
+        gap={4}
+      >
         <DashboardTile
           label={t("dashboard.tile.lowStock")}
           value={String(lowStockCount)}
@@ -173,6 +180,16 @@ function InventoryHealth() {
             label={t("dashboard.tile.activeRx")}
             value={String(activeRxQ.count)}
             to="/prescriptions"
+          />
+        )}
+        {isRestaurant && (
+          // Occupied out of total — the one number that says whether the room is
+          // busy, and a tap away from the floor plan.
+          <DashboardTile
+            label={t("dashboard.tile.openTables")}
+            value={`${tablesQ.occupied}/${tablesQ.total}`}
+            to="/tables"
+            tone={tablesQ.occupied > 0 ? "warning" : "default"}
           />
         )}
       </Grid>

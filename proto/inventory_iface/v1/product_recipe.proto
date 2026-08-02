@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package inventory_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+// One ingredient line of a COMPOSITE product's recipe (bill of materials).
+//
+// qty_base is the component's BASE units consumed per ONE BASE unit of the
+// parent, matching the "everything is base units" rule the stock ledger, FEFO
+// and Rx coverage already use. Selling 2 portions consumes 2 x qty_base, and a
+// caller never has to reason about selling units.
+//
+// component_name / component_sku / component_unit are denormalized for display
+// (the recipe editor and the POS availability hint); they are snapshots of the
+// component product read at response time, never stored.
+message ProductRecipeItem {
+  string id = 1;
+  string product_id = 2;            // the COMPOSITE parent
+  string component_product_id = 3;  // the STOCKED ingredient consumed
+  int64 qty_base = 4;               // component base units per 1 base unit of the parent (> 0)
+  string note = 5;                  // free text, e.g. "drained weight"
+  int64 created_at = 6;
+  // Display-only, filled on read.
+  string component_name = 7;
+  string component_sku = 8;
+  string component_unit = 9;   // the component's base unit name (g, ml, pcs, ...)
+  int64 component_ready = 10;  // component on-hand in the caller's active warehouse, BASE units
+}
+
+// ProductRecipeService edits the bill of materials of a COMPOSITE product.
+// Manager tier only (OWNER + PHARMACIST/"Admin") — a recipe sets food cost, so
+// it is catalog administration, not a floor action. Reads are open to the POS
+// roles as well so the cart can explain WHY a menu item is unavailable.
+service ProductRecipeService {
+  rpc ListProductRecipeItems(ListProductRecipeItemsRequest) returns (ListProductRecipeItemsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+  rpc CreateProductRecipeItem(CreateProductRecipeItemRequest) returns (CreateProductRecipeItemResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdateProductRecipeItem(UpdateProductRecipeItemRequest) returns (UpdateProductRecipeItemResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc DeleteProductRecipeItem(DeleteProductRecipeItemRequest) returns (DeleteProductRecipeItemResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+}
+
+message ListProductRecipeItemsRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListProductRecipeItemsResponse {
+  repeated ProductRecipeItem items = 1;
+  int32 total = 2; // all recipe lines for the product, ignoring the page window
+  // Portions the current component stock can make in the active warehouse =
+  // min over lines of floor(component_ready / qty_base). 0 when a component is
+  // out of stock; -1 when the product has no recipe at all (nothing to bound it).
+  int64 buildable = 3;
+}
+
+message CreateProductRecipeItemRequest {
+  string product_id = 1;
+  string component_product_id = 2;
+  int64 qty_base = 3;
+  string note = 4;
+}
+message CreateProductRecipeItemResponse { ProductRecipeItem item = 1; }
+
+message UpdateProductRecipeItemRequest {
+  string id = 1;  // product_id + component_product_id are immutable; delete + re-add to change the component
+  int64 qty_base = 2;
+  string note = 3;
+}
+message UpdateProductRecipeItemResponse { ProductRecipeItem item = 1; }
+
+message DeleteProductRecipeItemRequest { string id = 1; }
+message DeleteProductRecipeItemResponse {}

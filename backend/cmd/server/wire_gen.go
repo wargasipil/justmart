@@ -19,10 +19,12 @@ import (
 	"github.com/justmart/backend/internal/service/product"
 	"github.com/justmart/backend/internal/service/productdiscount"
 	"github.com/justmart/backend/internal/service/productpricetier"
+	"github.com/justmart/backend/internal/service/productrecipe"
 	"github.com/justmart/backend/internal/service/purchasing"
 	"github.com/justmart/backend/internal/service/stock"
 	"github.com/justmart/backend/internal/service/stocktake"
 	"github.com/justmart/backend/internal/service/supplier"
+	"github.com/justmart/backend/internal/service/table"
 	"github.com/justmart/backend/internal/service/transfer"
 	"github.com/justmart/backend/internal/service/unit"
 	"github.com/justmart/backend/internal/service/user"
@@ -65,6 +67,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 	prescriptionService := prescription.NewPrescriptionService(db)
 	productDiscountService := productdiscount.NewProductDiscountService(db)
 	productPriceTierService := productpricetier.NewProductPriceTierService(db)
+	productRecipeService := productrecipe.NewProductRecipeService(db)
 	productService := product.NewProductService(db)
 	purchaseOrders := purchasing.NewPurchaseOrderService(db)
 	purchasePayments := purchasing.NewPurchasePaymentService(db)
@@ -74,6 +77,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 	settingsService := provideSettingsService(db, config, version2)
 	stockService := stock.NewStockService(db)
 	stocktakeService := stocktake.NewStocktakeService(db)
+	tableService := table.NewTableService(db)
 	supplierService := supplier.NewSupplierService(db)
 	transferService := transfer.NewTransferService(db)
 	unitService := unit.NewUnitService(db)
@@ -91,6 +95,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 		Prescriptions:     prescriptionService,
 		ProductDiscounts:  productDiscountService,
 		ProductPriceTiers: productPriceTierService,
+		ProductRecipes:    productRecipeService,
 		Products:          productService,
 		PurchaseOrders:    purchaseOrders,
 		PurchasePayments:  purchasePayments,
@@ -100,6 +105,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 		Settings:          settingsService,
 		Stock:             stockService,
 		Stocktakes:        stocktakeService,
+		Tables:            tableService,
 		Suppliers:         supplierService,
 		Transfers:         transferService,
 		Units:             unitService,

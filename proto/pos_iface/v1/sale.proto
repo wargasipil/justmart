@@ -51,6 +51,13 @@ message Sale {
   int64 refund_amount = 23;     // amount refunded (= total at refund time)
   string refund_reason = 24;
   bool refund_restocked = 25;   // true = goods returned to stock; false = money-only
+  // Restaurant mode. An OPEN BILL is simply a DRAFT sale carrying a table_id —
+  // no separate order entity and no new sale status. All empty/zero for every
+  // retail and pharmacy sale.
+  string table_id = 26;    // the dining table this bill is seated at ("" = not dine-in)
+  string table_code = 27;  // denormalized floor label, for the order list + receipt
+  string order_type = 28;  // "" | DINE_IN | TAKEAWAY | DELIVERY (table_iface.v1.OrderType)
+  int32 guest_count = 29;  // covers, recorded when the table was opened
 }
 
 message SaleItem {
@@ -84,50 +91,87 @@ message SaleItem {
   // restores the normal price instead of ratcheting.
   int64 list_price_snapshot = 18;
   int32 tier_min_qty = 19;
+  // Restaurant mode. fired_at is unix sec of when this line was sent to the
+  // kitchen (0 = not yet fired) — firing is per LINE, not per bill, because a
+  // dine-in order grows across rounds and only the new lines should print.
+  int64 fired_at = 20;
+  string kitchen_note = 21; // cook-facing note; never affects any amount
 }
 
+// ROLE_WAITER (restaurant floor) is granted the CART-BUILDING half of this
+// service — start/read an order, add, change and remove lines, attach a
+// customer, fire to the kitchen — and deliberately NOT the till half:
+// CompleteSale, VoidSale, RefundSale, PrintReceipt, and every discount /
+// service-fee RPC stay with the cashier tier. That split is the reason the role
+// exists rather than being a CASHIER alias, so grant it here with care.
 service SaleService {
   rpc StartSale(StartSaleRequest) returns (StartSaleResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc GetSale(GetSaleRequest) returns (GetSaleResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc ListSales(ListSalesRequest) returns (ListSalesResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc AddItem(AddItemRequest) returns (AddItemResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc SetItemQuantity(SetItemQuantityRequest) returns (SetItemQuantityResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc RemoveItem(RemoveItemRequest) returns (RemoveItemResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc SetSaleCustomer(SetSaleCustomerRequest) returns (SetSaleCustomerResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+  // FireToKitchen sends the lines added since the last fire to the kitchen
+  // printer and stamps them fired. Incremental by design: a dine-in bill grows
+  // across rounds, and reprinting the whole order each time would have the
+  // kitchen cook the starters twice.
+  rpc FireToKitchen(FireToKitchenRequest) returns (FireToKitchenResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+  // SetItemNote sets the cook-facing note on a cart line ("no ice", "extra
+  // pedas"). Never affects any amount — a priced modifier is a different
+  // feature. DRAFT only.
+  rpc SetItemNote(SetItemNoteRequest) returns (SetItemNoteResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   // AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
   // everyone who can run POS (the dispensing happens at the till). The Rx
@@ -196,6 +240,7 @@ service SaleService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   // RefundSale fully refunds a COMPLETED order: flips it to REFUNDED, optionally
   // returns its goods to stock (RETURN movements) and reverses pharmacy Rx
@@ -224,6 +269,7 @@ service SaleService {
   rpc GetMyPerformance(GetMyPerformanceRequest) returns (GetMyPerformanceResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
   }
   rpc PrintReceipt(PrintReceiptRequest) returns (PrintReceiptResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
@@ -233,7 +279,14 @@ service SaleService {
   }
 }
 
-message StartSaleRequest {}
+message StartSaleRequest {
+  // Restaurant mode: how this order reaches the customer. Empty (the default,
+  // and what every retail/pharmacy caller sends) means "not a restaurant flow".
+  // DINE_IN is NOT set here — a seated order is opened through
+  // TableService.OpenTable, which is what binds the table and enforces one open
+  // bill per table.
+  string order_type = 1;  // "" | TAKEAWAY | DELIVERY
+}
 message StartSaleResponse { Sale sale = 1; }
 
 message GetSaleRequest { string id = 1; }
@@ -407,6 +460,27 @@ message GetMyPerformanceResponse {
   int64 total_sales_count = 3;
   int64 total_items_sold  = 4;
 }
+
+message FireToKitchenRequest {
+  string sale_id = 1;
+  // Optional print target (connector mode). Empty → the server resolves the
+  // saved KITCHEN default, then the receipt default, then the sole connected
+  // device — so a one-printer warung needs no configuration.
+  string connector_device_id = 2;
+  string printer_name = 3;
+}
+message FireToKitchenResponse {
+  int32 fired_items = 1; // lines sent by THIS call (0 = nothing new to fire)
+  int32 round = 2;       // 1 = first fire of this bill, 2 = second round, ...
+  int32 bytes_sent = 3;
+}
+
+message SetItemNoteRequest {
+  string sale_id = 1;
+  string item_id = 2;
+  string note = 3; // "" clears it
+}
+message SetItemNoteResponse { Sale sale = 1; }
 
 message PrintReceiptRequest {
   string sale_id = 1;

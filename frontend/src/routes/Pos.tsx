@@ -10,7 +10,6 @@ import {
   Badge,
   Box,
   Button,
-  Dialog,
   Flex,
   HStack,
   IconButton,
@@ -22,7 +21,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, Lock, LogOut, Minus, Percent, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
+import { Lock, LogOut, Minus, Percent, Plus, Search, StickyNote, Trash2, Warehouse as WarehouseIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -33,35 +32,36 @@ import NumberInput from "../components/NumberInput";
 import PrinterSelect from "../components/PrinterSelect";
 import ProductImage from "../components/ProductImage";
 import WarehouseSelect from "../components/WarehouseSelect";
+import KitchenNoteDialog from "./pos/KitchenNoteDialog";
+import { CustomerBar, PrescriptionBar, QuickAmountRow } from "./pos/posBars";
+import { CustomerPickerDialog, PrescriptionPickerDialog, ReceiptDialog } from "./pos/posDialogs";
+import RestaurantBar from "./pos/RestaurantBar";
 import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
 import type { ProductPriceTier } from "../gen/inventory_iface/v1/product_price_tier_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
-import { Customer } from "../gen/customer_iface/v1/customer_pb";
-import type { Prescription } from "../gen/prescription_iface/v1/prescription_pb";
 import { saleClient } from "../lib/clients";
 import { formatMoney } from "../lib/format";
 import { toast } from "../lib/toaster";
 import { useAuth } from "../lib/auth";
+import { canSell, unitAvailability } from "../lib/posAvailability";
 import { POS_PRINTER_KEY, decodePrinter } from "../lib/printerTarget";
 import { WAREHOUSE_KEY } from "../lib/transport";
 import { useMyWarehousesQuery } from "../queries/warehouses";
 import { useAllProductsQuery } from "../queries/products";
 import { nextTier, tiersForUnit } from "../queries/productPriceTiers";
 import { useStockLevelsQuery } from "../queries/stock";
-import { useCustomerSearchQuery } from "../queries/customers";
-import { useCustomerRefs } from "../queries/refs";
 import { useConnectorsQuery } from "../queries/connectors";
 import { useBusinessMode } from "../queries/settings";
-import { usePrescriptionsQuery } from "../queries/prescriptions";
 import {
   useAddItemMutation,
   useAttachPrescriptionMutation,
   useCompleteSaleMutation,
   useDetachPrescriptionMutation,
-  usePrintReceiptMutation,
+  useFireToKitchenMutation,
   useClearLineDiscountMutation,
   useRemoveItemMutation,
   useSetCartDiscountMutation,
+  useSetItemNoteMutation,
   useSetItemQuantityMutation,
   useSetLineDiscountMutation,
   useSetSaleCustomerMutation,
@@ -195,7 +195,7 @@ export default function Pos() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { isPharmacy } = useBusinessMode();
+  const { isPharmacy, isRestaurant } = useBusinessMode();
 
   // Sale lifecycle ----
   const startSale = useStartSaleMutation();
@@ -210,6 +210,8 @@ export default function Pos() {
   const clearLineDiscount = useClearLineDiscountMutation();
   const setCartDiscount = useSetCartDiscountMutation();
   const completeSale = useCompleteSaleMutation();
+  const fireToKitchen = useFireToKitchenMutation();
+  const setItemNote = useSetItemNoteMutation();
 
   const [sale, setSale] = useState<Sale | null>(null);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
@@ -234,16 +236,62 @@ export default function Pos() {
     value: 0,
   });
 
+  // Restaurant: the order type a NEW counter cart is started with. A dine-in
+  // order never comes through here — it arrives already bound to a table from
+  // the floor plan — so this only ever holds "" | TAKEAWAY | DELIVERY.
+  const [counterOrderType, setCounterOrderType] = useState("");
+  // The cart line whose kitchen note is being edited (null = dialog closed).
+  const [noteFor, setNoteFor] = useState<SaleItem | null>(null);
+
   const ensureSale = useCallback(async (): Promise<Sale | null> => {
     if (sale) return sale;
     try {
-      const res = await startSale.mutateAsync();
+      const res = await startSale.mutateAsync({ orderType: counterOrderType });
       if (res.sale) setSale(res.sale);
       return res.sale ?? null;
     } catch {
       return null;
     }
-  }, [sale, startSale]);
+  }, [sale, startSale, counterOrderType]);
+
+  // Lines not yet sent to the kitchen. Drives the Fire button's count and its
+  // disabled state; firing is incremental server-side, so this is a cue, not a
+  // guard.
+  const pendingFireCount = useMemo(
+    () => (sale?.items ?? []).filter((it) => it.firedAt === 0n).length,
+    [sale],
+  );
+
+  // Changing the order type of a counter cart. Before any line exists there is
+  // no sale yet, so this just records the choice for the draft ensureSale will
+  // create; once a cart exists the type is fixed for it (changing it would mean
+  // re-keying an order the kitchen may already have) — the cashier clears the
+  // cart to switch.
+  const onChangeOrderType = useCallback(
+    (orderType: string) => {
+      if (sale) return;
+      setCounterOrderType(orderType);
+    },
+    [sale],
+  );
+
+  const onSaveNote = useCallback(
+    async (note: string) => {
+      if (!sale || !noteFor) return;
+      try {
+        const res = await setItemNote.mutateAsync({
+          saleId: sale.id,
+          itemId: noteFor.id,
+          note,
+        });
+        if (res.sale) setSale(res.sale);
+        setNoteFor(null);
+      } catch (err) {
+        toast.fromError(err);
+      }
+    },
+    [sale, noteFor, setItemNote],
+  );
 
   // Discard an abandoned cart when leaving POS. The active `sale` is always a
   // DRAFT (doComplete nulls it on completion), so deleting it on unmount cleans
@@ -262,7 +310,13 @@ export default function Pos() {
     return () => {
       if (keepDraftRef.current) return; // intentional create-resep nav — keep the cart
       const s = saleRef.current;
-      if (s && s.status === SaleStatus.DRAFT) {
+      // A TABLE-BOUND bill is never discarded on leave. An abandoned counter
+      // cart is garbage nobody will miss, which is what makes deleting it safe;
+      // an open bill on a table is a seated customer's order that the waiter is
+      // expected to come back to — walking away from the screen must not throw
+      // it away. (The server's stale-draft sweeper skips them for the same
+      // reason.) Clearing a table is an explicit floor action.
+      if (s && s.status === SaleStatus.DRAFT && !s.tableId) {
         void saleClient.discardSale({ saleId: s.id }).catch(() => {});
       }
     };
@@ -403,6 +457,29 @@ export default function Pos() {
     else localStorage.removeItem(POS_PRINTER_KEY);
   };
 
+  // Fire the unfired lines to the kitchen. Declared here, after the printer
+  // selection it reads: an explicit POS printer choice is passed through, and an
+  // empty one lets the server resolve the saved KITCHEN target (falling back to
+  // the receipt printer).
+  const onFire = useCallback(async () => {
+    if (!sale) return;
+    try {
+      const res = await fireToKitchen.mutateAsync({
+        saleId: sale.id,
+        ...decodePrinter(printerValue),
+      });
+      if (res.firedItems > 0) {
+        toast.success(t("pos.firedToast", { count: res.firedItems }));
+        // firedAt changed on every line just sent — refresh the cart so the
+        // per-line cue and the Fire count are accurate.
+        const fresh = await saleClient.getSale({ id: sale.id }).catch(() => null);
+        if (fresh?.sale) setSale(fresh.sale);
+      }
+    } catch (err) {
+      toast.fromError(err);
+    }
+  }, [sale, fireToKitchen, printerValue, t]);
+
   // Mount: restore a preserved DRAFT cart if we're returning from the
   // create-resep page (?attachRx=<id>), otherwise start a fresh draft. When an
   // Rx was just created we attach it and re-add the deferred Rx-required product
@@ -413,7 +490,12 @@ export default function Pos() {
     restoredRef.current = true;
 
     const attachRx = searchParams.get("attachRx") ?? "";
-    const persistedSaleId = localStorage.getItem(POS_DRAFT_KEY);
+    // ?sale=<id> — arriving from the floor plan on a table's open bill. It wins
+    // over any persisted counter draft: the waiter tapped a specific table, and
+    // silently resuming an unrelated cart instead would put the next item on the
+    // wrong bill.
+    const tableSaleId = searchParams.get("sale") ?? "";
+    const persistedSaleId = tableSaleId || localStorage.getItem(POS_DRAFT_KEY);
     const deferredRaw = localStorage.getItem(POS_DEFERRED_KEY);
     localStorage.removeItem(POS_DRAFT_KEY);
     localStorage.removeItem(POS_DEFERRED_KEY);
@@ -460,6 +542,10 @@ export default function Pos() {
         }
         // Strip ?attachRx so a manual refresh doesn't re-trigger the attach.
         setSearchParams({}, { replace: true });
+      } else if (tableSaleId) {
+        // Strip ?sale too — a refresh should resume from state, not re-resolve
+        // a table id that may have been settled in the meantime.
+        setSearchParams({}, { replace: true });
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -485,7 +571,13 @@ export default function Pos() {
   // `tiers` is precomputed here (not per render) so the search list stays cheap.
   // It drives the DISPLAY hint only — a cart line's applied-grosir state always
   // comes from the server (SaleItem.tierMinQty), never from this.
-  type UnitRow = { med: Product; unit: ProductUnit; available: number; tiers: ProductPriceTier[] };
+  type UnitRow = {
+    med: Product;
+    unit: ProductUnit;
+    available: number;
+    unlimited: boolean;
+    tiers: ProductPriceTier[];
+  };
   const MAX_ROWS = 40;
   const unitRows = useMemo<UnitRow[]>(() => {
     const q = query.trim().toLowerCase();
@@ -496,11 +588,13 @@ export default function Pos() {
       : productsQ.rows;
     const out: UnitRow[] = [];
     for (const med of meds) {
-      const base = Number(stockByProduct.get(med.id) ?? 0n);
       for (const unit of med.units.filter((u) => u.sellable && u.active)) {
-        const factor = Number(unit.factor) || 1;
         const tiers = tiersForUnit(med.priceTiers, unit.id).filter((t) => t.price < unit.sellPrice);
-        out.push({ med, unit, available: Math.floor(base / factor), tiers });
+        // Availability is kind-aware: a menu item sells its buildable portions
+        // and a service never runs out — neither has batches for the ledger map
+        // to report. See lib/posAvailability.ts.
+        const { available, unlimited } = unitAvailability(med, unit, stockByProduct.get(med.id));
+        out.push({ med, unit, available, unlimited, tiers });
         if (out.length >= MAX_ROWS) return out;
       }
     }
@@ -523,10 +617,11 @@ export default function Pos() {
         setPrescriptionOpen(true);
         return;
       }
+      // The scan/SKU-exact path passes no `available`, so it asks the same
+      // kind-aware helper rather than falling back to the raw ledger map (which
+      // reports 0 for every menu item and every service).
       const enough =
-        available !== undefined
-          ? available >= 1
-          : Number(stockByProduct.get(product.id) ?? 0n) > 0;
+        available !== undefined ? available >= 1 : canSell(product, stockByProduct.get(product.id));
       if (!enough) {
         toast.error(t("pos.outOfStock"));
         return;
@@ -567,7 +662,10 @@ export default function Pos() {
         return;
       }
       const row = unitRows[highlight];
-      if (row) void onAdd(row.med, row.unit.id, row.available);
+      // An unlimited row (a SERVICE) reports available: 0 — passing that through
+      // would read as out-of-stock. Passing undefined makes onAdd ask canSell,
+      // which knows the kind.
+      if (row) void onAdd(row.med, row.unit.id, row.unlimited ? undefined : row.available);
     } else if (e.key === "Escape") {
       setQuery("");
     }
@@ -916,8 +1014,8 @@ export default function Pos() {
           </Box>
           <Stack gap={1}>
             {unitRows.map((row, i) => {
-              const { med: m, unit, available, tiers } = row;
-              const out = available < 1;
+              const { med: m, unit, available, unlimited, tiers } = row;
+              const out = !unlimited && available < 1;
               const active = i === highlight;
               // Pharmacy cue: Rx-required product with no covering Rx yet — dimmed
               // + lock, but still clickable (the click opens the Rx picker).
@@ -936,7 +1034,7 @@ export default function Pos() {
                   cursor={out ? "not-allowed" : "pointer"}
                   opacity={out ? 0.5 : needsRx ? 0.7 : 1}
                   onMouseEnter={() => setHighlight(i)}
-                  onClick={() => !out && onAdd(m, unit.id, available)}
+                  onClick={() => !out && onAdd(m, unit.id, unlimited ? undefined : available)}
                 >
                   {/* Thumbnail first: a cashier scans this list by sight, and
                       the picture is the fastest thing to match against. THUMB
@@ -963,7 +1061,10 @@ export default function Pos() {
                       )}
                     </HStack>
                     <Text fontSize="xs" color="fg.muted">
-                      {m.sku} · {available} {unit.name}
+                      {/* A service has no quantity to report — printing "0" or a
+                          fake large number would both be lies. */}
+                      {m.sku}
+                      {unlimited ? "" : ` · ${available} ${unit.name}`}
                     </Text>
                   </Stack>
                   <Stack gap={0} align="flex-end">
@@ -1028,6 +1129,15 @@ export default function Pos() {
                 onDetach={onDetachPrescription}
               />
             )}
+            {isRestaurant && (
+              <RestaurantBar
+                sale={sale}
+                pendingCount={pendingFireCount}
+                isFiring={fireToKitchen.isPending}
+                onFire={onFire}
+                onOrderTypeChange={onChangeOrderType}
+              />
+            )}
           </Box>
 
           <Box flex="1" overflowY="auto" px={4} py={2}>
@@ -1086,7 +1196,36 @@ export default function Pos() {
                           </Text>
                         );
                       })()}
+                      {/* Restaurant: the cook-facing note, and whether this line
+                          has already gone to the kitchen. Both belong on the
+                          line itself — a waiter asked "did the satay go?" is
+                          looking at the cart, not at a separate log. */}
+                      {isRestaurant && (it.kitchenNote || it.firedAt > 0n) && (
+                        <HStack gap={1.5}>
+                          {it.kitchenNote && (
+                            <Text fontSize="2xs" color="orange.fg" truncate title={it.kitchenNote}>
+                              * {it.kitchenNote}
+                            </Text>
+                          )}
+                          {it.firedAt > 0n && (
+                            <Text fontSize="2xs" color="fg.muted">
+                              {t("pos.lineFired")}
+                            </Text>
+                          )}
+                        </HStack>
+                      )}
                     </Stack>
+                    {isRestaurant && (
+                      <IconButton
+                        aria-label={t("pos.noteTitle")}
+                        size="xs"
+                        variant={it.kitchenNote ? "solid" : "ghost"}
+                        colorPalette={it.kitchenNote ? "orange" : undefined}
+                        onClick={() => setNoteFor(it)}
+                      >
+                        <StickyNote size={14} />
+                      </IconButton>
+                    )}
                     <IconButton
                       aria-label="decrease quantity"
                       size="xs"
@@ -1309,6 +1448,14 @@ export default function Pos() {
         onCreateNew={goCreateResep}
       />
 
+      <KitchenNoteDialog
+        item={noteFor}
+        open={noteFor != null}
+        isPending={setItemNote.isPending}
+        onSave={onSaveNote}
+        onCancel={() => setNoteFor(null)}
+      />
+
       <ReceiptDialog
         sale={completedSale}
         onClose={onCloseReceipt}
@@ -1318,402 +1465,3 @@ export default function Pos() {
   );
 }
 
-// QuickAmountRow: one-tap fill of the paid input. Renders below the Dibayar
-// field for Cash payments. Includes an "Exact" chip (paid = total), an
-// optional round-up-to-next-10k chip, and standard IDR banknote denominations
-// (5k/10k/20k/50k/100k) filtered to amounts >= total.
-function QuickAmountRow({
-  total,
-  onPick,
-}: {
-  total: number;
-  onPick: (n: number) => void;
-}) {
-  const { t } = useTranslation();
-  if (total <= 0) return null;
-  const DENOMS = [5_000, 10_000, 20_000, 50_000, 100_000];
-  const above = DENOMS.filter((d) => d >= total);
-  const roundedUp = Math.ceil(total / 10_000) * 10_000;
-  const showRoundUp = roundedUp !== total && !above.includes(roundedUp);
-  return (
-    <Flex wrap="wrap" gap={1} mt={1}>
-      <Button
-        size="xs"
-        variant="outline"
-        colorPalette="blue"
-        onClick={() => onPick(total)}
-      >
-        {t("pos.exactAmount")}
-      </Button>
-      {showRoundUp && (
-        <Button
-          size="xs"
-          variant="outline"
-          colorPalette="blue"
-          onClick={() => onPick(roundedUp)}
-        >
-          {formatMoney(roundedUp)}
-        </Button>
-      )}
-      {above.map((d) => (
-        <Button
-          key={d}
-          size="xs"
-          variant="outline"
-          colorPalette="blue"
-          onClick={() => onPick(d)}
-        >
-          {formatMoney(d)}
-        </Button>
-      ))}
-    </Flex>
-  );
-}
-
-function CustomerBar({
-  sale,
-  onAttach,
-  onClear,
-}: {
-  sale: Sale | null;
-  onAttach: () => void;
-  onClear: () => void;
-}) {
-  const { t } = useTranslation();
-  const customerId = sale?.customerId ?? "";
-  const hasCustomer = !!customerId;
-  // Resolve the attached customer's name (manual pick OR auto-filled from an
-  // attached resep) so the bar shows the name, not the raw UUID.
-  const refs = useCustomerRefs(useMemo(() => (customerId ? [customerId] : []), [customerId]));
-  return (
-    <Flex mt={2} align="center" gap={2}>
-      <UserRound size={14} />
-      <Text fontSize="xs" color="fg.muted" flex="1">
-        {hasCustomer
-          ? (refs.get(customerId)?.name ?? customerId.slice(0, 8))
-          : t("pos.customer")}
-      </Text>
-      {hasCustomer ? (
-        <Button size="xs" variant="ghost" onClick={onClear}>
-          {t("pos.clearCustomer")}
-        </Button>
-      ) : (
-        <Button size="xs" variant="ghost" onClick={onAttach}>
-          {t("pos.attachCustomer")}
-        </Button>
-      )}
-    </Flex>
-  );
-}
-
-// PrescriptionBar — pharmacy mode only. Shows the attached resep (Rx number) or
-// an "attach" affordance (F5). Sits under the CustomerBar in the cart panel.
-function PrescriptionBar({
-  sale,
-  onAttach,
-  onDetach,
-}: {
-  sale: Sale | null;
-  onAttach: () => void;
-  onDetach: () => void;
-}) {
-  const { t } = useTranslation();
-  const attached = !!sale?.prescriptionId;
-  return (
-    <Flex mt={2} align="center" gap={2}>
-      <FileText size={14} />
-      <Text fontSize="xs" color="fg.muted" flex="1">
-        {attached ? t("prescriptions.attached") : t("prescriptions.attach")}
-      </Text>
-      {attached ? (
-        <Button size="xs" variant="ghost" onClick={onDetach}>
-          {t("prescriptions.detach")}
-        </Button>
-      ) : (
-        <Button size="xs" variant="ghost" onClick={onAttach}>
-          {t("prescriptions.attach")}
-        </Button>
-      )}
-    </Flex>
-  );
-}
-
-// PrescriptionPickerDialog — lists ACTIVE prescriptions (scoped to the sale's
-// patient when one is set) for the cashier/apoteker to attach. The backend
-// enforces per-product coverage on the subsequent AddItem.
-function PrescriptionPickerDialog({
-  open,
-  customerId,
-  deferredName,
-  onClose,
-  onPick,
-  onCreateNew,
-}: {
-  open: boolean;
-  customerId: string;
-  deferredName: string;
-  onClose: () => void;
-  onPick: (prescriptionId: string) => void;
-  onCreateNew: () => void;
-}) {
-  const { t } = useTranslation();
-  const rxQ = usePrescriptionsQuery({ status: "ACTIVE", customerId, limit: 1000, enabled: open });
-  const rows: Prescription[] = open ? rxQ.rows : [];
-
-  // NOTE: always render Dialog.Root (never `if (!open) return null`). Returning
-  // null on close unmounts the dialog abruptly, which leaks Chakra/Ark's body
-  // lock (pointer-events:none on <body> + aria-hidden on #root) and freezes POS.
-  // Letting Dialog.Root see open=false runs Ark's proper close + restore.
-  return (
-    <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>{t("prescriptions.attach")}</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="close" variant="ghost" size="sm">
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Stack gap={3}>
-                {deferredName && (
-                  <Text fontSize="sm" color="orange.fg">
-                    {t("prescriptions.needForProduct", { product: deferredName })}
-                  </Text>
-                )}
-                <Stack gap={1} maxH="320px" overflowY="auto">
-                  {rows.map((rx) => (
-                    <Flex
-                      key={rx.id}
-                      px={3}
-                      py={2}
-                      borderRadius="md"
-                      _hover={{ bg: "bg.muted" }}
-                      cursor="pointer"
-                      justify="space-between"
-                      onClick={() => onPick(rx.id)}
-                    >
-                      <Stack gap={0}>
-                        <Text fontSize="sm" fontWeight="medium" fontFamily="mono">
-                          {rx.rxNo}
-                        </Text>
-                        <Text fontSize="xs" color="fg.muted">
-                          {rx.issuerName} · {rx.items.length} {t("prescriptions.items")}
-                        </Text>
-                      </Stack>
-                      <Plus size={14} />
-                    </Flex>
-                  ))}
-                  {rows.length === 0 && (
-                    <Stack gap={2} py={4} align="center">
-                      <Text color="fg.muted" fontSize="sm">
-                        {t("prescriptions.noCoveringRx")}
-                      </Text>
-                    </Stack>
-                  )}
-                </Stack>
-              </Stack>
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Button colorPalette="blue" variant="outline" onClick={onCreateNew}>
-                <Plus size={14} />
-                {t("prescriptions.createNew")}
-              </Button>
-            </Dialog.Footer>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
-  );
-}
-
-function CustomerPickerDialog({
-  open,
-  onClose,
-  onPick,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onPick: (customerId: string) => void;
-}) {
-  const { t } = useTranslation();
-  const [q, setQ] = useState("");
-  const searchQ = useCustomerSearchQuery(q, open);
-
-  // Always render Dialog.Root (see PrescriptionPickerDialog note) — returning
-  // null on close leaks the body lock and freezes POS.
-  return (
-    <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>{t("pos.attachCustomer")}</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="close" variant="ghost" size="sm">
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Stack gap={3}>
-                <Input
-                  placeholder={t("customers.searchPlaceholder")}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  autoFocus
-                />
-                <Stack gap={1} maxH="320px" overflowY="auto">
-                  {(searchQ.data ?? []).map((c: Customer) => (
-                    <Flex
-                      key={c.id}
-                      px={3}
-                      py={2}
-                      borderRadius="md"
-                      _hover={{ bg: "bg.muted" }}
-                      cursor="pointer"
-                      justify="space-between"
-                      onClick={() => onPick(c.id)}
-                    >
-                      <Stack gap={0}>
-                        <Text fontSize="sm" fontWeight="medium">{c.name}</Text>
-                        <Text fontSize="xs" color="fg.muted">
-                          {c.phone || "—"}
-                        </Text>
-                      </Stack>
-                      <Plus size={14} />
-                    </Flex>
-                  ))}
-                  {(searchQ.data?.length ?? 0) === 0 && (
-                    <Text color="fg.muted" fontSize="sm" textAlign="center" py={4}>
-                      {t("common.noResults")}
-                    </Text>
-                  )}
-                </Stack>
-              </Stack>
-            </Dialog.Body>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
-  );
-}
-
-function ReceiptDialog({
-  sale,
-  onClose,
-  printerTarget,
-}: {
-  sale: Sale | null;
-  onClose: () => void;
-  // The print device chosen in the POS header (decoded). Empty → the server
-  // resolves the saved default / sole connector.
-  printerTarget: { deviceId: string; printerName: string };
-}) {
-  const { t } = useTranslation();
-  const productsQ = useAllProductsQuery();
-  const printMut = usePrintReceiptMutation();
-
-  // Always render Dialog.Root (never `if (!sale) return null`) so Ark runs its
-  // close + body-lock restore; content is guarded on `sale` below.
-  const onPrint = async () => {
-    if (!sale) return;
-    try {
-      await printMut.mutateAsync({
-        saleId: sale.id,
-        connectorDeviceId: printerTarget.deviceId,
-        printerName: printerTarget.printerName,
-      });
-      toast.success(t("pos.printSent"));
-    } catch {
-      /* toast handled globally */
-    }
-  };
-  const medById = new Map(productsQ.rows.map((m) => [m.id, m]));
-  return (
-    <Dialog.Root open={!!sale} onOpenChange={(d) => !d.open && onClose()}>
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            {sale && (
-              <>
-            <Dialog.Header>
-              <Dialog.Title>
-                {t("pos.receiptTitle")} · {sale.saleNo || sale.id.slice(0, 8)}
-              </Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="close" variant="ghost" size="sm">
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Stack gap={3} fontFamily="mono">
-                <Stack gap={1}>
-                  {sale.items.map((it) => (
-                    <Flex key={it.id} justify="space-between" gap={2}>
-                      <Text fontSize="sm" flex="1">
-                        {it.qty}
-                        {it.unitName ? ` ${it.unitName}` : ""}×{" "}
-                        {medById.get(it.productId)?.name ?? it.productId.slice(0, 8)}
-                      </Text>
-                      <Text fontSize="sm">{formatMoney(it.lineTotal)}</Text>
-                    </Flex>
-                  ))}
-                </Stack>
-                <Box borderTopWidth="1px" pt={2}>
-                  <Flex justify="space-between">
-                    <Text fontSize="sm">{t("pos.subtotal")}</Text>
-                    <Text fontSize="sm">{formatMoney(Number(sale.subtotal))}</Text>
-                  </Flex>
-                  {Number(sale.cartDiscount) > 0 && (
-                    <Flex justify="space-between">
-                      <Text fontSize="sm">{t("pos.discount")}</Text>
-                      <Text fontSize="sm">-{formatMoney(Number(sale.cartDiscount))}</Text>
-                    </Flex>
-                  )}
-                  {Number(sale.biayaJasa) > 0 && (
-                    <Flex justify="space-between">
-                      <Text fontSize="sm">{t("prescriptions.biayaJasa")}</Text>
-                      <Text fontSize="sm">{formatMoney(Number(sale.biayaJasa))}</Text>
-                    </Flex>
-                  )}
-                  <Flex justify="space-between">
-                    <Text fontWeight="semibold">{t("pos.total")}</Text>
-                    <Text fontWeight="semibold">{formatMoney(Number(sale.total))}</Text>
-                  </Flex>
-                  <Flex justify="space-between">
-                    <Text fontSize="sm" color="fg.muted">{t("pos.paid")}</Text>
-                    <Text fontSize="sm">{formatMoney(Number(sale.paidAmount))}</Text>
-                  </Flex>
-                  <Flex justify="space-between">
-                    <Text fontSize="sm" color="fg.muted">{t("pos.change")}</Text>
-                    <Text fontSize="sm">
-                      {formatMoney(Math.max(0, Number(sale.paidAmount) - Number(sale.total)))}
-                    </Text>
-                  </Flex>
-                </Box>
-              </Stack>
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Button variant="outline" onClick={onPrint} loading={printMut.isPending}>
-                {t("pos.print")}
-              </Button>
-              <Button colorPalette="blue" onClick={onClose}>
-                {t("pos.newSale")}
-              </Button>
-            </Dialog.Footer>
-              </>
-            )}
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
-  );
-}

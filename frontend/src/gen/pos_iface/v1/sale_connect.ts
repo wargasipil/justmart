@@ -3,10 +3,17 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, ClearLineDiscountRequest, ClearLineDiscountResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, GetMyPerformanceRequest, GetMyPerformanceResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RefundSaleRequest, RefundSaleResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
+import { AddItemRequest, AddItemResponse, AttachPrescriptionRequest, AttachPrescriptionResponse, ClearLineDiscountRequest, ClearLineDiscountResponse, CompleteSaleRequest, CompleteSaleResponse, DetachPrescriptionRequest, DetachPrescriptionResponse, DiscardSaleRequest, DiscardSaleResponse, FireToKitchenRequest, FireToKitchenResponse, GetMyPerformanceRequest, GetMyPerformanceResponse, GetSaleRequest, GetSaleResponse, GetSalesSummaryRequest, GetSalesSummaryResponse, GetTodaySnapshotRequest, GetTodaySnapshotResponse, ListSalesRequest, ListSalesResponse, PrintReceiptRequest, PrintReceiptResponse, RefundSaleRequest, RefundSaleResponse, RemoveItemRequest, RemoveItemResponse, SetCartDiscountRequest, SetCartDiscountResponse, SetItemNoteRequest, SetItemNoteResponse, SetItemQuantityRequest, SetItemQuantityResponse, SetLineDiscountRequest, SetLineDiscountResponse, SetSaleCustomerRequest, SetSaleCustomerResponse, SetServiceFeeRequest, SetServiceFeeResponse, StartSaleRequest, StartSaleResponse, VoidSaleRequest, VoidSaleResponse } from "./sale_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
+ * ROLE_WAITER (restaurant floor) is granted the CART-BUILDING half of this
+ * service — start/read an order, add, change and remove lines, attach a
+ * customer, fire to the kitchen — and deliberately NOT the till half:
+ * CompleteSale, VoidSale, RefundSale, PrintReceipt, and every discount /
+ * service-fee RPC stay with the cashier tier. That split is the reason the role
+ * exists rather than being a CASHIER alias, so grant it here with care.
+ *
  * @generated from service pos_iface.v1.SaleService
  */
 export const SaleService = {
@@ -73,6 +80,33 @@ export const SaleService = {
       name: "SetSaleCustomer",
       I: SetSaleCustomerRequest,
       O: SetSaleCustomerResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * FireToKitchen sends the lines added since the last fire to the kitchen
+     * printer and stamps them fired. Incremental by design: a dine-in bill grows
+     * across rounds, and reprinting the whole order each time would have the
+     * kitchen cook the starters twice.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.FireToKitchen
+     */
+    fireToKitchen: {
+      name: "FireToKitchen",
+      I: FireToKitchenRequest,
+      O: FireToKitchenResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetItemNote sets the cook-facing note on a cart line ("no ice", "extra
+     * pedas"). Never affects any amount — a priced modifier is a different
+     * feature. DRAFT only.
+     *
+     * @generated from rpc pos_iface.v1.SaleService.SetItemNote
+     */
+    setItemNote: {
+      name: "SetItemNote",
+      I: SetItemNoteRequest,
+      O: SetItemNoteResponse,
       kind: MethodKind.Unary,
     },
     /**

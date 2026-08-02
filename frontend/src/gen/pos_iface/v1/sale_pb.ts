@@ -250,6 +250,38 @@ export class Sale extends Message<Sale> {
    */
   refundRestocked = false;
 
+  /**
+   * Restaurant mode. An OPEN BILL is simply a DRAFT sale carrying a table_id —
+   * no separate order entity and no new sale status. All empty/zero for every
+   * retail and pharmacy sale.
+   *
+   * the dining table this bill is seated at ("" = not dine-in)
+   *
+   * @generated from field: string table_id = 26;
+   */
+  tableId = "";
+
+  /**
+   * denormalized floor label, for the order list + receipt
+   *
+   * @generated from field: string table_code = 27;
+   */
+  tableCode = "";
+
+  /**
+   * "" | DINE_IN | TAKEAWAY | DELIVERY (table_iface.v1.OrderType)
+   *
+   * @generated from field: string order_type = 28;
+   */
+  orderType = "";
+
+  /**
+   * covers, recorded when the table was opened
+   *
+   * @generated from field: int32 guest_count = 29;
+   */
+  guestCount = 0;
+
   constructor(data?: PartialMessage<Sale>) {
     super();
     proto3.util.initPartial(data, this);
@@ -282,6 +314,10 @@ export class Sale extends Message<Sale> {
     { no: 23, name: "refund_amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 24, name: "refund_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 25, name: "refund_restocked", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 26, name: "table_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 27, name: "table_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 28, name: "order_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 29, name: "guest_count", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Sale {
@@ -429,6 +465,22 @@ export class SaleItem extends Message<SaleItem> {
    */
   tierMinQty = 0;
 
+  /**
+   * Restaurant mode. fired_at is unix sec of when this line was sent to the
+   * kitchen (0 = not yet fired) — firing is per LINE, not per bill, because a
+   * dine-in order grows across rounds and only the new lines should print.
+   *
+   * @generated from field: int64 fired_at = 20;
+   */
+  firedAt = protoInt64.zero;
+
+  /**
+   * cook-facing note; never affects any amount
+   *
+   * @generated from field: string kitchen_note = 21;
+   */
+  kitchenNote = "";
+
   constructor(data?: PartialMessage<SaleItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -456,6 +508,8 @@ export class SaleItem extends Message<SaleItem> {
     { no: 17, name: "discount_manual", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 18, name: "list_price_snapshot", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 19, name: "tier_min_qty", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 20, name: "fired_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 21, name: "kitchen_note", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SaleItem {
@@ -479,6 +533,19 @@ export class SaleItem extends Message<SaleItem> {
  * @generated from message pos_iface.v1.StartSaleRequest
  */
 export class StartSaleRequest extends Message<StartSaleRequest> {
+  /**
+   * Restaurant mode: how this order reaches the customer. Empty (the default,
+   * and what every retail/pharmacy caller sends) means "not a restaurant flow".
+   * DINE_IN is NOT set here — a seated order is opened through
+   * TableService.OpenTable, which is what binds the table and enforces one open
+   * bill per table.
+   *
+   * "" | TAKEAWAY | DELIVERY
+   *
+   * @generated from field: string order_type = 1;
+   */
+  orderType = "";
+
   constructor(data?: PartialMessage<StartSaleRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -487,6 +554,7 @@ export class StartSaleRequest extends Message<StartSaleRequest> {
   static readonly runtime: typeof proto3 = proto3;
   static readonly typeName = "pos_iface.v1.StartSaleRequest";
   static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "order_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): StartSaleRequest {
@@ -2307,6 +2375,200 @@ export class GetMyPerformanceResponse extends Message<GetMyPerformanceResponse> 
 
   static equals(a: GetMyPerformanceResponse | PlainMessage<GetMyPerformanceResponse> | undefined, b: GetMyPerformanceResponse | PlainMessage<GetMyPerformanceResponse> | undefined): boolean {
     return proto3.util.equals(GetMyPerformanceResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.FireToKitchenRequest
+ */
+export class FireToKitchenRequest extends Message<FireToKitchenRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * Optional print target (connector mode). Empty → the server resolves the
+   * saved KITCHEN default, then the receipt default, then the sole connected
+   * device — so a one-printer warung needs no configuration.
+   *
+   * @generated from field: string connector_device_id = 2;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 3;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<FireToKitchenRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.FireToKitchenRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FireToKitchenRequest {
+    return new FireToKitchenRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FireToKitchenRequest {
+    return new FireToKitchenRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FireToKitchenRequest {
+    return new FireToKitchenRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: FireToKitchenRequest | PlainMessage<FireToKitchenRequest> | undefined, b: FireToKitchenRequest | PlainMessage<FireToKitchenRequest> | undefined): boolean {
+    return proto3.util.equals(FireToKitchenRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.FireToKitchenResponse
+ */
+export class FireToKitchenResponse extends Message<FireToKitchenResponse> {
+  /**
+   * lines sent by THIS call (0 = nothing new to fire)
+   *
+   * @generated from field: int32 fired_items = 1;
+   */
+  firedItems = 0;
+
+  /**
+   * 1 = first fire of this bill, 2 = second round, ...
+   *
+   * @generated from field: int32 round = 2;
+   */
+  round = 0;
+
+  /**
+   * @generated from field: int32 bytes_sent = 3;
+   */
+  bytesSent = 0;
+
+  constructor(data?: PartialMessage<FireToKitchenResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.FireToKitchenResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "fired_items", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "round", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "bytes_sent", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): FireToKitchenResponse {
+    return new FireToKitchenResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): FireToKitchenResponse {
+    return new FireToKitchenResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): FireToKitchenResponse {
+    return new FireToKitchenResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: FireToKitchenResponse | PlainMessage<FireToKitchenResponse> | undefined, b: FireToKitchenResponse | PlainMessage<FireToKitchenResponse> | undefined): boolean {
+    return proto3.util.equals(FireToKitchenResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetItemNoteRequest
+ */
+export class SetItemNoteRequest extends Message<SetItemNoteRequest> {
+  /**
+   * @generated from field: string sale_id = 1;
+   */
+  saleId = "";
+
+  /**
+   * @generated from field: string item_id = 2;
+   */
+  itemId = "";
+
+  /**
+   * "" clears it
+   *
+   * @generated from field: string note = 3;
+   */
+  note = "";
+
+  constructor(data?: PartialMessage<SetItemNoteRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetItemNoteRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "item_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "note", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetItemNoteRequest {
+    return new SetItemNoteRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetItemNoteRequest {
+    return new SetItemNoteRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetItemNoteRequest {
+    return new SetItemNoteRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetItemNoteRequest | PlainMessage<SetItemNoteRequest> | undefined, b: SetItemNoteRequest | PlainMessage<SetItemNoteRequest> | undefined): boolean {
+    return proto3.util.equals(SetItemNoteRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message pos_iface.v1.SetItemNoteResponse
+ */
+export class SetItemNoteResponse extends Message<SetItemNoteResponse> {
+  /**
+   * @generated from field: pos_iface.v1.Sale sale = 1;
+   */
+  sale?: Sale;
+
+  constructor(data?: PartialMessage<SetItemNoteResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "pos_iface.v1.SetItemNoteResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sale", kind: "message", T: Sale },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetItemNoteResponse {
+    return new SetItemNoteResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetItemNoteResponse {
+    return new SetItemNoteResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetItemNoteResponse {
+    return new SetItemNoteResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetItemNoteResponse | PlainMessage<SetItemNoteResponse> | undefined, b: SetItemNoteResponse | PlainMessage<SetItemNoteResponse> | undefined): boolean {
+    return proto3.util.equals(SetItemNoteResponse, a, b);
   }
 }
 

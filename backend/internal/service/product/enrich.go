@@ -88,6 +88,137 @@ func (s *ProductService) enrichStock(
 		md.OnOrderStock = onOrder[md.Id]
 		md.OnOrderValuation = onOrderValue[md.Id]
 	}
+	// A COMPOSITE product holds no batches of its own, so the join above leaves it
+	// at 0. Its real "ready" is how many portions its ingredients can build.
+	return s.overlayCompositeStock(ctx, caller, meds)
+}
+
+// overlayCompositeStock replaces ready_stock for COMPOSITE products with the
+// number of BASE units their recipe components can currently build in the active
+// warehouse (min over lines of floor(component_ready / qty_base)).
+//
+// Without this a menu item reads 0 everywhere — the product list, the low-stock
+// bell, POS — because it genuinely has no batches, which is true and useless. Two
+// batched queries regardless of page size; a page with no composites returns
+// after the first cheap scan.
+//
+// A composite with an EMPTY recipe is reported as 0 rather than "unbounded":
+// nothing is defined for it to consume, so it is misconfigured, and 0 is the
+// reading that sends someone to the recipe card. SERVICE products are left at 0
+// — they consume nothing by definition, and the UI omits the stock chip for them
+// rather than showing a quantity that has no meaning.
+func (s *ProductService) overlayCompositeStock(
+	ctx context.Context,
+	caller auth.Principal,
+	meds []*inventoryifacev1.Product,
+) error {
+	compositeIDs := make([]string, 0, len(meds))
+	for _, md := range meds {
+		if md.Kind == inventoryifacev1.ProductKind_PRODUCT_KIND_COMPOSITE {
+			compositeIDs = append(compositeIDs, md.Id)
+		}
+	}
+	if len(compositeIDs) == 0 {
+		return nil
+	}
+
+	var lines []model.ProductRecipeItem
+	if err := s.db.WithContext(ctx).
+		Where("product_id IN ?", compositeIDs).Find(&lines).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	byParent := make(map[string][]model.ProductRecipeItem, len(compositeIDs))
+	componentIDs := make([]string, 0, len(lines))
+	for i := range lines {
+		byParent[lines[i].ProductID] = append(byParent[lines[i].ProductID], lines[i])
+		componentIDs = append(componentIDs, lines[i].ComponentProductID)
+	}
+
+	componentReady, err := common.ReadyStockByProduct(ctx, s.db, caller, componentIDs)
+	if err != nil {
+		return err
+	}
+	for _, md := range meds {
+		if md.Kind != inventoryifacev1.ProductKind_PRODUCT_KIND_COMPOSITE {
+			continue
+		}
+		buildable := common.BuildablePortions(byParent[md.Id], componentReady)
+		if buildable < 0 {
+			buildable = 0 // no recipe defined — see above
+		}
+		md.ReadyStock = buildable
+	}
+	return nil
+}
+
+// attachRecipe batch-loads each COMPOSITE product's recipe lines and sets them on
+// the protos, oldest first (the order a recipe is read in). Hydrated with the
+// units/tiers rather than at its own call sites for the same reason those are:
+// POS reads the catalog through ListProducts, and a Get-only hydration would
+// leave every menu item's ingredient hint blank on the one screen that needs it.
+//
+// Display fields (component name/sku/unit) are filled here too — the POS "what's
+// missing" hint names the ingredient. Component stock is NOT: the whole-recipe
+// answer already arrives as ready_stock via overlayCompositeStock, and repeating
+// the per-component figure on every catalog row would cost a second grouped
+// query on the hot list path for something only the recipe card renders.
+func (s *ProductService) attachRecipe(ctx context.Context, meds []*inventoryifacev1.Product) error {
+	ids := make([]string, 0, len(meds))
+	for _, md := range meds {
+		if md.Kind == inventoryifacev1.ProductKind_PRODUCT_KIND_COMPOSITE {
+			ids = append(ids, md.Id)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	var rows []model.ProductRecipeItem
+	if err := s.db.WithContext(ctx).
+		Where("product_id IN ?", ids).
+		Order("created_at ASC, id ASC").
+		Find(&rows).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if len(rows) == 0 {
+		return nil
+	}
+
+	componentIDs := make([]string, 0, len(rows))
+	for i := range rows {
+		componentIDs = append(componentIDs, rows[i].ComponentProductID)
+	}
+	var comps []model.Product
+	if err := s.db.WithContext(ctx).
+		Select("id", "sku", "name", "unit").
+		Where("id IN ?", componentIDs).Find(&comps).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	byComponent := make(map[string]*model.Product, len(comps))
+	for i := range comps {
+		byComponent[comps[i].ID] = &comps[i]
+	}
+
+	byParent := make(map[string][]*inventoryifacev1.ProductRecipeItem, len(ids))
+	for i := range rows {
+		r := &rows[i]
+		item := &inventoryifacev1.ProductRecipeItem{
+			Id:                 r.ID,
+			ProductId:          r.ProductID,
+			ComponentProductId: r.ComponentProductID,
+			QtyBase:            r.QtyBase,
+			Note:               r.Note,
+			CreatedAt:          r.CreatedAt.Unix(),
+		}
+		if c, ok := byComponent[r.ComponentProductID]; ok {
+			item.ComponentName = c.Name
+			item.ComponentSku = c.SKU
+			item.ComponentUnit = c.Unit
+		}
+		byParent[r.ProductID] = append(byParent[r.ProductID], item)
+	}
+	for _, md := range meds {
+		md.Recipe = byParent[md.Id]
+	}
 	return nil
 }
 
@@ -229,7 +360,12 @@ func (s *ProductService) attachUnits(ctx context.Context, meds []*inventoryiface
 	// at their own call sites. Coupling them here is deliberate: POS reads the
 	// catalog through ListProducts, and a tier set that hydrated only on
 	// GetProduct would leave every POS wholesale hint silently blank.
-	return s.attachPriceTiers(ctx, meds)
+	if err := s.attachPriceTiers(ctx, meds); err != nil {
+		return err
+	}
+	// Same argument for recipes — a composite's ingredients are part of what the
+	// catalog says about it, and POS needs them to explain an unavailable dish.
+	return s.attachRecipe(ctx, meds)
 }
 
 // attachPriceTiers batch-loads each product's grosir (wholesale) quantity price

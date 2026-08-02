@@ -34,6 +34,12 @@ const (
 	// prescription (resep) authority. Distinct from ROLE_PHARMACIST, which this
 	// app uses as a "manager" tier.
 	Role_ROLE_APOTEKER Role = 4
+	// Waiter / pramusaji — the dedicated restaurant-mode floor role. Opens and
+	// serves dining tables (start an order, add/remove items, fire to kitchen,
+	// move tables) but has NO till authority: CompleteSale / VoidSale /
+	// RefundSale stay with the cashier tier. That separation is the point of the
+	// role — it is deliberately NOT a CASHIER clone.
+	Role_ROLE_WAITER Role = 5
 )
 
 // Enum value maps for Role.
@@ -44,6 +50,7 @@ var (
 		2: "ROLE_PHARMACIST",
 		3: "ROLE_CASHIER",
 		4: "ROLE_APOTEKER",
+		5: "ROLE_WAITER",
 	}
 	Role_value = map[string]int32{
 		"ROLE_UNSPECIFIED": 0,
@@ -51,6 +58,7 @@ var (
 		"ROLE_PHARMACIST":  2,
 		"ROLE_CASHIER":     3,
 		"ROLE_APOTEKER":    4,
+		"ROLE_WAITER":      5,
 	}
 )
 
@@ -112,14 +120,15 @@ var File_auth_iface_v1_policy_proto protoreflect.FileDescriptor
 
 const file_auth_iface_v1_policy_proto_rawDesc = "" +
 	"\n" +
-	"\x1aauth_iface/v1/policy.proto\x12\rauth_iface.v1\x1a google/protobuf/descriptor.proto*f\n" +
+	"\x1aauth_iface/v1/policy.proto\x12\rauth_iface.v1\x1a google/protobuf/descriptor.proto*w\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
 	"ROLE_OWNER\x10\x01\x12\x13\n" +
 	"\x0fROLE_PHARMACIST\x10\x02\x12\x10\n" +
 	"\fROLE_CASHIER\x10\x03\x12\x11\n" +
-	"\rROLE_APOTEKER\x10\x04:8\n" +
+	"\rROLE_APOTEKER\x10\x04\x12\x0f\n" +
+	"\vROLE_WAITER\x10\x05:8\n" +
 	"\x06public\x12\x1e.google.protobuf.MethodOptions\x18І\x03 \x01(\bR\x06public:Z\n" +
 	"\rallowed_roles\x12\x1e.google.protobuf.MethodOptions\x18ц\x03 \x03(\x0e2\x13.auth_iface.v1.RoleR\fallowedRolesB;Z9github.com/justmart/backend/gen/auth_iface/v1;authifacev1b\x06proto3"
 

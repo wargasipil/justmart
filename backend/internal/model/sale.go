@@ -29,6 +29,13 @@ type Sale struct {
 	RefundAmount    int64      `gorm:"not null;default:0;column:refund_amount"`
 	RefundReason    string     `gorm:"not null;default:'';column:refund_reason"`
 	RefundRestocked bool       `gorm:"not null;default:false;column:refund_restocked"`
+	// Restaurant mode. An OPEN BILL is a DRAFT sale with TableID set — there is
+	// no separate order entity and no extra status. A partial unique index
+	// guarantees at most one DRAFT per table. All empty/zero for retail and
+	// pharmacy sales.
+	TableID    *string `gorm:"type:uuid;column:table_id"`
+	OrderType  string  `gorm:"not null;default:'';column:order_type"` // "" | DINE_IN | TAKEAWAY | DELIVERY
+	GuestCount int32   `gorm:"not null;default:0;column:guest_count"`
 
 	Items []SaleItem `gorm:"foreignKey:SaleID"`
 }
@@ -61,7 +68,13 @@ type SaleItem struct {
 	// TierMinQty is the applied tier's threshold; 0 = no grosir (also the flag).
 	ListPriceSnapshot int64 `gorm:"not null;default:0;column:list_price_snapshot"`
 	TierMinQty        int32 `gorm:"not null;default:0;column:tier_min_qty"`
-	CreatedAt         time.Time
+	// Restaurant mode. FiredAt is when this LINE was sent to the kitchen (NULL =
+	// not yet). Per-line, not per-sale: a dine-in bill grows across rounds and
+	// only the new lines should print. KitchenNote is cook-facing text and never
+	// affects any amount.
+	FiredAt     *time.Time `gorm:"column:fired_at"`
+	KitchenNote string     `gorm:"not null;default:'';column:kitchen_note"`
+	CreatedAt   time.Time
 }
 
 func (SaleItem) TableName() string { return "sale_items" }

@@ -28,8 +28,12 @@ import ImportProductsDialog from "./ImportProductsDialog";
 export default function Products() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isPharmacy } = useBusinessMode();
-  const catalogLabel = isPharmacy ? t("nav.medicines") : t("nav.products");
+  const { isPharmacy, isRestaurant } = useBusinessMode();
+  const catalogLabel = isPharmacy
+    ? t("nav.medicines")
+    : isRestaurant
+      ? t("nav.menu")
+      : t("nav.products");
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");

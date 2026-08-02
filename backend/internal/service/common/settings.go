@@ -31,6 +31,14 @@ const (
 	SettingKeyPrintConnectorDevice  = "print_connector_device"
 	SettingKeyPrintConnectorPrinter = "print_connector_printer"
 
+	// Kitchen ticket target (restaurant mode): which connector device + printer
+	// SaleService.FireToKitchen uses. Separate from the receipt target on
+	// purpose — the point of a kitchen ticket is that it comes out at the pass,
+	// not at the till. Unset falls back to the receipt target, so a one-printer
+	// warung works with no configuration at all.
+	SettingKeyKitchenConnectorDevice  = "print_kitchen_device"
+	SettingKeyKitchenConnectorPrinter = "print_kitchen_printer"
+
 	// Printed-receipt header (shop name/address) + footer (closing lines), stored
 	// as multi-line strings (one receipt line per text line). Seeded at boot from
 	// config.yaml printer.header/footer; editable in Settings ▸ Printing.
@@ -50,9 +58,10 @@ const (
 
 	// Business-type enum values, mirroring settings_iface.v1.BussinessType
 	// (kept as plain ints so this package stays free of a gen import).
-	BussinessTypeUnspecified int32 = 0
+	BussinessTypeUnspecified  int32 = 0
 	BussinessTypePharmacyShop int32 = 1
 	BussinessTypeRetail       int32 = 2
+	BussinessTypeRestaurant   int32 = 3
 )
 
 // IsPharmacyMode reports whether the shop's configured business type is the
@@ -64,6 +73,24 @@ func IsPharmacyMode(ctx context.Context, db *gorm.DB) (bool, error) {
 		return false, err
 	}
 	return bt == BussinessTypePharmacyShop, nil
+}
+
+// IsRestaurantMode reports whether the shop's configured business type is the
+// restaurant/warung mode. Restaurant-only behavior keys off this.
+//
+// NOTE what does NOT key off it: composite (recipe) products and their stock
+// explosion are deliberately MODE-INDEPENDENT — they key off product_kind, the
+// same way grosir price tiers key off the tier ladder rather than the mode. A
+// retail shop selling a gift bundle, or repacking a sack into pouches, needs the
+// exact same engine, and a mode-gated one would silently change how an existing
+// cart consumes stock the moment the owner switched modes. Only genuinely
+// restaurant-shaped surfaces (dining tables, kitchen tickets) gate on the mode.
+func IsRestaurantMode(ctx context.Context, db *gorm.DB) (bool, error) {
+	bt, err := GetBussinessType(ctx, db)
+	if err != nil {
+		return false, err
+	}
+	return bt == BussinessTypeRestaurant, nil
 }
 
 // GetBussinessType reads the configured business type from app_settings as the
@@ -126,6 +153,29 @@ func SetPrintTarget(ctx context.Context, db *gorm.DB, deviceID, printerName stri
 		return err
 	}
 	return setSetting(ctx, db, SettingKeyPrintConnectorPrinter, printerName)
+}
+
+// GetKitchenPrintTarget returns the saved kitchen connector device + printer
+// ("" each when unset — callers fall back to the receipt target).
+func GetKitchenPrintTarget(ctx context.Context, db *gorm.DB) (deviceID, printerName string, err error) {
+	deviceID, err = getSetting(ctx, db, SettingKeyKitchenConnectorDevice)
+	if err != nil {
+		return "", "", err
+	}
+	printerName, err = getSetting(ctx, db, SettingKeyKitchenConnectorPrinter)
+	if err != nil {
+		return "", "", err
+	}
+	return deviceID, printerName, nil
+}
+
+// SetKitchenPrintTarget persists the kitchen connector device + printer. Setting
+// both to "" clears the override and returns the shop to the receipt printer.
+func SetKitchenPrintTarget(ctx context.Context, db *gorm.DB, deviceID, printerName string) error {
+	if err := setSetting(ctx, db, SettingKeyKitchenConnectorDevice, deviceID); err != nil {
+		return err
+	}
+	return setSetting(ctx, db, SettingKeyKitchenConnectorPrinter, printerName)
 }
 
 // GetReceiptText returns the stored receipt header + footer (multi-line strings,

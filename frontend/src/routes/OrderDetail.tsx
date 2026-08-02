@@ -172,6 +172,28 @@ export default function OrderDetail() {
                 value={formatUnix(sale.completedAt)}
               />
             )}
+            {/* Restaurant: how the order was served. Shown only when it was set,
+                so a retail or pharmacy order's info block is unchanged. A
+                dine-in order without this reads identically to a counter sale in
+                history, which loses the one fact that explains it. */}
+            {sale.orderType && (
+              <Field
+                label={t("orders.detail.orderType")}
+                value={t(`pos.orderTypes.${sale.orderType.toLowerCase()}`, {
+                  defaultValue: sale.orderType,
+                })}
+              />
+            )}
+            {sale.tableCode && (
+              <Field
+                label={t("orders.detail.table")}
+                value={
+                  sale.guestCount > 0
+                    ? `${sale.tableCode} · ${t("tables.guests", { count: sale.guestCount })}`
+                    : sale.tableCode
+                }
+              />
+            )}
           </SimpleGrid>
         </Section>
 

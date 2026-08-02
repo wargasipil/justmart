@@ -14,7 +14,11 @@ import { useSettingsQuery, useUpdateSettingsMutation } from "../../queries/setti
 
 // Business modes the owner can pick. UNSPECIFIED is never offered — it only
 // exists as the "never configured" storage state (which behaves as retail).
-const MODES = [BussinessType.RETAIL, BussinessType.PHARMACY_SHOP] as const;
+const MODES = [
+  BussinessType.RETAIL,
+  BussinessType.PHARMACY_SHOP,
+  BussinessType.RESTAURANT,
+] as const;
 
 const MAX_APP_TITLE_LEN = 60; // mirrors settings.MaxAppTitleLen on the backend
 
@@ -38,10 +42,9 @@ export default function SettingsGeneral() {
             appTitle: q.data.appTitle,
             // A never-configured shop behaves as retail — show that in the picker
             // so saving doesn't look like a silent mode change.
-            businessType:
-              q.data.businessType === BussinessType.PHARMACY_SHOP
-                ? BussinessType.PHARMACY_SHOP
-                : BussinessType.RETAIL,
+            businessType: MODES.includes(q.data.businessType as (typeof MODES)[number])
+              ? q.data.businessType
+              : BussinessType.RETAIL,
           }
         : undefined,
     [q.data],
@@ -49,10 +52,16 @@ export default function SettingsGeneral() {
   const form = useForm<FormValues>({ resolver: zodResolver(Schema), values });
   const onServerError = useServerFormErrors(form);
 
-  const modeLabel = (mode: BussinessType) =>
-    mode === BussinessType.PHARMACY_SHOP
-      ? t("settings.modes.pharmacy")
-      : t("settings.modes.retail");
+  const modeLabel = (mode: BussinessType) => {
+    switch (mode) {
+      case BussinessType.PHARMACY_SHOP:
+        return t("settings.modes.pharmacy");
+      case BussinessType.RESTAURANT:
+        return t("settings.modes.restaurant");
+      default:
+        return t("settings.modes.retail");
+    }
+  };
 
   const onSubmit = form.handleSubmit(async (v) => {
     try {

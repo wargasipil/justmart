@@ -16,6 +16,7 @@ const (
 	rolePharmacist = "PHARMACIST"
 	roleCashier    = "CASHIER"
 	roleApoteker   = "APOTEKER"
+	roleWaiter     = "WAITER"
 )
 
 type UserService struct {

@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Justmart",
-    "pharmacyName": "Pharmacy"
+    "pharmacyName": "Pharmacy",
+    "restaurantName": "Restaurant"
   },
   "glossary": {
     "product": "product",
@@ -14,6 +15,12 @@
     "products": "medicines",
     "productCap": "Medicine",
     "productsCap": "Medicines"
+  },
+  "glossaryRestaurant": {
+    "product": "menu item",
+    "products": "menu items",
+    "productCap": "Menu item",
+    "productsCap": "Menu"
   },
   "datepicker": {
     "open": "Open calendar",
@@ -63,6 +70,8 @@
     "inventory": "Inventory",
     "products": "Products",
     "medicines": "Medicines",
+    "menu": "Menu",
+    "tables": "Tables",
     "suppliers": "Suppliers",
     "batches": "Batches",
     "movements": "Movements",
@@ -112,7 +121,8 @@
     "businessModeHelp": "Retail runs the shop catalog; pharmacy adds medicines, prescriptions and the POS prescription check.",
     "modes": {
       "retail": "Retail",
-      "pharmacy": "Pharmacy"
+      "pharmacy": "Pharmacy",
+      "restaurant": "Restaurant"
     },
     "tabs": {
       "general": "General",
@@ -161,6 +171,9 @@
       "hostDefault": "Default printer",
       "noLocalPrinters": "No printers detected on this PC (USB printing works on a Windows server only).",
       "usbHelp": "USB mode prints straight to a printer installed on this PC. Pick which one, or leave it on Default printer to use Windows' default.",
+      "kitchenSection": "Kitchen ticket printer",
+      "kitchenHelp": "Where orders print when a waiter fires them. Leave it unset and tickets go to the receipt printer above.",
+      "kitchenSameAsReceipt": "Same as receipt printer",
       "tcpMode": "Receipts print to a network printer set in config.yaml (printer.address). Switch connector.mode to usb or connector to choose a printer here.",
       "paperWidth": "Paper width",
       "width58": "58 mm (small)",
@@ -356,6 +369,7 @@
       "owner": "Owner",
       "pharmacist": "Admin",
       "apoteker": "Apoteker",
+      "waiter": "Waiter",
       "cashier": "Cashier",
       "unknown": "Unknown"
     },
@@ -373,6 +387,7 @@
       "lowStock": "Low stock",
       "expiring30d": "Expiring in 30 days",
       "activeRx": "Active prescriptions",
+      "openTables": "Tables occupied",
       "myRevenue": "My revenue",
       "mySales": "My sales",
       "myItems": "My items",
@@ -511,6 +526,22 @@
     "grosirTierHint": "≥{{qty}} {{price}}",
     "grosirTierHintMore": "≥{{qty}} {{price}} +{{n}}",
     "grosirNudge": "{{n}} more → {{price}}",
+    "atTable": "Table {{code}}",
+    "fireCount": "Fire {{count}}",
+    "fired": "All fired",
+    "firedToast": "{{count}} items sent to the kitchen",
+    "lineFired": "sent",
+    "noteTitle": "Kitchen note",
+    "noteLabel": "Note for the kitchen",
+    "notePlaceholder": "e.g. no ice, extra spicy",
+    "noteHelp": "Printed on the kitchen ticket. Never changes the price.",
+    "noteAfterFire": "This line has already been sent — the change will not reprint, tell the kitchen.",
+    "orderTypes": {
+      "counter": "Counter",
+      "takeaway": "Takeaway",
+      "delivery": "Delivery",
+      "dine_in": "Dine in"
+    },
     "grosirDiscountHint": "This line uses the wholesale price. A manual discount applies on top.",
     "autoDiscountHint": "An automatic product discount applies. Set a value to override it.",
     "exactAmount": "Exact",
@@ -694,6 +725,35 @@
       "baseUnit": "Base unit",
       "basePrice": "Base price (per base unit)",
       "prescriptionRequired": "Requires prescription (resep)",
+      "kind": "Type",
+      "kinds": {
+        "stocked": "Stocked item",
+        "composite": "Made from a recipe",
+        "service": "Service (no stock)"
+      },
+      "kindHelp": {
+        "stocked": "Selling one takes it from its own batches.",
+        "composite": "Selling one consumes the ingredients on its recipe. Set the recipe on the detail page.",
+        "service": "Sells and prices normally but consumes no stock — a fee, a charge, a service."
+      },
+      "recipe": {
+        "title": "Recipe",
+        "description": "What one of these is made from. Selling it deducts these ingredients.",
+        "empty": "No ingredients yet. Add one so selling this deducts stock.",
+        "add": "Add ingredient",
+        "editTitle": "Edit ingredient",
+        "component": "Ingredient",
+        "qtyBase": "Quantity per portion",
+        "qtyBaseHelp": "In the ingredient's base unit, for ONE of this item.",
+        "note": "Note",
+        "onHand": "On hand",
+        "buildable": "Can make {{count}} now",
+        "buildableNone": "Out of an ingredient",
+        "buildableNoRecipe": "No recipe yet",
+        "removeTitle": "Remove ingredient",
+        "removeConfirm": "Remove {{name}} from this recipe?",
+        "onlyComposite": "Only an item made from a recipe has ingredients. Change its type to add them."
+      },
       "unitsSection": "Units",
       "unitsBaseNote": "Base unit: {{unit}}. Add larger packs (box, strip…) below; factor = base units per pack.",
       "unitName": "Unit",
@@ -924,6 +984,37 @@
       }
     }
   },
+  "tables": {
+    "title": "Tables",
+    "description": "The floor. Tap a free table to seat a party, or an occupied one to keep serving it.",
+    "occupancy": "{{occupied}} of {{total}} occupied",
+    "occupied": "Occupied",
+    "free": "Free",
+    "empty": "No tables yet. Add one to start seating parties.",
+    "allAreas": "All areas",
+    "showArchived": "Show archived",
+    "hideArchived": "Hide archived",
+    "code": "Code",
+    "codeHelp": "Short floor label, e.g. T1. Unique among live tables.",
+    "name": "Name",
+    "area": "Area",
+    "areaHelp": "Optional grouping, e.g. Indoor, Terrace, Floor 2.",
+    "seats": "Seats",
+    "guests": "{{count}} guests",
+    "guestCount": "Guests",
+    "openItems": "{{count}} items",
+    "addTitle": "Add table",
+    "editTitle": "Edit table",
+    "openTitle": "Open table {{code}}",
+    "openHelp": "Starts a new bill for this table. It stays open until it is settled.",
+    "openAction": "Open table",
+    "archiveTitle": "Archive table",
+    "archiveConfirm": "Take table {{code}} off the floor? Its past orders are kept.",
+    "unarchiveTitle": "Restore table",
+    "unarchiveConfirm": "Put table {{code}} back on the floor?",
+    "archived": "Table archived",
+    "unarchived": "Table restored"
+  },
   "warehouses": {
     "title": "Warehouses",
     "description": "The locations that hold your stock, and who can work in them.",
@@ -1115,6 +1206,7 @@
     },
     "purchasing": {
       "poVoided": "Cannot pay a voided purchase order",
+      "productNotStocked": "Only stocked items can be ordered. A menu item is made from its ingredients — order those instead.",
       "poNotReturnable": "This purchase order has no received goods to return",
       "returnExceedsOnHand": "Cannot return more than the quantity still in stock",
       "receiptItemNotFound": "That receipt line was not found on this purchase order",
@@ -1215,6 +1307,8 @@
       "change": "Change",
       "prescription": "Prescription",
       "completedAt": "Completed at",
+      "orderType": "Served as",
+      "table": "Table",
       "taxInvoiceNo": "Invoice no",
       "taxInvoiceCode": "Invoice code",
       "dpp": "DPP",

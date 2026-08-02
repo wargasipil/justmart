@@ -49,6 +49,11 @@ const (
 	// SaleServiceSetSaleCustomerProcedure is the fully-qualified name of the SaleService's
 	// SetSaleCustomer RPC.
 	SaleServiceSetSaleCustomerProcedure = "/pos_iface.v1.SaleService/SetSaleCustomer"
+	// SaleServiceFireToKitchenProcedure is the fully-qualified name of the SaleService's FireToKitchen
+	// RPC.
+	SaleServiceFireToKitchenProcedure = "/pos_iface.v1.SaleService/FireToKitchen"
+	// SaleServiceSetItemNoteProcedure is the fully-qualified name of the SaleService's SetItemNote RPC.
+	SaleServiceSetItemNoteProcedure = "/pos_iface.v1.SaleService/SetItemNote"
 	// SaleServiceAttachPrescriptionProcedure is the fully-qualified name of the SaleService's
 	// AttachPrescription RPC.
 	SaleServiceAttachPrescriptionProcedure = "/pos_iface.v1.SaleService/AttachPrescription"
@@ -99,6 +104,15 @@ type SaleServiceClient interface {
 	SetItemQuantity(context.Context, *connect.Request[v1.SetItemQuantityRequest]) (*connect.Response[v1.SetItemQuantityResponse], error)
 	RemoveItem(context.Context, *connect.Request[v1.RemoveItemRequest]) (*connect.Response[v1.RemoveItemResponse], error)
 	SetSaleCustomer(context.Context, *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error)
+	// FireToKitchen sends the lines added since the last fire to the kitchen
+	// printer and stamps them fired. Incremental by design: a dine-in bill grows
+	// across rounds, and reprinting the whole order each time would have the
+	// kitchen cook the starters twice.
+	FireToKitchen(context.Context, *connect.Request[v1.FireToKitchenRequest]) (*connect.Response[v1.FireToKitchenResponse], error)
+	// SetItemNote sets the cook-facing note on a cart line ("no ice", "extra
+	// pedas"). Never affects any amount — a priced modifier is a different
+	// feature. DRAFT only.
+	SetItemNote(context.Context, *connect.Request[v1.SetItemNoteRequest]) (*connect.Response[v1.SetItemNoteResponse], error)
 	// AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
 	// everyone who can run POS (the dispensing happens at the till). The Rx
 	// *authoring* authority is separate (PrescriptionService Create/Update/Void).
@@ -188,6 +202,18 @@ func NewSaleServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+SaleServiceSetSaleCustomerProcedure,
 			connect.WithSchema(saleServiceMethods.ByName("SetSaleCustomer")),
+			connect.WithClientOptions(opts...),
+		),
+		fireToKitchen: connect.NewClient[v1.FireToKitchenRequest, v1.FireToKitchenResponse](
+			httpClient,
+			baseURL+SaleServiceFireToKitchenProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("FireToKitchen")),
+			connect.WithClientOptions(opts...),
+		),
+		setItemNote: connect.NewClient[v1.SetItemNoteRequest, v1.SetItemNoteResponse](
+			httpClient,
+			baseURL+SaleServiceSetItemNoteProcedure,
+			connect.WithSchema(saleServiceMethods.ByName("SetItemNote")),
 			connect.WithClientOptions(opts...),
 		),
 		attachPrescription: connect.NewClient[v1.AttachPrescriptionRequest, v1.AttachPrescriptionResponse](
@@ -286,6 +312,8 @@ type saleServiceClient struct {
 	setItemQuantity    *connect.Client[v1.SetItemQuantityRequest, v1.SetItemQuantityResponse]
 	removeItem         *connect.Client[v1.RemoveItemRequest, v1.RemoveItemResponse]
 	setSaleCustomer    *connect.Client[v1.SetSaleCustomerRequest, v1.SetSaleCustomerResponse]
+	fireToKitchen      *connect.Client[v1.FireToKitchenRequest, v1.FireToKitchenResponse]
+	setItemNote        *connect.Client[v1.SetItemNoteRequest, v1.SetItemNoteResponse]
 	attachPrescription *connect.Client[v1.AttachPrescriptionRequest, v1.AttachPrescriptionResponse]
 	detachPrescription *connect.Client[v1.DetachPrescriptionRequest, v1.DetachPrescriptionResponse]
 	setServiceFee      *connect.Client[v1.SetServiceFeeRequest, v1.SetServiceFeeResponse]
@@ -335,6 +363,16 @@ func (c *saleServiceClient) RemoveItem(ctx context.Context, req *connect.Request
 // SetSaleCustomer calls pos_iface.v1.SaleService.SetSaleCustomer.
 func (c *saleServiceClient) SetSaleCustomer(ctx context.Context, req *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error) {
 	return c.setSaleCustomer.CallUnary(ctx, req)
+}
+
+// FireToKitchen calls pos_iface.v1.SaleService.FireToKitchen.
+func (c *saleServiceClient) FireToKitchen(ctx context.Context, req *connect.Request[v1.FireToKitchenRequest]) (*connect.Response[v1.FireToKitchenResponse], error) {
+	return c.fireToKitchen.CallUnary(ctx, req)
+}
+
+// SetItemNote calls pos_iface.v1.SaleService.SetItemNote.
+func (c *saleServiceClient) SetItemNote(ctx context.Context, req *connect.Request[v1.SetItemNoteRequest]) (*connect.Response[v1.SetItemNoteResponse], error) {
+	return c.setItemNote.CallUnary(ctx, req)
 }
 
 // AttachPrescription calls pos_iface.v1.SaleService.AttachPrescription.
@@ -416,6 +454,15 @@ type SaleServiceHandler interface {
 	SetItemQuantity(context.Context, *connect.Request[v1.SetItemQuantityRequest]) (*connect.Response[v1.SetItemQuantityResponse], error)
 	RemoveItem(context.Context, *connect.Request[v1.RemoveItemRequest]) (*connect.Response[v1.RemoveItemResponse], error)
 	SetSaleCustomer(context.Context, *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error)
+	// FireToKitchen sends the lines added since the last fire to the kitchen
+	// printer and stamps them fired. Incremental by design: a dine-in bill grows
+	// across rounds, and reprinting the whole order each time would have the
+	// kitchen cook the starters twice.
+	FireToKitchen(context.Context, *connect.Request[v1.FireToKitchenRequest]) (*connect.Response[v1.FireToKitchenResponse], error)
+	// SetItemNote sets the cook-facing note on a cart line ("no ice", "extra
+	// pedas"). Never affects any amount — a priced modifier is a different
+	// feature. DRAFT only.
+	SetItemNote(context.Context, *connect.Request[v1.SetItemNoteRequest]) (*connect.Response[v1.SetItemNoteResponse], error)
 	// AttachPrescription / DetachPrescription — pharmacy-mode POS flow. Open to
 	// everyone who can run POS (the dispensing happens at the till). The Rx
 	// *authoring* authority is separate (PrescriptionService Create/Update/Void).
@@ -501,6 +548,18 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 		SaleServiceSetSaleCustomerProcedure,
 		svc.SetSaleCustomer,
 		connect.WithSchema(saleServiceMethods.ByName("SetSaleCustomer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	saleServiceFireToKitchenHandler := connect.NewUnaryHandler(
+		SaleServiceFireToKitchenProcedure,
+		svc.FireToKitchen,
+		connect.WithSchema(saleServiceMethods.ByName("FireToKitchen")),
+		connect.WithHandlerOptions(opts...),
+	)
+	saleServiceSetItemNoteHandler := connect.NewUnaryHandler(
+		SaleServiceSetItemNoteProcedure,
+		svc.SetItemNote,
+		connect.WithSchema(saleServiceMethods.ByName("SetItemNote")),
 		connect.WithHandlerOptions(opts...),
 	)
 	saleServiceAttachPrescriptionHandler := connect.NewUnaryHandler(
@@ -603,6 +662,10 @@ func NewSaleServiceHandler(svc SaleServiceHandler, opts ...connect.HandlerOption
 			saleServiceRemoveItemHandler.ServeHTTP(w, r)
 		case SaleServiceSetSaleCustomerProcedure:
 			saleServiceSetSaleCustomerHandler.ServeHTTP(w, r)
+		case SaleServiceFireToKitchenProcedure:
+			saleServiceFireToKitchenHandler.ServeHTTP(w, r)
+		case SaleServiceSetItemNoteProcedure:
+			saleServiceSetItemNoteHandler.ServeHTTP(w, r)
 		case SaleServiceAttachPrescriptionProcedure:
 			saleServiceAttachPrescriptionHandler.ServeHTTP(w, r)
 		case SaleServiceDetachPrescriptionProcedure:
@@ -666,6 +729,14 @@ func (UnimplementedSaleServiceHandler) RemoveItem(context.Context, *connect.Requ
 
 func (UnimplementedSaleServiceHandler) SetSaleCustomer(context.Context, *connect.Request[v1.SetSaleCustomerRequest]) (*connect.Response[v1.SetSaleCustomerResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetSaleCustomer is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) FireToKitchen(context.Context, *connect.Request[v1.FireToKitchenRequest]) (*connect.Response[v1.FireToKitchenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.FireToKitchen is not implemented"))
+}
+
+func (UnimplementedSaleServiceHandler) SetItemNote(context.Context, *connect.Request[v1.SetItemNoteRequest]) (*connect.Response[v1.SetItemNoteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("pos_iface.v1.SaleService.SetItemNote is not implemented"))
 }
 
 func (UnimplementedSaleServiceHandler) AttachPrescription(context.Context, *connect.Request[v1.AttachPrescriptionRequest]) (*connect.Response[v1.AttachPrescriptionResponse], error) {

@@ -68,33 +68,31 @@ func (s *SaleService) CompleteSale(
 		// FEFO consumes stock from the sale's warehouse only.
 		saleWh := common.Deref(sale.WarehouseID)
 
-		// Lock every lot of the cart's products FOR UPDATE (deterministic id
+		// Expand the cart into what it actually takes out of stock: a STOCKED line
+		// consumes itself, a COMPOSITE (menu item / bundle) consumes its recipe's
+		// components, a SERVICE line consumes nothing. Every resulting movement
+		// still carries the SALE LINE's id, so COGS — which joins SALE movements
+		// by sale_item_id — keeps working unchanged for exploded lines.
+		cons, err := resolveConsumption(tx, items)
+		if err != nil {
+			return err
+		}
+
+		// Lock every lot of the CONSUMED products FOR UPDATE (deterministic id
 		// order) BEFORE reading availability, so concurrent CompleteSale /
 		// transfer / adjustment for the same lot serialize and can't oversell.
-		medSet := make(map[string]struct{}, len(items))
-		medIDs := make([]string, 0, len(items))
-		for i := range items {
-			if _, ok := medSet[items[i].ProductID]; ok {
-				continue
-			}
-			medSet[items[i].ProductID] = struct{}{}
-			medIDs = append(medIDs, items[i].ProductID)
-		}
-		if err := common.LockBatchesByProduct(tx, medIDs); err != nil {
+		// For a composite cart these are the ingredients, not the menu items.
+		if err := common.LockBatchesByProduct(tx, consumedProductIDs(cons)); err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
 
-		// For each line: consume its BASE-unit quantity across FEFO batches in the
+		// Consume each instruction's BASE-unit quantity across FEFO batches in the
 		// sale's warehouse.
-		for i := range items {
-			item := items[i]
-			needed := item.BaseQty
-			if needed <= 0 {
-				needed = item.Qty // back-compat for any rows created before UOM
-			}
+		for _, c := range cons {
+			needed := c.NeedBase
 
 			var batches []model.Batch
-			if err := tx.Where("product_id = ?", item.ProductID).
+			if err := tx.Where("product_id = ?", c.ProductID).
 				Order("expiry_date ASC").
 				Find(&batches).Error; err != nil {
 				return connect.NewError(connect.CodeInternal, err)
@@ -119,7 +117,7 @@ func (s *SaleService) CompleteSale(
 					take = avail
 				}
 
-				saleItemID := item.ID
+				saleItemID := c.SaleItemID
 				mv := model.StockMovement{
 					BatchID:     b.ID,
 					Qty:         -int32(take),
@@ -138,7 +136,7 @@ func (s *SaleService) CompleteSale(
 
 			if needed > 0 {
 				return connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("insufficient stock for product %s (%d base units short)", item.ProductID, needed))
+					fmt.Errorf("insufficient stock for product %s (%d base units short)", c.ProductID, needed))
 			}
 		}
 

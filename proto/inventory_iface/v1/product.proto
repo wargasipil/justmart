@@ -4,8 +4,22 @@ package inventory_iface.v1;
 
 import "auth_iface/v1/policy.proto";
 import "inventory_iface/v1/product_price_tier.proto";
+import "inventory_iface/v1/product_recipe.proto";
 
 option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
+
+// What selling one of this product costs the inventory. Stored as the bare
+// string ('STOCKED'|'COMPOSITE'|'SERVICE') in products.product_kind, matching
+// how users.role is stored — rows stay readable in psql.
+//
+// NOT gated on the business mode: a retail shop selling a gift bundle or
+// repacking a sack needs COMPOSITE just as much as a warung does.
+enum ProductKind {
+  PRODUCT_KIND_UNSPECIFIED = 0;  // treated as STOCKED (the pre-existing default)
+  PRODUCT_KIND_STOCKED = 1;      // the product IS the stock: a sale consumes its own batches
+  PRODUCT_KIND_COMPOSITE = 2;    // assembled at sale time: consumes its recipe's components
+  PRODUCT_KIND_SERVICE = 3;      // consumes nothing (corkage, delivery fee, plating charge)
+}
 
 message Product {
   reserved 4;
@@ -51,6 +65,15 @@ message Product {
   // marker is what tells the UI whether to fetch at all, and doubles as the
   // client cache key so a re-upload appears without an invalidate.
   int64 image_updated_at = 29;
+  // What selling one costs the inventory. UNSPECIFIED reads as STOCKED so every
+  // pre-existing product and every caller that never sets it keeps today's
+  // behaviour exactly.
+  ProductKind kind = 30;
+  // The bill of materials, hydrated alongside units/price_tiers on Get/List/
+  // Search — POS reads the catalog through ListProducts, so a Get-only
+  // hydration would leave every menu item's availability hint blank. Empty for
+  // a STOCKED or SERVICE product.
+  repeated ProductRecipeItem recipe = 31;
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -233,6 +256,7 @@ message CreateProductRequest {
   int64 unit_price = 5;       // base unit sell price
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // optional; if empty, a base unit is created from unit/unit_price
+  ProductKind kind = 8;                 // UNSPECIFIED = STOCKED
 }
 message CreateProductResponse { Product product = 1; }
 
@@ -269,6 +293,10 @@ message UpdateProductRequest {
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // upsert the full unit set (exactly one is_base, base factor 1)
   string sku = 8;                        // editable business code; unique (excludes self on update)
+  // UNSPECIFIED = STOCKED. Switching AWAY from COMPOSITE while recipe lines
+  // still exist is rejected — clear the recipe first, so a menu item can never
+  // silently stop consuming its ingredients.
+  ProductKind kind = 9;
 }
 message UpdateProductResponse { Product product = 1; }
 

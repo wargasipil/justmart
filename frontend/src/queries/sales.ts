@@ -29,9 +29,13 @@ export const saleKeys = {
   todaySnapshot: () => [...saleKeys.all, "today-snapshot"] as const,
 };
 
+// orderType is restaurant-mode only ("" | TAKEAWAY | DELIVERY). DINE_IN is not
+// accepted here — a seated order is opened through TableService.OpenTable, the
+// only path that binds a table.
 export function useStartSaleMutation() {
   return useMutation({
-    mutationFn: () => saleClient.startSale({}),
+    mutationFn: (req: { orderType?: string } = {}) =>
+      saleClient.startSale({ orderType: req.orderType ?? "" }),
   });
 }
 
@@ -175,6 +179,37 @@ export function useRefundSaleMutation() {
       void qc.invalidateQueries({ queryKey: ["stock"] });
       void qc.invalidateQueries({ queryKey: ["batches"] });
     },
+  });
+}
+
+// Send the lines added since the last fire to the kitchen printer. Incremental
+// server-side: firing twice with nothing new is a no-op success (firedItems: 0)
+// and does NOT reprint, so a double tap is harmless.
+export function useFireToKitchenMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: { saleId: string; connectorDeviceId?: string; printerName?: string }) =>
+      saleClient.fireToKitchen(req),
+    // The response carries no Sale, but every line's firedAt just changed —
+    // refetch so the cart's per-line "fired" cue is accurate.
+    onSuccess: (_res, req) => {
+      qc.invalidateQueries({ queryKey: saleKeys.detail(req.saleId) });
+    },
+    meta: { silentError: true },
+  });
+}
+
+// Cook-facing note on a cart line ("no ice", "extra pedas"). Never moves an
+// amount — a priced modifier is a separate line, not a note.
+export function useSetItemNoteMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: { saleId: string; itemId: string; note: string }) =>
+      saleClient.setItemNote(req),
+    onSuccess: (res) => {
+      if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
+    },
+    meta: { silentError: true },
   });
 }
 

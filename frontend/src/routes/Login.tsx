@@ -1,7 +1,7 @@
 import { Box, Button, Heading, Stack, Text } from "@chakra-ui/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { Pill, Store } from "lucide-react";
+import { brandIcon } from "../lib/brand";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -21,7 +21,8 @@ type FormValues = z.infer<typeof Schema>;
 export default function Login() {
   const { t } = useTranslation();
   const { user, login } = useAuth();
-  const { isPharmacy } = useBranding();
+  const { mode } = useBranding();
+  const BrandIcon = brandIcon(mode);
   const navigate = useNavigate();
 
   // Mirror the Sidebar brand + tab title: the app title configured in Settings ▸
@@ -47,7 +48,7 @@ export default function Login() {
       <Stack gap={5}>
         <Stack gap={1} align="center">
           <Box colorPalette="blue" color="colorPalette.solid">
-            {isPharmacy ? <Pill size={32} /> : <Store size={32} />}
+            <BrandIcon size={32} />
           </Box>
           <Heading size="lg" textAlign="center">{brandName}</Heading>
           <Text color="fg.muted" fontSize="sm">{t("auth.signIn")}</Text>

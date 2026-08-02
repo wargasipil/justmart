@@ -48,6 +48,7 @@ import DailyAnalytics from "./routes/analytics/Daily";
 import ProductAnalytics from "./routes/analytics/Product";
 import UserAnalytics from "./routes/analytics/User";
 import Purchasing from "./routes/purchasing/Purchasing";
+import Tables from "./routes/tables/Tables";
 import Warehouses from "./routes/Warehouses";
 import WarehouseDetail from "./routes/WarehouseDetail";
 import Profile from "./routes/Profile";
@@ -126,17 +127,24 @@ const router = createBrowserRouter([
         ],
       },
       {
-        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER]} />,
+        element: (
+          <ProtectedRoute
+            requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER, Role.WAITER]}
+          />
+        ),
         children: [
           { path: "customers", element: <Customers /> },
           { path: "orders", element: <Orders /> },
           { path: "orders/:id", element: <OrderDetail /> },
+          // The restaurant floor. Waiters live here; managers also administer
+          // the table catalog from the same page.
+          { path: "tables", element: <Tables /> },
         ],
       },
       {
-        // Self-scoped "My performance" — cashier-facing (own revenue/qty over
+        // Self-scoped "My performance" — floor/till facing (own revenue/qty over
         // time). OWNER/PHARMACIST have full analytics instead.
-        element: <ProtectedRoute requiredRoles={[Role.CASHIER, Role.APOTEKER]} />,
+        element: <ProtectedRoute requiredRoles={[Role.CASHIER, Role.APOTEKER, Role.WAITER]} />,
         children: [{ path: "my-performance", element: <MyPerformance /> }],
       },
       {

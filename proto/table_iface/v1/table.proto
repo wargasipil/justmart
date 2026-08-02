@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package table_iface.v1;
+
+import "auth_iface/v1/policy.proto";
+
+option go_package = "github.com/justmart/backend/gen/table_iface/v1;tableifacev1";
+
+// A dining table on the floor of one outlet (warehouse).
+//
+// `occupied_*` describe the table's CURRENT open bill and are computed on read,
+// never stored — an open bill is just a DRAFT sale carrying this table's id, and
+// a partial unique index guarantees there is at most one.
+message DiningTable {
+  string id = 1;
+  string warehouse_id = 2;
+  string code = 3;   // short floor label: "T1", "A4" — unique per outlet among live tables
+  string name = 4;   // optional longer label ("Corner booth")
+  string area = 5;   // optional grouping: "Indoor", "Teras", "Lantai 2"
+  int32 seats = 6;   // capacity; 0 = unspecified
+  bool active = 7;
+  int64 created_at = 8;
+
+  // Current open bill, if any.
+  string open_sale_id = 9;
+  int64 opened_at = 10;      // unix; when the bill was started
+  int64 open_total = 11;     // running total (minor units)
+  int32 open_item_count = 12;// number of cart lines
+  int32 guest_count = 13;    // covers recorded when the table was opened
+  string opened_by_user_id = 14;
+}
+
+// How an order reaches the customer. Stored as the bare string in
+// sales.order_type; '' (UNSPECIFIED) is every non-restaurant sale — retail and
+// pharmacy never set it.
+enum OrderType {
+  ORDER_TYPE_UNSPECIFIED = 0;
+  ORDER_TYPE_DINE_IN = 1;   // seated at a table; the only type that binds a table_id
+  ORDER_TYPE_TAKEAWAY = 2;  // ordered at the counter, taken away
+  ORDER_TYPE_DELIVERY = 3;  // sent out
+}
+
+// TableService owns the floor: the table catalog (manager tier) and the floor
+// actions a waiter performs during service.
+//
+// Note what is NOT here: settling a bill. That stays SaleService.CompleteSale,
+// which WAITER is deliberately not granted — a waiter opens, fills and moves
+// tables; only the till roles take money. That split is the reason the role
+// exists rather than being a CASHIER alias.
+service TableService {
+  rpc ListTables(ListTablesRequest) returns (ListTablesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+  rpc GetTable(GetTableRequest) returns (GetTableResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+
+  // Catalog administration — manager tier.
+  rpc CreateTable(CreateTableRequest) returns (CreateTableResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UpdateTable(UpdateTableRequest) returns (UpdateTableResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ArchiveTable(ArchiveTableRequest) returns (ArchiveTableResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc UnarchiveTable(UnarchiveTableRequest) returns (UnarchiveTableResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+
+  // Floor actions — every serving role, waiters included.
+  rpc OpenTable(OpenTableRequest) returns (OpenTableResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+  // MoveOrder re-seats an open bill onto a different (free) table.
+  rpc MoveOrder(MoveOrderRequest) returns (MoveOrderResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_WAITER;
+  }
+}
+
+message ListTablesRequest {
+  bool include_inactive = 1;
+  bool only_occupied = 2;
+  string area = 3;  // optional exact-match filter
+  int32 limit = 4;
+  int32 offset = 5;
+}
+message ListTablesResponse {
+  repeated DiningTable tables = 1;
+  int32 total = 2;      // matching tables, ignoring the page window
+  int32 occupied = 3;   // occupied among ALL matches, not just this page
+}
+
+message GetTableRequest { string id = 1; }
+message GetTableResponse { DiningTable table = 1; }
+
+message CreateTableRequest {
+  string code = 1;
+  string name = 2;
+  string area = 3;
+  int32 seats = 4;
+}
+message CreateTableResponse { DiningTable table = 1; }
+
+message UpdateTableRequest {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+  string area = 4;
+  int32 seats = 5;
+}
+message UpdateTableResponse { DiningTable table = 1; }
+
+message ArchiveTableRequest { string id = 1; }
+message ArchiveTableResponse { DiningTable table = 1; }
+
+message UnarchiveTableRequest { string id = 1; }
+message UnarchiveTableResponse { DiningTable table = 1; }
+
+message OpenTableRequest {
+  string table_id = 1;
+  int32 guest_count = 2;
+}
+message OpenTableResponse {
+  string sale_id = 1;
+  // True when the table already had an open bill and this call returned it
+  // instead of starting a new one. Tapping an occupied table is the normal way
+  // to resume serving it, not an error.
+  bool resumed = 2;
+  DiningTable table = 3;
+}
+
+message MoveOrderRequest {
+  string sale_id = 1;
+  string to_table_id = 2;
+}
+message MoveOrderResponse { DiningTable table = 1; }

@@ -343,6 +343,17 @@ func maybeCloseIfPaid(tx *gorm.DB, po *model.PurchaseOrder) error {
 // resolvePurchaseUnit returns the product's purchasable unit for the given unit
 // id, or its base unit when unitID is empty.
 func resolvePurchaseUnit(tx *gorm.DB, productID, unitID string) (*model.ProductUnit, error) {
+	// Only a STOCKED product can be bought in. A COMPOSITE is assembled from
+	// ingredients at sale time and a SERVICE holds no stock at all — receiving
+	// either would create a batch that nothing ever consumes (the sale path
+	// explodes the recipe or consumes nothing), so the goods would be stranded
+	// on the ledger forever while the catalog kept reporting buildable portions.
+	// Guarding here covers Create + Update PO in one place, and a PO that can't
+	// exist can't be received.
+	if err := assertPurchasable(tx, productID); err != nil {
+		return nil, err
+	}
+
 	var u model.ProductUnit
 	q := tx.Where("product_id = ? AND active", productID)
 	if unitID != "" {
@@ -361,6 +372,22 @@ func resolvePurchaseUnit(tx *gorm.DB, productID, unitID string) (*model.ProductU
 		u.Factor = 1
 	}
 	return &u, nil
+}
+
+// assertPurchasable rejects a product whose kind cannot hold stock. Silent on a
+// missing product — the caller's own lookup reports that with a better message.
+func assertPurchasable(tx *gorm.DB, productID string) error {
+	var p model.Product
+	if err := tx.Select("id", "product_kind").Where("id = ?", productID).First(&p).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if common.NormalizeProductKind(p.Kind) != common.ProductKindStocked {
+		return common.TokenError(connect.CodeFailedPrecondition, "purchasing.product_not_stocked")
+	}
+	return nil
 }
 
 // enrichList denormalizes display-only data onto a page of POs: product names

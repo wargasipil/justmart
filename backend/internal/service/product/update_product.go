@@ -50,10 +50,28 @@ func (s *ProductService) UpdateProduct(
 			Where("id = ?", med.ID).First(&model.Product{}).Error; err != nil {
 			return err
 		}
+		// Switching AWAY from COMPOSITE while recipe lines still exist is refused:
+		// the rows would survive but stop being consulted, so the menu item would
+		// go on selling while silently deducting nothing from its ingredients.
+		// Clearing the recipe first makes that an explicit act.
+		newKind := kindFromProto(req.Msg.Kind)
+		if common.NormalizeProductKind(med.Kind) == common.ProductKindComposite &&
+			newKind != common.ProductKindComposite {
+			var lines int64
+			if err := tx.Model(&model.ProductRecipeItem{}).
+				Where("product_id = ?", med.ID).Count(&lines).Error; err != nil {
+				return connect.NewError(connect.CodeInternal, err)
+			}
+			if lines > 0 {
+				return common.TokenError(connect.CodeFailedPrecondition, "product.kind_has_recipe")
+			}
+		}
+
 		updates := map[string]any{
 			"name":                  name,
 			"unit":                  unit,
 			"prescription_required": req.Msg.PrescriptionRequired,
+			"product_kind":          newKind,
 		}
 		// SKU is an editable unique business code. Apply only when a (changed)
 		// value is provided — empty keeps the current SKU (partial-update safe).

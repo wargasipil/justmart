@@ -51,6 +51,12 @@ const (
 	// SettingsServiceSetPrintTargetProcedure is the fully-qualified name of the SettingsService's
 	// SetPrintTarget RPC.
 	SettingsServiceSetPrintTargetProcedure = "/settings_iface.v1.SettingsService/SetPrintTarget"
+	// SettingsServiceGetKitchenPrintTargetProcedure is the fully-qualified name of the
+	// SettingsService's GetKitchenPrintTarget RPC.
+	SettingsServiceGetKitchenPrintTargetProcedure = "/settings_iface.v1.SettingsService/GetKitchenPrintTarget"
+	// SettingsServiceSetKitchenPrintTargetProcedure is the fully-qualified name of the
+	// SettingsService's SetKitchenPrintTarget RPC.
+	SettingsServiceSetKitchenPrintTargetProcedure = "/settings_iface.v1.SettingsService/SetKitchenPrintTarget"
 	// SettingsServiceGetReceiptSettingsProcedure is the fully-qualified name of the SettingsService's
 	// GetReceiptSettings RPC.
 	SettingsServiceGetReceiptSettingsProcedure = "/settings_iface.v1.SettingsService/GetReceiptSettings"
@@ -91,6 +97,12 @@ type SettingsServiceClient interface {
 	// Set is owner-only.
 	GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error)
 	SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error)
+	// Get/SetKitchenPrintTarget store the KITCHEN ticket target (restaurant mode)
+	// — separate from the receipt target because the point of a kitchen ticket is
+	// that it comes out at the pass, not at the till. Unset falls back to the
+	// receipt target, so a one-printer warung works with no configuration.
+	GetKitchenPrintTarget(context.Context, *connect.Request[v1.GetKitchenPrintTargetRequest]) (*connect.Response[v1.GetKitchenPrintTargetResponse], error)
+	SetKitchenPrintTarget(context.Context, *connect.Request[v1.SetKitchenPrintTargetRequest]) (*connect.Response[v1.SetKitchenPrintTargetResponse], error)
 	// GetReceiptSettings / SetReceiptSettings store the printed-receipt header
 	// (shop name/address lines) + footer (closing lines). Multi-line strings, one
 	// receipt line per text line. Seeded at boot from config.yaml printer.header/
@@ -161,6 +173,18 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("SetPrintTarget")),
 			connect.WithClientOptions(opts...),
 		),
+		getKitchenPrintTarget: connect.NewClient[v1.GetKitchenPrintTargetRequest, v1.GetKitchenPrintTargetResponse](
+			httpClient,
+			baseURL+SettingsServiceGetKitchenPrintTargetProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetKitchenPrintTarget")),
+			connect.WithClientOptions(opts...),
+		),
+		setKitchenPrintTarget: connect.NewClient[v1.SetKitchenPrintTargetRequest, v1.SetKitchenPrintTargetResponse](
+			httpClient,
+			baseURL+SettingsServiceSetKitchenPrintTargetProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("SetKitchenPrintTarget")),
+			connect.WithClientOptions(opts...),
+		),
 		getReceiptSettings: connect.NewClient[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse](
 			httpClient,
 			baseURL+SettingsServiceGetReceiptSettingsProcedure,
@@ -202,18 +226,20 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 
 // settingsServiceClient implements SettingsServiceClient.
 type settingsServiceClient struct {
-	getSettings          *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
-	updateSettings       *connect.Client[v1.UpdateSettingsRequest, v1.UpdateSettingsResponse]
-	getBussinessSettings *connect.Client[v1.GetBussinessSettingsRequest, v1.GetBussinessSettingsResponse]
-	getBranding          *connect.Client[v1.GetBrandingRequest, v1.GetBrandingResponse]
-	getPrintTarget       *connect.Client[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse]
-	setPrintTarget       *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
-	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
-	setReceiptSettings   *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
-	getPrintingInfo      *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
-	checkUpdate          *connect.Client[v1.CheckUpdateRequest, v1.CheckUpdateResponse]
-	applyUpdate          *connect.Client[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse]
-	revertUpdate         *connect.Client[v1.RevertUpdateRequest, v1.RevertUpdateResponse]
+	getSettings           *connect.Client[v1.GetSettingsRequest, v1.GetSettingsResponse]
+	updateSettings        *connect.Client[v1.UpdateSettingsRequest, v1.UpdateSettingsResponse]
+	getBussinessSettings  *connect.Client[v1.GetBussinessSettingsRequest, v1.GetBussinessSettingsResponse]
+	getBranding           *connect.Client[v1.GetBrandingRequest, v1.GetBrandingResponse]
+	getPrintTarget        *connect.Client[v1.GetPrintTargetRequest, v1.GetPrintTargetResponse]
+	setPrintTarget        *connect.Client[v1.SetPrintTargetRequest, v1.SetPrintTargetResponse]
+	getKitchenPrintTarget *connect.Client[v1.GetKitchenPrintTargetRequest, v1.GetKitchenPrintTargetResponse]
+	setKitchenPrintTarget *connect.Client[v1.SetKitchenPrintTargetRequest, v1.SetKitchenPrintTargetResponse]
+	getReceiptSettings    *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
+	setReceiptSettings    *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
+	getPrintingInfo       *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
+	checkUpdate           *connect.Client[v1.CheckUpdateRequest, v1.CheckUpdateResponse]
+	applyUpdate           *connect.Client[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse]
+	revertUpdate          *connect.Client[v1.RevertUpdateRequest, v1.RevertUpdateResponse]
 }
 
 // GetSettings calls settings_iface.v1.SettingsService.GetSettings.
@@ -244,6 +270,16 @@ func (c *settingsServiceClient) GetPrintTarget(ctx context.Context, req *connect
 // SetPrintTarget calls settings_iface.v1.SettingsService.SetPrintTarget.
 func (c *settingsServiceClient) SetPrintTarget(ctx context.Context, req *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error) {
 	return c.setPrintTarget.CallUnary(ctx, req)
+}
+
+// GetKitchenPrintTarget calls settings_iface.v1.SettingsService.GetKitchenPrintTarget.
+func (c *settingsServiceClient) GetKitchenPrintTarget(ctx context.Context, req *connect.Request[v1.GetKitchenPrintTargetRequest]) (*connect.Response[v1.GetKitchenPrintTargetResponse], error) {
+	return c.getKitchenPrintTarget.CallUnary(ctx, req)
+}
+
+// SetKitchenPrintTarget calls settings_iface.v1.SettingsService.SetKitchenPrintTarget.
+func (c *settingsServiceClient) SetKitchenPrintTarget(ctx context.Context, req *connect.Request[v1.SetKitchenPrintTargetRequest]) (*connect.Response[v1.SetKitchenPrintTargetResponse], error) {
+	return c.setKitchenPrintTarget.CallUnary(ctx, req)
 }
 
 // GetReceiptSettings calls settings_iface.v1.SettingsService.GetReceiptSettings.
@@ -296,6 +332,12 @@ type SettingsServiceHandler interface {
 	// Set is owner-only.
 	GetPrintTarget(context.Context, *connect.Request[v1.GetPrintTargetRequest]) (*connect.Response[v1.GetPrintTargetResponse], error)
 	SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error)
+	// Get/SetKitchenPrintTarget store the KITCHEN ticket target (restaurant mode)
+	// — separate from the receipt target because the point of a kitchen ticket is
+	// that it comes out at the pass, not at the till. Unset falls back to the
+	// receipt target, so a one-printer warung works with no configuration.
+	GetKitchenPrintTarget(context.Context, *connect.Request[v1.GetKitchenPrintTargetRequest]) (*connect.Response[v1.GetKitchenPrintTargetResponse], error)
+	SetKitchenPrintTarget(context.Context, *connect.Request[v1.SetKitchenPrintTargetRequest]) (*connect.Response[v1.SetKitchenPrintTargetResponse], error)
 	// GetReceiptSettings / SetReceiptSettings store the printed-receipt header
 	// (shop name/address lines) + footer (closing lines). Multi-line strings, one
 	// receipt line per text line. Seeded at boot from config.yaml printer.header/
@@ -362,6 +404,18 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("SetPrintTarget")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetKitchenPrintTargetHandler := connect.NewUnaryHandler(
+		SettingsServiceGetKitchenPrintTargetProcedure,
+		svc.GetKitchenPrintTarget,
+		connect.WithSchema(settingsServiceMethods.ByName("GetKitchenPrintTarget")),
+		connect.WithHandlerOptions(opts...),
+	)
+	settingsServiceSetKitchenPrintTargetHandler := connect.NewUnaryHandler(
+		SettingsServiceSetKitchenPrintTargetProcedure,
+		svc.SetKitchenPrintTarget,
+		connect.WithSchema(settingsServiceMethods.ByName("SetKitchenPrintTarget")),
+		connect.WithHandlerOptions(opts...),
+	)
 	settingsServiceGetReceiptSettingsHandler := connect.NewUnaryHandler(
 		SettingsServiceGetReceiptSettingsProcedure,
 		svc.GetReceiptSettings,
@@ -412,6 +466,10 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceGetPrintTargetHandler.ServeHTTP(w, r)
 		case SettingsServiceSetPrintTargetProcedure:
 			settingsServiceSetPrintTargetHandler.ServeHTTP(w, r)
+		case SettingsServiceGetKitchenPrintTargetProcedure:
+			settingsServiceGetKitchenPrintTargetHandler.ServeHTTP(w, r)
+		case SettingsServiceSetKitchenPrintTargetProcedure:
+			settingsServiceSetKitchenPrintTargetHandler.ServeHTTP(w, r)
 		case SettingsServiceGetReceiptSettingsProcedure:
 			settingsServiceGetReceiptSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceSetReceiptSettingsProcedure:
@@ -455,6 +513,14 @@ func (UnimplementedSettingsServiceHandler) GetPrintTarget(context.Context, *conn
 
 func (UnimplementedSettingsServiceHandler) SetPrintTarget(context.Context, *connect.Request[v1.SetPrintTargetRequest]) (*connect.Response[v1.SetPrintTargetResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetPrintTarget is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetKitchenPrintTarget(context.Context, *connect.Request[v1.GetKitchenPrintTargetRequest]) (*connect.Response[v1.GetKitchenPrintTargetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetKitchenPrintTarget is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) SetKitchenPrintTarget(context.Context, *connect.Request[v1.SetKitchenPrintTargetRequest]) (*connect.Response[v1.SetKitchenPrintTargetResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetKitchenPrintTarget is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) GetReceiptSettings(context.Context, *connect.Request[v1.GetReceiptSettingsRequest]) (*connect.Response[v1.GetReceiptSettingsResponse], error) {

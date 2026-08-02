@@ -42,6 +42,34 @@ function writeBrandingCache(b: CachedBranding) {
   }
 }
 
+// modeFlags derives the per-mode flags every consumer branches on, in ONE place,
+// so adding a fourth mode never means hunting down scattered `mode === X`
+// comparisons. Both the public branding accessor and the authenticated
+// business-mode accessor spread this, so they can't drift apart.
+//
+// Gate UI on the CAPABILITY flags (hasRx / hasTables / hasKitchenTickets), not on
+// the mode identity — a capability answers "should this control exist?", which is
+// what a call site actually means, and it survives the next mode being added.
+// `isPharmacy` / `isRestaurant` remain for genuinely brand-level choices (which
+// icon, which built-in name).
+//
+// UNSPECIFIED (never configured) deliberately falls back to RETAIL: a fresh
+// install behaves as the finished retail product, and every mode-specific
+// feature has to opt in.
+export function modeFlags(mode: BussinessType) {
+  const isPharmacy = mode === BussinessType.PHARMACY_SHOP;
+  const isRestaurant = mode === BussinessType.RESTAURANT;
+  return {
+    isPharmacy,
+    isRestaurant,
+    isRetail: !isPharmacy && !isRestaurant, // UNSPECIFIED falls back to retail
+    // Capabilities — what the mode unlocks.
+    hasRx: isPharmacy, // prescriptions: Rx nav, POS gate, product Rx flag
+    hasTables: isRestaurant, // dining tables + open bills across rounds
+    hasKitchenTickets: isRestaurant, // fire-to-kitchen printing
+  };
+}
+
 export function useBrandingQuery() {
   return useQuery({
     queryKey: settingsKeys.branding,
@@ -60,14 +88,13 @@ export function useBrandingQuery() {
 // result to the localStorage cache for the next cold load.
 export function useBranding() {
   const q = useBrandingQuery();
-  const mode = q.data?.businessType ?? BussinessType.UNSPECIFIED;
+  const mode = (q.data?.businessType ?? BussinessType.UNSPECIFIED) as BussinessType;
   useEffect(() => {
     if (q.data) writeBrandingCache(q.data);
   }, [q.data]);
   return {
     mode,
-    isPharmacy: mode === BussinessType.PHARMACY_SHOP,
-    isRetail: mode !== BussinessType.PHARMACY_SHOP,
+    ...modeFlags(mode),
     appTitle: q.data?.appTitle ?? "",
     isLoading: q.isLoading,
   };
@@ -79,9 +106,12 @@ export function useBranding() {
 // active mode ("Apotek"/"Pharmacy" vs "Justmart"). Reads the PUBLIC branding
 // query so it's correct pre-login too.
 export function useAppTitle() {
-  const { isPharmacy, appTitle } = useBranding();
+  const { isPharmacy, isRestaurant, appTitle } = useBranding();
   const { t } = useTranslation();
-  return appTitle || (isPharmacy ? t("app.pharmacyName") : t("app.name"));
+  if (appTitle) return appTitle;
+  if (isPharmacy) return t("app.pharmacyName");
+  if (isRestaurant) return t("app.restaurantName");
+  return t("app.name");
 }
 
 // The shop's business mode (configured in Settings ▸ General). Readable by every
@@ -108,8 +138,7 @@ export function useBusinessMode(enabled = true) {
   const mode = q.data?.type ?? BussinessType.UNSPECIFIED;
   return {
     mode,
-    isPharmacy: mode === BussinessType.PHARMACY_SHOP,
-    isRetail: mode !== BussinessType.PHARMACY_SHOP, // UNSPECIFIED falls back to retail
+    ...modeFlags(mode),
     appTitle: q.data?.appTitle ?? "",
     isLoading: q.isLoading,
   };

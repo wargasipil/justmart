@@ -47,6 +47,11 @@ func saleToProto(s *model.Sale) *posifacev1.Sale {
 	out.RefundAmount = s.RefundAmount
 	out.RefundReason = s.RefundReason
 	out.RefundRestocked = s.RefundRestocked
+	if s.TableID != nil {
+		out.TableId = *s.TableID
+	}
+	out.OrderType = s.OrderType
+	out.GuestCount = s.GuestCount
 	for i := range s.Items {
 		out.Items = append(out.Items, saleItemToProto(&s.Items[i]))
 	}
@@ -71,6 +76,10 @@ func saleItemToProto(i *model.SaleItem) *posifacev1.SaleItem {
 		BaseQty:           i.BaseQty,
 		ListPriceSnapshot: i.ListPriceSnapshot,
 		TierMinQty:        i.TierMinQty,
+		KitchenNote:       i.KitchenNote,
+	}
+	if i.FiredAt != nil {
+		out.FiredAt = i.FiredAt.Unix()
 	}
 	if i.BatchID != nil {
 		out.BatchId = *i.BatchID

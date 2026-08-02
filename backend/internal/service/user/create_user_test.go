@@ -88,6 +88,55 @@ func TestCreateUser_ApotekerRejectedInRetailMode(t *testing.T) {
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
+// WAITER (the restaurant-only floor role) is creatable in restaurant mode and
+// round-trips through roleFromProto/roleToProto.
+func TestCreateUser_WaiterAllowedInRestaurantMode(t *testing.T) {
+	t.Parallel()
+	db := servicetest.NewDB(t, servicetest.NewConfig(t))
+	require.NoError(t, common.SetBussinessType(context.Background(), db, common.BussinessTypeRestaurant))
+	svc := usersvc.NewUserService(db)
+
+	resp, err := svc.CreateUser(context.Background(), connect.NewRequest(&userifacev1.CreateUserRequest{
+		Email:    "waiter@test.local",
+		Name:     "Pramusaji One",
+		Password: "supersecret",
+		Role:     authifacev1.Role_ROLE_WAITER,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, authifacev1.Role_ROLE_WAITER, resp.Msg.User.Role)
+}
+
+// Roles must not mix across modes in EITHER direction: the restaurant-only
+// WAITER is rejected in retail/pharmacy, and the pharmacy-only APOTEKER is
+// rejected in restaurant.
+func TestCreateUser_ModeSpecificRolesDoNotCross(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		mode int32
+		role authifacev1.Role
+	}{
+		{"waiter in retail", common.BussinessTypeRetail, authifacev1.Role_ROLE_WAITER},
+		{"waiter in pharmacy", common.BussinessTypePharmacyShop, authifacev1.Role_ROLE_WAITER},
+		{"apoteker in restaurant", common.BussinessTypeRestaurant, authifacev1.Role_ROLE_APOTEKER},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			db := servicetest.NewDB(t, servicetest.NewConfig(t))
+			require.NoError(t, common.SetBussinessType(context.Background(), db, tc.mode))
+			svc := usersvc.NewUserService(db)
+
+			_, err := svc.CreateUser(context.Background(), connect.NewRequest(&userifacev1.CreateUserRequest{
+				Email:    "crossmode@test.local",
+				Password: "supersecret",
+				Role:     tc.role,
+			}))
+			require.Error(t, err)
+			require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+		})
+	}
+}
+
 // The shared roles (OWNER, PHARMACIST/"Admin", CASHIER) are all creatable in
 // retail — no false rejections. (Default UNSPECIFIED mode also behaves as retail.)
 func TestCreateUser_SharedRolesAllowedInRetail(t *testing.T) {

@@ -83,6 +83,7 @@ func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, us
 		UnitPrice:            msg.UnitPrice,
 		PrescriptionRequired: msg.PrescriptionRequired,
 		Active:               true,
+		Kind:                 kindFromProto(msg.Kind),
 	}
 	if err := tx.Create(med).Error; err != nil {
 		return nil, fmt.Errorf("create product: %w", err)

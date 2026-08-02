@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetKitchenPrintTargetRequest, GetKitchenPrintTargetResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetKitchenPrintTargetRequest, SetKitchenPrintTargetResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -79,6 +79,29 @@ export const SettingsService = {
       name: "SetPrintTarget",
       I: SetPrintTargetRequest,
       O: SetPrintTargetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Get/SetKitchenPrintTarget store the KITCHEN ticket target (restaurant mode)
+     * — separate from the receipt target because the point of a kitchen ticket is
+     * that it comes out at the pass, not at the till. Unset falls back to the
+     * receipt target, so a one-printer warung works with no configuration.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetKitchenPrintTarget
+     */
+    getKitchenPrintTarget: {
+      name: "GetKitchenPrintTarget",
+      I: GetKitchenPrintTargetRequest,
+      O: GetKitchenPrintTargetResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc settings_iface.v1.SettingsService.SetKitchenPrintTarget
+     */
+    setKitchenPrintTarget: {
+      name: "SetKitchenPrintTarget",
+      I: SetKitchenPrintTargetRequest,
+      O: SetKitchenPrintTargetResponse,
       kind: MethodKind.Unary,
     },
     /**

@@ -18,6 +18,16 @@ import (
 // `total` is the FULL match count, not the page length — the TopBar bell badge
 // reads it. It used to be len(products) under a hard Limit(100), so a shop with
 // more than 100 low items showed a badge reading exactly "100".
+//
+// ONLY STOCKED PRODUCTS PARTICIPATE. A COMPOSITE and a SERVICE both hold zero
+// batches, so the LEFT JOIN below scores them 0 and they would sit in the bell
+// permanently — in a restaurant that is every menu item and every fee, i.e. a
+// badge nobody can ever clear. Excluding them is also the correct domain answer,
+// not a workaround: this bell is about REPLENISHABLE stock, the things you
+// reorder from a supplier. Nobody reorders nasi goreng — a menu item runs low
+// only because an ingredient did, and that ingredient is a STOCKED product the
+// bell already reports. ("Portions I can still make" is a different question,
+// answered per-product by ready_stock and on the recipe card.)
 func (s *ProductService) ListLowStock(
 	ctx context.Context,
 	req *connect.Request[inventoryifacev1.ListLowStockRequest],
@@ -43,6 +53,9 @@ func (s *ProductService) ListLowStock(
 			Joins("LEFT JOIN batches AS b ON b.product_id = m.id").
 			Joins("LEFT JOIN stock_movements AS sm ON sm.batch_id = b.id AND sm.warehouse_id = ?", warehouseID).
 			Where("m.active = ?", true).
+			// COALESCE covers pre-kind rows, which read as STOCKED.
+			Where("COALESCE(m.product_kind, '') NOT IN ?",
+				[]string{common.ProductKindComposite, common.ProductKindService}).
 			Group("m.id").
 			Having("COALESCE(SUM(sm.qty), 0) <= ?", threshold)
 	}

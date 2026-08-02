@@ -10,11 +10,14 @@ import (
 )
 
 // rolesByMode is the single source of truth for which roles may be assigned in
-// each business mode (mirrored on the frontend in routes/Users.tsx). APOTEKER —
-// the Rx-authority role — is pharmacy-only; OWNER/PHARMACIST/CASHIER are shared.
-// There is no retail-only role, so retail is just the shared set.
+// each business mode (mirrored on the frontend in routes/Users.tsx).
+// OWNER/PHARMACIST/CASHIER are shared by every mode; the mode-specific roles are
+// APOTEKER (pharmacy — Rx authority) and WAITER (restaurant — floor service, no
+// till authority). There is no retail-only role, so retail is just the shared
+// set.
 var rolesByMode = map[int32]map[string]bool{
 	common.BussinessTypePharmacyShop: {roleOwner: true, rolePharmacist: true, roleCashier: true, roleApoteker: true},
+	common.BussinessTypeRestaurant:   {roleOwner: true, rolePharmacist: true, roleCashier: true, roleWaiter: true},
 	common.BussinessTypeRetail:       {roleOwner: true, rolePharmacist: true, roleCashier: true},
 	common.BussinessTypeUnspecified:  {roleOwner: true, rolePharmacist: true, roleCashier: true}, // unset == retail
 }

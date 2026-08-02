@@ -22,8 +22,16 @@ func TestEnsureBootstrapOwner_GrantsDefaultWarehouse(t *testing.T) {
 
 	// After SetupEnv (which already calls EnsureBootstrapOwner internally), the
 	// owner must have at least one membership for the global default warehouse.
+	//
+	// Limit is explicit: ListUserWarehouses is server-paginated (default page
+	// size 25), and this suite runs against the SHARED dev DB where the owner
+	// accumulates a membership for every warehouse past runs created. Without a
+	// limit the assertion below silently searches only the first page, and the
+	// test starts failing once that history grows past 25 — a false alarm about
+	// bootstrap that is really about paging. The sibling ListWarehouses call
+	// already passes Limit: 1000 for the same reason.
 	mems, err := env.Warehouses.ListUserWarehouses(ctx, authReq(env, t,
-		&warehouseifacev1.ListUserWarehousesRequest{UserId: ""}))
+		&warehouseifacev1.ListUserWarehousesRequest{UserId: "", Limit: 1000}))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(mems.Msg.Memberships), 1,
 		"bootstrap owner should have at least one warehouse membership")

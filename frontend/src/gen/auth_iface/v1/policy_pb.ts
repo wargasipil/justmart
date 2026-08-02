@@ -39,6 +39,17 @@ export enum Role {
    * @generated from enum value: ROLE_APOTEKER = 4;
    */
   APOTEKER = 4,
+
+  /**
+   * Waiter / pramusaji — the dedicated restaurant-mode floor role. Opens and
+   * serves dining tables (start an order, add/remove items, fire to kitchen,
+   * move tables) but has NO till authority: CompleteSale / VoidSale /
+   * RefundSale stay with the cashier tier. That separation is the point of the
+   * role — it is deliberately NOT a CASHIER clone.
+   *
+   * @generated from enum value: ROLE_WAITER = 5;
+   */
+  WAITER = 5,
 }
 // Retrieve enum metadata with: proto3.getEnumType(Role)
 proto3.util.setEnumType(Role, "auth_iface.v1.Role", [
@@ -47,6 +58,7 @@ proto3.util.setEnumType(Role, "auth_iface.v1.Role", [
   { no: 2, name: "ROLE_PHARMACIST" },
   { no: 3, name: "ROLE_CASHIER" },
   { no: 4, name: "ROLE_APOTEKER" },
+  { no: 5, name: "ROLE_WAITER" },
 ]);
 
 /**
