@@ -27,6 +27,7 @@
   "common": {
     "loading": "Loading…",
     "exportCsv": "Export CSV",
+    "selectSupplier": "Select supplier",
     "selectWarehouse": "Select warehouse",
     "save": "Save",
     "cancel": "Cancel",
@@ -818,7 +819,7 @@
       "byExpiry": "Expiry",
       "product": "$t(glossary.productCap)",
       "supplier": "Supplier",
-      "supplierNone": "— none —",
+      "supplierNone": "None",
       "batchNumber": "Batch #",
       "expiry": "Expiry date",
       "received": "Received at",

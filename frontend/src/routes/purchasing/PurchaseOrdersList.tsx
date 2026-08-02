@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import ExportButton from "../../components/ExportButton";
 import Pagination from "../../components/Pagination";
-import SearchableSelect from "../../components/SearchableSelect";
+import SupplierSelect, { supplierLabel } from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import {
   POStatus,
@@ -29,7 +29,6 @@ import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatMoney, formatDate } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { fetchPurchaseOrdersForExport, usePurchaseOrdersQuery } from "../../queries/purchasing";
-import { searchSuppliers } from "../../queries/suppliers";
 import { resolveSupplierMap, useSupplierRefs } from "../../queries/refs";
 
 type Props = { status?: POStatus };
@@ -83,18 +82,11 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
     offset: page * pageSize,
   });
 
-  // Resolve supplier names for the current page's rows + the active filter
-  // (resolve-by-IDs; not a full supplier-list preload).
+  // Resolve supplier names for the current page's rows (resolve-by-IDs; not a
+  // full supplier-list preload). <SupplierSelect> resolves its own trigger label.
   const supplierRefs = useSupplierRefs(
-    useMemo(
-      () => [supplierFilter, ...posQ.rows.map((po) => po.supplierId)],
-      [supplierFilter, posQ.rows],
-    ),
+    useMemo(() => posQ.rows.map((po) => po.supplierId), [posQ.rows]),
   );
-  const supplierLabelOf = (id: string) => {
-    const r = supplierRefs.get(id);
-    return r ? `${r.code} · ${r.name}` : undefined;
-  };
 
   const onExport = async () => {
     const rows = await fetchPurchaseOrdersForExport({
@@ -110,10 +102,9 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
     downloadCsv(
       `restock-${new Date().toISOString().slice(0, 10)}.csv`,
       rows.map((po) => {
-        const r = sup.get(po.supplierId);
         return {
           poNo: po.poNo || po.id.slice(0, 8),
-          supplier: r ? `${r.code} · ${r.name}` : "—",
+          supplier: supplierLabel(sup.get(po.supplierId)) ?? "—",
           items: po.items
             .map(
               (it) =>
@@ -159,16 +150,12 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </Box>
-          <SearchableSelect
+          <SupplierSelect
             size="sm"
             width="220px"
             value={supplierFilter}
             onChange={setSupplierFilter}
-            loadOptions={searchSuppliers}
-            itemToString={(s) => `${s.code} · ${s.name}`}
-            itemToValue={(s) => s.id}
-            selectedLabel={supplierLabelOf(supplierFilter)}
-            placeholder={`${t("purchasing.supplier")} —`}
+            placeholder={t("purchasing.supplier")}
           />
           <DateRangeFilter
             value={range}
@@ -221,7 +208,7 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
                   _hover={{ bg: "bg.muted" }}
                 >
                   <Table.Cell fontFamily="mono">{po.poNo || po.id.slice(0, 8)}</Table.Cell>
-                  <Table.Cell>{supplierLabelOf(po.supplierId) ?? "—"}</Table.Cell>
+                  <Table.Cell>{supplierLabel(supplierRefs.get(po.supplierId)) ?? "—"}</Table.Cell>
                   <Table.Cell>
                     <ItemsList po={po} moreLabel={t("purchasing.itemsMore")} />
                   </Table.Cell>

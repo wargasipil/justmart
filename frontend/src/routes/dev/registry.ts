@@ -283,6 +283,7 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "onSelectItem", type: "(item: T | undefined) => void", desc: "Hands back the full picked object alongside onChange." },
           { name: "renderItem", type: "(item: T) => ReactElement", desc: "Custom dropdown-row content when one line of text can't tell options apart — e.g. CashierFilterSelect renders the Users-table identity cell (avatar + name over a muted line) with the role on that line. Must return ONE element — mounted via <Combobox.ItemText asChild>. Affects the open list only; itemToString still drives the trigger." },
           { name: "emptyText / loadingText", type: "string", desc: "Override the (already translated) common.noResults / common.loading defaults." },
+          { name: "startElement", type: "ReactNode", desc: "Leading glyph inside the control, left of the text (see SupplierSelect). Decorative — pointer-events:none so clicking it still opens the popover, and aria-hidden. Adds ps={8} to the input." },
         ],
         usage: `<SearchableSelect
   value={productId}
@@ -304,6 +305,28 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
 />`,
         notes: "HARD RULE: options from a queryable domain (products, customers, suppliers, batches…) must come from a Search<Domain> RPC via loadOptions — never a full-list preload. renderItem returns a single element because it is mounted with asChild — returning a fragment or two siblings throws. A stub row (pre-set value not yet loaded) has no original item and falls back to the plain label.",
         Demo: demo.SearchableSelectDemo,
+      },
+      {
+        id: "supplier-select",
+        name: "SupplierSelect",
+        file: "src/components/SupplierSelect.tsx",
+        summary: "Supplier picker: SearchableSelect pre-wired to searchSuppliers, with a Building2 glyph and two-line rows.",
+        props: [
+          { name: "value", type: "string", required: true, desc: "Supplier id (\"\" = none)." },
+          { name: "onChange", type: "(id: string) => void", desc: "Omit for a read-only display (pair with disabled)." },
+          { name: "onSelectItem", type: "(s: Supplier | undefined) => void", desc: "Hands back the full picked supplier." },
+          { name: "selectedLabel", type: "string", desc: "Escape hatch — skips the internal resolve when the caller already has the supplier loaded." },
+          { name: "placeholder / disabled / size / width", type: "—", desc: "Passed through. Placeholder defaults to common.selectSupplier." },
+        ],
+        usage: `<SupplierSelect size="sm" value={supplierId} onChange={setSupplierId} />
+
+// Locked / read-only (edit drawer):
+<SupplierSelect value={agreement.supplierId} disabled />
+
+// Table cell — code-first, so a Supplier column scans down cleanly:
+{supplierLabel(supplierRefs.get(po.supplierId)) ?? "—"}`,
+        notes: "It resolves its OWN trigger label via useSupplierRefs on the single selected id, so a pre-set value (edit drawer, filter restored from a URL, ?supplier= lock) never flashes a raw UUID — every call site used to hand-roll that same IIFE. Don't re-add the filter id to a page's useSupplierRefs memo; that list is for table cells now. TWO label formats, deliberately: the picker (rows + trigger) leads with the NAME — a trigger is read on its own, right after clicking a row whose name led — while the exported supplierLabel() keeps CODE · Name for TABLE CELLS, where a column is scanned straight down and the fixed-width code is what makes that scan work. Import supplierLabel for cells; never re-inline either template. Rows are a Building2 glyph (the sidebar's own supplier icon, in a 32px slot matching UserAvatar size=\"sm\") + name over a muted code; the same glyph sits in the control via startElement, so the field reads as \"a supplier goes here\" empty and as the picked supplier once set.",
+        Demo: demo.SupplierSelectDemo,
       },
       {
         id: "warehouse-select",

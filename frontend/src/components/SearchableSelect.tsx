@@ -1,4 +1,5 @@
 import {
+  Box,
   Combobox,
   HStack,
   Portal,
@@ -8,7 +9,15 @@ import {
   useFilter,
   useListCollection,
 } from "@chakra-ui/react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 
 // Search-capable select for the justmart UI. Wraps Chakra v3's `Combobox`.
@@ -69,6 +78,14 @@ export type SearchableSelectProps<T> = {
    * in the collection — typical for edit drawers in async mode. */
   selectedLabel?: string;
 
+  /**
+   * Leading adornment rendered inside the control, left of the text — a domain
+   * glyph that tells you what kind of thing this field picks at a glance (see
+   * <SupplierSelect>). It is decorative: `pointer-events: none`, so clicking it
+   * still opens the popover, and it is NOT announced to screen readers.
+   */
+  startElement?: ReactNode;
+
   placeholder?: string;
   /** Defaults to the translated `common.noResults`. */
   emptyText?: string;
@@ -93,6 +110,7 @@ export default function SearchableSelect<T>({
   itemToValue,
   renderItem,
   selectedLabel,
+  startElement,
   placeholder,
   emptyText,
   loadingText,
@@ -260,8 +278,25 @@ export default function SearchableSelect<T>({
       width={width}
       selectionBehavior="replace"
     >
-      <Combobox.Control>
-        <Combobox.Input placeholder={placeholder} />
+      <Combobox.Control position="relative">
+        {startElement && (
+          <Box
+            position="absolute"
+            left={2.5}
+            top="50%"
+            transform="translateY(-50%)"
+            color="fg.muted"
+            // Decorative: the click must fall through to the input so tapping
+            // the glyph still opens the popover instead of doing nothing.
+            pointerEvents="none"
+            zIndex={1}
+            display="flex"
+            aria-hidden
+          >
+            {startElement}
+          </Box>
+        )}
+        <Combobox.Input placeholder={placeholder} ps={startElement ? 8 : undefined} />
         <Combobox.IndicatorGroup>
           <Combobox.ClearTrigger />
           <Combobox.Trigger />

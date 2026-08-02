@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import DatePickerField from "../../components/DatePicker";
 import MoneyInput from "../../components/MoneyInput";
 import ProductPickerDialog from "../../components/ProductPickerDialog";
-import SearchableSelect from "../../components/SearchableSelect";
+import SupplierSelect from "../../components/SupplierSelect";
 import PurchaseLinesTable from "./PurchaseLinesTable";
 import type { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import type { Product } from "../../gen/inventory_iface/v1/product_pb";
@@ -34,7 +34,6 @@ import {
 import { toast } from "../../lib/toaster";
 import { usePriceAgreementsQuery } from "../../queries/priceAgreements";
 import { useCreatePurchaseOrderMutation } from "../../queries/purchasing";
-import { searchSuppliers } from "../../queries/suppliers";
 
 export default function NewPurchaseOrder() {
   const { t } = useTranslation();
@@ -167,12 +166,9 @@ export default function NewPurchaseOrder() {
             <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
               {t("purchasing.supplier")} *
             </Text>
-            <SearchableSelect
+            <SupplierSelect
               value={supplierId}
               onChange={setSupplierId}
-              loadOptions={searchSuppliers}
-              itemToString={(s) => `${s.code} · ${s.name}`}
-              itemToValue={(s) => s.id}
               placeholder={t("purchasing.selectSupplier")}
             />
             <ChakraLink

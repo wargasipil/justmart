@@ -9,6 +9,7 @@ import EnumSelect from "../../components/EnumSelect";
 import Pagination from "../../components/Pagination";
 import PageHeader from "../../components/PageHeader";
 import SearchableSelect from "../../components/SearchableSelect";
+import SupplierSelect, { supplierLabel } from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import { PriceAgreement, PriceAgreementValidity } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import { formatMoney } from "../../lib/format";
@@ -21,7 +22,6 @@ import {
 } from "../../queries/priceAgreements";
 import { useProductRefs, useSupplierRefs } from "../../queries/refs";
 import { searchProducts } from "../../queries/products";
-import { searchSuppliers } from "../../queries/suppliers";
 import PriceAgreementDrawer from "./PriceAgreementDrawer";
 
 const VALIDITY_OPTIONS = [
@@ -69,13 +69,8 @@ export default function PriceAgreements() {
   const archive = useArchivePriceAgreementMutation();
   const unarchive = useUnarchivePriceAgreementMutation();
 
-  const supplierRefs = useSupplierRefs(
-    useMemo(() => {
-      const ids = new Set<string>(q.rows.map((r) => r.supplierId));
-      if (supplierId) ids.add(supplierId);
-      return Array.from(ids);
-    }, [q.rows, supplierId]),
-  );
+  // Table cells only — <SupplierSelect> resolves its own trigger label.
+  const supplierRefs = useSupplierRefs(useMemo(() => q.rows.map((r) => r.supplierId), [q.rows]));
   const productRefs = useProductRefs(
     useMemo(() => {
       const ids = new Set<string>(q.rows.map((r) => r.productId));
@@ -113,22 +108,11 @@ export default function PriceAgreements() {
               />
             </Box>
             <Box width="200px">
-              <SearchableSelect
+              <SupplierSelect
                 size="sm"
                 value={supplierId}
                 onChange={setSupplierId}
-                loadOptions={searchSuppliers}
-                itemToString={(s) => `${s.code} · ${s.name}`}
-                itemToValue={(s) => s.id}
                 placeholder={t("inventory.priceAgreements.supplier")}
-                selectedLabel={
-                  supplierId
-                    ? (() => {
-                        const s = supplierRefs.get(supplierId);
-                        return s ? `${s.code} · ${s.name}` : undefined;
-                      })()
-                    : undefined
-                }
               />
             </Box>
             <Box width="200px">
@@ -186,10 +170,9 @@ export default function PriceAgreements() {
               </Table.Header>
               <Table.Body>
                 {q.rows.map((a) => {
-                  const s = supplierRefs.get(a.supplierId);
                   return (
                     <Table.Row key={a.id}>
-                      <Table.Cell>{s ? `${s.code} · ${s.name}` : "—"}</Table.Cell>
+                      <Table.Cell>{supplierLabel(supplierRefs.get(a.supplierId)) ?? "—"}</Table.Cell>
                       <Table.Cell>{productRefs.get(a.productId)?.name ?? "—"}</Table.Cell>
                       <Table.Cell>{a.unitName || "—"}</Table.Cell>
                       <Table.Cell textAlign="end" fontFamily="mono">

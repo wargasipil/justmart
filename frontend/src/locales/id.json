@@ -27,6 +27,7 @@
   "common": {
     "loading": "Memuat…",
     "exportCsv": "Ekspor CSV",
+    "selectSupplier": "Pilih pemasok",
     "selectWarehouse": "Pilih gudang",
     "save": "Simpan",
     "cancel": "Batal",
@@ -818,7 +819,7 @@
       "byExpiry": "Kedaluwarsa",
       "product": "$t(glossary.productCap)",
       "supplier": "Pemasok",
-      "supplierNone": "— tidak ada —",
+      "supplierNone": "Tidak ada",
       "batchNumber": "No. batch",
       "expiry": "Tanggal kedaluwarsa",
       "received": "Diterima pada",

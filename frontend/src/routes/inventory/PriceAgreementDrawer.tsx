@@ -9,15 +9,15 @@ import EntityDrawer from "../../components/EntityDrawer";
 import EnumSelect from "../../components/EnumSelect";
 import FormField from "../../components/FormField";
 import SearchableSelect from "../../components/SearchableSelect";
+import SupplierSelect from "../../components/SupplierSelect";
 import { Button, HStack } from "@chakra-ui/react";
 import { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import { useServerFormErrors } from "../../lib/formErrors";
 import { toast } from "../../lib/toaster";
 import { useProductQuery } from "../../queries/products";
 import { useUpdatePriceAgreementMutation } from "../../queries/priceAgreements";
-import { useProductRefs, useSupplierRefs } from "../../queries/refs";
+import { useProductRefs } from "../../queries/refs";
 import { searchProducts } from "../../queries/products";
-import { searchSuppliers } from "../../queries/suppliers";
 
 const Schema = z.object({
   productUnitId: z.string().min(1),
@@ -71,8 +71,7 @@ export default function PriceAgreementDrawer({ open, onClose, editing }: Props) 
     [productQ.data],
   );
 
-  // Locked labels for the read-only supplier/product pickers.
-  const supplierRefs = useSupplierRefs(useMemo(() => (supplierId ? [supplierId] : []), [supplierId]));
+  // Locked label for the read-only product picker (<SupplierSelect> resolves its own).
   const productRefs = useProductRefs(useMemo(() => (productId ? [productId] : []), [productId]));
 
   const submit = form.handleSubmit(async (v) => {
@@ -93,10 +92,6 @@ export default function PriceAgreementDrawer({ open, onClose, editing }: Props) 
     }
   });
 
-  const supLabel = (() => {
-    const s = supplierRefs.get(supplierId);
-    return s ? `${s.code} · ${s.name}` : undefined;
-  })();
   const prodLabel = productRefs.get(productId)?.name;
 
   return (
@@ -121,15 +116,7 @@ export default function PriceAgreementDrawer({ open, onClose, editing }: Props) 
             <Text fontSize="sm" fontWeight="medium" color="fg.muted">
               {t("inventory.priceAgreements.supplier")}
             </Text>
-            <SearchableSelect
-              value={supplierId}
-              onChange={() => {}}
-              loadOptions={searchSuppliers}
-              itemToString={(s) => `${s.code} · ${s.name}`}
-              itemToValue={(s) => s.id}
-              selectedLabel={supLabel}
-              disabled
-            />
+            <SupplierSelect value={supplierId} disabled />
           </Stack>
 
           <Stack gap={1}>

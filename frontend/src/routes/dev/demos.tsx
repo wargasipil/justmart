@@ -39,6 +39,7 @@ import Pagination from "../../components/Pagination";
 import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import SupplierSelect from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import TrendChart from "../../components/TrendChart";
 import UserAvatar from "../../components/UserAvatar";
@@ -407,6 +408,20 @@ export function SearchableSelectDemo() {
         />
         <Emitted>{personValue}</Emitted>
       </Stack>
+    </Stack>
+  );
+}
+
+// NOTE: like ProductPickerDialogDemo, this one talks to the server — the baked-in
+// searchSuppliers IS the component, so a fixture list would demo the opposite of
+// the thing. Idle until the popover opens (SearchableSelect fetches on first open,
+// and the label resolve is disabled while nothing is selected).
+export function SupplierSelectDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <Stack gap={2} maxW="280px">
+      <SupplierSelect value={value} onChange={setValue} />
+      <Emitted>{value}</Emitted>
     </Stack>
   );
 }

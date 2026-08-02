@@ -20,13 +20,12 @@ import EnumSelect from "../../components/EnumSelect";
 import MoneyInput from "../../components/MoneyInput";
 import PageHeader from "../../components/PageHeader";
 import SearchableSelect from "../../components/SearchableSelect";
+import SupplierSelect from "../../components/SupplierSelect";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { toast } from "../../lib/toaster";
 import { useCreatePriceAgreementsMutation } from "../../queries/priceAgreements";
 import { searchProducts } from "../../queries/products";
-import { useSupplierRefs } from "../../queries/refs";
-import { searchSuppliers } from "../../queries/suppliers";
 
 type Line = {
   productId: string;
@@ -64,14 +63,6 @@ export default function NewPriceAgreement() {
 
   const [supplierId, setSupplierId] = useState(lockedSupplierId);
   const [lines, setLines] = useState<Line[]>([emptyLine()]);
-
-  const supplierRefs = useSupplierRefs(useMemo(() => (supplierId ? [supplierId] : []), [supplierId]));
-  const supLabel = supplierId
-    ? (() => {
-        const s = supplierRefs.get(supplierId);
-        return s ? `${s.code} · ${s.name}` : undefined;
-      })()
-    : undefined;
 
   const updateLine = (idx: number, patch: Partial<Line>) =>
     setLines((cur) => cur.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
@@ -141,14 +132,10 @@ export default function NewPriceAgreement() {
             <Text fontSize="sm" fontWeight="medium" color="fg.muted" mb={1}>
               {t("inventory.priceAgreements.supplier")} *
             </Text>
-            <SearchableSelect
+            <SupplierSelect
               value={supplierId}
               onChange={setSupplierId}
-              loadOptions={searchSuppliers}
-              itemToString={(s) => `${s.code} · ${s.name}`}
-              itemToValue={(s) => s.id}
               placeholder={t("inventory.priceAgreements.selectSupplier")}
-              selectedLabel={supLabel}
               disabled={!!lockedSupplierId}
             />
           </Box>

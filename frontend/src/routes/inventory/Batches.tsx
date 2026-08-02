@@ -24,9 +24,9 @@ import ImportStockDialog from "./ImportStockDialog";
 import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
+import SupplierSelect, { supplierLabel } from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import { searchProducts } from "../../queries/products";
-import { searchSuppliers } from "../../queries/suppliers";
 import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
@@ -85,17 +85,9 @@ export default function Batches() {
   const medRefs = useProductRefs(
     useMemo(() => batchesQ.rows.map((b) => b.productId), [batchesQ.rows]),
   );
+  // Table cells only — <SupplierSelect> resolves its own trigger label.
   const supplierRefs = useSupplierRefs(
-    useMemo(() => {
-      const ids = new Set<string>();
-      batchesQ.rows.forEach((b) => {
-        if (b.supplierId) ids.add(b.supplierId);
-      });
-      // Include the active filter ID so the SearchableSelect's selectedLabel
-      // resolves correctly on first render after navigation.
-      if (supplierId) ids.add(supplierId);
-      return Array.from(ids);
-    }, [batchesQ.rows, supplierId]),
+    useMemo(() => batchesQ.rows.map((b) => b.supplierId).filter(Boolean), [batchesQ.rows]),
   );
 
   return (
@@ -123,22 +115,11 @@ export default function Batches() {
             onFieldChange={setDateField}
           />
           <Box width="200px">
-            <SearchableSelect
+            <SupplierSelect
               size="sm"
               value={supplierId}
               onChange={setSupplierId}
-              loadOptions={searchSuppliers}
-              itemToString={(s) => `${s.code} · ${s.name}`}
-              itemToValue={(s) => s.id}
               placeholder={t("inventory.batches.supplier")}
-              selectedLabel={
-                supplierId
-                  ? (() => {
-                      const s = supplierRefs.get(supplierId);
-                      return s ? `${s.code} · ${s.name}` : undefined;
-                    })()
-                  : undefined
-              }
             />
           </Box>
         </HStack>
@@ -177,14 +158,7 @@ export default function Batches() {
                 <Table.Row key={b.id}>
                   <Table.Cell>{medRefs.get(b.productId)?.name ?? "—"}</Table.Cell>
                   <Table.Cell>{b.batchNumber || "—"}</Table.Cell>
-                  <Table.Cell>
-                    {b.supplierId
-                      ? (() => {
-                          const s = supplierRefs.get(b.supplierId);
-                          return s ? `${s.code} · ${s.name}` : "—";
-                        })()
-                      : "—"}
-                  </Table.Cell>
+                  <Table.Cell>{supplierLabel(supplierRefs.get(b.supplierId)) ?? "—"}</Table.Cell>
                   <Table.Cell>
                     <HStack gap={2}>
                       <Text>{b.expiryDate}</Text>
@@ -296,12 +270,9 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             <Text fontSize="sm" fontWeight="medium" color="fg.muted">
               {t("inventory.batches.supplier")}
             </Text>
-            <SearchableSelect
+            <SupplierSelect
               value={form.watch("supplierId")}
               onChange={(v) => form.setValue("supplierId", v)}
-              loadOptions={searchSuppliers}
-              itemToString={(s) => `${s.code} · ${s.name}`}
-              itemToValue={(s) => s.id}
               placeholder={t("inventory.batches.supplierNone")}
             />
           </Stack>
