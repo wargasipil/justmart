@@ -6,8 +6,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"slices"
 	// Embed the IANA timezone DB so `TZ=Asia/Jakarta` resolves even on a minimal
 	// base image (distroless has no /usr/share/zoneinfo). The "today" boundary in
 	// GetTodaySnapshot relies on time.Local being the shop's zone.
@@ -23,7 +25,15 @@ import (
 var version = "dev"
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	// The server logs to stdout so a container log collector picks it up. A
+	// report-producing subcommand can't share that stream: `discount-to-grosir
+	// --csv -` piped into a file would start with a JSON log line, so its
+	// diagnostics go to stderr instead.
+	logOut := io.Writer(os.Stdout)
+	if slices.Contains(os.Args[1:], discountToGrosirCmd.Name) {
+		logOut = os.Stderr
+	}
+	logger := slog.New(slog.NewJSONHandler(logOut, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
 	slog.Info("justmart", "version", version)
 
@@ -38,7 +48,7 @@ func main() {
 			},
 		},
 		Action:   serve, // default action: run the server
-		Commands: []*cli.Command{migrateCmd},
+		Commands: []*cli.Command{migrateCmd, discountToGrosirCmd},
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {

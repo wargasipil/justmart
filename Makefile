@@ -295,6 +295,22 @@ migrate-create:
 migrate-checksums:
 	$(GO_BACKEND) run ./cmd/pinmigrations
 
+# Convert qty-gated product discounts into grosir price tiers. Dry run (prints
+# the plan, writes nothing); `make discount-to-grosir-apply` performs it.
+# Both drop a CSV of the FULL report — converted and skipped — at $(csv);
+# override with `make discount-to-grosir csv=somewhere/else.csv`. The path is
+# rooted at the repo (GO_BACKEND runs with CWD=backend/, so a bare relative path
+# would land there instead).
+csv ?= dist/discount-to-grosir.csv
+
+discount-to-grosir:
+	@mkdir -p "$(dir $(CURDIR)/$(csv))"
+	$(GO_BACKEND) run ./cmd/server discount-to-grosir --csv "$(CURDIR)/$(csv)"
+
+discount-to-grosir-apply:
+	@mkdir -p "$(dir $(CURDIR)/$(csv))"
+	$(GO_BACKEND) run ./cmd/server discount-to-grosir --apply --csv "$(CURDIR)/$(csv)"
+
 # --- Frontend (React + Vite) -------------------------------------------------
 web-install:
 	npm --prefix frontend install
