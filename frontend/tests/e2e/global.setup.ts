@@ -21,7 +21,13 @@ setup("authenticate owner", async ({ page }) => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ userId: "" }),
+        // ListUserWarehouses is PAGINATED (default 25, ordered by code ASC).
+        // Without a full page the owner's MAIN membership falls off page 1 on a
+        // long-lived dev DB, `def` comes back undefined, and the fallback picks
+        // whichever test warehouse happens to sort first — an empty one. Every
+        // spec that seeds stock into the active warehouse then fails, and which
+        // specs fail changes as test data accumulates.
+        body: JSON.stringify({ userId: "", limit: 1000 }),
       },
     );
     const data = await res.json();

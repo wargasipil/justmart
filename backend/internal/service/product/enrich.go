@@ -130,7 +130,7 @@ func (s *ProductService) enrichLastStocktake(
 	var rows []opnameRow
 	if err := s.db.WithContext(ctx).
 		Table("stocktake_sessions AS ss").
-		Select("b.product_id AS product_id, "+common.DayKeyExpr(s.db, "MAX(ss.completed_at)")+" AS completed_at").
+		Select("b.product_id AS product_id, "+common.LocalDayKeyExpr(s.db, "MAX(ss.completed_at)")+" AS completed_at").
 		Joins("JOIN stocktake_lines sl ON sl.session_id = ss.id").
 		Joins("JOIN batches b ON b.id = sl.batch_id").
 		Where("ss.warehouse_id = ? AND ss.status = ? AND sl.counted_qty IS NOT NULL AND b.product_id IN ?",

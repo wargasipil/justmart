@@ -66,7 +66,7 @@ func (s *SaleService) GetMyPerformance(
 	}
 	var revRows []revRow
 	if err := s.db.WithContext(ctx).Raw(`
-		SELECT `+common.DayKeyExpr(s.db, "completed_at")+` AS day,
+		SELECT `+common.LocalDayKeyExpr(s.db, "completed_at")+` AS day,
 		       COALESCE(SUM(total), 0) AS revenue,
 		       COUNT(*) AS cnt
 		FROM sales
@@ -90,7 +90,7 @@ func (s *SaleService) GetMyPerformance(
 	}
 	var itemRows []itemRow
 	if err := s.db.WithContext(ctx).Raw(`
-		SELECT `+common.DayKeyExpr(s.db, "s.completed_at")+` AS day,
+		SELECT `+common.LocalDayKeyExpr(s.db, "s.completed_at")+` AS day,
 		       COALESCE(SUM(si.base_qty), 0) AS items
 		FROM sale_items si
 		JOIN sales s ON s.id = si.sale_id

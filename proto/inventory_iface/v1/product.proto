@@ -121,6 +121,17 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
+  // GetProductsSummary aggregates ready + on-order stock (count and valuation at
+  // cost) over ALL products matching the same filters as ListProducts — not the
+  // current page. Drives the catalog stat row above the list.
+  //
+  // Narrower roles than ListProducts on purpose: the valuations are cost data,
+  // and cost never goes to a cashier (same posture as GetMyPerformance omitting
+  // COGS). POS reads the catalog through ListProducts and needs none of this.
+  rpc GetProductsSummary(GetProductsSummaryRequest) returns (GetProductsSummaryResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -219,6 +230,25 @@ message ListProductsRequest {
 message ListProductsResponse {
   repeated Product products = 1;
   int32 total = 2;
+}
+
+// Same filter set as ListProductsRequest, minus paging — the summary covers
+// every matching product, not a page. Keep the two in sync: the list and the
+// stat row above it must always describe the same set.
+message GetProductsSummaryRequest {
+  bool include_inactive = 1;
+  string query = 2;
+  string opname_before = 3;
+  bool only_archived = 4;
+}
+message GetProductsSummaryResponse {
+  // Counts are BASE units summed across products, so a catalog holding both
+  // tablets and bottles adds them together. Read it as "total units on hand",
+  // not as a single dimension; the valuations are the comparable figures.
+  int64 ready_stock = 1;        // on-hand in the caller's active warehouse
+  int64 ready_valuation = 2;    // SUM(qty * batches.cost_price), same scope
+  int64 on_order_stock = 3;     // outstanding on open POs; company-wide (POs carry no warehouse)
+  int64 on_order_valuation = 4; // outstanding * the PO line's NET per-base cost
 }
 
 message GetProductRequest { string id = 1; }

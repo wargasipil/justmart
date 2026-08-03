@@ -3,6 +3,7 @@ package batch_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -39,6 +40,49 @@ func TestSearchBatches_ByBatchNumber(t *testing.T) {
 	require.Equal(t, "SB-UNIQUE-LOT", resp.Msg.Batches[0].BatchNumber)
 	require.Equal(t, int64(5), resp.Msg.Batches[0].CurrentQuantity)
 	require.Equal(t, "Search Med", resp.Msg.Batches[0].ProductName) // enriched for human-readable pickers
+}
+
+// The picker renders <ProductImage> straight from the row, so the product's
+// image version has to ride along on the same join that fills product_name —
+// otherwise every row would need a second round trip. NULL (no picture) must
+// arrive as 0, which is the client's "skip the image fetch entirely" value.
+func TestSearchBatches_EnrichesProductImageVersion(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	withPic := seedProduct(t, gormDB, "SB-PIC-1", "Pictured Med")
+	stamp := time.Unix(1750000000, 0).UTC()
+	require.NoError(t, gormDB.Model(&model.Product{}).
+		Where("id = ?", withPic).Update("image_updated_at", stamp).Error)
+	noPic := seedProduct(t, gormDB, "SB-PIC-2", "Plain Med")
+
+	for _, prodID := range []string{withPic, noPic} {
+		_, err := svc.CreateBatch(ctx, connect.NewRequest(&inventoryifacev1.CreateBatchRequest{
+			ProductId:       prodID,
+			BatchNumber:     "SB-PIC-LOT-" + prodID[:4],
+			ExpiryDate:      "2030-10-10",
+			CostPrice:       1000,
+			InitialQuantity: 3,
+		}))
+		require.NoError(t, err)
+	}
+
+	resp, err := svc.SearchBatches(ctx, connect.NewRequest(&inventoryifacev1.SearchBatchesRequest{
+		Query: "SB-PIC-LOT",
+		Limit: 20,
+	}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Batches, 2)
+
+	byProduct := map[string]*inventoryifacev1.Batch{}
+	for _, b := range resp.Msg.Batches {
+		byProduct[b.ProductId] = b
+	}
+	require.Equal(t, stamp.Unix(), byProduct[withPic].ProductImageUpdatedAt)
+	require.Zero(t, byProduct[noPic].ProductImageUpdatedAt, "no picture must surface as 0, not a zero-time epoch")
 }
 
 func TestSearchBatches_ByProductName(t *testing.T) {

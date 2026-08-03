@@ -107,7 +107,7 @@ func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.T
 	}
 	var revRows []revRow
 	if err := a.db.WithContext(ctx).Raw(`
-		SELECT `+common.DayKeyExpr(a.db, "s.completed_at")+` AS day,
+		SELECT `+common.LocalDayKeyExpr(a.db, "s.completed_at")+` AS day,
 		       COALESCE(SUM(s.total), 0) AS terjual
 		FROM sales s
 		WHERE s.status = ? AND s.warehouse_id = ?
@@ -128,7 +128,7 @@ func (a *AnalyticsService) dailyOrderMetric(ctx context.Context, from, to time.T
 	}
 	var cogsRows []cogsRow
 	if err := a.db.WithContext(ctx).Raw(`
-		SELECT `+common.DayKeyExpr(a.db, "s.completed_at")+` AS day,
+		SELECT `+common.LocalDayKeyExpr(a.db, "s.completed_at")+` AS day,
 		       COALESCE(SUM(c.cogs), 0) AS hpp
 		FROM sales s
 		JOIN sale_items si ON si.sale_id = s.id

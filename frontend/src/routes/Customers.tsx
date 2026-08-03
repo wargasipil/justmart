@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import EntityDrawer from "../components/EntityDrawer";
+import { useResetOnOpen } from "../lib/formReset";
 import FormField from "../components/FormField";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
@@ -163,13 +164,16 @@ function CustomerForm({ form }: { form: ReturnType<typeof useForm<FormValues>> }
   );
 }
 
+const EMPTY_CUSTOMER: FormValues = { name: "", phone: "", address: "", notes: "" };
+
 function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const create = useCreateCustomerMutation();
   const form = useForm<FormValues>({
     resolver: zodResolver(Schema),
-    defaultValues: { name: "", phone: "", address: "", notes: "" },
+    defaultValues: EMPTY_CUSTOMER,
   });
+  useResetOnOpen(form, open, EMPTY_CUSTOMER);
 
   const submit = form.handleSubmit(async (values) => {
     try {
@@ -208,17 +212,16 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 function EditDrawer({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
   const { t } = useTranslation();
   const update = useUpdateCustomerMutation();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(Schema),
-    values: customer
-      ? {
-          name: customer.name,
-          phone: customer.phone,
-          address: customer.address,
-          notes: customer.notes,
-        }
-      : undefined,
-  });
+  const values: FormValues = customer
+    ? {
+        name: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        notes: customer.notes,
+      }
+    : EMPTY_CUSTOMER;
+  const form = useForm<FormValues>({ resolver: zodResolver(Schema), values });
+  useResetOnOpen(form, !!customer, values);
 
   const submit = form.handleSubmit(async (values) => {
     if (!customer) return;

@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./_helpers";
+import { CATALOG_NOUN, expect, test } from "./_helpers";
 
 // Coverage for spec bullets:
 //   batch: ensure can filter by supplier (NEW feature in this commit)
@@ -89,7 +89,7 @@ test.describe("batches", () => {
 
       await page.goto("/inventory/batches");
       // Search by product name to keep noise low; both batches now visible.
-      await page.getByPlaceholder(/Search product|Cari/i).fill(`Batch Filter Med ${m}`);
+      await page.getByPlaceholder(new RegExp(`Search ${CATALOG_NOUN}|Cari`, "i")).fill(`Batch Filter Med ${m}`);
       await page.waitForTimeout(400);
       await expect(page.getByRole("cell", { name: batchNoA })).toBeVisible();
       await expect(page.getByRole("cell", { name: batchNoB })).toBeVisible();
@@ -149,7 +149,7 @@ test.describe("batches", () => {
       });
 
       await page.goto("/inventory/batches");
-      await page.getByPlaceholder(/Search product|Cari/i).fill(`Batch PO link Med ${m}`);
+      await page.getByPlaceholder(new RegExp(`Search ${CATALOG_NOUN}|Cari`, "i")).fill(`Batch PO link Med ${m}`);
       await page.waitForTimeout(400);
       const row = page.getByRole("row").filter({ hasText: batchNo });
       await expect(row).toBeVisible();

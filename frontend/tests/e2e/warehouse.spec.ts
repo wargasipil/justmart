@@ -1,4 +1,4 @@
-import { expect, test } from "./_helpers";
+import { CATALOG_NOUN, expect, test } from "./_helpers";
 
 // Multi-warehouse UI. Backend coverage (per-warehouse stock, FEFO, transfers)
 // lives in backend/e2e/{warehouse,transfer}_test.go; these specs verify the UI
@@ -74,6 +74,10 @@ test.describe("warehouses", () => {
     await expect(editDrawer).toBeVisible();
     // The Name input — second input in the drawer (first is the immutable Code).
     const nameInput = editDrawer.locator("input").nth(1);
+    // Wait for the seed from useWarehouseQuery to land before typing: the drawer
+    // mounts empty and re-seeds a beat later, and fill() racing that remount is
+    // what made this spec flake with "element was detached from the DOM".
+    await expect(nameInput).toHaveValue(originalName);
     await nameInput.fill(newName);
     await editDrawer.getByRole("button", { name: /^Save$|^Simpan$/ }).click();
     await expect(editDrawer).toBeHidden();
@@ -108,6 +112,6 @@ test.describe("warehouses", () => {
     const picker = page.getByRole("dialog");
     await picker.getByRole("textbox").fill(code);
     await picker.getByText(`${code} · Gate test gudang`).click();
-    await expect(page.getByPlaceholder(/Search product/i)).toBeVisible();
+    await expect(page.getByPlaceholder(new RegExp(`Search ${CATALOG_NOUN}`, "i"))).toBeVisible();
   });
 });

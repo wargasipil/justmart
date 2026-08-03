@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import BackButton from "../../components/BackButton";
+import BatchSelect from "../../components/BatchSelect";
 import ChartCard from "../../components/ChartCard";
 import ColumnsPopover from "../../components/ColumnsPopover";
 import ConfirmDialog from "../../components/ConfirmDialog";
@@ -39,6 +40,7 @@ import Pagination from "../../components/Pagination";
 import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import SummaryTile from "../../components/SummaryTile";
 import SupplierSelect from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import TrendChart from "../../components/TrendChart";
@@ -180,6 +182,17 @@ export function DashboardTileDemo() {
       <DashboardTile label="Revenue today" value="Rp 4.250.000" hint="12 sales" />
       <DashboardTile label="Low stock" value="7" tone="warning" to="/components/layout" />
       <DashboardTile label="Expired lots" value="2" tone="danger" />
+    </SimpleGrid>
+  );
+}
+
+export function SummaryTileDemo() {
+  return (
+    <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
+      <SummaryTile label="Ready stock" value="12.480" />
+      <SummaryTile label="Ready value" value="Rp 184.320.000" />
+      <SummaryTile label="Ongoing stock" value="3.200" />
+      <SummaryTile label="Ongoing value" value="Rp 41.900.000" />
     </SimpleGrid>
   );
 }
@@ -437,6 +450,20 @@ export function WarehouseSelectDemo() {
   return (
     <Stack gap={2} maxW="280px">
       <WarehouseSelect warehouses={FAKE_WAREHOUSES} value={value} onChange={setValue} />
+      <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
+// NOTE: like ProductPickerDialog below, this one talks to the server — BatchSelect
+// IS a backend batch search, so a fixture list would demo the opposite of the
+// thing. It stays idle until the dialog is opened, so browsing the gallery costs
+// nothing. Left on the default onlyInStock so the demo shows the real default.
+export function BatchSelectDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <Stack gap={2} maxW="320px">
+      <BatchSelect value={value} onChange={setValue} clearable />
       <Emitted>{value}</Emitted>
     </Stack>
   );

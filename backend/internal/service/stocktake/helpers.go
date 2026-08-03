@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
@@ -61,6 +63,43 @@ func (s *StocktakeService) addBatches(
 		return 0, 0, common.AsConnectErr(err)
 	}
 	return added, skipped, nil
+}
+
+// sessionFilterArgs is the ListStocktakes filter set. It exists so
+// GetStocktakeSummary can narrow by exactly the same predicates: the stat row
+// sits above the list and must always describe the same set of sessions.
+// Mirrors poFilterArgs shared by ListPurchaseOrders / GetPurchaseOrdersSummary.
+type sessionFilterArgs struct {
+	WarehouseID string
+	Status      string // "" = all; the summary never sets it (see GetStocktakeSummary)
+	FromUnix    int64
+	ToUnix      int64
+	DateField   string // "created" (default) | "completed"
+}
+
+// applyStocktakeFilters narrows a stocktake_sessions query by f. Column names
+// are left unqualified so the same closure works on Model(&StocktakeSession{})
+// and on a Table("stocktake_sessions").Select("id") sub-select.
+func applyStocktakeFilters(q *gorm.DB, f sessionFilterArgs) *gorm.DB {
+	q = q.Where("warehouse_id = ?", f.WarehouseID)
+	if st := strings.TrimSpace(strings.ToUpper(f.Status)); st != "" {
+		q = q.Where("status = ?", st)
+	}
+	if f.FromUnix > 0 || f.ToUnix > 0 {
+		// "completed" narrows to sessions actually finished in the range —
+		// DRAFT/VOIDED rows have no completed_at and drop out by design.
+		col := "created_at"
+		if f.DateField == dateFieldCompleted {
+			col = "completed_at"
+		}
+		if f.FromUnix > 0 {
+			q = q.Where(col+" >= ?", time.Unix(f.FromUnix, 0))
+		}
+		if f.ToUnix > 0 {
+			q = q.Where(col+" < ?", time.Unix(f.ToUnix, 0))
+		}
+	}
+	return q
 }
 
 func lockDraftSession(tx *gorm.DB, id string) (*model.StocktakeSession, error) {

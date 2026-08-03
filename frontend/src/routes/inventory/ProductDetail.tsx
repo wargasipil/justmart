@@ -8,6 +8,7 @@ import {
   SimpleGrid,
   Spinner,
   Stack,
+  Stat,
   Table,
   Tabs,
   Text,
@@ -796,6 +797,8 @@ function Tile({
     // A tinted surface, not bg.muted: these two tiles sit ON a bg.subtle card,
     // and the palette is what distinguishes on-hand from incoming at a glance.
     // colorPalette.* are semantic tokens, so both hues flip with the theme.
+    // The card chrome is ours; the label/value/sub inside are Chakra's Stat, so
+    // a metric renders as the <dl>/<dt>/<dd> it actually is.
     <Box
       colorPalette={palette}
       bg="colorPalette.subtle"
@@ -805,17 +808,19 @@ function Tile({
       px={3}
       py={2}
     >
-      <Text fontSize="xs" color="fg.muted" mb={1}>
-        {label}
-      </Text>
-      <Text fontSize="lg" fontWeight="semibold" color="colorPalette.fg">
-        {value}
-      </Text>
-      {sub && (
-        <Text fontSize="xs" color="fg.muted">
-          {sub}
-        </Text>
-      )}
+      <Stat.Root size="sm">
+        <Stat.Label fontSize="xs" color="fg.muted" mb={1}>
+          {label}
+        </Stat.Label>
+        <Stat.ValueText fontSize="lg" fontWeight="semibold" color="colorPalette.fg">
+          {value}
+        </Stat.ValueText>
+        {sub && (
+          <Stat.HelpText fontSize="xs" color="fg.muted" mb={0}>
+            {sub}
+          </Stat.HelpText>
+        )}
+      </Stat.Root>
     </Box>
   );
 }

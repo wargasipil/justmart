@@ -1,4 +1,25 @@
-import { expect, test } from "./_helpers";
+import type { Page } from "@playwright/test";
+
+import { CATALOG_NOUN_RE, expect, test } from "./_helpers";
+
+// Seed fixtures over the wire (same shape as medicines/grosir/restock specs) so
+// a test only drives the UI it actually asserts on.
+async function api<T = unknown>(page: Page, path: string, body: unknown): Promise<T> {
+  return await page.evaluate(
+    async ([p, b]: [string, unknown]) => {
+      const token = localStorage.getItem("justmart_access_token");
+      if (!token) throw new Error("no access token");
+      const res = await fetch(`/api/${p}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(b),
+      });
+      if (!res.ok) throw new Error(`${p}: ${res.status} ${await res.text()}`);
+      return (await res.json()) as unknown;
+    },
+    [path, body] as const,
+  ) as Promise<T>;
+}
 
 test.describe("EntityDrawer (slide-over)", () => {
   test("Customers Add → Cancel closes the drawer", async ({ page }) => {
@@ -27,45 +48,85 @@ test.describe("EntityDrawer (slide-over)", () => {
     await row.getByRole("button", { name: "Archive" }).click();
   });
 
-  test("Warehouses Add → Save is disabled until required fields are filled", async ({ page }) => {
+  test("Warehouses Add → required fields are enforced on submit", async ({ page }) => {
     await page.goto("/warehouses");
     await page.getByRole("button", { name: "Add" }).click();
     const drawer = page.getByRole("dialog");
     const save = drawer.getByRole("button", { name: "Save" });
-    await expect(save).toBeDisabled();
+
+    // The app does NOT gate Save on form validity (no `isValid` anywhere) —
+    // per the validation HARD RULE, submitting runs the Zod schema and
+    // <FormField> renders the message under the offending field. Submitting an
+    // empty form must therefore keep the drawer open and show an error.
+    await save.click();
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText(/required|wajib/i).first()).toBeVisible();
 
     const inputs = drawer.locator("input");
     await inputs.nth(0).fill("E2E01"); // code
-    await expect(save).toBeDisabled(); // name still empty
     await inputs.nth(1).fill("E2E warehouse"); // name
-    await expect(save).toBeEnabled();
 
     await drawer.getByRole("button", { name: "Cancel" }).click();
     await expect(drawer).toBeHidden();
   });
 
-  test.fixme(
-    "EntityDrawer resets form state when re-opened after Cancel",
-    async ({ page }) => {
-      // Known bug: closing without saving leaves the previously-typed values
-      // sitting in the form on next open. The fix is to reset RHF on close
-      // (or remount via key={open}) across every drawer. Flip .fixme to ()
-      // when fixed.
-      await page.goto("/customers");
-      await page.getByRole("button", { name: "Add" }).click();
-      await page
-        .getByRole("dialog")
-        .getByRole("textbox", { name: "Name" })
-        .fill("Ghost dummy");
-      await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
-      await page.getByRole("button", { name: "Add" }).click();
-      const value = await page
-        .getByRole("dialog")
-        .getByRole("textbox", { name: "Name" })
-        .inputValue();
-      expect(value).toBe("");
-    },
-  );
+  // The drawer's useForm lives in the component that RENDERS <EntityDrawer>, so
+  // it survives close and RHF keeps values in a ref — every drawer resets on the
+  // open edge via useResetOnOpen (lib/formReset.ts). These two pin both halves.
+  test("EntityDrawer resets form state when re-opened after Cancel", async ({ page }) => {
+    await page.goto("/customers");
+    await page.getByRole("button", { name: "Add" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("textbox", { name: "Name" })
+      .fill("Ghost dummy");
+    await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
+    const value = await page
+      .getByRole("dialog")
+      .getByRole("textbox", { name: "Name" })
+      .inputValue();
+    expect(value).toBe("");
+  });
+
+  test("EntityDrawer discards an abandoned EDIT when re-opened on the same record", async ({
+    page,
+  }) => {
+    // The edit path needs its own cover: RHF's `values` prop only re-syncs when
+    // the object changes, so re-opening the SAME record is deep-equal and would
+    // silently keep the abandoned draft.
+    await page.goto("/warehouses");
+    // No "0" prefix: this spec finds its row by search, and a code that sorts to
+    // the very top would compete to be the setup's fallback warehouse.
+    const code = `RST${Date.now() % 1000000}`;
+    const originalName = "Reset gudang";
+    // Seed over the API, not the Add drawer: the fixture is not what's under
+    // test here, and four extra UI steps is four extra things to flake on.
+    const created = await api<{ warehouse: { id: string } }>(
+      page,
+      "warehouse_iface.v1.WarehouseService/CreateWarehouse",
+      { code, name: originalName },
+    );
+
+    await page.goto(`/warehouses/${created.warehouse.id}`);
+
+    // Type a new name, then abandon via Cancel.
+    await page.getByRole("button", { name: /^Edit$|^Ubah$/ }).click();
+    const editDrawer = page.getByRole("dialog");
+    const editName = editDrawer.locator("input").nth(1);
+    // The drawer mounts before the GetWarehouse seed lands, so wait for the
+    // pre-fill — typing into the pre-seed input races the re-seed remount.
+    await expect(editName).toHaveValue(originalName, { timeout: 15_000 });
+    await editName.fill("Abandoned rename");
+    await editDrawer.getByRole("button", { name: /^Cancel$|^Batal$/ }).click();
+    await expect(editDrawer).toBeHidden();
+
+    // Re-open the SAME record — the field must show the saved name again.
+    await page.getByRole("button", { name: /^Edit$|^Ubah$/ }).click();
+    await expect(editDrawer).toBeVisible();
+    await expect(editDrawer.locator("input").nth(1)).toHaveValue(originalName);
+    await editDrawer.getByRole("button", { name: /^Cancel$|^Batal$/ }).click();
+  });
 });
 
 test.describe("Dialog (centered modal)", () => {
@@ -148,9 +209,10 @@ test.describe("RouteTabs (Chakra Tabs + NavLink)", () => {
     });
 
     // Clicking a tab updates the URL (no full reload) and shifts active state.
-    await page.getByRole("tab", { name: "Product" }).click();
+    // The middle tab is labelled with the mode-aware catalog noun.
+    await page.getByRole("tab", { name: CATALOG_NOUN_RE }).click();
     await expect(page).toHaveURL(/\/analytics\/product$/);
-    await expect(page.getByRole("tab", { name: "Product" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: CATALOG_NOUN_RE })).toHaveAttribute(
       "aria-selected",
       "true",
     );

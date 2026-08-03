@@ -739,6 +739,173 @@ func (x *ListPurchaseOrdersResponse) GetTotal() int32 {
 	return 0
 }
 
+// Same filter set as ListPurchaseOrdersRequest, minus paging — the summary
+// covers every matching order, not a page. Keep the two in sync: the list and
+// the stat row above it must always describe the same set (both handlers share
+// applyPOFilters so they cannot drift).
+type GetPurchaseOrdersSummaryRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Status          POStatus               `protobuf:"varint,1,opt,name=status,proto3,enum=purchasing_iface.v1.POStatus" json:"status,omitempty"`
+	SupplierId      string                 `protobuf:"bytes,2,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"`
+	OnlyOutstanding bool                   `protobuf:"varint,3,opt,name=only_outstanding,json=onlyOutstanding,proto3" json:"only_outstanding,omitempty"`
+	Query           string                 `protobuf:"bytes,4,opt,name=query,proto3" json:"query,omitempty"`
+	FromUnix        int64                  `protobuf:"varint,5,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`
+	ToUnix          int64                  `protobuf:"varint,6,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`
+	DateField       string                 `protobuf:"bytes,7,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"` // "created" | "received"
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) Reset() {
+	*x = GetPurchaseOrdersSummaryRequest{}
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPurchaseOrdersSummaryRequest) ProtoMessage() {}
+
+func (x *GetPurchaseOrdersSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPurchaseOrdersSummaryRequest.ProtoReflect.Descriptor instead.
+func (*GetPurchaseOrdersSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetStatus() POStatus {
+	if x != nil {
+		return x.Status
+	}
+	return POStatus_PO_STATUS_UNSPECIFIED
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetSupplierId() string {
+	if x != nil {
+		return x.SupplierId
+	}
+	return ""
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetOnlyOutstanding() bool {
+	if x != nil {
+		return x.OnlyOutstanding
+	}
+	return false
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetFromUnix() int64 {
+	if x != nil {
+		return x.FromUnix
+	}
+	return 0
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetToUnix() int64 {
+	if x != nil {
+		return x.ToUnix
+	}
+	return 0
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetDateField() string {
+	if x != nil {
+		return x.DateField
+	}
+	return ""
+}
+
+type GetPurchaseOrdersSummaryResponse struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	OrderCount   int64                  `protobuf:"varint,1,opt,name=order_count,json=orderCount,proto3" json:"order_count,omitempty"`       // matching purchase orders
+	ProductCount int64                  `protobuf:"varint,2,opt,name=product_count,json=productCount,proto3" json:"product_count,omitempty"` // DISTINCT products across their lines
+	// Ordered quantity in BASE units, summed across products — so a catalog
+	// holding both tablets and bottles adds them together. Read it as "total
+	// units ordered"; `total` is the comparable figure.
+	ItemCount     int64 `protobuf:"varint,3,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
+	Total         int64 `protobuf:"varint,4,opt,name=total,proto3" json:"total,omitempty"` // SUM(ordered_total) — final, incl. PPN, after discounts
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPurchaseOrdersSummaryResponse) Reset() {
+	*x = GetPurchaseOrdersSummaryResponse{}
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPurchaseOrdersSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPurchaseOrdersSummaryResponse) ProtoMessage() {}
+
+func (x *GetPurchaseOrdersSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPurchaseOrdersSummaryResponse.ProtoReflect.Descriptor instead.
+func (*GetPurchaseOrdersSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetPurchaseOrdersSummaryResponse) GetOrderCount() int64 {
+	if x != nil {
+		return x.OrderCount
+	}
+	return 0
+}
+
+func (x *GetPurchaseOrdersSummaryResponse) GetProductCount() int64 {
+	if x != nil {
+		return x.ProductCount
+	}
+	return 0
+}
+
+func (x *GetPurchaseOrdersSummaryResponse) GetItemCount() int64 {
+	if x != nil {
+		return x.ItemCount
+	}
+	return 0
+}
+
+func (x *GetPurchaseOrdersSummaryResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 type GetPurchaseOrderRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -748,7 +915,7 @@ type GetPurchaseOrderRequest struct {
 
 func (x *GetPurchaseOrderRequest) Reset() {
 	*x = GetPurchaseOrderRequest{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[5]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -760,7 +927,7 @@ func (x *GetPurchaseOrderRequest) String() string {
 func (*GetPurchaseOrderRequest) ProtoMessage() {}
 
 func (x *GetPurchaseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[5]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -773,7 +940,7 @@ func (x *GetPurchaseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPurchaseOrderRequest.ProtoReflect.Descriptor instead.
 func (*GetPurchaseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{5}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetPurchaseOrderRequest) GetId() string {
@@ -792,7 +959,7 @@ type GetPurchaseOrderResponse struct {
 
 func (x *GetPurchaseOrderResponse) Reset() {
 	*x = GetPurchaseOrderResponse{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[6]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -804,7 +971,7 @@ func (x *GetPurchaseOrderResponse) String() string {
 func (*GetPurchaseOrderResponse) ProtoMessage() {}
 
 func (x *GetPurchaseOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[6]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -817,7 +984,7 @@ func (x *GetPurchaseOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPurchaseOrderResponse.ProtoReflect.Descriptor instead.
 func (*GetPurchaseOrderResponse) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{6}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetPurchaseOrderResponse) GetOrder() *PurchaseOrder {
@@ -844,7 +1011,7 @@ type CreatePurchaseOrderRequest struct {
 
 func (x *CreatePurchaseOrderRequest) Reset() {
 	*x = CreatePurchaseOrderRequest{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[7]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -856,7 +1023,7 @@ func (x *CreatePurchaseOrderRequest) String() string {
 func (*CreatePurchaseOrderRequest) ProtoMessage() {}
 
 func (x *CreatePurchaseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[7]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,7 +1036,7 @@ func (x *CreatePurchaseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePurchaseOrderRequest.ProtoReflect.Descriptor instead.
 func (*CreatePurchaseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{7}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CreatePurchaseOrderRequest) GetSupplierId() string {
@@ -944,7 +1111,7 @@ type CreatePurchaseOrderResponse struct {
 
 func (x *CreatePurchaseOrderResponse) Reset() {
 	*x = CreatePurchaseOrderResponse{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[8]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -956,7 +1123,7 @@ func (x *CreatePurchaseOrderResponse) String() string {
 func (*CreatePurchaseOrderResponse) ProtoMessage() {}
 
 func (x *CreatePurchaseOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[8]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -969,7 +1136,7 @@ func (x *CreatePurchaseOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePurchaseOrderResponse.ProtoReflect.Descriptor instead.
 func (*CreatePurchaseOrderResponse) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{8}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CreatePurchaseOrderResponse) GetOrder() *PurchaseOrder {
@@ -997,7 +1164,7 @@ type UpdatePurchaseOrderRequest struct {
 
 func (x *UpdatePurchaseOrderRequest) Reset() {
 	*x = UpdatePurchaseOrderRequest{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[9]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1009,7 +1176,7 @@ func (x *UpdatePurchaseOrderRequest) String() string {
 func (*UpdatePurchaseOrderRequest) ProtoMessage() {}
 
 func (x *UpdatePurchaseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[9]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1022,7 +1189,7 @@ func (x *UpdatePurchaseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePurchaseOrderRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePurchaseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{9}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdatePurchaseOrderRequest) GetId() string {
@@ -1097,7 +1264,7 @@ type UpdatePurchaseOrderResponse struct {
 
 func (x *UpdatePurchaseOrderResponse) Reset() {
 	*x = UpdatePurchaseOrderResponse{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[10]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1109,7 +1276,7 @@ func (x *UpdatePurchaseOrderResponse) String() string {
 func (*UpdatePurchaseOrderResponse) ProtoMessage() {}
 
 func (x *UpdatePurchaseOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[10]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1122,7 +1289,7 @@ func (x *UpdatePurchaseOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePurchaseOrderResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePurchaseOrderResponse) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{10}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UpdatePurchaseOrderResponse) GetOrder() *PurchaseOrder {
@@ -1141,7 +1308,7 @@ type SendPurchaseOrderRequest struct {
 
 func (x *SendPurchaseOrderRequest) Reset() {
 	*x = SendPurchaseOrderRequest{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[11]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1153,7 +1320,7 @@ func (x *SendPurchaseOrderRequest) String() string {
 func (*SendPurchaseOrderRequest) ProtoMessage() {}
 
 func (x *SendPurchaseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[11]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1166,7 +1333,7 @@ func (x *SendPurchaseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPurchaseOrderRequest.ProtoReflect.Descriptor instead.
 func (*SendPurchaseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{11}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SendPurchaseOrderRequest) GetId() string {
@@ -1185,7 +1352,7 @@ type SendPurchaseOrderResponse struct {
 
 func (x *SendPurchaseOrderResponse) Reset() {
 	*x = SendPurchaseOrderResponse{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[12]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1364,7 @@ func (x *SendPurchaseOrderResponse) String() string {
 func (*SendPurchaseOrderResponse) ProtoMessage() {}
 
 func (x *SendPurchaseOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[12]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1377,7 @@ func (x *SendPurchaseOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendPurchaseOrderResponse.ProtoReflect.Descriptor instead.
 func (*SendPurchaseOrderResponse) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{12}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SendPurchaseOrderResponse) GetOrder() *PurchaseOrder {
@@ -1229,7 +1396,7 @@ type VoidPurchaseOrderRequest struct {
 
 func (x *VoidPurchaseOrderRequest) Reset() {
 	*x = VoidPurchaseOrderRequest{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[13]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1241,7 +1408,7 @@ func (x *VoidPurchaseOrderRequest) String() string {
 func (*VoidPurchaseOrderRequest) ProtoMessage() {}
 
 func (x *VoidPurchaseOrderRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[13]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1254,7 +1421,7 @@ func (x *VoidPurchaseOrderRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoidPurchaseOrderRequest.ProtoReflect.Descriptor instead.
 func (*VoidPurchaseOrderRequest) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{13}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *VoidPurchaseOrderRequest) GetId() string {
@@ -1273,7 +1440,7 @@ type VoidPurchaseOrderResponse struct {
 
 func (x *VoidPurchaseOrderResponse) Reset() {
 	*x = VoidPurchaseOrderResponse{}
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[14]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1285,7 +1452,7 @@ func (x *VoidPurchaseOrderResponse) String() string {
 func (*VoidPurchaseOrderResponse) ProtoMessage() {}
 
 func (x *VoidPurchaseOrderResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_purchasing_iface_v1_order_proto_msgTypes[14]
+	mi := &file_purchasing_iface_v1_order_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1298,7 +1465,7 @@ func (x *VoidPurchaseOrderResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VoidPurchaseOrderResponse.ProtoReflect.Descriptor instead.
 func (*VoidPurchaseOrderResponse) Descriptor() ([]byte, []int) {
-	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{14}
+	return file_purchasing_iface_v1_order_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *VoidPurchaseOrderResponse) GetOrder() *PurchaseOrder {
@@ -1394,7 +1561,24 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\x06offset\x18\t \x01(\x05R\x06offset\"n\n" +
 	"\x1aListPurchaseOrdersResponse\x12:\n" +
 	"\x06orders\x18\x01 \x03(\v2\".purchasing_iface.v1.PurchaseOrderR\x06orders\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\")\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\x8f\x02\n" +
+	"\x1fGetPurchaseOrdersSummaryRequest\x125\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x1d.purchasing_iface.v1.POStatusR\x06status\x12\x1f\n" +
+	"\vsupplier_id\x18\x02 \x01(\tR\n" +
+	"supplierId\x12)\n" +
+	"\x10only_outstanding\x18\x03 \x01(\bR\x0fonlyOutstanding\x12\x14\n" +
+	"\x05query\x18\x04 \x01(\tR\x05query\x12\x1b\n" +
+	"\tfrom_unix\x18\x05 \x01(\x03R\bfromUnix\x12\x17\n" +
+	"\ato_unix\x18\x06 \x01(\x03R\x06toUnix\x12\x1d\n" +
+	"\n" +
+	"date_field\x18\a \x01(\tR\tdateField\"\x9d\x01\n" +
+	" GetPurchaseOrdersSummaryResponse\x12\x1f\n" +
+	"\vorder_count\x18\x01 \x01(\x03R\n" +
+	"orderCount\x12#\n" +
+	"\rproduct_count\x18\x02 \x01(\x03R\fproductCount\x12\x1d\n" +
+	"\n" +
+	"item_count\x18\x03 \x01(\x03R\titemCount\x12\x14\n" +
+	"\x05total\x18\x04 \x01(\x03R\x05total\")\n" +
 	"\x17GetPurchaseOrderRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"T\n" +
 	"\x18GetPurchaseOrderResponse\x128\n" +
@@ -1443,9 +1627,10 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\x1cPO_STATUS_PARTIALLY_RECEIVED\x10\x03\x12\x16\n" +
 	"\x12PO_STATUS_RECEIVED\x10\x04\x12\x14\n" +
 	"\x10PO_STATUS_CLOSED\x10\x05\x12\x14\n" +
-	"\x10PO_STATUS_VOIDED\x10\x062\x8c\x06\n" +
+	"\x10PO_STATUS_VOIDED\x10\x062\x9e\a\n" +
 	"\x14PurchaseOrderService\x12}\n" +
-	"\x12ListPurchaseOrders\x12..purchasing_iface.v1.ListPurchaseOrdersRequest\x1a/.purchasing_iface.v1.ListPurchaseOrdersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12w\n" +
+	"\x12ListPurchaseOrders\x12..purchasing_iface.v1.ListPurchaseOrdersRequest\x1a/.purchasing_iface.v1.ListPurchaseOrdersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x8f\x01\n" +
+	"\x18GetPurchaseOrdersSummary\x124.purchasing_iface.v1.GetPurchaseOrdersSummaryRequest\x1a5.purchasing_iface.v1.GetPurchaseOrdersSummaryResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12w\n" +
 	"\x10GetPurchaseOrder\x12,.purchasing_iface.v1.GetPurchaseOrderRequest\x1a-.purchasing_iface.v1.GetPurchaseOrderResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x80\x01\n" +
 	"\x13CreatePurchaseOrder\x12/.purchasing_iface.v1.CreatePurchaseOrderRequest\x1a0.purchasing_iface.v1.CreatePurchaseOrderResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x80\x01\n" +
 	"\x13UpdatePurchaseOrder\x12/.purchasing_iface.v1.UpdatePurchaseOrderRequest\x1a0.purchasing_iface.v1.UpdatePurchaseOrderResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12z\n" +
@@ -1465,54 +1650,59 @@ func file_purchasing_iface_v1_order_proto_rawDescGZIP() []byte {
 }
 
 var file_purchasing_iface_v1_order_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_purchasing_iface_v1_order_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_purchasing_iface_v1_order_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_purchasing_iface_v1_order_proto_goTypes = []any{
-	(POStatus)(0),                       // 0: purchasing_iface.v1.POStatus
-	(*PurchaseOrder)(nil),               // 1: purchasing_iface.v1.PurchaseOrder
-	(*PurchaseOrderItem)(nil),           // 2: purchasing_iface.v1.PurchaseOrderItem
-	(*PurchaseOrderItemInput)(nil),      // 3: purchasing_iface.v1.PurchaseOrderItemInput
-	(*ListPurchaseOrdersRequest)(nil),   // 4: purchasing_iface.v1.ListPurchaseOrdersRequest
-	(*ListPurchaseOrdersResponse)(nil),  // 5: purchasing_iface.v1.ListPurchaseOrdersResponse
-	(*GetPurchaseOrderRequest)(nil),     // 6: purchasing_iface.v1.GetPurchaseOrderRequest
-	(*GetPurchaseOrderResponse)(nil),    // 7: purchasing_iface.v1.GetPurchaseOrderResponse
-	(*CreatePurchaseOrderRequest)(nil),  // 8: purchasing_iface.v1.CreatePurchaseOrderRequest
-	(*CreatePurchaseOrderResponse)(nil), // 9: purchasing_iface.v1.CreatePurchaseOrderResponse
-	(*UpdatePurchaseOrderRequest)(nil),  // 10: purchasing_iface.v1.UpdatePurchaseOrderRequest
-	(*UpdatePurchaseOrderResponse)(nil), // 11: purchasing_iface.v1.UpdatePurchaseOrderResponse
-	(*SendPurchaseOrderRequest)(nil),    // 12: purchasing_iface.v1.SendPurchaseOrderRequest
-	(*SendPurchaseOrderResponse)(nil),   // 13: purchasing_iface.v1.SendPurchaseOrderResponse
-	(*VoidPurchaseOrderRequest)(nil),    // 14: purchasing_iface.v1.VoidPurchaseOrderRequest
-	(*VoidPurchaseOrderResponse)(nil),   // 15: purchasing_iface.v1.VoidPurchaseOrderResponse
+	(POStatus)(0),                            // 0: purchasing_iface.v1.POStatus
+	(*PurchaseOrder)(nil),                    // 1: purchasing_iface.v1.PurchaseOrder
+	(*PurchaseOrderItem)(nil),                // 2: purchasing_iface.v1.PurchaseOrderItem
+	(*PurchaseOrderItemInput)(nil),           // 3: purchasing_iface.v1.PurchaseOrderItemInput
+	(*ListPurchaseOrdersRequest)(nil),        // 4: purchasing_iface.v1.ListPurchaseOrdersRequest
+	(*ListPurchaseOrdersResponse)(nil),       // 5: purchasing_iface.v1.ListPurchaseOrdersResponse
+	(*GetPurchaseOrdersSummaryRequest)(nil),  // 6: purchasing_iface.v1.GetPurchaseOrdersSummaryRequest
+	(*GetPurchaseOrdersSummaryResponse)(nil), // 7: purchasing_iface.v1.GetPurchaseOrdersSummaryResponse
+	(*GetPurchaseOrderRequest)(nil),          // 8: purchasing_iface.v1.GetPurchaseOrderRequest
+	(*GetPurchaseOrderResponse)(nil),         // 9: purchasing_iface.v1.GetPurchaseOrderResponse
+	(*CreatePurchaseOrderRequest)(nil),       // 10: purchasing_iface.v1.CreatePurchaseOrderRequest
+	(*CreatePurchaseOrderResponse)(nil),      // 11: purchasing_iface.v1.CreatePurchaseOrderResponse
+	(*UpdatePurchaseOrderRequest)(nil),       // 12: purchasing_iface.v1.UpdatePurchaseOrderRequest
+	(*UpdatePurchaseOrderResponse)(nil),      // 13: purchasing_iface.v1.UpdatePurchaseOrderResponse
+	(*SendPurchaseOrderRequest)(nil),         // 14: purchasing_iface.v1.SendPurchaseOrderRequest
+	(*SendPurchaseOrderResponse)(nil),        // 15: purchasing_iface.v1.SendPurchaseOrderResponse
+	(*VoidPurchaseOrderRequest)(nil),         // 16: purchasing_iface.v1.VoidPurchaseOrderRequest
+	(*VoidPurchaseOrderResponse)(nil),        // 17: purchasing_iface.v1.VoidPurchaseOrderResponse
 }
 var file_purchasing_iface_v1_order_proto_depIdxs = []int32{
 	0,  // 0: purchasing_iface.v1.PurchaseOrder.status:type_name -> purchasing_iface.v1.POStatus
 	2,  // 1: purchasing_iface.v1.PurchaseOrder.items:type_name -> purchasing_iface.v1.PurchaseOrderItem
 	0,  // 2: purchasing_iface.v1.ListPurchaseOrdersRequest.status:type_name -> purchasing_iface.v1.POStatus
 	1,  // 3: purchasing_iface.v1.ListPurchaseOrdersResponse.orders:type_name -> purchasing_iface.v1.PurchaseOrder
-	1,  // 4: purchasing_iface.v1.GetPurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
-	3,  // 5: purchasing_iface.v1.CreatePurchaseOrderRequest.items:type_name -> purchasing_iface.v1.PurchaseOrderItemInput
-	1,  // 6: purchasing_iface.v1.CreatePurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
-	3,  // 7: purchasing_iface.v1.UpdatePurchaseOrderRequest.items:type_name -> purchasing_iface.v1.PurchaseOrderItemInput
-	1,  // 8: purchasing_iface.v1.UpdatePurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
-	1,  // 9: purchasing_iface.v1.SendPurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
-	1,  // 10: purchasing_iface.v1.VoidPurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
-	4,  // 11: purchasing_iface.v1.PurchaseOrderService.ListPurchaseOrders:input_type -> purchasing_iface.v1.ListPurchaseOrdersRequest
-	6,  // 12: purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrder:input_type -> purchasing_iface.v1.GetPurchaseOrderRequest
-	8,  // 13: purchasing_iface.v1.PurchaseOrderService.CreatePurchaseOrder:input_type -> purchasing_iface.v1.CreatePurchaseOrderRequest
-	10, // 14: purchasing_iface.v1.PurchaseOrderService.UpdatePurchaseOrder:input_type -> purchasing_iface.v1.UpdatePurchaseOrderRequest
-	12, // 15: purchasing_iface.v1.PurchaseOrderService.SendPurchaseOrder:input_type -> purchasing_iface.v1.SendPurchaseOrderRequest
-	14, // 16: purchasing_iface.v1.PurchaseOrderService.VoidPurchaseOrder:input_type -> purchasing_iface.v1.VoidPurchaseOrderRequest
-	5,  // 17: purchasing_iface.v1.PurchaseOrderService.ListPurchaseOrders:output_type -> purchasing_iface.v1.ListPurchaseOrdersResponse
-	7,  // 18: purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrder:output_type -> purchasing_iface.v1.GetPurchaseOrderResponse
-	9,  // 19: purchasing_iface.v1.PurchaseOrderService.CreatePurchaseOrder:output_type -> purchasing_iface.v1.CreatePurchaseOrderResponse
-	11, // 20: purchasing_iface.v1.PurchaseOrderService.UpdatePurchaseOrder:output_type -> purchasing_iface.v1.UpdatePurchaseOrderResponse
-	13, // 21: purchasing_iface.v1.PurchaseOrderService.SendPurchaseOrder:output_type -> purchasing_iface.v1.SendPurchaseOrderResponse
-	15, // 22: purchasing_iface.v1.PurchaseOrderService.VoidPurchaseOrder:output_type -> purchasing_iface.v1.VoidPurchaseOrderResponse
-	17, // [17:23] is the sub-list for method output_type
-	11, // [11:17] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	0,  // 4: purchasing_iface.v1.GetPurchaseOrdersSummaryRequest.status:type_name -> purchasing_iface.v1.POStatus
+	1,  // 5: purchasing_iface.v1.GetPurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
+	3,  // 6: purchasing_iface.v1.CreatePurchaseOrderRequest.items:type_name -> purchasing_iface.v1.PurchaseOrderItemInput
+	1,  // 7: purchasing_iface.v1.CreatePurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
+	3,  // 8: purchasing_iface.v1.UpdatePurchaseOrderRequest.items:type_name -> purchasing_iface.v1.PurchaseOrderItemInput
+	1,  // 9: purchasing_iface.v1.UpdatePurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
+	1,  // 10: purchasing_iface.v1.SendPurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
+	1,  // 11: purchasing_iface.v1.VoidPurchaseOrderResponse.order:type_name -> purchasing_iface.v1.PurchaseOrder
+	4,  // 12: purchasing_iface.v1.PurchaseOrderService.ListPurchaseOrders:input_type -> purchasing_iface.v1.ListPurchaseOrdersRequest
+	6,  // 13: purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrdersSummary:input_type -> purchasing_iface.v1.GetPurchaseOrdersSummaryRequest
+	8,  // 14: purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrder:input_type -> purchasing_iface.v1.GetPurchaseOrderRequest
+	10, // 15: purchasing_iface.v1.PurchaseOrderService.CreatePurchaseOrder:input_type -> purchasing_iface.v1.CreatePurchaseOrderRequest
+	12, // 16: purchasing_iface.v1.PurchaseOrderService.UpdatePurchaseOrder:input_type -> purchasing_iface.v1.UpdatePurchaseOrderRequest
+	14, // 17: purchasing_iface.v1.PurchaseOrderService.SendPurchaseOrder:input_type -> purchasing_iface.v1.SendPurchaseOrderRequest
+	16, // 18: purchasing_iface.v1.PurchaseOrderService.VoidPurchaseOrder:input_type -> purchasing_iface.v1.VoidPurchaseOrderRequest
+	5,  // 19: purchasing_iface.v1.PurchaseOrderService.ListPurchaseOrders:output_type -> purchasing_iface.v1.ListPurchaseOrdersResponse
+	7,  // 20: purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrdersSummary:output_type -> purchasing_iface.v1.GetPurchaseOrdersSummaryResponse
+	9,  // 21: purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrder:output_type -> purchasing_iface.v1.GetPurchaseOrderResponse
+	11, // 22: purchasing_iface.v1.PurchaseOrderService.CreatePurchaseOrder:output_type -> purchasing_iface.v1.CreatePurchaseOrderResponse
+	13, // 23: purchasing_iface.v1.PurchaseOrderService.UpdatePurchaseOrder:output_type -> purchasing_iface.v1.UpdatePurchaseOrderResponse
+	15, // 24: purchasing_iface.v1.PurchaseOrderService.SendPurchaseOrder:output_type -> purchasing_iface.v1.SendPurchaseOrderResponse
+	17, // 25: purchasing_iface.v1.PurchaseOrderService.VoidPurchaseOrder:output_type -> purchasing_iface.v1.VoidPurchaseOrderResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_purchasing_iface_v1_order_proto_init() }
@@ -1526,7 +1716,7 @@ func file_purchasing_iface_v1_order_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_purchasing_iface_v1_order_proto_rawDesc), len(file_purchasing_iface_v1_order_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

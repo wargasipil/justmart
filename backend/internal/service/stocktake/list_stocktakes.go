@@ -2,7 +2,6 @@ package stocktake
 
 import (
 	"context"
-	"strings"
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
@@ -26,14 +25,16 @@ func (s *StocktakeService) ListStocktakes(
 		return nil, err
 	}
 	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
-	applyFilters := func(q *gorm.DB) *gorm.DB {
-		// Scope to the caller's active warehouse (header-driven, like ListMovements).
-		q = q.Where("warehouse_id = ?", warehouseID)
-		if st := strings.TrimSpace(strings.ToUpper(req.Msg.Status)); st != "" {
-			q = q.Where("status = ?", st)
-		}
-		return q
+	// Shared with GetStocktakeSummary — see applyStocktakeFilters in helpers.go.
+	// Warehouse scoping is header-driven, like ListMovements.
+	filters := sessionFilterArgs{
+		WarehouseID: warehouseID,
+		Status:      req.Msg.Status,
+		FromUnix:    req.Msg.FromUnix,
+		ToUnix:      req.Msg.ToUnix,
+		DateField:   req.Msg.DateField,
 	}
+	applyFilters := func(q *gorm.DB) *gorm.DB { return applyStocktakeFilters(q, filters) }
 	var total int64
 	if err := applyFilters(s.db.WithContext(ctx).Model(&model.StocktakeSession{})).Count(&total).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

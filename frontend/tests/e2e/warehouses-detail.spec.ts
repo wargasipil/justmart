@@ -105,7 +105,8 @@ test.describe("warehouse detail", () => {
       // 4. Revoke the new user.
       const row = page.getByRole("row", { name: new RegExp(s.userEmail) });
       await row.getByRole("button", { name: /Revoke|Cabut/i }).click();
-      const dialog = page.getByRole("dialog");
+      // <ConfirmDialog> is a Chakra Dialog with role="alertdialog".
+      const dialog = page.getByRole("alertdialog");
       await expect(dialog).toBeVisible();
       await dialog.getByRole("button", { name: /Revoke access|Cabut akses/i }).click();
       await expect(dialog).not.toBeVisible();

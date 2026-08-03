@@ -9,6 +9,7 @@ import EntityDrawer from "./EntityDrawer";
 import FormField from "./FormField";
 import type { Warehouse } from "../gen/warehouse_iface/v1/warehouse_pb";
 import { useServerFormErrors } from "../lib/formErrors";
+import { useResetOnOpen } from "../lib/formReset";
 import { toast } from "../lib/toaster";
 import {
   useCreateWarehouseMutation,
@@ -51,6 +52,9 @@ export default function WarehouseDrawer({
     [warehouse],
   );
   const form = useForm<FormValues>({ resolver: zodResolver(Schema), values });
+  // ...but `values` alone can't undo an ABANDONED edit: re-opening on the same
+  // row is deep-equal, so RHF skips the sync and the stale draft reappears.
+  useResetOnOpen(form, open, values);
   const onServerError = useServerFormErrors(form);
 
   const onSubmit = form.handleSubmit(async (v) => {

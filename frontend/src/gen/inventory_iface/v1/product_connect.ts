@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
+import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -19,6 +19,23 @@ export const ProductService = {
       name: "ListProducts",
       I: ListProductsRequest,
       O: ListProductsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetProductsSummary aggregates ready + on-order stock (count and valuation at
+     * cost) over ALL products matching the same filters as ListProducts — not the
+     * current page. Drives the catalog stat row above the list.
+     * 
+     * Narrower roles than ListProducts on purpose: the valuations are cost data,
+     * and cost never goes to a cashier (same posture as GetMyPerformance omitting
+     * COGS). POS reads the catalog through ListProducts and needs none of this.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.GetProductsSummary
+     */
+    getProductsSummary: {
+      name: "GetProductsSummary",
+      I: GetProductsSummaryRequest,
+      O: GetProductsSummaryResponse,
       kind: MethodKind.Unary,
     },
     /**

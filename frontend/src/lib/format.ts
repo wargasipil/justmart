@@ -50,6 +50,16 @@ export function formatThousands(value: number | bigint | string): string {
   return fmt.format(BigInt(digits));
 }
 
+// formatCount is formatThousands' DISPLAY counterpart: same locale grouping,
+// but zero renders as "0" instead of "". The empty-at-zero behaviour above
+// exists for <MoneyInput> (so typing can't produce "09000") and is wrong for a
+// read-only figure — a summary tile showing a blank where it means zero reads
+// as "failed to load". Use this for any count you render; formatThousands stays
+// for inputs.
+export function formatCount(value: number | bigint | string): string {
+  return formatThousands(value) || "0";
+}
+
 export function formatDate(input: Date | string | number): string {
   const date = input instanceof Date ? input : new Date(input);
   return new Intl.DateTimeFormat(currentLocale(), { dateStyle: "medium" }).format(date);

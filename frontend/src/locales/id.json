@@ -54,7 +54,8 @@
       "next": "Berikutnya",
       "perPage": "{{count}} / halaman"
     },
-    "back": "Kembali"
+    "back": "Kembali",
+    "clear": "Hapus"
   },
   "nav": {
     "dashboard": "Dasbor",
@@ -338,6 +339,12 @@
     "remaining": "Sisa",
     "statusTabs": {
       "all": "Semua"
+    },
+    "summary": {
+      "orders": "Transaksi",
+      "products": "$t(glossary.productsCap)",
+      "items": "Item dipesan",
+      "total": "Nilai total"
     }
   },
   "auth": {
@@ -518,6 +525,8 @@
     "cancel": "Batalkan transaksi",
     "exit": "Keluar",
     "outOfStock": "Stok habis",
+    "showOutOfStock": "Tampilkan stok habis",
+    "noResultsHiddenOutOfStock": "Tidak ada $t(glossary.product) berstok yang cocok. Aktifkan \"Tampilkan stok habis\" untuk melihat sisanya.",
     "stock": "tersedia",
     "receiptTitle": "Struk",
     "saleNo": "No. transaksi",
@@ -722,6 +731,12 @@
       "lastSupplier": "Pemasok terakhir",
       "colGroupStandard": "Standar",
       "colGroupRestock": "Restok",
+      "summary": {
+        "ready": "Stok siap",
+        "readyValue": "Nilai stok siap",
+        "onOrder": "Stok dipesan",
+        "onOrderValue": "Nilai stok dipesan"
+      },
       "importTitle": "Impor CSV",
       "importChooseFile": "Pilih file CSV",
       "importTemplate": "Unduh templat",
@@ -768,6 +783,9 @@
       "bankName": "Bank",
       "bankAccountNumber": "No. Rekening",
       "bankAccountHolder": "Atas Nama",
+      "summary": {
+        "total": "Total pemasok"
+      },
       "searchPlaceholder": "Cari kode / nama…",
       "infoSection": "Informasi",
       "restockSection": "Produk & Restok",
@@ -830,7 +848,7 @@
       "po": "PO",
       "receive": "Terima",
       "expired": "kedaluwarsa",
-      "selectProduct": "— pilih —",
+      "selectProduct": "Pilih $t(glossary.product)",
       "importTitle": "Impor Stok",
       "importChooseFile": "Pilih file CSV",
       "importTemplate": "Unduh templat",
@@ -853,7 +871,7 @@
       "title": "Mutasi stok",
       "recordTitle": "Catat Mutasi (Penyesuaian / Write-off)",
       "filterByBatch": "Saring per batch:",
-      "filterAll": "— semua —",
+      "filterAll": "Semua batch",
       "searchPlaceholder": "Cari batch / $t(glossary.product)…",
       "when": "Waktu",
       "batch": "Batch",
@@ -877,6 +895,14 @@
       "createdToast": "Sesi dibuat",
       "completed": "Opname selesai — {{count}} penyesuaian dicatat",
       "voided": "Sesi dibatalkan",
+      "summaryTiles": {
+        "draft": "Berjalan",
+        "completed": "Selesai",
+        "varianceLines": "Baris selisih",
+        "lastCount": "Opname terakhir"
+      },
+      "dateCreated": "Dimulai",
+      "dateCompleted": "Selesai",
       "name": "Nama",
       "status": "Status",
       "lines": "Baris",
@@ -1200,7 +1226,8 @@
     "summary": {
       "sales": "Penjualan",
       "itemsSold": "Item terjual",
-      "revenue": "Pendapatan"
+      "revenue": "Pendapatan",
+      "avgBasket": "Rata-rata transaksi"
     },
     "detail": {
       "description": "Item, total, dan pembayaran untuk order ini.",

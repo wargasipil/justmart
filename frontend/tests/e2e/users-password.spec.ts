@@ -24,21 +24,26 @@ test.describe("change password", () => {
     const inputs = dialog.locator('input[type="password"]');
     await expect(inputs).toHaveCount(3);
 
-    // Save is disabled with empty fields.
+    // The app does NOT gate Save on form validity — per the validation HARD
+    // RULE it runs the Zod schema on submit and <FormField> renders the
+    // message under the offending field. Submitting empty keeps the dialog
+    // open and surfaces a required error.
     const save = dialog.getByRole("button", { name: "Save" });
-    await expect(save).toBeDisabled();
+    await save.click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/required|Wajib diisi/i).first()).toBeVisible();
 
-    // Fill mismatched new/confirm → validation message + still disabled.
+    // Mismatched new/confirm → the mismatch message on submit.
     await inputs.nth(0).fill("test123");
     await inputs.nth(1).fill("abcd1234");
     await inputs.nth(2).fill("zzzz9999");
+    await save.click();
     await expect(dialog.getByText(/Passwords do not match|tidak cocok/i)).toBeVisible();
-    await expect(save).toBeDisabled();
 
-    // Fix the confirm → validation clears + Save enables.
+    // Fix the confirm → re-validating clears the mismatch. We deliberately do
+    // NOT submit a valid form: that would rotate the seeded password.
     await inputs.nth(2).fill("abcd1234");
     await expect(dialog.getByText(/Passwords do not match|tidak cocok/i)).toHaveCount(0);
-    await expect(save).toBeEnabled();
 
     // Cancel — no rotation happens, dialog closes.
     await dialog.getByRole("button", { name: "Cancel" }).click();

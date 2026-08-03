@@ -101,6 +101,36 @@ func addBatch(t *testing.T, svc *stocktakesvc.StocktakeService, db *gorm.DB, ctx
 	return line.ID
 }
 
+// recordCount punches a counted quantity into a line.
+func recordCount(t *testing.T, svc *stocktakesvc.StocktakeService, ctx context.Context, lineID string, qty int32) {
+	t.Helper()
+	_, err := svc.RecordCount(ctx, connect.NewRequest(&stocktakeifacev1.RecordCountRequest{
+		LineId:     lineID,
+		CountedQty: qty,
+	}))
+	require.NoError(t, err)
+}
+
+// backdateSession rewrites a session's created_at/completed_at so date-range
+// filters have something outside "today" to exclude. completed_at is left alone
+// when the session never completed (zero `completed`).
+func backdateSession(t *testing.T, db *gorm.DB, sessionID string, created time.Time, completed time.Time) {
+	t.Helper()
+	patch := map[string]any{"created_at": created}
+	if !completed.IsZero() {
+		patch["completed_at"] = completed
+	}
+	require.NoError(t, db.Model(&model.StocktakeSession{}).Where("id = ?", sessionID).Updates(patch).Error)
+}
+
+// seedWarehouse inserts a second (non-default) warehouse and returns its id.
+func seedWarehouse(t *testing.T, db *gorm.DB, code string) string {
+	t.Helper()
+	wh := model.Warehouse{Code: code + "-" + randToken(), Name: "Gudang " + code, Active: true}
+	require.NoError(t, db.Create(&wh).Error)
+	return wh.ID
+}
+
 // randToken returns a short unique token for SKU/batch-number uniqueness (safe
 // under t.Parallel()).
 func randToken() string {

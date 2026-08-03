@@ -3,6 +3,7 @@ package batch
 import (
 	"context"
 	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -42,10 +43,10 @@ func (s *BatchService) SearchBatches(
 		Table("batches AS b").
 		Joins("JOIN products AS m ON m.id = b.product_id").
 		Joins("LEFT JOIN stock_movements sm ON sm.batch_id = b.id AND sm.warehouse_id = ?", warehouseID).
-		Group("b.id, m.name").
+		Group("b.id, m.name, m.image_updated_at").
 		Order("b.expiry_date ASC").
 		Limit(limit).
-		Select("b.*, m.name AS product_name, COALESCE(SUM(sm.qty), 0) AS qty")
+		Select("b.*, m.name AS product_name, m.image_updated_at AS product_image_updated_at, COALESCE(SUM(sm.qty), 0) AS qty")
 	if req.Msg.ProductId != "" {
 		q = q.Where("b.product_id = ?", req.Msg.ProductId)
 	}
@@ -60,7 +61,10 @@ func (s *BatchService) SearchBatches(
 	type batchRow struct {
 		model.Batch
 		ProductName string `gorm:"column:product_name"`
-		Qty         int64  `gorm:"column:qty"`
+		// Nullable on products, so scan through a pointer: no picture = NULL,
+		// which the proto carries as 0 (the client's "skip the fetch" value).
+		ProductImageUpdatedAt *time.Time `gorm:"column:product_image_updated_at"`
+		Qty                   int64      `gorm:"column:qty"`
 	}
 	var rows []batchRow
 	if err := q.Scan(&rows).Error; err != nil {
@@ -70,6 +74,9 @@ func (s *BatchService) SearchBatches(
 	for i := range rows {
 		pb := batchToProto(&rows[i].Batch, rows[i].Qty)
 		pb.ProductName = rows[i].ProductName
+		if ts := rows[i].ProductImageUpdatedAt; ts != nil {
+			pb.ProductImageUpdatedAt = ts.Unix()
+		}
 		out = append(out, pb)
 	}
 	// Enrich with each product's active units so pickers can offer per-line unit

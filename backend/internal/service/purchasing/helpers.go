@@ -477,6 +477,69 @@ func (p *PurchaseOrders) enrichList(ctx context.Context, orders []*purchasingifa
 	return nil
 }
 
+// poFilterArgs is the ListPurchaseOrders filter set. It exists so
+// GetPurchaseOrdersSummary can narrow by exactly the same predicates: the stat
+// row sits above the list and must always describe the same set of orders.
+// Mirrors applySaleFilters shared by ListSales / GetSalesSummary on /orders.
+type poFilterArgs struct {
+	WarehouseID     string
+	Status          purchasingifacev1.POStatus
+	SupplierID      string
+	OnlyOutstanding bool
+	Query           string
+	FromUnix        int64
+	ToUnix          int64
+	DateField       string // "created" | "received"
+}
+
+// applyPOFilters narrows a purchase_orders query by f. Column names are left
+// unqualified so the same closure works on Model(&model.PurchaseOrder{}) and on
+// a Table("purchase_orders").Select("id") sub-select.
+func (p *PurchaseOrders) applyPOFilters(q *gorm.DB, f poFilterArgs) *gorm.DB {
+	q = q.Where("warehouse_id = ?", f.WarehouseID)
+	if statusStr := poStatusToString(f.Status); statusStr != "" {
+		q = q.Where("status = ?", statusStr)
+	}
+	if f.SupplierID != "" {
+		q = q.Where("supplier_id = ?", f.SupplierID)
+	}
+	if f.OnlyOutstanding {
+		q = q.Where("status NOT IN ?", []string{poStatusVoided, poStatusDraft}).
+			Where("ordered_total > paid_amount + returned_amount")
+	}
+	if query := strings.TrimSpace(f.Query); query != "" {
+		pattern := "%" + query + "%"
+		sub := p.db.Table("purchase_orders AS po").
+			Select("po.id").
+			Joins("JOIN suppliers s ON s.id = po.supplier_id").
+			Joins("LEFT JOIN purchase_order_items poi ON poi.purchase_order_id = po.id").
+			Joins("LEFT JOIN products m ON m.id = poi.product_id").
+			Where("po.po_no "+common.LikeOp(p.db)+" ? OR s.name "+common.LikeOp(p.db)+" ? OR s.code "+common.LikeOp(p.db)+" ? OR m.name "+common.LikeOp(p.db)+" ?",
+				pattern, pattern, pattern, pattern)
+		q = q.Where("id IN (?)", sub)
+	}
+	if f.FromUnix > 0 || f.ToUnix > 0 {
+		if f.DateField == "received" {
+			sub := p.db.Table("purchase_receipts").Select("purchase_order_id")
+			if f.FromUnix > 0 {
+				sub = sub.Where("received_at >= ?", time.Unix(f.FromUnix, 0))
+			}
+			if f.ToUnix > 0 {
+				sub = sub.Where("received_at < ?", time.Unix(f.ToUnix, 0))
+			}
+			q = q.Where("id IN (?)", sub)
+		} else {
+			if f.FromUnix > 0 {
+				q = q.Where("created_at >= ?", time.Unix(f.FromUnix, 0))
+			}
+			if f.ToUnix > 0 {
+				q = q.Where("created_at < ?", time.Unix(f.ToUnix, 0))
+			}
+		}
+	}
+	return q
+}
+
 func (p *PurchaseReceipts) loadFull(ctx context.Context, id string) (*model.PurchaseReceipt, error) {
 	if id == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id required"))

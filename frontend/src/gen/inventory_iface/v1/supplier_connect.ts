@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveSupplierRequest, ArchiveSupplierResponse, CreateSupplierRequest, CreateSupplierResponse, GetSupplierRequest, GetSupplierResponse, ListSupplierRestocksRequest, ListSupplierRestocksResponse, ListSuppliersRequest, ListSuppliersResponse, ResolveSuppliersRequest, ResolveSuppliersResponse, SearchSuppliersRequest, SearchSuppliersResponse, UnarchiveSupplierRequest, UnarchiveSupplierResponse, UpdateSupplierRequest, UpdateSupplierResponse } from "./supplier_pb.js";
+import { ArchiveSupplierRequest, ArchiveSupplierResponse, CreateSupplierRequest, CreateSupplierResponse, GetSupplierRequest, GetSupplierResponse, GetSuppliersSummaryRequest, GetSuppliersSummaryResponse, ListSupplierRestocksRequest, ListSupplierRestocksResponse, ListSuppliersRequest, ListSuppliersResponse, ResolveSuppliersRequest, ResolveSuppliersResponse, SearchSuppliersRequest, SearchSuppliersResponse, UnarchiveSupplierRequest, UnarchiveSupplierResponse, UpdateSupplierRequest, UpdateSupplierResponse } from "./supplier_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -19,6 +19,18 @@ export const SupplierService = {
       name: "ListSuppliers",
       I: ListSuppliersRequest,
       O: ListSuppliersResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetSuppliersSummary counts every supplier matching the same filters as
+     * ListSuppliers — not the current page. Drives the stat row above the list.
+     *
+     * @generated from rpc inventory_iface.v1.SupplierService.GetSuppliersSummary
+     */
+    getSuppliersSummary: {
+      name: "GetSuppliersSummary",
+      I: GetSuppliersSummaryRequest,
+      O: GetSuppliersSummaryResponse,
       kind: MethodKind.Unary,
     },
     /**

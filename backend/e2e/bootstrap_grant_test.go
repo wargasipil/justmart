@@ -22,8 +22,11 @@ func TestEnsureBootstrapOwner_GrantsDefaultWarehouse(t *testing.T) {
 
 	// After SetupEnv (which already calls EnsureBootstrapOwner internally), the
 	// owner must have at least one membership for the global default warehouse.
+	// ListUserWarehouses is paginated and ordered by warehouse code, so ask for a
+	// full page — on a long-lived dev DB the owner has hundreds of memberships
+	// from earlier runs and MAIN would fall off the default 25-row page.
 	mems, err := env.Warehouses.ListUserWarehouses(ctx, authReq(env, t,
-		&warehouseifacev1.ListUserWarehousesRequest{UserId: ""}))
+		&warehouseifacev1.ListUserWarehousesRequest{UserId: "", Limit: 1000}))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(mems.Msg.Memberships), 1,
 		"bootstrap owner should have at least one warehouse membership")
@@ -78,7 +81,7 @@ func TestCreateUser_GrantsDefaultWarehouse(t *testing.T) {
 
 	// The new user must have a membership for the default warehouse.
 	mems, err := env.Warehouses.ListUserWarehouses(ctx, authReq(env, t,
-		&warehouseifacev1.ListUserWarehousesRequest{UserId: newUserID}))
+		&warehouseifacev1.ListUserWarehousesRequest{UserId: newUserID, Limit: 1000}))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(mems.Msg.Memberships), 1,
 		"new user should have a warehouse membership")

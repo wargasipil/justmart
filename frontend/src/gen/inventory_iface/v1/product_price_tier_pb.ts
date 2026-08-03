@@ -10,14 +10,14 @@ import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
  * A "grosir" (wholesale) quantity price tier, defined in the Product detail
  * "Grosir" tab and auto-applied at POS. A product unit can have several tiers
  * forming a ladder (e.g. pcs: >=12 -> 8500, >=60 -> 8000, >=144 -> 7200).
- *
+ * 
  * A tier REPLACES the line's unit price for the WHOLE line once the cart qty
  * reaches min_qty — it is a price, not a discount, so gross = qty x price stays
  * exact (no per-item rounding). It binds only to a line of its OWN unit: a pcs
  * tier is not earned by buying 1 box (unlike ProductDiscount.min_qty, which
  * compares in base units). min_qty is therefore counted in this unit and must be
  * >= 2 — a 0/1 tier would just be the unit's sell_price.
- *
+ * 
  * When a tier applies, POS suppresses the automatic ProductDiscount on that line
  * (no double-dipping); a MANUAL cashier discount still applies on top.
  * unit_name/unit_factor are display snapshots; the POS gate never reads them.

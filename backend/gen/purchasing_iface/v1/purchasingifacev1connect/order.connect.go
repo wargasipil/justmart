@@ -36,6 +36,9 @@ const (
 	// PurchaseOrderServiceListPurchaseOrdersProcedure is the fully-qualified name of the
 	// PurchaseOrderService's ListPurchaseOrders RPC.
 	PurchaseOrderServiceListPurchaseOrdersProcedure = "/purchasing_iface.v1.PurchaseOrderService/ListPurchaseOrders"
+	// PurchaseOrderServiceGetPurchaseOrdersSummaryProcedure is the fully-qualified name of the
+	// PurchaseOrderService's GetPurchaseOrdersSummary RPC.
+	PurchaseOrderServiceGetPurchaseOrdersSummaryProcedure = "/purchasing_iface.v1.PurchaseOrderService/GetPurchaseOrdersSummary"
 	// PurchaseOrderServiceGetPurchaseOrderProcedure is the fully-qualified name of the
 	// PurchaseOrderService's GetPurchaseOrder RPC.
 	PurchaseOrderServiceGetPurchaseOrderProcedure = "/purchasing_iface.v1.PurchaseOrderService/GetPurchaseOrder"
@@ -56,6 +59,11 @@ const (
 // PurchaseOrderServiceClient is a client for the purchasing_iface.v1.PurchaseOrderService service.
 type PurchaseOrderServiceClient interface {
 	ListPurchaseOrders(context.Context, *connect.Request[v1.ListPurchaseOrdersRequest]) (*connect.Response[v1.ListPurchaseOrdersResponse], error)
+	// GetPurchaseOrdersSummary aggregates order count, distinct products, ordered
+	// quantity and value over ALL orders matching the same filters as
+	// ListPurchaseOrders — not the current page. Drives the stat row above the
+	// restock list, so it must never be a sum of what happens to be on screen.
+	GetPurchaseOrdersSummary(context.Context, *connect.Request[v1.GetPurchaseOrdersSummaryRequest]) (*connect.Response[v1.GetPurchaseOrdersSummaryResponse], error)
 	GetPurchaseOrder(context.Context, *connect.Request[v1.GetPurchaseOrderRequest]) (*connect.Response[v1.GetPurchaseOrderResponse], error)
 	CreatePurchaseOrder(context.Context, *connect.Request[v1.CreatePurchaseOrderRequest]) (*connect.Response[v1.CreatePurchaseOrderResponse], error)
 	UpdatePurchaseOrder(context.Context, *connect.Request[v1.UpdatePurchaseOrderRequest]) (*connect.Response[v1.UpdatePurchaseOrderResponse], error)
@@ -78,6 +86,12 @@ func NewPurchaseOrderServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+PurchaseOrderServiceListPurchaseOrdersProcedure,
 			connect.WithSchema(purchaseOrderServiceMethods.ByName("ListPurchaseOrders")),
+			connect.WithClientOptions(opts...),
+		),
+		getPurchaseOrdersSummary: connect.NewClient[v1.GetPurchaseOrdersSummaryRequest, v1.GetPurchaseOrdersSummaryResponse](
+			httpClient,
+			baseURL+PurchaseOrderServiceGetPurchaseOrdersSummaryProcedure,
+			connect.WithSchema(purchaseOrderServiceMethods.ByName("GetPurchaseOrdersSummary")),
 			connect.WithClientOptions(opts...),
 		),
 		getPurchaseOrder: connect.NewClient[v1.GetPurchaseOrderRequest, v1.GetPurchaseOrderResponse](
@@ -115,17 +129,23 @@ func NewPurchaseOrderServiceClient(httpClient connect.HTTPClient, baseURL string
 
 // purchaseOrderServiceClient implements PurchaseOrderServiceClient.
 type purchaseOrderServiceClient struct {
-	listPurchaseOrders  *connect.Client[v1.ListPurchaseOrdersRequest, v1.ListPurchaseOrdersResponse]
-	getPurchaseOrder    *connect.Client[v1.GetPurchaseOrderRequest, v1.GetPurchaseOrderResponse]
-	createPurchaseOrder *connect.Client[v1.CreatePurchaseOrderRequest, v1.CreatePurchaseOrderResponse]
-	updatePurchaseOrder *connect.Client[v1.UpdatePurchaseOrderRequest, v1.UpdatePurchaseOrderResponse]
-	sendPurchaseOrder   *connect.Client[v1.SendPurchaseOrderRequest, v1.SendPurchaseOrderResponse]
-	voidPurchaseOrder   *connect.Client[v1.VoidPurchaseOrderRequest, v1.VoidPurchaseOrderResponse]
+	listPurchaseOrders       *connect.Client[v1.ListPurchaseOrdersRequest, v1.ListPurchaseOrdersResponse]
+	getPurchaseOrdersSummary *connect.Client[v1.GetPurchaseOrdersSummaryRequest, v1.GetPurchaseOrdersSummaryResponse]
+	getPurchaseOrder         *connect.Client[v1.GetPurchaseOrderRequest, v1.GetPurchaseOrderResponse]
+	createPurchaseOrder      *connect.Client[v1.CreatePurchaseOrderRequest, v1.CreatePurchaseOrderResponse]
+	updatePurchaseOrder      *connect.Client[v1.UpdatePurchaseOrderRequest, v1.UpdatePurchaseOrderResponse]
+	sendPurchaseOrder        *connect.Client[v1.SendPurchaseOrderRequest, v1.SendPurchaseOrderResponse]
+	voidPurchaseOrder        *connect.Client[v1.VoidPurchaseOrderRequest, v1.VoidPurchaseOrderResponse]
 }
 
 // ListPurchaseOrders calls purchasing_iface.v1.PurchaseOrderService.ListPurchaseOrders.
 func (c *purchaseOrderServiceClient) ListPurchaseOrders(ctx context.Context, req *connect.Request[v1.ListPurchaseOrdersRequest]) (*connect.Response[v1.ListPurchaseOrdersResponse], error) {
 	return c.listPurchaseOrders.CallUnary(ctx, req)
+}
+
+// GetPurchaseOrdersSummary calls purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrdersSummary.
+func (c *purchaseOrderServiceClient) GetPurchaseOrdersSummary(ctx context.Context, req *connect.Request[v1.GetPurchaseOrdersSummaryRequest]) (*connect.Response[v1.GetPurchaseOrdersSummaryResponse], error) {
+	return c.getPurchaseOrdersSummary.CallUnary(ctx, req)
 }
 
 // GetPurchaseOrder calls purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrder.
@@ -157,6 +177,11 @@ func (c *purchaseOrderServiceClient) VoidPurchaseOrder(ctx context.Context, req 
 // service.
 type PurchaseOrderServiceHandler interface {
 	ListPurchaseOrders(context.Context, *connect.Request[v1.ListPurchaseOrdersRequest]) (*connect.Response[v1.ListPurchaseOrdersResponse], error)
+	// GetPurchaseOrdersSummary aggregates order count, distinct products, ordered
+	// quantity and value over ALL orders matching the same filters as
+	// ListPurchaseOrders — not the current page. Drives the stat row above the
+	// restock list, so it must never be a sum of what happens to be on screen.
+	GetPurchaseOrdersSummary(context.Context, *connect.Request[v1.GetPurchaseOrdersSummaryRequest]) (*connect.Response[v1.GetPurchaseOrdersSummaryResponse], error)
 	GetPurchaseOrder(context.Context, *connect.Request[v1.GetPurchaseOrderRequest]) (*connect.Response[v1.GetPurchaseOrderResponse], error)
 	CreatePurchaseOrder(context.Context, *connect.Request[v1.CreatePurchaseOrderRequest]) (*connect.Response[v1.CreatePurchaseOrderResponse], error)
 	UpdatePurchaseOrder(context.Context, *connect.Request[v1.UpdatePurchaseOrderRequest]) (*connect.Response[v1.UpdatePurchaseOrderResponse], error)
@@ -175,6 +200,12 @@ func NewPurchaseOrderServiceHandler(svc PurchaseOrderServiceHandler, opts ...con
 		PurchaseOrderServiceListPurchaseOrdersProcedure,
 		svc.ListPurchaseOrders,
 		connect.WithSchema(purchaseOrderServiceMethods.ByName("ListPurchaseOrders")),
+		connect.WithHandlerOptions(opts...),
+	)
+	purchaseOrderServiceGetPurchaseOrdersSummaryHandler := connect.NewUnaryHandler(
+		PurchaseOrderServiceGetPurchaseOrdersSummaryProcedure,
+		svc.GetPurchaseOrdersSummary,
+		connect.WithSchema(purchaseOrderServiceMethods.ByName("GetPurchaseOrdersSummary")),
 		connect.WithHandlerOptions(opts...),
 	)
 	purchaseOrderServiceGetPurchaseOrderHandler := connect.NewUnaryHandler(
@@ -211,6 +242,8 @@ func NewPurchaseOrderServiceHandler(svc PurchaseOrderServiceHandler, opts ...con
 		switch r.URL.Path {
 		case PurchaseOrderServiceListPurchaseOrdersProcedure:
 			purchaseOrderServiceListPurchaseOrdersHandler.ServeHTTP(w, r)
+		case PurchaseOrderServiceGetPurchaseOrdersSummaryProcedure:
+			purchaseOrderServiceGetPurchaseOrdersSummaryHandler.ServeHTTP(w, r)
 		case PurchaseOrderServiceGetPurchaseOrderProcedure:
 			purchaseOrderServiceGetPurchaseOrderHandler.ServeHTTP(w, r)
 		case PurchaseOrderServiceCreatePurchaseOrderProcedure:
@@ -232,6 +265,10 @@ type UnimplementedPurchaseOrderServiceHandler struct{}
 
 func (UnimplementedPurchaseOrderServiceHandler) ListPurchaseOrders(context.Context, *connect.Request[v1.ListPurchaseOrdersRequest]) (*connect.Response[v1.ListPurchaseOrdersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("purchasing_iface.v1.PurchaseOrderService.ListPurchaseOrders is not implemented"))
+}
+
+func (UnimplementedPurchaseOrderServiceHandler) GetPurchaseOrdersSummary(context.Context, *connect.Request[v1.GetPurchaseOrdersSummaryRequest]) (*connect.Response[v1.GetPurchaseOrdersSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrdersSummary is not implemented"))
 }
 
 func (UnimplementedPurchaseOrderServiceHandler) GetPurchaseOrder(context.Context, *connect.Request[v1.GetPurchaseOrderRequest]) (*connect.Response[v1.GetPurchaseOrderResponse], error) {

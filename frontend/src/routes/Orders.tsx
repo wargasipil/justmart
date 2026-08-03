@@ -3,6 +3,7 @@ import {
   Box,
   HStack,
   Input,
+  SimpleGrid,
   Spinner,
   Stack,
   Table,
@@ -19,13 +20,14 @@ import DateRangeFilter from "../components/DateRangeFilter";
 import ExportButton from "../components/ExportButton";
 import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
+import SummaryTile from "../components/SummaryTile";
 import TableScroll from "../components/TableScroll";
 import { Role } from "../gen/auth_iface/v1/policy_pb";
 import { SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
 import { useAuth } from "../lib/auth";
 import { downloadCsv } from "../lib/csv";
 import { resolveRange, type DateRange } from "../lib/dateRange";
-import { formatMoney, formatUnix } from "../lib/format";
+import { formatCount, formatMoney, formatUnix } from "../lib/format";
 import { usePageState } from "../lib/pagination";
 import { resolveUserMap, useUserRefs } from "../queries/refs";
 import { fetchSalesForExport, useListSalesQuery, useSalesSummaryQuery } from "../queries/sales";
@@ -102,6 +104,11 @@ export default function Orders() {
   });
   const summaryQ = useSalesSummaryQuery({ query, status, fromUnix, toUnix, cashierUserId: cashierFilter });
   const summary = summaryQ.data;
+  // Derived, not a fourth server field: it's exactly revenue/sales over the same
+  // filtered set, so computing it here can't disagree with the two cells beside
+  // it. Same derivation as the Dashboard's avg-basket tile, which links here.
+  const avgBasket =
+    summary && summary.saleCount > 0n ? summary.revenue / summary.saleCount : 0n;
 
   // Resolve cashier names for the "Created by" column. Sale rows already carry
   // cashier_user_id; the metric RPC pattern keeps names off the wire and the
@@ -153,6 +160,28 @@ export default function Orders() {
     <Box>
       <PageHeader title={t("orders.title")} description={t("orders.description")} />
 
+      {/* Summary over all matching orders (server-side aggregate), above the
+          tabs and in the same 4-up grid the catalog list uses, so both summary
+          rows sit in the same place and read alike. */}
+      <SimpleGrid mb={4} columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
+        <SummaryTile
+          label={t("orders.summary.sales")}
+          value={formatCount(summary?.saleCount ?? 0n)}
+        />
+        <SummaryTile
+          label={t("orders.summary.itemsSold")}
+          value={formatCount(summary?.itemsSold ?? 0n)}
+        />
+        <SummaryTile
+          label={t("orders.summary.revenue")}
+          value={formatMoney(summary?.revenue ?? 0n)}
+        />
+        <SummaryTile
+          label={t("orders.summary.avgBasket")}
+          value={formatMoney(avgBasket)}
+        />
+      </SimpleGrid>
+
       {/* Status filter as tabs (state-driven; one route). */}
       <Tabs.Root
         value={statusFilter}
@@ -190,21 +219,6 @@ export default function Orders() {
         <ExportButton onExport={onExport} />
       </HStack>
 
-      {/* Summary over all matching orders (server-side aggregate). */}
-      <HStack mb={4} gap={3} wrap="wrap">
-        <SummaryTile
-          label={t("orders.summary.sales")}
-          value={String(summary?.saleCount ?? 0n)}
-        />
-        <SummaryTile
-          label={t("orders.summary.itemsSold")}
-          value={String(summary?.itemsSold ?? 0n)}
-        />
-        <SummaryTile
-          label={t("orders.summary.revenue")}
-          value={formatMoney(summary?.revenue ?? 0n)}
-        />
-      </HStack>
 
       {salesQ.isLoading ? (
         <Box p={8} textAlign="center">
@@ -272,19 +286,6 @@ export default function Orders() {
           onPageSizeChange={setPageSize}
         />
       </Box>
-    </Box>
-  );
-}
-
-function SummaryTile({ label, value }: { label: string; value: string }) {
-  return (
-    <Box flex="1" minW="160px" bg="bg.subtle" borderWidth="1px" borderRadius="lg" px={4} py={3}>
-      <Text fontSize="xs" color="fg.muted">
-        {label}
-      </Text>
-      <Text fontSize="xl" fontWeight="semibold">
-        {value}
-      </Text>
     </Box>
   );
 }

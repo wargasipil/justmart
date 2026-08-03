@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import EntityDrawer from "../../components/EntityDrawer";
+import { useResetOnOpen } from "../../lib/formReset";
 import FormField from "../../components/FormField";
 import type { Supplier } from "../../gen/inventory_iface/v1/supplier_pb";
 import { useServerFormErrors } from "../../lib/formErrors";
@@ -65,6 +66,7 @@ export function CreateSupplierDrawer({ open, onClose }: { open: boolean; onClose
   const { t } = useTranslation();
   const create = useCreateSupplierMutation();
   const form = useForm<FormValues>({ resolver: zodResolver(Schema), defaultValues: EMPTY });
+  useResetOnOpen(form, open, EMPTY);
   const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {
@@ -104,22 +106,23 @@ export function CreateSupplierDrawer({ open, onClose }: { open: boolean; onClose
 export function EditSupplierDrawer({ supplier, onClose }: { supplier: Supplier | null; onClose: () => void }) {
   const { t } = useTranslation();
   const update = useUpdateSupplierMutation();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(Schema),
-    // Reactive pre-fill: re-seeds whenever the edited supplier changes.
-    values: supplier
-      ? {
-          code: supplier.code,
-          name: supplier.name,
-          contactEmail: supplier.contactEmail,
-          phone: supplier.phone,
-          address: supplier.address,
-          bankName: supplier.bankName,
-          bankAccountNumber: supplier.bankAccountNumber,
-          bankAccountHolder: supplier.bankAccountHolder,
-        }
-      : EMPTY,
-  });
+  // Reactive pre-fill: re-seeds whenever the edited supplier changes. It can't
+  // undo an ABANDONED edit though (re-opening the same row is deep-equal, so
+  // RHF skips the sync) — that's what useResetOnOpen covers.
+  const values: FormValues = supplier
+    ? {
+        code: supplier.code,
+        name: supplier.name,
+        contactEmail: supplier.contactEmail,
+        phone: supplier.phone,
+        address: supplier.address,
+        bankName: supplier.bankName,
+        bankAccountNumber: supplier.bankAccountNumber,
+        bankAccountHolder: supplier.bankAccountHolder,
+      }
+    : EMPTY;
+  const form = useForm<FormValues>({ resolver: zodResolver(Schema), values });
+  useResetOnOpen(form, !!supplier, values);
   const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {

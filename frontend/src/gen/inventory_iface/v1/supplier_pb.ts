@@ -214,6 +214,90 @@ export class ListSuppliersResponse extends Message<ListSuppliersResponse> {
 }
 
 /**
+ * Same filter set as ListSuppliersRequest, minus paging — the summary counts
+ * every matching supplier, not a page. Keep the two in sync: the list and the
+ * stat row above it must always describe the same set.
+ *
+ * @generated from message inventory_iface.v1.GetSuppliersSummaryRequest
+ */
+export class GetSuppliersSummaryRequest extends Message<GetSuppliersSummaryRequest> {
+  /**
+   * @generated from field: bool include_inactive = 1;
+   */
+  includeInactive = false;
+
+  /**
+   * @generated from field: string query = 2;
+   */
+  query = "";
+
+  constructor(data?: PartialMessage<GetSuppliersSummaryRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetSuppliersSummaryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "include_inactive", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSuppliersSummaryRequest {
+    return new GetSuppliersSummaryRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSuppliersSummaryRequest {
+    return new GetSuppliersSummaryRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSuppliersSummaryRequest {
+    return new GetSuppliersSummaryRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSuppliersSummaryRequest | PlainMessage<GetSuppliersSummaryRequest> | undefined, b: GetSuppliersSummaryRequest | PlainMessage<GetSuppliersSummaryRequest> | undefined): boolean {
+    return proto3.util.equals(GetSuppliersSummaryRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.GetSuppliersSummaryResponse
+ */
+export class GetSuppliersSummaryResponse extends Message<GetSuppliersSummaryResponse> {
+  /**
+   * @generated from field: int64 total_suppliers = 1;
+   */
+  totalSuppliers = protoInt64.zero;
+
+  constructor(data?: PartialMessage<GetSuppliersSummaryResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetSuppliersSummaryResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "total_suppliers", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSuppliersSummaryResponse {
+    return new GetSuppliersSummaryResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSuppliersSummaryResponse {
+    return new GetSuppliersSummaryResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSuppliersSummaryResponse {
+    return new GetSuppliersSummaryResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSuppliersSummaryResponse | PlainMessage<GetSuppliersSummaryResponse> | undefined, b: GetSuppliersSummaryResponse | PlainMessage<GetSuppliersSummaryResponse> | undefined): boolean {
+    return proto3.util.equals(GetSuppliersSummaryResponse, a, b);
+  }
+}
+
+/**
  * @generated from message inventory_iface.v1.GetSupplierRequest
  */
 export class GetSupplierRequest extends Message<GetSupplierRequest> {

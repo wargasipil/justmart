@@ -11,6 +11,10 @@ const (
 
 	dispositionAdjustment = "ADJUSTMENT"
 	dispositionWriteOff   = "WRITE_OFF"
+
+	// Which timestamp a list/summary date range filters on. "created" is the
+	// default (an empty date_field means the same thing).
+	dateFieldCompleted = "completed"
 )
 
 var validWriteOffKinds = map[string]bool{

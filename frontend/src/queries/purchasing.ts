@@ -9,6 +9,7 @@ import {
 } from "../lib/clients";
 import type {
   CreatePurchaseOrderRequest,
+  GetPurchaseOrdersSummaryRequest,
   ListPurchaseOrdersRequest,
   UpdatePurchaseOrderRequest,
 } from "../gen/purchasing_iface/v1/order_pb";
@@ -32,6 +33,9 @@ export const purchasingKeys = {
   returns: (poId: string, page: number, pageSize: number) =>
     [...purchasingKeys.all, "returns", poId, page, pageSize] as const,
   balances: (filters: object) => [...purchasingKeys.all, "balances", filters] as const,
+  // Paging is deliberately absent: the summary covers every matching order, so
+  // paging through the table must not refetch it.
+  ordersSummary: (filters: object) => [...purchasingKeys.all, "ordersSummary", filters] as const,
 };
 
 // ---------- Orders ----------
@@ -54,6 +58,26 @@ export async function fetchPurchaseOrdersForExport(
 ) {
   const res = await purchaseOrderClient.listPurchaseOrders({ ...req, limit: ALL_LIMIT, offset: 0 });
   return res.orders;
+}
+
+/**
+ * Restock totals (orders, distinct products, ordered base units, value) over
+ * every order matching the active filters — the stat row above the list.
+ *
+ * Server-side aggregate on purpose: summing `usePurchaseOrdersQuery().rows`
+ * would sum ONE PAGE, so the figures would change as the user pages. The status
+ * tab is part of the filter set, so each tab summarizes itself. Mirrors
+ * useSalesSummaryQuery on /orders and useProductsSummaryQuery on /products.
+ */
+export function usePurchaseOrdersSummaryQuery(
+  req: PartialMessage<GetPurchaseOrdersSummaryRequest> = {},
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: purchasingKeys.ordersSummary(req),
+    queryFn: () => purchaseOrderClient.getPurchaseOrdersSummary(req),
+    enabled,
+  });
 }
 
 export function usePurchaseOrderQuery(id: string, enabled = true) {

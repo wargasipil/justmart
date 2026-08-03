@@ -885,6 +885,132 @@ export class ListProductsResponse extends Message<ListProductsResponse> {
 }
 
 /**
+ * Same filter set as ListProductsRequest, minus paging — the summary covers
+ * every matching product, not a page. Keep the two in sync: the list and the
+ * stat row above it must always describe the same set.
+ *
+ * @generated from message inventory_iface.v1.GetProductsSummaryRequest
+ */
+export class GetProductsSummaryRequest extends Message<GetProductsSummaryRequest> {
+  /**
+   * @generated from field: bool include_inactive = 1;
+   */
+  includeInactive = false;
+
+  /**
+   * @generated from field: string query = 2;
+   */
+  query = "";
+
+  /**
+   * @generated from field: string opname_before = 3;
+   */
+  opnameBefore = "";
+
+  /**
+   * @generated from field: bool only_archived = 4;
+   */
+  onlyArchived = false;
+
+  constructor(data?: PartialMessage<GetProductsSummaryRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetProductsSummaryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "include_inactive", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "opname_before", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "only_archived", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetProductsSummaryRequest {
+    return new GetProductsSummaryRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetProductsSummaryRequest {
+    return new GetProductsSummaryRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetProductsSummaryRequest {
+    return new GetProductsSummaryRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetProductsSummaryRequest | PlainMessage<GetProductsSummaryRequest> | undefined, b: GetProductsSummaryRequest | PlainMessage<GetProductsSummaryRequest> | undefined): boolean {
+    return proto3.util.equals(GetProductsSummaryRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.GetProductsSummaryResponse
+ */
+export class GetProductsSummaryResponse extends Message<GetProductsSummaryResponse> {
+  /**
+   * Counts are BASE units summed across products, so a catalog holding both
+   * tablets and bottles adds them together. Read it as "total units on hand",
+   * not as a single dimension; the valuations are the comparable figures.
+   *
+   * on-hand in the caller's active warehouse
+   *
+   * @generated from field: int64 ready_stock = 1;
+   */
+  readyStock = protoInt64.zero;
+
+  /**
+   * SUM(qty * batches.cost_price), same scope
+   *
+   * @generated from field: int64 ready_valuation = 2;
+   */
+  readyValuation = protoInt64.zero;
+
+  /**
+   * outstanding on open POs; company-wide (POs carry no warehouse)
+   *
+   * @generated from field: int64 on_order_stock = 3;
+   */
+  onOrderStock = protoInt64.zero;
+
+  /**
+   * outstanding * the PO line's NET per-base cost
+   *
+   * @generated from field: int64 on_order_valuation = 4;
+   */
+  onOrderValuation = protoInt64.zero;
+
+  constructor(data?: PartialMessage<GetProductsSummaryResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetProductsSummaryResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "ready_stock", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 2, name: "ready_valuation", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "on_order_stock", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "on_order_valuation", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetProductsSummaryResponse {
+    return new GetProductsSummaryResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetProductsSummaryResponse {
+    return new GetProductsSummaryResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetProductsSummaryResponse {
+    return new GetProductsSummaryResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetProductsSummaryResponse | PlainMessage<GetProductsSummaryResponse> | undefined, b: GetProductsSummaryResponse | PlainMessage<GetProductsSummaryResponse> | undefined): boolean {
+    return proto3.util.equals(GetProductsSummaryResponse, a, b);
+  }
+}
+
+/**
  * @generated from message inventory_iface.v1.GetProductRequest
  */
 export class GetProductRequest extends Message<GetProductRequest> {

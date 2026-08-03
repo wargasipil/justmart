@@ -137,7 +137,7 @@ const orientation = useTabsOrientation();
         id: "dashboard-tile",
         name: "DashboardTile",
         file: "src/components/DashboardTile.tsx",
-        summary: "KPI tile for the role-keyed Dashboard sections; clickable when `to` is set.",
+        summary: "KPI tile for the role-keyed Dashboard sections; clickable when `to` is set. Chakra Stat under the hood.",
         props: [
           { name: "label", type: "string", required: true, desc: "Metric name." },
           { name: "value", type: "string", required: true, desc: "Pre-formatted value (money via formatMoney)." },
@@ -152,6 +152,29 @@ const orientation = useTabsOrientation();
   to="/products"
 />`,
         Demo: demo.DashboardTileDemo,
+      },
+      {
+        id: "summary-tile",
+        name: "SummaryTile",
+        file: "src/components/SummaryTile.tsx",
+        summary: "Flat tile for a list page's summary bar — the server-side aggregate over ALL filtered rows, above the table. Chakra Stat under the hood.",
+        props: [
+          { name: "label", type: "string", required: true, desc: "Metric name." },
+          { name: "value", type: "string", required: true, desc: "Pre-formatted value (money via formatMoney)." },
+        ],
+        usage: `<SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
+  <SummaryTile
+    label={t("inventory.products.summary.ready")}
+    value={formatCount(summary?.readyStock ?? 0n)}
+  />
+  <SummaryTile
+    label={t("inventory.products.summary.readyValue")}
+    value={formatMoney(summary?.readyValuation ?? 0n)}
+  />
+</SimpleGrid>`,
+        notes:
+          "One figure per tile — a count and its valuation are two cells, not a value with a subtitle. Feed it a dedicated summary RPC that honors the SAME filters as the list (GetProductsSummary / GetSalesSummary) — never a client-side sum of the page, which would change meaning as the user pages. Use <DashboardTile> instead for a landing-page card (bigger, clickable, tone-colored).",
+        Demo: demo.SummaryTileDemo,
       },
     ],
   },
@@ -342,6 +365,37 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
         ],
         usage: `<WarehouseSelect warehouses={warehousesQ.rows} value={fromId} onChange={setFromId} />`,
         Demo: demo.WarehouseSelectDemo,
+      },
+      {
+        id: "batch-select",
+        name: "BatchSelect",
+        file: "src/components/BatchSelect.tsx",
+        summary: "Batch/lot picker as a button → searchable modal (mirrors WarehouseSelect). Rows are a product thumbnail + product name over batch no · expiry · available qty; the trigger previews the picked lot.",
+        props: [
+          { name: "value / onChange", type: "string / (id: string) => void", desc: "Batch id (\"\" = none)." },
+          { name: "onSelectItem", type: "(batch: Batch) => void", desc: "Hands back the full picked batch — product name + available qty without a second lookup." },
+          { name: "warehouseId", type: "string", desc: "Scopes availability AND the in-stock filter to one warehouse (e.g. a transfer source). Empty = the caller's active warehouse." },
+          { name: "onlyInStock", type: "boolean", desc: "Default TRUE — note searchBatches defaults it to false. See the notes." },
+          { name: "productId", type: "string", desc: "Scopes results to one product's lots (the stocktake add-batch dialog pairs this with its own product filter)." },
+          { name: "clearable", type: "boolean", desc: "Inline × that emits \"\". Default false — a required line field must not offer \"none\"; a filter must." },
+          { name: "excludeIds", type: "readonly string[]", desc: "Hides already-picked lots (the selected value is never hidden)." },
+          { name: "selectedLabel", type: "string", desc: "Trigger label when the picked lot isn't in the currently-loaded list." },
+          { name: "placeholder / disabled / size / width", type: "—", desc: "Passed through. Placeholder defaults to transfers.pickBatch." },
+        ],
+        usage: `<BatchSelect
+  warehouseId={from}
+  value=""
+  onSelectItem={appendLine}
+  onlyInStock
+  excludeIds={lines.map((l) => l.batchId)}
+  disabled={!from}
+  placeholder={t("transfers.addBatch")}
+/>
+
+// Ledger surfaces must see depleted lots too — their history is the point:
+<BatchSelect value={batchId} onChange={setBatchId} onlyInStock={false} />`,
+        notes: "Rows are deliberately two-line (a 32px product thumbnail, then product name on top and batch no · expiry · available qty below) so staff never has to memorize a batch number — that's the whole reason to reach for this over a bare <SearchableSelect loadOptions={searchBatches}>. The thumbnail rides on Batch.product_image_updated_at, enriched by the SAME SearchBatches join that fills product_name, so a row costs no extra round trip and a product with no picture (version 0) costs no request at all. Once picked, the trigger previews that lot's thumbnail in place of the Boxes glyph; the picked row is held in local state because close() clears the loaded list, and re-deriving the trigger from that list is what used to blank the label out on close. TWO gotchas. (1) onlyInStock defaults TRUE here while searchBatches defaults it FALSE, so a call site converted from the raw select silently loses depleted lots unless it passes onlyInStock={false} — wrong for a ledger filter (a spent batch still has movements) and for a positive ADJUSTMENT (that's how you correct an empty batch upward). (2) There is NO clear affordance, unlike SearchableSelect's Combobox.ClearTrigger — so it fits a required line field (Transfers), not a filter you need to reset to \"all\".",
+        Demo: demo.BatchSelectDemo,
       },
     ],
   },

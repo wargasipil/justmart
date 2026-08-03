@@ -111,7 +111,8 @@ test.describe("Settings — Backups section", () => {
 
       // Open the confirm dialog from the row's Delete icon button.
       await row.getByRole("button", { name: "Delete" }).click();
-      const dialog = page.getByRole("dialog");
+      // <ConfirmDialog> is a Chakra Dialog with role="alertdialog".
+      const dialog = page.getByRole("alertdialog");
       await expect(dialog).toBeVisible();
       await expect(
         dialog.getByRole("heading", { name: "Delete backup?" }),

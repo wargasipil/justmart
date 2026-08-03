@@ -96,6 +96,10 @@ service StocktakeService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  rpc GetStocktakeSummary(GetStocktakeSummaryRequest) returns (GetStocktakeSummaryResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 message StartStocktakeRequest {
@@ -150,6 +154,10 @@ message ListStocktakesRequest {
   string status = 1;             // empty = all
   int32 limit = 2;
   int32 offset = 3;
+  // Date range over date_field. Both 0 = no date filter ("Any date").
+  int64 from_unix = 4;
+  int64 to_unix = 5;
+  string date_field = 6;         // "created" (default) | "completed"
 }
 message ListStocktakesResponse {
   repeated StocktakeSession sessions = 1;
@@ -160,4 +168,23 @@ message GetStocktakeRequest { string id = 1; }
 message GetStocktakeResponse {
   StocktakeSession session = 1;
   repeated StocktakeLine lines = 2;
+}
+
+// Backs the stat row above the sessions list. It honors ListStocktakes' date
+// range so the tiles always describe the same sessions as the rows under them,
+// but NOT its `status`: the figures ARE the status breakdown, so narrowing by
+// status would zero out three of the four.
+message GetStocktakeSummaryRequest {
+  int64 from_unix = 1;
+  int64 to_unix = 2;
+  string date_field = 3;         // "created" (default) | "completed"
+}
+message GetStocktakeSummaryResponse {
+  int32 draft_count = 1;
+  int32 completed_count = 2;
+  int32 voided_count = 3;
+  // Counted lines that disagreed with expected, across COMPLETED sessions only
+  // — the drift the shop actually booked as movements.
+  int32 variance_lines = 4;
+  int64 last_completed_at = 5;   // 0 = never counted
 }

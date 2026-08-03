@@ -15,7 +15,15 @@ import type {
 
 import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
 
-export type StocktakesQueryOpts = {
+// The date range the list and the stat row share. dateField "" = Any date (the
+// picker's own off state), in which case no bounds are sent at all.
+export type StocktakeDateFilters = {
+  fromUnix?: bigint;
+  toUnix?: bigint;
+  dateField?: string;
+};
+
+export type StocktakesQueryOpts = StocktakeDateFilters & {
   status?: string;
   page?: number;
   pageSize?: number;
@@ -25,18 +33,42 @@ export const stocktakeKeys = {
   all: ["stocktakes"] as const,
   list: (opts: Required<StocktakesQueryOpts>) => [...stocktakeKeys.all, "list", opts] as const,
   detail: (id: string) => [...stocktakeKeys.all, "detail", id] as const,
+  summary: (opts: Required<StocktakeDateFilters>) =>
+    [...stocktakeKeys.all, "summary", opts] as const,
 };
+
+// Server-side aggregate over every session matching the list's date range — the
+// stat row above the table. It takes no `status` (see the RPC comment): the
+// figures are the status breakdown itself. Keyed under stocktakeKeys.all so
+// every mutation's existing invalidate refreshes it.
+export function useStocktakeSummaryQuery(opts: StocktakeDateFilters = {}) {
+  const { fromUnix = 0n, toUnix = 0n, dateField = "" } = opts;
+  return useQuery({
+    queryKey: stocktakeKeys.summary({ fromUnix, toUnix, dateField }),
+    queryFn: () => stocktakeClient.getStocktakeSummary({ fromUnix, toUnix, dateField }),
+  });
+}
 
 // Server-paginated. Returns { rows, total }.
 export function useStocktakesQuery(opts: StocktakesQueryOpts = {}) {
-  const { status = "", page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
+  const {
+    status = "",
+    page = 0,
+    pageSize = DEFAULT_PAGE_SIZE,
+    fromUnix = 0n,
+    toUnix = 0n,
+    dateField = "",
+  } = opts;
   const q = useQuery({
-    queryKey: stocktakeKeys.list({ status, page, pageSize }),
+    queryKey: stocktakeKeys.list({ status, page, pageSize, fromUnix, toUnix, dateField }),
     queryFn: async () => {
       const res = await stocktakeClient.listStocktakes({
         status,
         limit: pageSize,
         offset: page * pageSize,
+        fromUnix,
+        toUnix,
+        dateField,
       });
       return { rows: res.sessions, total: res.total };
     },

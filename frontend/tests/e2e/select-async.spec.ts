@@ -34,16 +34,24 @@ test.describe("SearchableSelect (async loadOptions)", () => {
     // Initial load must NOT have called ListSuppliers (preload).
     expect(rpcs.some((u) => LIST.test(u))).toBe(false);
 
-    // Give the debounce effect time to fire on initial mount.
-    await page.waitForTimeout(700);
-    expect(rpcs.filter((u) => SEARCH.test(u)).length).toBeGreaterThanOrEqual(1);
+    // Wait for the debounced mount search by POLLING the collected traffic — a
+    // fixed sleep raced the 250ms debounce plus the round-trip whenever the
+    // machine was busy (this spec runs right after the restock suite), which
+    // made it the one flaky test in an otherwise green run.
+    await expect
+      .poll(() => rpcs.filter((u) => SEARCH.test(u)).length)
+      .toBeGreaterThanOrEqual(1);
 
     // Type a query into the supplier combobox; debounced loadOptions fires
     // another search. Target it by placeholder — `.first()` over all comboboxes
     // is fragile as the page chrome evolves (e.g. the warehouse picker).
     const beforeType = rpcs.filter((u) => SEARCH.test(u)).length;
     await page.getByPlaceholder("Select supplier").fill("a");
-    await page.waitForTimeout(700);
-    expect(rpcs.filter((u) => SEARCH.test(u)).length).toBeGreaterThan(beforeType);
+    await expect
+      .poll(() => rpcs.filter((u) => SEARCH.test(u)).length)
+      .toBeGreaterThan(beforeType);
+
+    // The preload guard has to hold for the WHOLE session, not just mount.
+    expect(rpcs.some((u) => LIST.test(u))).toBe(false);
   });
 });

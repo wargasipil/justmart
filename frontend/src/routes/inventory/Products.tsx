@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Box, Button, HStack, Input, Spinner, Stack, Table, Tabs, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  HStack,
+  Input,
+  SimpleGrid,
+  Spinner,
+  Stack,
+  Table,
+  Tabs,
+  Text,
+} from "@chakra-ui/react";
 import { Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -11,13 +22,23 @@ import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
 import ProductImage from "../../components/ProductImage";
 import StockUnitPopover from "../../components/StockUnitPopover";
+import SummaryTile from "../../components/SummaryTile";
 import TableScroll from "../../components/TableScroll";
 import { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { downloadCsv } from "../../lib/csv";
-import { formatDiscount, formatMoney, formatUnixOrDash } from "../../lib/format";
+import {
+  formatCount,
+  formatDiscount,
+  formatMoney,
+  formatUnixOrDash,
+} from "../../lib/format";
 import { ALL_LIMIT, usePageState } from "../../lib/pagination";
 import { formatStock, unitGroupsFromCatalog } from "../../lib/stockUnit";
-import { fetchProductsForExport, useProductsQuery } from "../../queries/products";
+import {
+  fetchProductsForExport,
+  useProductsQuery,
+  useProductsSummaryQuery,
+} from "../../queries/products";
 import { useSupplierRefs } from "../../queries/refs";
 import { useBusinessMode } from "../../queries/settings";
 import { useUnitBasesQuery } from "../../queries/units";
@@ -48,6 +69,11 @@ export default function Products() {
     `${query}|${opnameBefore}|${tab}`,
   );
   const productsQ = useProductsQuery({ query, opnameBefore, onlyArchived, page, pageSize });
+  // Catalog-wide totals over EVERY matching product (server-side aggregate),
+  // not a sum of the page — same filters as the list, minus paging, so the
+  // tiles keep describing the table under them as the user pages.
+  const summaryQ = useProductsSummaryQuery({ query, opnameBefore, onlyArchived });
+  const summary = summaryQ.data;
   const stockUnitsByBase = usePreferencesStore((s) => s.productStockUnitsByBase);
   const setStockUnitByBase = usePreferencesStore((s) => s.setProductStockUnitByBase);
   const visibleCols = usePreferencesStore((s) => s.productListColumns);
@@ -228,6 +254,33 @@ export default function Products() {
     <Box>
       <PageHeader title={catalogLabel} description={t("inventory.products.description")} />
       <Stack gap={4}>
+        {/* Stock at a glance, above the tabs: it summarizes the whole catalog,
+            so it sits outside the Active/Archived split rather than inside one
+            tab's panel. Four equal cells — each count and its valuation read as
+            peers rather than one subordinated under the other — collapsing to
+            2-up then 1-up so the row never squeezes. The counts add BASE units
+            across products, so a catalog holding both tablets and bottles adds
+            them together; read them as "total units on hand", with the money as
+            the comparable figure (the per-product columns carry the real unit). */}
+        <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
+          <SummaryTile
+            label={t("inventory.products.summary.ready")}
+            value={formatCount(summary?.readyStock ?? 0n)}
+          />
+          <SummaryTile
+            label={t("inventory.products.summary.readyValue")}
+            value={formatMoney(summary?.readyValuation ?? 0n)}
+          />
+          <SummaryTile
+            label={t("inventory.products.summary.onOrder")}
+            value={formatCount(summary?.onOrderStock ?? 0n)}
+          />
+          <SummaryTile
+            label={t("inventory.products.summary.onOrderValue")}
+            value={formatMoney(summary?.onOrderValuation ?? 0n)}
+          />
+        </SimpleGrid>
+
         <Tabs.Root
           value={tab}
           onValueChange={(d) => setTab(d.value as "active" | "archived")}

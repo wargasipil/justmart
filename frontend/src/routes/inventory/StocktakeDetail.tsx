@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Badge,
   Box,
@@ -20,11 +20,11 @@ import { useParams } from "react-router-dom";
 
 import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
+import BatchSelect from "../../components/BatchSelect";
 import EnumSelect from "../../components/EnumSelect";
 import SearchableSelect from "../../components/SearchableSelect";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import type { StocktakeLine } from "../../gen/stocktake_iface/v1/stocktake_pb";
-import { searchBatches } from "../../queries/batches";
 import { searchProducts } from "../../queries/products";
 import { toast } from "../../lib/toaster";
 import {
@@ -446,11 +446,6 @@ function AddBatchesDialog({
     setProductId("");
   };
 
-  const loadBatches = useMemo(
-    () => (q: string) => searchBatches(q, { productId: productId || undefined }),
-    [productId],
-  );
-
   return (
     <Dialog.Root open={open} onOpenChange={(d) => (!d.open ? onClose() : null)}>
       <Portal>
@@ -482,14 +477,13 @@ function AddBatchesDialog({
                   <Text fontSize="sm" color="fg.muted">
                     {t("inventory.stocktake.batch")} *
                   </Text>
-                  <SearchableSelect
+                  <BatchSelect
                     value={batchId}
                     onChange={setBatchId}
-                    loadOptions={loadBatches}
-                    itemToString={(b) =>
-                      `${b.batchNumber || b.id.slice(0, 8)} (qty ${String(b.currentQuantity)})`
-                    }
-                    itemToValue={(b) => b.id}
+                    productId={productId || undefined}
+                    // A stocktake counts what's on the shelf, including lots the
+                    // ledger currently believes are empty.
+                    onlyInStock={false}
                     placeholder={t("inventory.stocktake.pickBatch")}
                   />
                 </Stack>

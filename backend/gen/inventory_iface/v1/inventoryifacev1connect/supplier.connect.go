@@ -36,6 +36,9 @@ const (
 	// SupplierServiceListSuppliersProcedure is the fully-qualified name of the SupplierService's
 	// ListSuppliers RPC.
 	SupplierServiceListSuppliersProcedure = "/inventory_iface.v1.SupplierService/ListSuppliers"
+	// SupplierServiceGetSuppliersSummaryProcedure is the fully-qualified name of the SupplierService's
+	// GetSuppliersSummary RPC.
+	SupplierServiceGetSuppliersSummaryProcedure = "/inventory_iface.v1.SupplierService/GetSuppliersSummary"
 	// SupplierServiceGetSupplierProcedure is the fully-qualified name of the SupplierService's
 	// GetSupplier RPC.
 	SupplierServiceGetSupplierProcedure = "/inventory_iface.v1.SupplierService/GetSupplier"
@@ -65,6 +68,9 @@ const (
 // SupplierServiceClient is a client for the inventory_iface.v1.SupplierService service.
 type SupplierServiceClient interface {
 	ListSuppliers(context.Context, *connect.Request[v1.ListSuppliersRequest]) (*connect.Response[v1.ListSuppliersResponse], error)
+	// GetSuppliersSummary counts every supplier matching the same filters as
+	// ListSuppliers — not the current page. Drives the stat row above the list.
+	GetSuppliersSummary(context.Context, *connect.Request[v1.GetSuppliersSummaryRequest]) (*connect.Response[v1.GetSuppliersSummaryResponse], error)
 	GetSupplier(context.Context, *connect.Request[v1.GetSupplierRequest]) (*connect.Response[v1.GetSupplierResponse], error)
 	CreateSupplier(context.Context, *connect.Request[v1.CreateSupplierRequest]) (*connect.Response[v1.CreateSupplierResponse], error)
 	UpdateSupplier(context.Context, *connect.Request[v1.UpdateSupplierRequest]) (*connect.Response[v1.UpdateSupplierResponse], error)
@@ -95,6 +101,12 @@ func NewSupplierServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			httpClient,
 			baseURL+SupplierServiceListSuppliersProcedure,
 			connect.WithSchema(supplierServiceMethods.ByName("ListSuppliers")),
+			connect.WithClientOptions(opts...),
+		),
+		getSuppliersSummary: connect.NewClient[v1.GetSuppliersSummaryRequest, v1.GetSuppliersSummaryResponse](
+			httpClient,
+			baseURL+SupplierServiceGetSuppliersSummaryProcedure,
+			connect.WithSchema(supplierServiceMethods.ByName("GetSuppliersSummary")),
 			connect.WithClientOptions(opts...),
 		),
 		getSupplier: connect.NewClient[v1.GetSupplierRequest, v1.GetSupplierResponse](
@@ -151,6 +163,7 @@ func NewSupplierServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 // supplierServiceClient implements SupplierServiceClient.
 type supplierServiceClient struct {
 	listSuppliers        *connect.Client[v1.ListSuppliersRequest, v1.ListSuppliersResponse]
+	getSuppliersSummary  *connect.Client[v1.GetSuppliersSummaryRequest, v1.GetSuppliersSummaryResponse]
 	getSupplier          *connect.Client[v1.GetSupplierRequest, v1.GetSupplierResponse]
 	createSupplier       *connect.Client[v1.CreateSupplierRequest, v1.CreateSupplierResponse]
 	updateSupplier       *connect.Client[v1.UpdateSupplierRequest, v1.UpdateSupplierResponse]
@@ -164,6 +177,11 @@ type supplierServiceClient struct {
 // ListSuppliers calls inventory_iface.v1.SupplierService.ListSuppliers.
 func (c *supplierServiceClient) ListSuppliers(ctx context.Context, req *connect.Request[v1.ListSuppliersRequest]) (*connect.Response[v1.ListSuppliersResponse], error) {
 	return c.listSuppliers.CallUnary(ctx, req)
+}
+
+// GetSuppliersSummary calls inventory_iface.v1.SupplierService.GetSuppliersSummary.
+func (c *supplierServiceClient) GetSuppliersSummary(ctx context.Context, req *connect.Request[v1.GetSuppliersSummaryRequest]) (*connect.Response[v1.GetSuppliersSummaryResponse], error) {
+	return c.getSuppliersSummary.CallUnary(ctx, req)
 }
 
 // GetSupplier calls inventory_iface.v1.SupplierService.GetSupplier.
@@ -209,6 +227,9 @@ func (c *supplierServiceClient) ListSupplierRestocks(ctx context.Context, req *c
 // SupplierServiceHandler is an implementation of the inventory_iface.v1.SupplierService service.
 type SupplierServiceHandler interface {
 	ListSuppliers(context.Context, *connect.Request[v1.ListSuppliersRequest]) (*connect.Response[v1.ListSuppliersResponse], error)
+	// GetSuppliersSummary counts every supplier matching the same filters as
+	// ListSuppliers — not the current page. Drives the stat row above the list.
+	GetSuppliersSummary(context.Context, *connect.Request[v1.GetSuppliersSummaryRequest]) (*connect.Response[v1.GetSuppliersSummaryResponse], error)
 	GetSupplier(context.Context, *connect.Request[v1.GetSupplierRequest]) (*connect.Response[v1.GetSupplierResponse], error)
 	CreateSupplier(context.Context, *connect.Request[v1.CreateSupplierRequest]) (*connect.Response[v1.CreateSupplierResponse], error)
 	UpdateSupplier(context.Context, *connect.Request[v1.UpdateSupplierRequest]) (*connect.Response[v1.UpdateSupplierResponse], error)
@@ -235,6 +256,12 @@ func NewSupplierServiceHandler(svc SupplierServiceHandler, opts ...connect.Handl
 		SupplierServiceListSuppliersProcedure,
 		svc.ListSuppliers,
 		connect.WithSchema(supplierServiceMethods.ByName("ListSuppliers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	supplierServiceGetSuppliersSummaryHandler := connect.NewUnaryHandler(
+		SupplierServiceGetSuppliersSummaryProcedure,
+		svc.GetSuppliersSummary,
+		connect.WithSchema(supplierServiceMethods.ByName("GetSuppliersSummary")),
 		connect.WithHandlerOptions(opts...),
 	)
 	supplierServiceGetSupplierHandler := connect.NewUnaryHandler(
@@ -289,6 +316,8 @@ func NewSupplierServiceHandler(svc SupplierServiceHandler, opts ...connect.Handl
 		switch r.URL.Path {
 		case SupplierServiceListSuppliersProcedure:
 			supplierServiceListSuppliersHandler.ServeHTTP(w, r)
+		case SupplierServiceGetSuppliersSummaryProcedure:
+			supplierServiceGetSuppliersSummaryHandler.ServeHTTP(w, r)
 		case SupplierServiceGetSupplierProcedure:
 			supplierServiceGetSupplierHandler.ServeHTTP(w, r)
 		case SupplierServiceCreateSupplierProcedure:
@@ -316,6 +345,10 @@ type UnimplementedSupplierServiceHandler struct{}
 
 func (UnimplementedSupplierServiceHandler) ListSuppliers(context.Context, *connect.Request[v1.ListSuppliersRequest]) (*connect.Response[v1.ListSuppliersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.SupplierService.ListSuppliers is not implemented"))
+}
+
+func (UnimplementedSupplierServiceHandler) GetSuppliersSummary(context.Context, *connect.Request[v1.GetSuppliersSummaryRequest]) (*connect.Response[v1.GetSuppliersSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.SupplierService.GetSuppliersSummary is not implemented"))
 }
 
 func (UnimplementedSupplierServiceHandler) GetSupplier(context.Context, *connect.Request[v1.GetSupplierRequest]) (*connect.Response[v1.GetSupplierResponse], error) {

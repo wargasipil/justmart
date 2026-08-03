@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"connectrpc.com/connect"
 	"gorm.io/gorm"
 
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
+	"github.com/justmart/backend/internal/auth"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 )
 
 func (s *ProductService) load(ctx context.Context, id string) (*model.Product, error) {
@@ -25,6 +29,91 @@ func (s *ProductService) load(ctx context.Context, id string) (*model.Product, e
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return &med, nil
+}
+
+// productFilters is the filter set shared by ListProducts and
+// GetProductsSummary. The two MUST describe the same rows — a stat row that
+// counts a different set than the table under it is worse than no stat row —
+// so the predicate lives here once rather than as a closure in each handler.
+type productFilters struct {
+	includeInactive bool
+	onlyArchived    bool
+	query           string
+	opnameBefore    string // YYYY-MM-DD, already validated
+	warehouseID     string
+}
+
+// parseProductFilters validates the request-shaped filter values and resolves
+// the active warehouse the opname predicate is scoped to.
+func parseProductFilters(
+	ctx context.Context,
+	db *gorm.DB,
+	caller auth.Principal,
+	includeInactive, onlyArchived bool,
+	query, opnameBefore string,
+) (productFilters, error) {
+	f := productFilters{
+		includeInactive: includeInactive,
+		onlyArchived:    onlyArchived,
+		query:           strings.TrimSpace(query),
+		opnameBefore:    strings.TrimSpace(opnameBefore),
+	}
+	if f.opnameBefore != "" {
+		if _, err := time.Parse(common.DateLayout, f.opnameBefore); err != nil {
+			return f, connect.NewError(connect.CodeInvalidArgument,
+				fmt.Errorf("opname_before must be YYYY-MM-DD: %w", err))
+		}
+	}
+	// Resolved once: both the opname predicate and the downstream stock reads
+	// use the same warehouse.
+	warehouseID, err := common.ResolveWarehouse(ctx, db, caller)
+	if err != nil {
+		return f, err
+	}
+	f.warehouseID = warehouseID
+	return f, nil
+}
+
+// apply narrows a query over `products` (aliased or not — the opname EXISTS
+// correlates on the table name, matching how ListProducts scans model.Product).
+func (f productFilters) apply(q *gorm.DB) *gorm.DB {
+	if f.onlyArchived {
+		q = q.Where("active = ?", false)
+	} else if !f.includeInactive {
+		q = q.Where("active = ?", true)
+	}
+	if f.query != "" {
+		pattern := "%" + f.query + "%"
+		q = q.Where("name "+common.LikeOp(q)+" ? OR sku "+common.LikeOp(q)+" ?", pattern, pattern)
+	}
+	if f.opnameBefore != "" {
+		// "Last opname < before OR never counted" = "no completed opname
+		// session with completed_at >= before touched this product in the
+		// active warehouse". Inverted EXISTS keeps both branches.
+		q = q.Where(`NOT EXISTS (
+			SELECT 1 FROM stocktake_sessions ss
+			JOIN stocktake_lines sl ON sl.session_id = ss.id
+			JOIN batches b ON b.id = sl.batch_id
+			WHERE ss.warehouse_id = ?
+			  AND ss.status = 'COMPLETED'
+			  AND ss.completed_at >= ?
+			  AND sl.counted_qty IS NOT NULL
+			  AND b.product_id = products.id
+		)`, f.warehouseID, f.opnameBefore)
+	}
+	return q
+}
+
+// matchingIDs returns the ids of every product the filters select. The summary
+// aggregates over this set; it is unbounded on purpose (the whole catalog is
+// the point) but only ids are materialized.
+func (f productFilters) matchingIDs(ctx context.Context, db *gorm.DB) ([]string, error) {
+	var ids []string
+	if err := f.apply(db.WithContext(ctx).Model(&model.Product{})).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return ids, nil
 }
 
 func productToProto(m *model.Product) *inventoryifacev1.Product {

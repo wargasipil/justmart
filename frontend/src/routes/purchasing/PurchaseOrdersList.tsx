@@ -11,7 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { Plus, Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -25,13 +25,11 @@ import {
   type PurchaseOrder,
 } from "../../gen/purchasing_iface/v1/order_pb";
 import { downloadCsv } from "../../lib/csv";
-import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatMoney, formatDate } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { fetchPurchaseOrdersForExport, usePurchaseOrdersQuery } from "../../queries/purchasing";
 import { resolveSupplierMap, useSupplierRefs } from "../../queries/refs";
-
-type Props = { status?: POStatus };
+import { restockPageKey, useRestockFilters } from "./restockFilters";
 
 const STATUS_BADGE_PALETTE: Record<POStatus, string> = {
   [POStatus.PO_STATUS_UNSPECIFIED]: "gray",
@@ -43,41 +41,34 @@ const STATUS_BADGE_PALETTE: Record<POStatus, string> = {
   [POStatus.PO_STATUS_VOIDED]: "red",
 };
 
-export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECIFIED }: Props) {
+export default function PurchaseOrdersList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [supplierFilter, setSupplierFilter] = useState("");
-  const [onlyOutstanding, setOnlyOutstanding] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [query, setQuery] = useState("");
-  // "" = Any date (the picker's own off state) — send no bounds at all then.
-  const [dateField, setDateField] = useState("");
-  const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
-
-  // Debounce the search box (250ms) into the query that drives the request.
-  useEffect(() => {
-    const h = setTimeout(() => setQuery(searchInput.trim()), 250);
-    return () => clearTimeout(h);
-  }, [searchInput]);
+  // Filter state lives in the Purchasing shell: the stat row above the tab
+  // strip and this toolbar below it are driven by the same values, and both
+  // requests carry the same `request` object so they can't disagree.
+  const {
+    request,
+    searchInput,
+    setSearchInput,
+    supplierId,
+    setSupplierId,
+    onlyOutstanding,
+    setOnlyOutstanding,
+    dateField,
+    setDateField,
+    range,
+    setRange,
+  } = useRestockFilters();
 
   const dateFields = [
     { value: "created", label: t("purchasing.dateCreated") },
     { value: "received", label: t("purchasing.dateReceived") },
   ];
-  const fromUnix = dateField ? BigInt(range.fromUnix) : 0n;
-  const toUnix = dateField ? BigInt(range.toUnix) : 0n;
-  const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${status}|${supplierFilter}|${onlyOutstanding}|${query}|${dateField}|${fromUnix}|${toUnix}`,
-  );
+  const { page, setPage, pageSize, setPageSize } = usePageState(restockPageKey(request));
   const posQ = usePurchaseOrdersQuery({
-    status,
-    supplierId: supplierFilter,
-    onlyOutstanding,
-    query,
-    fromUnix,
-    toUnix,
-    dateField,
+    ...request,
     limit: pageSize,
     offset: page * pageSize,
   });
@@ -89,15 +80,7 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
   );
 
   const onExport = async () => {
-    const rows = await fetchPurchaseOrdersForExport({
-      status,
-      supplierId: supplierFilter,
-      onlyOutstanding,
-      query,
-      fromUnix,
-      toUnix,
-      dateField,
-    });
+    const rows = await fetchPurchaseOrdersForExport(request);
     const sup = await resolveSupplierMap(rows.map((po) => po.supplierId));
     downloadCsv(
       `restock-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -134,7 +117,9 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
   };
 
   return (
-    <Stack gap={4}>
+    // minW=0 so the 9-column table scrolls inside <TableScroll> rather than
+    // widening this column and taking the page with it (see Purchasing.tsx).
+    <Stack gap={4} minW={0}>
       <HStack justify="space-between" wrap="wrap" gap={2}>
         <HStack gap={2} wrap="wrap">
           <Box position="relative">
@@ -153,8 +138,8 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
           <SupplierSelect
             size="sm"
             width="220px"
-            value={supplierFilter}
-            onChange={setSupplierFilter}
+            value={supplierId}
+            onChange={setSupplierId}
             placeholder={t("purchasing.supplier")}
           />
           <DateRangeFilter
@@ -184,7 +169,10 @@ export default function PurchaseOrdersList({ status = POStatus.PO_STATUS_UNSPECI
           <Spinner />
         </Box>
       ) : (
-        <TableScroll>
+        // maxH="none": the restock table is not height-capped — it grows with
+        // its rows and the page scrolls vertically. Horizontal overflow is
+        // still the scroll area's own business (Chakra's max-width: 100%).
+        <TableScroll maxH="none">
           <Table.Root size="sm" stickyHeader>
             <Table.Header bg="bg.muted">
               <Table.Row>

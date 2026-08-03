@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import EntityDrawer from "../../components/EntityDrawer";
+import { useResetOnOpen } from "../../lib/formReset";
 import EnumSelect from "../../components/EnumSelect";
 import FormField from "../../components/FormField";
 import { Role } from "../../gen/auth_iface/v1/policy_pb";
@@ -21,6 +22,8 @@ const CreateSchema = z.object({
 });
 type CreateValues = z.infer<typeof CreateSchema>;
 
+const EMPTY_USER: CreateValues = { email: "", name: "", password: "", role: Role.CASHIER };
+
 export function CreateUserDrawer({
   open,
   onClose,
@@ -32,8 +35,9 @@ export function CreateUserDrawer({
   const create = useCreateUserMutation();
   const form = useForm<CreateValues>({
     resolver: zodResolver(CreateSchema),
-    defaultValues: { email: "", name: "", password: "", role: Role.CASHIER },
+    defaultValues: EMPTY_USER,
   });
+  useResetOnOpen(form, open, EMPTY_USER);
   const onServerError = useServerFormErrors(form);
 
   const submit = form.handleSubmit(async (values) => {

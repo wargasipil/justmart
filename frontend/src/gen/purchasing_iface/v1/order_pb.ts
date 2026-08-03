@@ -632,6 +632,151 @@ export class ListPurchaseOrdersResponse extends Message<ListPurchaseOrdersRespon
 }
 
 /**
+ * Same filter set as ListPurchaseOrdersRequest, minus paging — the summary
+ * covers every matching order, not a page. Keep the two in sync: the list and
+ * the stat row above it must always describe the same set (both handlers share
+ * applyPOFilters so they cannot drift).
+ *
+ * @generated from message purchasing_iface.v1.GetPurchaseOrdersSummaryRequest
+ */
+export class GetPurchaseOrdersSummaryRequest extends Message<GetPurchaseOrdersSummaryRequest> {
+  /**
+   * @generated from field: purchasing_iface.v1.POStatus status = 1;
+   */
+  status = POStatus.PO_STATUS_UNSPECIFIED;
+
+  /**
+   * @generated from field: string supplier_id = 2;
+   */
+  supplierId = "";
+
+  /**
+   * @generated from field: bool only_outstanding = 3;
+   */
+  onlyOutstanding = false;
+
+  /**
+   * @generated from field: string query = 4;
+   */
+  query = "";
+
+  /**
+   * @generated from field: int64 from_unix = 5;
+   */
+  fromUnix = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 to_unix = 6;
+   */
+  toUnix = protoInt64.zero;
+
+  /**
+   * "created" | "received"
+   *
+   * @generated from field: string date_field = 7;
+   */
+  dateField = "";
+
+  constructor(data?: PartialMessage<GetPurchaseOrdersSummaryRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "purchasing_iface.v1.GetPurchaseOrdersSummaryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "status", kind: "enum", T: proto3.getEnumType(POStatus) },
+    { no: 2, name: "supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "only_outstanding", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "query", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "from_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 6, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 7, name: "date_field", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPurchaseOrdersSummaryRequest {
+    return new GetPurchaseOrdersSummaryRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPurchaseOrdersSummaryRequest {
+    return new GetPurchaseOrdersSummaryRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPurchaseOrdersSummaryRequest {
+    return new GetPurchaseOrdersSummaryRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetPurchaseOrdersSummaryRequest | PlainMessage<GetPurchaseOrdersSummaryRequest> | undefined, b: GetPurchaseOrdersSummaryRequest | PlainMessage<GetPurchaseOrdersSummaryRequest> | undefined): boolean {
+    return proto3.util.equals(GetPurchaseOrdersSummaryRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message purchasing_iface.v1.GetPurchaseOrdersSummaryResponse
+ */
+export class GetPurchaseOrdersSummaryResponse extends Message<GetPurchaseOrdersSummaryResponse> {
+  /**
+   * matching purchase orders
+   *
+   * @generated from field: int64 order_count = 1;
+   */
+  orderCount = protoInt64.zero;
+
+  /**
+   * DISTINCT products across their lines
+   *
+   * @generated from field: int64 product_count = 2;
+   */
+  productCount = protoInt64.zero;
+
+  /**
+   * Ordered quantity in BASE units, summed across products — so a catalog
+   * holding both tablets and bottles adds them together. Read it as "total
+   * units ordered"; `total` is the comparable figure.
+   *
+   * @generated from field: int64 item_count = 3;
+   */
+  itemCount = protoInt64.zero;
+
+  /**
+   * SUM(ordered_total) — final, incl. PPN, after discounts
+   *
+   * @generated from field: int64 total = 4;
+   */
+  total = protoInt64.zero;
+
+  constructor(data?: PartialMessage<GetPurchaseOrdersSummaryResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "purchasing_iface.v1.GetPurchaseOrdersSummaryResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "order_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 2, name: "product_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 3, name: "item_count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "total", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPurchaseOrdersSummaryResponse {
+    return new GetPurchaseOrdersSummaryResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetPurchaseOrdersSummaryResponse {
+    return new GetPurchaseOrdersSummaryResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetPurchaseOrdersSummaryResponse {
+    return new GetPurchaseOrdersSummaryResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetPurchaseOrdersSummaryResponse | PlainMessage<GetPurchaseOrdersSummaryResponse> | undefined, b: GetPurchaseOrdersSummaryResponse | PlainMessage<GetPurchaseOrdersSummaryResponse> | undefined): boolean {
+    return proto3.util.equals(GetPurchaseOrdersSummaryResponse, a, b);
+  }
+}
+
+/**
  * @generated from message purchasing_iface.v1.GetPurchaseOrderRequest
  */
 export class GetPurchaseOrderRequest extends Message<GetPurchaseOrderRequest> {

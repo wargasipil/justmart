@@ -1,4 +1,4 @@
-import { Box, Stack, Text } from "@chakra-ui/react";
+import { Box, Stat } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
@@ -31,19 +31,27 @@ export default function DashboardTile({ label, value, hint, to, tone = "default"
       cursor={to ? "pointer" : "default"}
       h="100%"
     >
-      <Stack gap={1}>
-        <Text fontSize="sm" color="fg.muted">
+      {/* Chakra's Stat carries the label/value/hint semantics (a <dl>/<dt>/<dd>,
+          which is what a metric is); the card, tone colors and router link
+          around it are ours — Stat ships no container. */}
+      <Stat.Root size="sm" gap={1}>
+        <Stat.Label fontSize="sm" color="fg.muted">
           {label}
-        </Text>
-        <Text fontSize="2xl" fontWeight="semibold" fontFamily="mono" color={colors.value}>
+        </Stat.Label>
+        <Stat.ValueText
+          fontSize="2xl"
+          fontWeight="semibold"
+          fontFamily="mono"
+          color={colors.value}
+        >
           {value}
-        </Text>
+        </Stat.ValueText>
         {hint && (
-          <Text fontSize="xs" color="fg.muted">
+          <Stat.HelpText fontSize="xs" color="fg.muted" mb={0}>
             {hint}
-          </Text>
+          </Stat.HelpText>
         )}
-      </Stack>
+      </Stat.Root>
     </Box>
   );
   if (to) {

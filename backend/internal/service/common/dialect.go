@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -52,6 +53,29 @@ func DayKeyExpr(db *gorm.DB, col string) string {
 		return fmt.Sprintf("strftime('%%Y-%%m-%%d', %s)", col)
 	}
 	return fmt.Sprintf("to_char(%s, 'YYYY-MM-DD')", col)
+}
+
+// LocalDayKeyExpr is DayKeyExpr for TIMESTAMP columns: it renders the day key in
+// the server's local zone (time.Local), which is what the Go side assumes — day
+// strings come back through time.ParseInLocation(..., time.Local) and the bucket
+// list is enumerated from local midnights.
+//
+// Plain DayKeyExpr formats an instant in UTC on both engines (SQLite's strftime
+// normalizes the stored offset away; Postgres renders a TIMESTAMPTZ in the
+// session TimeZone, UTC in the shipped containers). For a shop at UTC+7 that put
+// every sale between 00:00 and 07:00 local into the PREVIOUS day's bucket. Use
+// this for timestamps; keep DayKeyExpr for DATE columns (expiry_date,
+// valid_from/valid_until) — those carry no zone and must not be shifted.
+//
+// The offset is resolved from time.Local at call time. Indonesia has no DST; in
+// a DST zone a row within an hour of a transition can land on the neighbouring
+// day — still far better than being a whole day off.
+func LocalDayKeyExpr(db *gorm.DB, col string) string {
+	_, offset := time.Now().In(time.Local).Zone()
+	if IsSQLite(db) {
+		return fmt.Sprintf("strftime('%%Y-%%m-%%d', %s, '%+d seconds')", col, offset)
+	}
+	return fmt.Sprintf("to_char((%s AT TIME ZONE 'UTC') + INTERVAL '%d seconds', 'YYYY-MM-DD')", col, offset)
 }
 
 // DateAddNowDays yields a SQL date expression for "today + n days" (used for the

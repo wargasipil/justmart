@@ -28,6 +28,11 @@ message Batch {
   // enrichment in SearchBatches so a picker can offer per-line unit entry
   // (e.g. transfer "2 box"). Stock/qty stay in base units.
   repeated ProductUnit units = 13;
+  // Owning product's image version (its image_updated_at, unix sec; 0 = no
+  // picture). Display-only enrichment from the same SearchBatches join that
+  // fills product_name, so a picker row can render <ProductImage> without a
+  // second round trip. 0 makes the client skip the image fetch entirely.
+  int64 product_image_updated_at = 14;
 }
 
 service BatchService {

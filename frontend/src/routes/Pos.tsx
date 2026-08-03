@@ -1,28 +1,18 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Badge,
   Box,
   Button,
-  Dialog,
   Flex,
   HStack,
   IconButton,
   Input,
-  Popover,
-  Portal,
   RadioGroup,
   Stack,
+  Switch,
   Text,
 } from "@chakra-ui/react";
-import { useQueryClient } from "@tanstack/react-query";
-import { FileText, Lock, LogOut, Minus, Percent, Plus, Search, Trash2, UserRound, Warehouse as WarehouseIcon, X } from "lucide-react";
+import { Lock, LogOut, Minus, Plus, Search, Trash2, Warehouse as WarehouseIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -33,32 +23,35 @@ import NumberInput from "../components/NumberInput";
 import PrinterSelect from "../components/PrinterSelect";
 import ProductImage from "../components/ProductImage";
 import WarehouseSelect from "../components/WarehouseSelect";
-import { Product, type ProductUnit } from "../gen/inventory_iface/v1/product_pb";
-import type { ProductPriceTier } from "../gen/inventory_iface/v1/product_price_tier_pb";
+import type { Product } from "../gen/inventory_iface/v1/product_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
-import { Customer } from "../gen/customer_iface/v1/customer_pb";
-import type { Prescription } from "../gen/prescription_iface/v1/prescription_pb";
 import { saleClient } from "../lib/clients";
 import { formatMoney } from "../lib/format";
+import { releaseModalBodyLock } from "../lib/modalLock";
 import { toast } from "../lib/toaster";
 import { useAuth } from "../lib/auth";
-import { POS_PRINTER_KEY, decodePrinter } from "../lib/printerTarget";
-import { WAREHOUSE_KEY } from "../lib/transport";
-import { useMyWarehousesQuery } from "../queries/warehouses";
-import { useAllProductsQuery } from "../queries/products";
-import { nextTier, tiersForUnit } from "../queries/productPriceTiers";
-import { useStockLevelsQuery } from "../queries/stock";
-import { useCustomerSearchQuery } from "../queries/customers";
-import { useCustomerRefs } from "../queries/refs";
-import { useConnectorsQuery } from "../queries/connectors";
+import { saveResepRoundTrip, takeResepRoundTrip } from "../lib/posStorage";
+import { nextTier } from "../queries/productPriceTiers";
 import { useBusinessMode } from "../queries/settings";
-import { usePrescriptionsQuery } from "../queries/prescriptions";
+import {
+  CustomerPickerDialog,
+  PrescriptionPickerDialog,
+  ReceiptDialog,
+} from "./pos/posDialogs";
+import {
+  CustomerBar,
+  LineDiscountPopover,
+  PrescriptionBar,
+  QuickAmountRow,
+} from "./pos/posControls";
+import { usePosPrinter } from "./pos/usePosPrinter";
+import { usePosSearch } from "./pos/usePosSearch";
+import { usePosWarehouseGate } from "./pos/usePosWarehouseGate";
 import {
   useAddItemMutation,
   useAttachPrescriptionMutation,
   useCompleteSaleMutation,
   useDetachPrescriptionMutation,
-  usePrintReceiptMutation,
   useClearLineDiscountMutation,
   useRemoveItemMutation,
   useSetCartDiscountMutation,
@@ -69,130 +62,14 @@ import {
   useStartSaleMutation,
 } from "../queries/sales";
 
-// localStorage keys for preserving the in-progress DRAFT cart across the
-// create-resep round-trip (POS → /prescriptions/new → POS). Without this the
-// unmount cleanup would hard-delete the draft. POS_DEFERRED carries the
-// Rx-required product whose add was pending a covering prescription so it can
-// be re-added once the new resep is attached on return.
-const POS_DRAFT_KEY = "justmart_pos_draft";
-const POS_DEFERRED_KEY = "justmart_pos_deferred";
-// The receipt-printer target (POS_PRINTER_KEY / decodePrinter) is shared with
-// order-history reprint — see lib/printerTarget.ts.
-
-// Release the body lock Chakra/Ark leaves behind when a modal Dialog is
-// unmounted via navigation instead of a normal close (it sets pointer-events:
-// none + overflow:hidden on <body> and aria-hidden on #root, and doesn't
-// restore them on abrupt unmount). Without this the destination page is frozen.
-function releaseModalBodyLock() {
-  document.body.style.removeProperty("pointer-events");
-  document.body.style.removeProperty("overflow");
-  document.getElementById("root")?.removeAttribute("aria-hidden");
-}
-
-// LineDiscountPopover is the per-cart-line discount affordance: a small button
-// (highlighted when a discount is set) that opens a popover with the shared
-// <DiscountField> + Apply/Clear. Draft state is local; Apply commits via the
-// passed handler. Kept always-mounted, controlled by `open` (Ark body-lock rule).
-function LineDiscountPopover({
-  item,
-  onApply,
-  onClear,
-}: {
-  item: SaleItem;
-  onApply: (type: DiscountType, human: number) => void | Promise<void>;
-  onClear: () => void | Promise<void>;
-}) {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const seed = (): { type: DiscountType; value: number } => {
-    // Seed from a MANUAL discount only; an auto product discount starts blank so
-    // the cashier types a fresh override.
-    const type = (item.discountManual ? item.discountType : "FIXED") as DiscountType;
-    const raw = item.discountManual ? Number(item.discountValue) : 0;
-    return { type, value: type === "PERCENT" ? raw / 100 : raw };
-  };
-  const [draft, setDraft] = useState(seed);
-  const hasDiscount = Number(item.lineDiscount) > 0;
-  const isAuto = hasDiscount && !item.discountManual;
-
-  return (
-    <Popover.Root
-      open={open}
-      onOpenChange={(e) => {
-        setOpen(e.open);
-        if (e.open) setDraft(seed());
-      }}
-      positioning={{ placement: "bottom-end" }}
-    >
-      <Popover.Trigger asChild>
-        <IconButton
-          aria-label={t("pos.lineDiscount")}
-          size="xs"
-          variant={hasDiscount ? "subtle" : "ghost"}
-          colorPalette={hasDiscount ? "blue" : undefined}
-        >
-          <Percent size={14} />
-        </IconButton>
-      </Popover.Trigger>
-      <Portal>
-        <Popover.Positioner>
-          <Popover.Content width="auto">
-            <Popover.Body>
-              <Stack gap={2}>
-                <Text fontSize="xs" color="fg.muted">
-                  {t("pos.lineDiscount")}
-                </Text>
-                {isAuto && (
-                  <Text fontSize="xs" color="green.fg">
-                    {t("pos.autoDiscountHint")}
-                  </Text>
-                )}
-                {item.tierMinQty > 0 && (
-                  <Text fontSize="xs" color="purple.fg">
-                    {t("pos.grosirDiscountHint")}
-                  </Text>
-                )}
-                <DiscountField
-                  type={draft.type}
-                  value={draft.value}
-                  onChange={(type, value) => setDraft({ type, value })}
-                />
-                <HStack justify="flex-end" gap={2}>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    onClick={() => {
-                      void onClear();
-                      setOpen(false);
-                    }}
-                  >
-                    {t("pos.discountClear")}
-                  </Button>
-                  <Button
-                    size="xs"
-                    colorPalette="blue"
-                    onClick={() => {
-                      void onApply(draft.type, draft.value);
-                      setOpen(false);
-                    }}
-                  >
-                    {t("pos.discountApply")}
-                  </Button>
-                </HStack>
-              </Stack>
-            </Popover.Body>
-          </Popover.Content>
-        </Popover.Positioner>
-      </Portal>
-    </Popover.Root>
-  );
-}
+// Cart/preference persistence lives in lib/posStorage.ts; the receipt-printer
+// target (POS_PRINTER_KEY / decodePrinter) is shared with order-history reprint
+// — see lib/printerTarget.ts.
 
 export default function Pos() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const { isPharmacy } = useBusinessMode();
@@ -245,6 +122,15 @@ export default function Pos() {
     }
   }, [sale, startSale]);
 
+  // Drop the in-progress DRAFT cart. Stock is per-warehouse, so the cart can't
+  // survive a warehouse switch; the next add lazily starts a fresh draft stamped
+  // with the new warehouse. Best-effort: raw client call, errors swallowed.
+  const discardActiveSale = useCallback(async () => {
+    if (!sale) return;
+    await saleClient.discardSale({ saleId: sale.id }).catch(() => {});
+    setSale(null);
+  }, [sale]);
+
   // Discard an abandoned cart when leaving POS. The active `sale` is always a
   // DRAFT (doComplete nulls it on completion), so deleting it on unmount cleans
   // up in-progress carts that never completed — they vanish entirely (no VOIDED
@@ -277,15 +163,10 @@ export default function Pos() {
   const [pendingResepNav, setPendingResepNav] = useState<string | null>(null);
   const goCreateResep = useCallback(() => {
     const s = saleRef.current;
-    if (s) localStorage.setItem(POS_DRAFT_KEY, s.id);
-    if (deferred) {
-      localStorage.setItem(
-        POS_DEFERRED_KEY,
-        JSON.stringify({ productId: deferred.product.id, unitId: deferred.unitId }),
-      );
-    } else {
-      localStorage.removeItem(POS_DEFERRED_KEY);
-    }
+    saveResepRoundTrip(
+      s?.id ?? null,
+      deferred ? { productId: deferred.product.id, unitId: deferred.unitId } : null,
+    );
     keepDraftRef.current = true;
     const patient = s?.customerId ?? "";
     setPrescriptionOpen(false); // close the picker first so it unmounts + releases the body lock
@@ -310,98 +191,18 @@ export default function Pos() {
     return () => cancelAnimationFrame(id);
   }, [pendingResepNav, navigate]);
 
-  // --- Warehouse gate: pick the selling warehouse before POS opens ----
-  // POS is full-screen (no TopBar selector), so the cashier chooses the active
-  // warehouse here. Auto-skipped when they have <=1 warehouse or one is already
-  // chosen. The choice drives the X-Warehouse-Id header (FEFO sells from this
-  // warehouse only). "Change warehouse" clears the choice to re-open the gate.
-  const myWarehousesQ = useMyWarehousesQuery();
-  const [gateDone, setGateDone] = useState(false);
-  const [currentWarehouse, setCurrentWarehouse] = useState<string>(
-    () => localStorage.getItem(WAREHOUSE_KEY) ?? "",
-  );
-  const warehouses = myWarehousesQ.data?.warehouses ?? [];
-
-  useEffect(() => {
-    const data = myWarehousesQ.data;
-    if (!data) return;
-    if (data.warehouses.length === 0) {
-      // No membership — proceed; the backend resolves the default warehouse.
-      setGateDone(true);
-      return;
-    }
-    const persisted = localStorage.getItem(WAREHOUSE_KEY);
-    if (persisted && data.warehouses.some((w) => w.id === persisted)) {
-      setCurrentWarehouse(persisted);
-      setGateDone(true);
-      return;
-    }
-    if (data.warehouses.length === 1) {
-      localStorage.setItem(WAREHOUSE_KEY, data.warehouses[0].id);
-      setCurrentWarehouse(data.warehouses[0].id);
-      setGateDone(true);
-    }
-    // else: multiple warehouses + nothing chosen yet -> show the gate.
-  }, [myWarehousesQ.data]);
-
-  const confirmWarehouse = useCallback((id: string) => {
-    const prev = localStorage.getItem(WAREHOUSE_KEY);
-    localStorage.setItem(WAREHOUSE_KEY, id);
-    setCurrentWarehouse(id);
-    // Refetch warehouse-scoped data with the new header — no full reload.
-    if (prev !== id) void queryClient.invalidateQueries();
-    setGateDone(true);
-  }, [queryClient]);
-
-  const activeWarehouseName =
-    warehouses.find((w) => w.id === currentWarehouse)?.name ?? "";
-
-  // Switch the selling warehouse in place from the header picker. Stock is
-  // per-warehouse, so the in-progress DRAFT cart is discarded (deleted, not
-  // voided); the next add lazily starts a fresh draft stamped with the new
-  // warehouse. Best-effort discard: raw client call, errors swallowed.
-  const switchWarehouse = useCallback(
-    async (id: string) => {
-      if (id === currentWarehouse) return;
-      if (sale) {
-        await saleClient.discardSale({ saleId: sale.id }).catch(() => {});
-        setSale(null);
-      }
-      localStorage.setItem(WAREHOUSE_KEY, id);
-      setCurrentWarehouse(id);
-      void queryClient.invalidateQueries();
-    },
-    [currentWarehouse, sale, queryClient],
-  );
-
-  // Receipt printer selection (connector mode). Live list of connectors+printers
-  // (polls 5s); the cashier picks the print device from the header. The choice
-  // persists per device and drives the receipt Print. The header picker is shown
-  // only when a connector printer is available — TCP/no-connector shops never
-  // see it. "" = Auto (server resolves the saved default / sole connector).
-  const connectorsQ = useConnectorsQuery();
-  const connectors = useMemo(() => connectorsQ.data ?? [], [connectorsQ.data]);
-  const hasPrinters = connectors.some((c) => c.printerNames.length > 0);
-  const [printerValue, setPrinterValue] = useState<string>(
-    () => localStorage.getItem(POS_PRINTER_KEY) ?? "",
-  );
-  // Drop the persisted choice if that device/printer is no longer connected.
-  useEffect(() => {
-    if (!printerValue) return;
-    const { deviceId, printerName } = decodePrinter(printerValue);
-    const stillThere = connectors.some(
-      (c) => c.deviceId === deviceId && c.printerNames.includes(printerName),
-    );
-    if (!stillThere) {
-      setPrinterValue("");
-      localStorage.removeItem(POS_PRINTER_KEY);
-    }
-  }, [connectors, printerValue]);
-  const onPickPrinter = (v: string) => {
-    setPrinterValue(v);
-    if (v) localStorage.setItem(POS_PRINTER_KEY, v);
-    else localStorage.removeItem(POS_PRINTER_KEY);
-  };
+  // Warehouse gate + in-place switcher, and the receipt-printer picker. Both
+  // are self-contained slices — see routes/pos/.
+  const {
+    gateDone,
+    warehouses,
+    currentWarehouse,
+    activeWarehouseName,
+    confirmWarehouse,
+    switchWarehouse,
+  } = usePosWarehouseGate({ discardActiveSale });
+  const { connectors, hasPrinters, printerValue, onPickPrinter, printerTarget } =
+    usePosPrinter();
 
   // Mount: restore a preserved DRAFT cart if we're returning from the
   // create-resep page (?attachRx=<id>), otherwise start a fresh draft. When an
@@ -413,10 +214,7 @@ export default function Pos() {
     restoredRef.current = true;
 
     const attachRx = searchParams.get("attachRx") ?? "";
-    const persistedSaleId = localStorage.getItem(POS_DRAFT_KEY);
-    const deferredRaw = localStorage.getItem(POS_DEFERRED_KEY);
-    localStorage.removeItem(POS_DRAFT_KEY);
-    localStorage.removeItem(POS_DEFERRED_KEY);
+    const { saleId: persistedSaleId, deferred: deferredInfo } = takeResepRoundTrip();
 
     void (async () => {
       let restored: Sale | null = null;
@@ -436,9 +234,6 @@ export default function Pos() {
         return;
       }
       if (attachRx) {
-        const deferredInfo = deferredRaw
-          ? (JSON.parse(deferredRaw) as { productId: string; unitId: string })
-          : null;
         try {
           const attRes = await attachPrescription.mutateAsync({
             saleId: restored.id,
@@ -465,51 +260,22 @@ export default function Pos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Search ----
-  const productsQ = useAllProductsQuery();
-  const stockQ = useStockLevelsQuery();
-  const stockByProduct = useMemo(() => {
-    const out = new Map<string, bigint>();
-    for (const l of stockQ.data ?? []) {
-      out.set(l.productId, (out.get(l.productId) ?? 0n) + l.currentQuantity);
-    }
-    return out;
-  }, [stockQ.data]);
-  const [query, setQuery] = useState("");
-  const [highlight, setHighlight] = useState(0);
-  const searchRef = useRef<HTMLInputElement | null>(null);
-
-  // Each sellable unit of each matching product is its own search row, so one
-  // click adds that exact unit. `available` = how many of that unit the current
-  // base stock can make (base ÷ factor).
-  // `tiers` is precomputed here (not per render) so the search list stays cheap.
-  // It drives the DISPLAY hint only — a cart line's applied-grosir state always
-  // comes from the server (SaleItem.tierMinQty), never from this.
-  type UnitRow = { med: Product; unit: ProductUnit; available: number; tiers: ProductPriceTier[] };
-  const MAX_ROWS = 40;
-  const unitRows = useMemo<UnitRow[]>(() => {
-    const q = query.trim().toLowerCase();
-    const meds = q
-      ? productsQ.rows.filter((m) =>
-          [m.sku, m.name].some((s) => s.toLowerCase().includes(q)),
-        )
-      : productsQ.rows;
-    const out: UnitRow[] = [];
-    for (const med of meds) {
-      const base = Number(stockByProduct.get(med.id) ?? 0n);
-      for (const unit of med.units.filter((u) => u.sellable && u.active)) {
-        const factor = Number(unit.factor) || 1;
-        const tiers = tiersForUnit(med.priceTiers, unit.id).filter((t) => t.price < unit.sellPrice);
-        out.push({ med, unit, available: Math.floor(base / factor), tiers });
-        if (out.length >= MAX_ROWS) return out;
-      }
-    }
-    return out;
-  }, [query, productsQ.rows, stockByProduct]);
-
-  useEffect(() => {
-    setHighlight(0);
-  }, [query]);
+  // Product search: query text, keyboard highlight, out-of-stock filter and the
+  // derived per-unit rows. `onAdd` is passed in — the hook derives, the page adds.
+  const {
+    products,
+    query,
+    setQuery,
+    highlight,
+    setHighlight,
+    searchRef,
+    showOutOfStock,
+    onToggleOutOfStock,
+    unitRows,
+    stockByProduct,
+    onSearchKeyDown,
+    resetAfterAdd,
+  } = usePosSearch({ onAdd: (p, u, a) => onAdd(p, u, a) });
 
   const onAdd = useCallback(
     async (product: Product, unitId: string, available?: number) => {
@@ -539,39 +305,13 @@ export default function Pos() {
           qty: 1,
         });
         if (res.sale) setSale(res.sale);
-        setQuery("");
-        searchRef.current?.focus();
+        resetAfterAdd();
       } catch {
         /* toast handled globally */
       }
     },
     [ensureSale, addItem, stockByProduct, isPharmacy, t],
   );
-
-  const onSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlight((h) => Math.min(unitRows.length - 1, h + 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlight((h) => Math.max(0, h - 1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      // Barcode scanner: exact SKU match adds the product at its base unit.
-      const skuExact = productsQ.rows.find(
-        (m) => m.sku.toLowerCase() === query.trim().toLowerCase(),
-      );
-      if (skuExact) {
-        const baseId = skuExact.units.find((u) => u.isBase)?.id ?? "";
-        void onAdd(skuExact, baseId);
-        return;
-      }
-      const row = unitRows[highlight];
-      if (row) void onAdd(row.med, row.unit.id, row.available);
-    } else if (e.key === "Escape") {
-      setQuery("");
-    }
-  };
 
   // Global keyboard shortcuts ----
   useEffect(() => {
@@ -694,8 +434,7 @@ export default function Pos() {
             qty: 1,
           });
           if (addRes.sale) setSale(addRes.sale);
-          setQuery("");
-          searchRef.current?.focus();
+          resetAfterAdd();
         } catch {
           /* backend coverage toast */
         }
@@ -914,6 +653,18 @@ export default function Pos() {
               autoFocus
             />
           </Box>
+          <Switch.Root
+            size="sm"
+            mb={3}
+            checked={showOutOfStock}
+            onCheckedChange={(d) => onToggleOutOfStock(d.checked)}
+          >
+            <Switch.HiddenInput />
+            <Switch.Control />
+            <Switch.Label fontSize="sm" color="fg.muted">
+              {t("pos.showOutOfStock")}
+            </Switch.Label>
+          </Switch.Root>
           <Stack gap={1}>
             {unitRows.map((row, i) => {
               const { med: m, unit, available, tiers } = row;
@@ -998,7 +749,12 @@ export default function Pos() {
             })}
             {unitRows.length === 0 && (
               <Text color="fg.muted" fontSize="sm" textAlign="center" py={6}>
-                {t("common.noResults")}
+                {/* With the filter on, an empty list means "nothing in stock
+                    matches", not "no such product" — say so, or the cashier
+                    concludes the product isn't in the catalog at all. */}
+                {showOutOfStock
+                  ? t("common.noResults")
+                  : t("pos.noResultsHiddenOutOfStock")}
               </Text>
             )}
           </Stack>
@@ -1038,7 +794,7 @@ export default function Pos() {
             )}
             <Stack gap={2}>
               {sale?.items.map((it) => {
-                const med = productsQ.rows.find((m) => m.id === it.productId);
+                const med = products.find((m) => m.id === it.productId);
                 return (
                   <Flex key={it.id} align="center" gap={2}>
                     <Stack gap={0} flex="1">
@@ -1312,408 +1068,8 @@ export default function Pos() {
       <ReceiptDialog
         sale={completedSale}
         onClose={onCloseReceipt}
-        printerTarget={decodePrinter(printerValue)}
+        printerTarget={printerTarget}
       />
     </Flex>
-  );
-}
-
-// QuickAmountRow: one-tap fill of the paid input. Renders below the Dibayar
-// field for Cash payments. Includes an "Exact" chip (paid = total), an
-// optional round-up-to-next-10k chip, and standard IDR banknote denominations
-// (5k/10k/20k/50k/100k) filtered to amounts >= total.
-function QuickAmountRow({
-  total,
-  onPick,
-}: {
-  total: number;
-  onPick: (n: number) => void;
-}) {
-  const { t } = useTranslation();
-  if (total <= 0) return null;
-  const DENOMS = [5_000, 10_000, 20_000, 50_000, 100_000];
-  const above = DENOMS.filter((d) => d >= total);
-  const roundedUp = Math.ceil(total / 10_000) * 10_000;
-  const showRoundUp = roundedUp !== total && !above.includes(roundedUp);
-  return (
-    <Flex wrap="wrap" gap={1} mt={1}>
-      <Button
-        size="xs"
-        variant="outline"
-        colorPalette="blue"
-        onClick={() => onPick(total)}
-      >
-        {t("pos.exactAmount")}
-      </Button>
-      {showRoundUp && (
-        <Button
-          size="xs"
-          variant="outline"
-          colorPalette="blue"
-          onClick={() => onPick(roundedUp)}
-        >
-          {formatMoney(roundedUp)}
-        </Button>
-      )}
-      {above.map((d) => (
-        <Button
-          key={d}
-          size="xs"
-          variant="outline"
-          colorPalette="blue"
-          onClick={() => onPick(d)}
-        >
-          {formatMoney(d)}
-        </Button>
-      ))}
-    </Flex>
-  );
-}
-
-function CustomerBar({
-  sale,
-  onAttach,
-  onClear,
-}: {
-  sale: Sale | null;
-  onAttach: () => void;
-  onClear: () => void;
-}) {
-  const { t } = useTranslation();
-  const customerId = sale?.customerId ?? "";
-  const hasCustomer = !!customerId;
-  // Resolve the attached customer's name (manual pick OR auto-filled from an
-  // attached resep) so the bar shows the name, not the raw UUID.
-  const refs = useCustomerRefs(useMemo(() => (customerId ? [customerId] : []), [customerId]));
-  return (
-    <Flex mt={2} align="center" gap={2}>
-      <UserRound size={14} />
-      <Text fontSize="xs" color="fg.muted" flex="1">
-        {hasCustomer
-          ? (refs.get(customerId)?.name ?? customerId.slice(0, 8))
-          : t("pos.customer")}
-      </Text>
-      {hasCustomer ? (
-        <Button size="xs" variant="ghost" onClick={onClear}>
-          {t("pos.clearCustomer")}
-        </Button>
-      ) : (
-        <Button size="xs" variant="ghost" onClick={onAttach}>
-          {t("pos.attachCustomer")}
-        </Button>
-      )}
-    </Flex>
-  );
-}
-
-// PrescriptionBar — pharmacy mode only. Shows the attached resep (Rx number) or
-// an "attach" affordance (F5). Sits under the CustomerBar in the cart panel.
-function PrescriptionBar({
-  sale,
-  onAttach,
-  onDetach,
-}: {
-  sale: Sale | null;
-  onAttach: () => void;
-  onDetach: () => void;
-}) {
-  const { t } = useTranslation();
-  const attached = !!sale?.prescriptionId;
-  return (
-    <Flex mt={2} align="center" gap={2}>
-      <FileText size={14} />
-      <Text fontSize="xs" color="fg.muted" flex="1">
-        {attached ? t("prescriptions.attached") : t("prescriptions.attach")}
-      </Text>
-      {attached ? (
-        <Button size="xs" variant="ghost" onClick={onDetach}>
-          {t("prescriptions.detach")}
-        </Button>
-      ) : (
-        <Button size="xs" variant="ghost" onClick={onAttach}>
-          {t("prescriptions.attach")}
-        </Button>
-      )}
-    </Flex>
-  );
-}
-
-// PrescriptionPickerDialog — lists ACTIVE prescriptions (scoped to the sale's
-// patient when one is set) for the cashier/apoteker to attach. The backend
-// enforces per-product coverage on the subsequent AddItem.
-function PrescriptionPickerDialog({
-  open,
-  customerId,
-  deferredName,
-  onClose,
-  onPick,
-  onCreateNew,
-}: {
-  open: boolean;
-  customerId: string;
-  deferredName: string;
-  onClose: () => void;
-  onPick: (prescriptionId: string) => void;
-  onCreateNew: () => void;
-}) {
-  const { t } = useTranslation();
-  const rxQ = usePrescriptionsQuery({ status: "ACTIVE", customerId, limit: 1000, enabled: open });
-  const rows: Prescription[] = open ? rxQ.rows : [];
-
-  // NOTE: always render Dialog.Root (never `if (!open) return null`). Returning
-  // null on close unmounts the dialog abruptly, which leaks Chakra/Ark's body
-  // lock (pointer-events:none on <body> + aria-hidden on #root) and freezes POS.
-  // Letting Dialog.Root see open=false runs Ark's proper close + restore.
-  return (
-    <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>{t("prescriptions.attach")}</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="close" variant="ghost" size="sm">
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Stack gap={3}>
-                {deferredName && (
-                  <Text fontSize="sm" color="orange.fg">
-                    {t("prescriptions.needForProduct", { product: deferredName })}
-                  </Text>
-                )}
-                <Stack gap={1} maxH="320px" overflowY="auto">
-                  {rows.map((rx) => (
-                    <Flex
-                      key={rx.id}
-                      px={3}
-                      py={2}
-                      borderRadius="md"
-                      _hover={{ bg: "bg.muted" }}
-                      cursor="pointer"
-                      justify="space-between"
-                      onClick={() => onPick(rx.id)}
-                    >
-                      <Stack gap={0}>
-                        <Text fontSize="sm" fontWeight="medium" fontFamily="mono">
-                          {rx.rxNo}
-                        </Text>
-                        <Text fontSize="xs" color="fg.muted">
-                          {rx.issuerName} · {rx.items.length} {t("prescriptions.items")}
-                        </Text>
-                      </Stack>
-                      <Plus size={14} />
-                    </Flex>
-                  ))}
-                  {rows.length === 0 && (
-                    <Stack gap={2} py={4} align="center">
-                      <Text color="fg.muted" fontSize="sm">
-                        {t("prescriptions.noCoveringRx")}
-                      </Text>
-                    </Stack>
-                  )}
-                </Stack>
-              </Stack>
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Button colorPalette="blue" variant="outline" onClick={onCreateNew}>
-                <Plus size={14} />
-                {t("prescriptions.createNew")}
-              </Button>
-            </Dialog.Footer>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
-  );
-}
-
-function CustomerPickerDialog({
-  open,
-  onClose,
-  onPick,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onPick: (customerId: string) => void;
-}) {
-  const { t } = useTranslation();
-  const [q, setQ] = useState("");
-  const searchQ = useCustomerSearchQuery(q, open);
-
-  // Always render Dialog.Root (see PrescriptionPickerDialog note) — returning
-  // null on close leaks the body lock and freezes POS.
-  return (
-    <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()}>
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>{t("pos.attachCustomer")}</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="close" variant="ghost" size="sm">
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Stack gap={3}>
-                <Input
-                  placeholder={t("customers.searchPlaceholder")}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  autoFocus
-                />
-                <Stack gap={1} maxH="320px" overflowY="auto">
-                  {(searchQ.data ?? []).map((c: Customer) => (
-                    <Flex
-                      key={c.id}
-                      px={3}
-                      py={2}
-                      borderRadius="md"
-                      _hover={{ bg: "bg.muted" }}
-                      cursor="pointer"
-                      justify="space-between"
-                      onClick={() => onPick(c.id)}
-                    >
-                      <Stack gap={0}>
-                        <Text fontSize="sm" fontWeight="medium">{c.name}</Text>
-                        <Text fontSize="xs" color="fg.muted">
-                          {c.phone || "—"}
-                        </Text>
-                      </Stack>
-                      <Plus size={14} />
-                    </Flex>
-                  ))}
-                  {(searchQ.data?.length ?? 0) === 0 && (
-                    <Text color="fg.muted" fontSize="sm" textAlign="center" py={4}>
-                      {t("common.noResults")}
-                    </Text>
-                  )}
-                </Stack>
-              </Stack>
-            </Dialog.Body>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
-  );
-}
-
-function ReceiptDialog({
-  sale,
-  onClose,
-  printerTarget,
-}: {
-  sale: Sale | null;
-  onClose: () => void;
-  // The print device chosen in the POS header (decoded). Empty → the server
-  // resolves the saved default / sole connector.
-  printerTarget: { deviceId: string; printerName: string };
-}) {
-  const { t } = useTranslation();
-  const productsQ = useAllProductsQuery();
-  const printMut = usePrintReceiptMutation();
-
-  // Always render Dialog.Root (never `if (!sale) return null`) so Ark runs its
-  // close + body-lock restore; content is guarded on `sale` below.
-  const onPrint = async () => {
-    if (!sale) return;
-    try {
-      await printMut.mutateAsync({
-        saleId: sale.id,
-        connectorDeviceId: printerTarget.deviceId,
-        printerName: printerTarget.printerName,
-      });
-      toast.success(t("pos.printSent"));
-    } catch {
-      /* toast handled globally */
-    }
-  };
-  const medById = new Map(productsQ.rows.map((m) => [m.id, m]));
-  return (
-    <Dialog.Root open={!!sale} onOpenChange={(d) => !d.open && onClose()}>
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            {sale && (
-              <>
-            <Dialog.Header>
-              <Dialog.Title>
-                {t("pos.receiptTitle")} · {sale.saleNo || sale.id.slice(0, 8)}
-              </Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <IconButton aria-label="close" variant="ghost" size="sm">
-                  <X size={16} />
-                </IconButton>
-              </Dialog.CloseTrigger>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Stack gap={3} fontFamily="mono">
-                <Stack gap={1}>
-                  {sale.items.map((it) => (
-                    <Flex key={it.id} justify="space-between" gap={2}>
-                      <Text fontSize="sm" flex="1">
-                        {it.qty}
-                        {it.unitName ? ` ${it.unitName}` : ""}×{" "}
-                        {medById.get(it.productId)?.name ?? it.productId.slice(0, 8)}
-                      </Text>
-                      <Text fontSize="sm">{formatMoney(it.lineTotal)}</Text>
-                    </Flex>
-                  ))}
-                </Stack>
-                <Box borderTopWidth="1px" pt={2}>
-                  <Flex justify="space-between">
-                    <Text fontSize="sm">{t("pos.subtotal")}</Text>
-                    <Text fontSize="sm">{formatMoney(Number(sale.subtotal))}</Text>
-                  </Flex>
-                  {Number(sale.cartDiscount) > 0 && (
-                    <Flex justify="space-between">
-                      <Text fontSize="sm">{t("pos.discount")}</Text>
-                      <Text fontSize="sm">-{formatMoney(Number(sale.cartDiscount))}</Text>
-                    </Flex>
-                  )}
-                  {Number(sale.biayaJasa) > 0 && (
-                    <Flex justify="space-between">
-                      <Text fontSize="sm">{t("prescriptions.biayaJasa")}</Text>
-                      <Text fontSize="sm">{formatMoney(Number(sale.biayaJasa))}</Text>
-                    </Flex>
-                  )}
-                  <Flex justify="space-between">
-                    <Text fontWeight="semibold">{t("pos.total")}</Text>
-                    <Text fontWeight="semibold">{formatMoney(Number(sale.total))}</Text>
-                  </Flex>
-                  <Flex justify="space-between">
-                    <Text fontSize="sm" color="fg.muted">{t("pos.paid")}</Text>
-                    <Text fontSize="sm">{formatMoney(Number(sale.paidAmount))}</Text>
-                  </Flex>
-                  <Flex justify="space-between">
-                    <Text fontSize="sm" color="fg.muted">{t("pos.change")}</Text>
-                    <Text fontSize="sm">
-                      {formatMoney(Math.max(0, Number(sale.paidAmount) - Number(sale.total)))}
-                    </Text>
-                  </Flex>
-                </Box>
-              </Stack>
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Button variant="outline" onClick={onPrint} loading={printMut.isPending}>
-                {t("pos.print")}
-              </Button>
-              <Button colorPalette="blue" onClick={onClose}>
-                {t("pos.newSale")}
-              </Button>
-            </Dialog.Footer>
-              </>
-            )}
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
   );
 }

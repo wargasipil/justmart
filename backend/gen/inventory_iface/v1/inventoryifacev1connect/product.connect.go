@@ -36,6 +36,9 @@ const (
 	// ProductServiceListProductsProcedure is the fully-qualified name of the ProductService's
 	// ListProducts RPC.
 	ProductServiceListProductsProcedure = "/inventory_iface.v1.ProductService/ListProducts"
+	// ProductServiceGetProductsSummaryProcedure is the fully-qualified name of the ProductService's
+	// GetProductsSummary RPC.
+	ProductServiceGetProductsSummaryProcedure = "/inventory_iface.v1.ProductService/GetProductsSummary"
 	// ProductServiceGetProductProcedure is the fully-qualified name of the ProductService's GetProduct
 	// RPC.
 	ProductServiceGetProductProcedure = "/inventory_iface.v1.ProductService/GetProduct"
@@ -86,6 +89,14 @@ const (
 // ProductServiceClient is a client for the inventory_iface.v1.ProductService service.
 type ProductServiceClient interface {
 	ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error)
+	// GetProductsSummary aggregates ready + on-order stock (count and valuation at
+	// cost) over ALL products matching the same filters as ListProducts — not the
+	// current page. Drives the catalog stat row above the list.
+	//
+	// Narrower roles than ListProducts on purpose: the valuations are cost data,
+	// and cost never goes to a cashier (same posture as GetMyPerformance omitting
+	// COGS). POS reads the catalog through ListProducts and needs none of this.
+	GetProductsSummary(context.Context, *connect.Request[v1.GetProductsSummaryRequest]) (*connect.Response[v1.GetProductsSummaryResponse], error)
 	GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error)
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
 	// ImportProducts bulk-creates products from a parsed CSV (first-time offline
@@ -133,6 +144,12 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			httpClient,
 			baseURL+ProductServiceListProductsProcedure,
 			connect.WithSchema(productServiceMethods.ByName("ListProducts")),
+			connect.WithClientOptions(opts...),
+		),
+		getProductsSummary: connect.NewClient[v1.GetProductsSummaryRequest, v1.GetProductsSummaryResponse](
+			httpClient,
+			baseURL+ProductServiceGetProductsSummaryProcedure,
+			connect.WithSchema(productServiceMethods.ByName("GetProductsSummary")),
 			connect.WithClientOptions(opts...),
 		),
 		getProduct: connect.NewClient[v1.GetProductRequest, v1.GetProductResponse](
@@ -231,6 +248,7 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 // productServiceClient implements ProductServiceClient.
 type productServiceClient struct {
 	listProducts           *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
+	getProductsSummary     *connect.Client[v1.GetProductsSummaryRequest, v1.GetProductsSummaryResponse]
 	getProduct             *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
 	createProduct          *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
 	importProducts         *connect.Client[v1.ImportProductsRequest, v1.ImportProductsResponse]
@@ -251,6 +269,11 @@ type productServiceClient struct {
 // ListProducts calls inventory_iface.v1.ProductService.ListProducts.
 func (c *productServiceClient) ListProducts(ctx context.Context, req *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error) {
 	return c.listProducts.CallUnary(ctx, req)
+}
+
+// GetProductsSummary calls inventory_iface.v1.ProductService.GetProductsSummary.
+func (c *productServiceClient) GetProductsSummary(ctx context.Context, req *connect.Request[v1.GetProductsSummaryRequest]) (*connect.Response[v1.GetProductsSummaryResponse], error) {
+	return c.getProductsSummary.CallUnary(ctx, req)
 }
 
 // GetProduct calls inventory_iface.v1.ProductService.GetProduct.
@@ -331,6 +354,14 @@ func (c *productServiceClient) DeleteProductImage(ctx context.Context, req *conn
 // ProductServiceHandler is an implementation of the inventory_iface.v1.ProductService service.
 type ProductServiceHandler interface {
 	ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error)
+	// GetProductsSummary aggregates ready + on-order stock (count and valuation at
+	// cost) over ALL products matching the same filters as ListProducts — not the
+	// current page. Drives the catalog stat row above the list.
+	//
+	// Narrower roles than ListProducts on purpose: the valuations are cost data,
+	// and cost never goes to a cashier (same posture as GetMyPerformance omitting
+	// COGS). POS reads the catalog through ListProducts and needs none of this.
+	GetProductsSummary(context.Context, *connect.Request[v1.GetProductsSummaryRequest]) (*connect.Response[v1.GetProductsSummaryResponse], error)
 	GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error)
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
 	// ImportProducts bulk-creates products from a parsed CSV (first-time offline
@@ -374,6 +405,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		ProductServiceListProductsProcedure,
 		svc.ListProducts,
 		connect.WithSchema(productServiceMethods.ByName("ListProducts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productServiceGetProductsSummaryHandler := connect.NewUnaryHandler(
+		ProductServiceGetProductsSummaryProcedure,
+		svc.GetProductsSummary,
+		connect.WithSchema(productServiceMethods.ByName("GetProductsSummary")),
 		connect.WithHandlerOptions(opts...),
 	)
 	productServiceGetProductHandler := connect.NewUnaryHandler(
@@ -470,6 +507,8 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		switch r.URL.Path {
 		case ProductServiceListProductsProcedure:
 			productServiceListProductsHandler.ServeHTTP(w, r)
+		case ProductServiceGetProductsSummaryProcedure:
+			productServiceGetProductsSummaryHandler.ServeHTTP(w, r)
 		case ProductServiceGetProductProcedure:
 			productServiceGetProductHandler.ServeHTTP(w, r)
 		case ProductServiceCreateProductProcedure:
@@ -511,6 +550,10 @@ type UnimplementedProductServiceHandler struct{}
 
 func (UnimplementedProductServiceHandler) ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ListProducts is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) GetProductsSummary(context.Context, *connect.Request[v1.GetProductsSummaryRequest]) (*connect.Response[v1.GetProductsSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.GetProductsSummary is not implemented"))
 }
 
 func (UnimplementedProductServiceHandler) GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error) {

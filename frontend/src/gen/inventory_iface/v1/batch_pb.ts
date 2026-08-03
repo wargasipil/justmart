@@ -124,6 +124,16 @@ export class Batch extends Message<Batch> {
    */
   units: ProductUnit[] = [];
 
+  /**
+   * Owning product's image version (its image_updated_at, unix sec; 0 = no
+   * picture). Display-only enrichment from the same SearchBatches join that
+   * fills product_name, so a picker row can render <ProductImage> without a
+   * second round trip. 0 makes the client skip the image fetch entirely.
+   *
+   * @generated from field: int64 product_image_updated_at = 14;
+   */
+  productImageUpdatedAt = protoInt64.zero;
+
   constructor(data?: PartialMessage<Batch>) {
     super();
     proto3.util.initPartial(data, this);
@@ -145,6 +155,7 @@ export class Batch extends Message<Batch> {
     { no: 11, name: "po_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 12, name: "product_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 13, name: "units", kind: "message", T: ProductUnit, repeated: true },
+    { no: 14, name: "product_image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Batch {

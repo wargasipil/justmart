@@ -40,6 +40,9 @@ export const productKeys = {
   restockLogs: (productId: string, page: number, pageSize: number) =>
     [...productKeys.all, "restockLogs", productId, page, pageSize] as const,
   search: (query: string) => [...productKeys.all, "search", query] as const,
+  // Paging is deliberately absent: the summary covers every matching product,
+  // so paging through the table must not refetch it.
+  summary: (opts: ProductsSummaryOpts) => [...productKeys.all, "summary", opts] as const,
 };
 
 export const productImageKeys = {
@@ -124,6 +127,43 @@ export function useProductsQuery(opts: ProductsQueryOpts = {}) {
     enabled,
   });
   return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
+}
+
+// The list's filters minus paging — the summary is an aggregate over ALL
+// matching products, so it must be requested with the same filter set the table
+// uses and nothing else.
+export type ProductsSummaryOpts = Omit<
+  Required<Omit<ProductsQueryOpts, "enabled">>,
+  "page" | "pageSize"
+>;
+
+/**
+ * Catalog-wide stock totals (ready + on-order, each with its valuation at cost)
+ * over every product matching the active filters — the stat row above the list.
+ *
+ * Server-side aggregate on purpose: summing `useProductsQuery().rows` would sum
+ * ONE PAGE, so the figures would change as the user pages. Mirrors
+ * useSalesSummaryQuery on /orders.
+ *
+ * OWNER + PHARMACIST only (the valuations are cost data) — pass `enabled: false`
+ * from a surface a cashier can reach.
+ */
+export function useProductsSummaryQuery(
+  opts: Partial<ProductsSummaryOpts> & { enabled?: boolean } = {},
+) {
+  const {
+    includeInactive = false,
+    onlyArchived = false,
+    query = "",
+    opnameBefore = "",
+    enabled = true,
+  } = opts;
+  return useQuery({
+    queryKey: productKeys.summary({ includeInactive, onlyArchived, query, opnameBefore }),
+    queryFn: () =>
+      productClient.getProductsSummary({ includeInactive, onlyArchived, query, opnameBefore }),
+    enabled,
+  });
 }
 
 // Convenience for page-level name maps / preload selects that need the full list.

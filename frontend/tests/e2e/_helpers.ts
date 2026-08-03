@@ -16,6 +16,17 @@ export const OWNER = {
 export type TestUser = typeof OWNER;
 
 /**
+ * The catalog noun is business-mode aware (Settings ▸ General, applied by
+ * <GlossaryBridge>): retail renders "Product"/"Produk", pharmacy renders
+ * "Medicine"/"Obat". A spec that isn't testing the mode itself must not pin one
+ * spelling — otherwise it passes or fails purely on how the dev shop happens to
+ * be configured. Use these when matching UI copy that embeds the noun.
+ */
+export const CATALOG_NOUN = "(?:Products?|Produk|Medicines?|Obat)";
+/** Matches an accessible name that IS the catalog noun (heading, tab label). */
+export const CATALOG_NOUN_RE = new RegExp(`^${CATALOG_NOUN}$`, "i");
+
+/**
  * Console errors we tolerate. Each entry is matched as a substring against
  * msg.text(). Use sparingly — every entry is a known upstream nuisance that
  * we've decided not to let the suite fail on.

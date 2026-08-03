@@ -96,9 +96,14 @@ type Batch struct {
 	// Owning product's active units of measure (base first). Populated as
 	// enrichment in SearchBatches so a picker can offer per-line unit entry
 	// (e.g. transfer "2 box"). Stock/qty stay in base units.
-	Units         []*ProductUnit `protobuf:"bytes,13,rep,name=units,proto3" json:"units,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Units []*ProductUnit `protobuf:"bytes,13,rep,name=units,proto3" json:"units,omitempty"`
+	// Owning product's image version (its image_updated_at, unix sec; 0 = no
+	// picture). Display-only enrichment from the same SearchBatches join that
+	// fills product_name, so a picker row can render <ProductImage> without a
+	// second round trip. 0 makes the client skip the image fetch entirely.
+	ProductImageUpdatedAt int64 `protobuf:"varint,14,opt,name=product_image_updated_at,json=productImageUpdatedAt,proto3" json:"product_image_updated_at,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Batch) Reset() {
@@ -220,6 +225,13 @@ func (x *Batch) GetUnits() []*ProductUnit {
 		return x.Units
 	}
 	return nil
+}
+
+func (x *Batch) GetProductImageUpdatedAt() int64 {
+	if x != nil {
+		return x.ProductImageUpdatedAt
+	}
+	return 0
 }
 
 type ListBatchesRequest struct {
@@ -1288,7 +1300,7 @@ var File_inventory_iface_v1_batch_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\n" +
-	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xc0\x03\n" +
+	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xf9\x03\n" +
 	"\x05Batch\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1309,7 +1321,8 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	" \x01(\tR\x0fpurchaseOrderId\x12\x13\n" +
 	"\x05po_no\x18\v \x01(\tR\x04poNo\x12!\n" +
 	"\fproduct_name\x18\f \x01(\tR\vproductName\x125\n" +
-	"\x05units\x18\r \x03(\v2\x1f.inventory_iface.v1.ProductUnitR\x05units\"\x91\x02\n" +
+	"\x05units\x18\r \x03(\v2\x1f.inventory_iface.v1.ProductUnitR\x05units\x127\n" +
+	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\"\x91\x02\n" +
 	"\x12ListBatchesRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\"\n" +

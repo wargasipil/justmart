@@ -23,7 +23,8 @@ test.describe("dashboard", () => {
     }
 
     // 7-day trend chart heading is rendered.
-    await expect(page.getByRole("heading", { name: /Last 7 days/i })).toBeVisible();
+    // <ChartCard> renders its title as a <Text>, not a heading — match the text.
+    await expect(page.getByText(/Last 7 days/i).first()).toBeVisible();
   });
 
   test("OWNER tile click navigates to the linked detail page", async ({ page }) => {

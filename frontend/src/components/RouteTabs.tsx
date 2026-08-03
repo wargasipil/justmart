@@ -75,6 +75,13 @@ export default function RouteTabs({ items, orientation = "horizontal" }: RouteTa
         minW={vertical ? "180px" : undefined}
         flexShrink={0}
         overflowX={vertical ? undefined : "auto"}
+        // overflow-y MUST be pinned whenever overflow-x is set: per CSS spec a
+        // `visible` value on one axis computes to `auto` when the other axis is
+        // not visible. The active trigger's underline makes the content a hair
+        // taller than the list, so that implicit `overflow-y: auto` rendered a
+        // stray vertical scrollbar next to the strip (arrows and all) even when
+        // every tab fit on screen.
+        overflowY={vertical ? undefined : "hidden"}
       >
         {items.map((it) => (
           <Tabs.Trigger

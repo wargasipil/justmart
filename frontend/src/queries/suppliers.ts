@@ -26,7 +26,27 @@ export const supplierKeys = {
   restocks: (id: string, query: string, page: number, pageSize: number) =>
     [...supplierKeys.all, "restocks", id, query, page, pageSize] as const,
   search: (query: string) => [...supplierKeys.all, "search", query] as const,
+  // Paging is deliberately absent: the summary covers every matching supplier,
+  // so paging through the table must not refetch it.
+  summary: (opts: SuppliersSummaryOpts) => [...supplierKeys.all, "summary", opts] as const,
 };
+
+export type SuppliersSummaryOpts = Required<Omit<SuppliersQueryOpts, "page" | "pageSize">>;
+
+/**
+ * Total suppliers matching the active filters — the stat row above the list.
+ *
+ * Server-side aggregate on purpose: counting `useSuppliersQuery().rows` would
+ * count ONE PAGE, so the figure would change as the user pages. Mirrors
+ * useProductsSummaryQuery on /products.
+ */
+export function useSuppliersSummaryQuery(opts: Partial<SuppliersSummaryOpts> = {}) {
+  const { includeInactive = false, query = "" } = opts;
+  return useQuery({
+    queryKey: supplierKeys.summary({ includeInactive, query }),
+    queryFn: () => supplierClient.getSuppliersSummary({ includeInactive, query }),
+  });
+}
 
 // Single supplier (detail page).
 export function useSupplierQuery(id: string, enabled = true) {

@@ -1,4 +1,4 @@
-import { expect, test } from "./_helpers";
+import { CATALOG_NOUN_RE, expect, test } from "./_helpers";
 
 // Pre-authenticated via the `setup` project (storage state). No per-test
 // login needed. The analytics surface is now 3 dimension-scoped menus
@@ -22,9 +22,11 @@ test.describe("analytics", () => {
 
   test("/analytics/product paginates and shows order/stock columns", async ({ page }) => {
     await page.goto("/analytics/product");
-    await expect(page.getByRole("heading", { name: "Product" }).first()).toBeVisible();
-    // Pagination footer is always rendered.
-    await expect(page.getByText(/Showing/i).or(page.getByText(/No results/i))).toBeVisible();
+    await expect(page.getByRole("heading", { name: CATALOG_NOUN_RE }).first()).toBeVisible();
+    // Pagination footer is always rendered (reads "Showing 0-0 of 0" when the
+    // range is empty). Match the footer shape rather than a bare /Showing/ —
+    // the cashier-filter combobox also renders a "No results" empty state.
+    await expect(page.getByText(/Showing\s+\d+.\d+\s+of\s+\d+/i)).toBeVisible();
   });
 
   test("/analytics/user only allows Order metrics", async ({ page }) => {

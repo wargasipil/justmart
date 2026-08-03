@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreatePurchaseOrderRequest, CreatePurchaseOrderResponse, GetPurchaseOrderRequest, GetPurchaseOrderResponse, ListPurchaseOrdersRequest, ListPurchaseOrdersResponse, SendPurchaseOrderRequest, SendPurchaseOrderResponse, UpdatePurchaseOrderRequest, UpdatePurchaseOrderResponse, VoidPurchaseOrderRequest, VoidPurchaseOrderResponse } from "./order_pb.js";
+import { CreatePurchaseOrderRequest, CreatePurchaseOrderResponse, GetPurchaseOrderRequest, GetPurchaseOrderResponse, GetPurchaseOrdersSummaryRequest, GetPurchaseOrdersSummaryResponse, ListPurchaseOrdersRequest, ListPurchaseOrdersResponse, SendPurchaseOrderRequest, SendPurchaseOrderResponse, UpdatePurchaseOrderRequest, UpdatePurchaseOrderResponse, VoidPurchaseOrderRequest, VoidPurchaseOrderResponse } from "./order_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -19,6 +19,20 @@ export const PurchaseOrderService = {
       name: "ListPurchaseOrders",
       I: ListPurchaseOrdersRequest,
       O: ListPurchaseOrdersResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetPurchaseOrdersSummary aggregates order count, distinct products, ordered
+     * quantity and value over ALL orders matching the same filters as
+     * ListPurchaseOrders — not the current page. Drives the stat row above the
+     * restock list, so it must never be a sum of what happens to be on screen.
+     *
+     * @generated from rpc purchasing_iface.v1.PurchaseOrderService.GetPurchaseOrdersSummary
+     */
+    getPurchaseOrdersSummary: {
+      name: "GetPurchaseOrdersSummary",
+      I: GetPurchaseOrdersSummaryRequest,
+      O: GetPurchaseOrdersSummaryResponse,
       kind: MethodKind.Unary,
     },
     /**

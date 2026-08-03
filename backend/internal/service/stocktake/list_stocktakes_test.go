@@ -3,6 +3,7 @@ package stocktake_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -46,6 +47,64 @@ func TestListStocktakes_StatusFilter(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	require.Equal(t, int32(1), voidedResp.Msg.Total)
+}
+
+func TestListStocktakes_DateRangeOnCreated(t *testing.T) {
+	t.Parallel()
+	svc, db, ctx, _ := newSvc(t)
+	oldID := startDraft(t, svc, ctx, "old")
+	// Void it so a second session can be started (one DRAFT per warehouse).
+	_, err := svc.VoidStocktake(ctx, connect.NewRequest(&stocktakeifacev1.VoidStocktakeRequest{SessionId: oldID}))
+	require.NoError(t, err)
+	backdateSession(t, db, oldID, time.Now().AddDate(0, 0, -90), time.Time{})
+	startDraft(t, svc, ctx, "recent")
+
+	// No bounds ("Any date") sees both.
+	all, err := svc.ListStocktakes(ctx, connect.NewRequest(&stocktakeifacev1.ListStocktakesRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, int32(2), all.Msg.Total)
+
+	// Last 30 days drops the backdated one.
+	recent, err := svc.ListStocktakes(ctx, connect.NewRequest(&stocktakeifacev1.ListStocktakesRequest{
+		FromUnix: time.Now().AddDate(0, 0, -30).Unix(),
+		ToUnix:   time.Now().Add(time.Hour).Unix(),
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), recent.Msg.Total)
+	require.Equal(t, "recent", recent.Msg.Sessions[0].Name)
+}
+
+func TestListStocktakes_DateRangeOnCompleted(t *testing.T) {
+	t.Parallel()
+	svc, db, ctx, ownerID := newSvc(t)
+	whID := defaultWarehouseID(t, db)
+
+	// A session created long ago but completed today.
+	sessionID := startDraft(t, svc, ctx, "late finish")
+	batch := seedBatchWithStock(t, db, ownerID, whID, 4)
+	recordCount(t, svc, ctx, addBatch(t, svc, db, ctx, sessionID, batch), 4)
+	_, err := svc.CompleteStocktake(ctx, connect.NewRequest(&stocktakeifacev1.CompleteStocktakeRequest{
+		SessionId: sessionID,
+	}))
+	require.NoError(t, err)
+	backdateSession(t, db, sessionID, time.Now().AddDate(0, 0, -90), time.Now())
+
+	from := time.Now().AddDate(0, 0, -30).Unix()
+	to := time.Now().Add(time.Hour).Unix()
+
+	// By created it falls outside the window...
+	byCreated, err := svc.ListStocktakes(ctx, connect.NewRequest(&stocktakeifacev1.ListStocktakesRequest{
+		FromUnix: from, ToUnix: to, DateField: "created",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(0), byCreated.Msg.Total)
+
+	// ...but by completed it's inside.
+	byCompleted, err := svc.ListStocktakes(ctx, connect.NewRequest(&stocktakeifacev1.ListStocktakesRequest{
+		FromUnix: from, ToUnix: to, DateField: "completed",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), byCompleted.Msg.Total)
 }
 
 func TestListStocktakes_Unauthenticated(t *testing.T) {

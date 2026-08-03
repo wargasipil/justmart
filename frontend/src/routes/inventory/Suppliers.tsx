@@ -4,6 +4,7 @@ import {
   Button,
   HStack,
   Input,
+  SimpleGrid,
   Spinner,
   Stack,
   Switch,
@@ -15,13 +16,16 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import Pagination from "../../components/Pagination";
+import SummaryTile from "../../components/SummaryTile";
 import TableScroll from "../../components/TableScroll";
 import { Supplier } from "../../gen/inventory_iface/v1/supplier_pb";
 import {
   useArchiveSupplierMutation,
   useSuppliersQuery,
+  useSuppliersSummaryQuery,
   useUnarchiveSupplierMutation,
 } from "../../queries/suppliers";
+import { formatCount } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { CreateSupplierDrawer } from "./supplierDrawers";
 
@@ -40,9 +44,23 @@ export default function Suppliers() {
 
   const { page, setPage, pageSize, setPageSize } = usePageState(`${query}|${includeInactive}`);
   const suppliersQ = useSuppliersQuery({ includeInactive, query, page, pageSize });
+  // Count over EVERY matching supplier (server-side aggregate), not a count of
+  // the page — same filters as the list, minus paging, so the tile keeps
+  // describing the table under it as the user pages.
+  const summaryQ = useSuppliersSummaryQuery({ includeInactive, query });
 
   return (
     <Stack gap={4}>
+      {/* Summarizes the whole page, so it sits above the toolbar rather than
+          inside it. One tile today; the grid is the 4-up row the other list
+          pages use, so a second figure drops in without a re-layout. */}
+      <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
+        <SummaryTile
+          label={t("inventory.suppliers.summary.total")}
+          value={formatCount(summaryQ.data?.totalSuppliers ?? 0n)}
+        />
+      </SimpleGrid>
+
       <HStack justify="space-between" wrap="wrap" gap={2}>
         <HStack gap={3}>
           <Box position="relative">

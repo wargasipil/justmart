@@ -62,7 +62,6 @@ import PurchaseOrdersList from "./routes/purchasing/PurchaseOrdersList";
 import SuppliersLedger from "./routes/purchasing/SuppliersLedger";
 import NewPurchaseOrder from "./routes/purchasing/NewPurchaseOrder";
 import PurchaseOrderDetail from "./routes/purchasing/PurchaseOrderDetail";
-import { POStatus } from "./gen/purchasing_iface/v1/order_pb";
 import { Role } from "./gen/auth_iface/v1/policy_pb";
 
 // Dev-only component gallery (/components). Lazy-loaded and registered only
@@ -192,13 +191,16 @@ const router = createBrowserRouter([
             element: <Purchasing />,
             children: [
               { index: true, element: <Navigate to="all" replace /> },
+              // The active status comes from the URL segment via
+              // PO_STATUS_BY_TAB, resolved once in the Purchasing shell and
+              // shared with the stat row above the tabs — see restockFilters.
               { path: "all", element: <PurchaseOrdersList /> },
-              { path: "draft", element: <PurchaseOrdersList status={POStatus.PO_STATUS_DRAFT} /> },
-              { path: "sent", element: <PurchaseOrdersList status={POStatus.PO_STATUS_SENT} /> },
-              { path: "partial", element: <PurchaseOrdersList status={POStatus.PO_STATUS_PARTIALLY_RECEIVED} /> },
-              { path: "received", element: <PurchaseOrdersList status={POStatus.PO_STATUS_RECEIVED} /> },
-              { path: "closed", element: <PurchaseOrdersList status={POStatus.PO_STATUS_CLOSED} /> },
-              { path: "voided", element: <PurchaseOrdersList status={POStatus.PO_STATUS_VOIDED} /> },
+              { path: "draft", element: <PurchaseOrdersList /> },
+              { path: "sent", element: <PurchaseOrdersList /> },
+              { path: "partial", element: <PurchaseOrdersList /> },
+              { path: "received", element: <PurchaseOrdersList /> },
+              { path: "closed", element: <PurchaseOrdersList /> },
+              { path: "voided", element: <PurchaseOrdersList /> },
               { path: "suppliers", element: <SuppliersLedger /> },
               { path: "new", element: <NewPurchaseOrder /> },
               { path: ":id", element: <PurchaseOrderDetail /> },

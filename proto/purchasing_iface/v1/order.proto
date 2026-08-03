@@ -82,6 +82,14 @@ service PurchaseOrderService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // GetPurchaseOrdersSummary aggregates order count, distinct products, ordered
+  // quantity and value over ALL orders matching the same filters as
+  // ListPurchaseOrders — not the current page. Drives the stat row above the
+  // restock list, so it must never be a sum of what happens to be on screen.
+  rpc GetPurchaseOrdersSummary(GetPurchaseOrdersSummaryRequest) returns (GetPurchaseOrdersSummaryResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc GetPurchaseOrder(GetPurchaseOrderRequest) returns (GetPurchaseOrderResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -118,6 +126,29 @@ message ListPurchaseOrdersRequest {
 message ListPurchaseOrdersResponse {
   repeated PurchaseOrder orders = 1;
   int32 total = 2;
+}
+
+// Same filter set as ListPurchaseOrdersRequest, minus paging — the summary
+// covers every matching order, not a page. Keep the two in sync: the list and
+// the stat row above it must always describe the same set (both handlers share
+// applyPOFilters so they cannot drift).
+message GetPurchaseOrdersSummaryRequest {
+  POStatus status = 1;
+  string supplier_id = 2;
+  bool only_outstanding = 3;
+  string query = 4;
+  int64 from_unix = 5;
+  int64 to_unix = 6;
+  string date_field = 7;       // "created" | "received"
+}
+message GetPurchaseOrdersSummaryResponse {
+  int64 order_count = 1;    // matching purchase orders
+  int64 product_count = 2;  // DISTINCT products across their lines
+  // Ordered quantity in BASE units, summed across products — so a catalog
+  // holding both tablets and bottles adds them together. Read it as "total
+  // units ordered"; `total` is the comparable figure.
+  int64 item_count = 3;
+  int64 total = 4;          // SUM(ordered_total) — final, incl. PPN, after discounts
 }
 
 message GetPurchaseOrderRequest { string id = 1; }

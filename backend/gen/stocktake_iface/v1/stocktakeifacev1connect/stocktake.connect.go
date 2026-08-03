@@ -63,6 +63,9 @@ const (
 	// StocktakeServiceGetStocktakeProcedure is the fully-qualified name of the StocktakeService's
 	// GetStocktake RPC.
 	StocktakeServiceGetStocktakeProcedure = "/stocktake_iface.v1.StocktakeService/GetStocktake"
+	// StocktakeServiceGetStocktakeSummaryProcedure is the fully-qualified name of the
+	// StocktakeService's GetStocktakeSummary RPC.
+	StocktakeServiceGetStocktakeSummaryProcedure = "/stocktake_iface.v1.StocktakeService/GetStocktakeSummary"
 )
 
 // StocktakeServiceClient is a client for the stocktake_iface.v1.StocktakeService service.
@@ -77,6 +80,7 @@ type StocktakeServiceClient interface {
 	VoidStocktake(context.Context, *connect.Request[v1.VoidStocktakeRequest]) (*connect.Response[v1.VoidStocktakeResponse], error)
 	ListStocktakes(context.Context, *connect.Request[v1.ListStocktakesRequest]) (*connect.Response[v1.ListStocktakesResponse], error)
 	GetStocktake(context.Context, *connect.Request[v1.GetStocktakeRequest]) (*connect.Response[v1.GetStocktakeResponse], error)
+	GetStocktakeSummary(context.Context, *connect.Request[v1.GetStocktakeSummaryRequest]) (*connect.Response[v1.GetStocktakeSummaryResponse], error)
 }
 
 // NewStocktakeServiceClient constructs a client for the stocktake_iface.v1.StocktakeService
@@ -150,6 +154,12 @@ func NewStocktakeServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(stocktakeServiceMethods.ByName("GetStocktake")),
 			connect.WithClientOptions(opts...),
 		),
+		getStocktakeSummary: connect.NewClient[v1.GetStocktakeSummaryRequest, v1.GetStocktakeSummaryResponse](
+			httpClient,
+			baseURL+StocktakeServiceGetStocktakeSummaryProcedure,
+			connect.WithSchema(stocktakeServiceMethods.ByName("GetStocktakeSummary")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -165,6 +175,7 @@ type stocktakeServiceClient struct {
 	voidStocktake        *connect.Client[v1.VoidStocktakeRequest, v1.VoidStocktakeResponse]
 	listStocktakes       *connect.Client[v1.ListStocktakesRequest, v1.ListStocktakesResponse]
 	getStocktake         *connect.Client[v1.GetStocktakeRequest, v1.GetStocktakeResponse]
+	getStocktakeSummary  *connect.Client[v1.GetStocktakeSummaryRequest, v1.GetStocktakeSummaryResponse]
 }
 
 // StartStocktake calls stocktake_iface.v1.StocktakeService.StartStocktake.
@@ -217,6 +228,11 @@ func (c *stocktakeServiceClient) GetStocktake(ctx context.Context, req *connect.
 	return c.getStocktake.CallUnary(ctx, req)
 }
 
+// GetStocktakeSummary calls stocktake_iface.v1.StocktakeService.GetStocktakeSummary.
+func (c *stocktakeServiceClient) GetStocktakeSummary(ctx context.Context, req *connect.Request[v1.GetStocktakeSummaryRequest]) (*connect.Response[v1.GetStocktakeSummaryResponse], error) {
+	return c.getStocktakeSummary.CallUnary(ctx, req)
+}
+
 // StocktakeServiceHandler is an implementation of the stocktake_iface.v1.StocktakeService service.
 type StocktakeServiceHandler interface {
 	StartStocktake(context.Context, *connect.Request[v1.StartStocktakeRequest]) (*connect.Response[v1.StartStocktakeResponse], error)
@@ -229,6 +245,7 @@ type StocktakeServiceHandler interface {
 	VoidStocktake(context.Context, *connect.Request[v1.VoidStocktakeRequest]) (*connect.Response[v1.VoidStocktakeResponse], error)
 	ListStocktakes(context.Context, *connect.Request[v1.ListStocktakesRequest]) (*connect.Response[v1.ListStocktakesResponse], error)
 	GetStocktake(context.Context, *connect.Request[v1.GetStocktakeRequest]) (*connect.Response[v1.GetStocktakeResponse], error)
+	GetStocktakeSummary(context.Context, *connect.Request[v1.GetStocktakeSummaryRequest]) (*connect.Response[v1.GetStocktakeSummaryResponse], error)
 }
 
 // NewStocktakeServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -298,6 +315,12 @@ func NewStocktakeServiceHandler(svc StocktakeServiceHandler, opts ...connect.Han
 		connect.WithSchema(stocktakeServiceMethods.ByName("GetStocktake")),
 		connect.WithHandlerOptions(opts...),
 	)
+	stocktakeServiceGetStocktakeSummaryHandler := connect.NewUnaryHandler(
+		StocktakeServiceGetStocktakeSummaryProcedure,
+		svc.GetStocktakeSummary,
+		connect.WithSchema(stocktakeServiceMethods.ByName("GetStocktakeSummary")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/stocktake_iface.v1.StocktakeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case StocktakeServiceStartStocktakeProcedure:
@@ -320,6 +343,8 @@ func NewStocktakeServiceHandler(svc StocktakeServiceHandler, opts ...connect.Han
 			stocktakeServiceListStocktakesHandler.ServeHTTP(w, r)
 		case StocktakeServiceGetStocktakeProcedure:
 			stocktakeServiceGetStocktakeHandler.ServeHTTP(w, r)
+		case StocktakeServiceGetStocktakeSummaryProcedure:
+			stocktakeServiceGetStocktakeSummaryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -367,4 +392,8 @@ func (UnimplementedStocktakeServiceHandler) ListStocktakes(context.Context, *con
 
 func (UnimplementedStocktakeServiceHandler) GetStocktake(context.Context, *connect.Request[v1.GetStocktakeRequest]) (*connect.Response[v1.GetStocktakeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stocktake_iface.v1.StocktakeService.GetStocktake is not implemented"))
+}
+
+func (UnimplementedStocktakeServiceHandler) GetStocktakeSummary(context.Context, *connect.Request[v1.GetStocktakeSummaryRequest]) (*connect.Response[v1.GetStocktakeSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("stocktake_iface.v1.StocktakeService.GetStocktakeSummary is not implemented"))
 }

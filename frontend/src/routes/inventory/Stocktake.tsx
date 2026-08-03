@@ -13,13 +13,17 @@ import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import DateRangeFilter from "../../components/DateRangeFilter";
 import Pagination from "../../components/Pagination";
+import SummaryTile from "../../components/SummaryTile";
 import TableScroll from "../../components/TableScroll";
-import { formatUnix } from "../../lib/format";
+import { resolveRange, type DateRange } from "../../lib/dateRange";
+import { formatUnix, formatUnixOrDash } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
 import {
   useStartStocktakeMutation,
+  useStocktakeSummaryQuery,
   useStocktakesQuery,
 } from "../../queries/stocktake";
 
@@ -39,10 +43,29 @@ function statusPalette(status: string): string {
 export default function Stocktake() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { page, setPage, pageSize, setPageSize } = usePageState("");
-  const listQ = useStocktakesQuery({ page, pageSize });
+  // "" = Any date (the picker's own off state) — send no bounds at all then.
+  const [dateField, setDateField] = useState("");
+  const [range, setRange] = useState<DateRange>(() => resolveRange("30d"));
+  const dateFilters = {
+    dateField,
+    fromUnix: dateField ? BigInt(range.fromUnix) : 0n,
+    toUnix: dateField ? BigInt(range.toUnix) : 0n,
+  };
+
+  const { page, setPage, pageSize, setPageSize } = usePageState(
+    `${dateFilters.dateField}|${dateFilters.fromUnix}|${dateFilters.toUnix}`,
+  );
+  const listQ = useStocktakesQuery({ ...dateFilters, page, pageSize });
+  // Same filters as the list, so the tiles always describe the rows below them.
+  const summaryQ = useStocktakeSummaryQuery(dateFilters);
+  const summary = summaryQ.data;
   const startMut = useStartStocktakeMutation();
   const [creating, setCreating] = useState(false);
+
+  const dateFields = [
+    { value: "created", label: t("inventory.stocktake.dateCreated") },
+    { value: "completed", label: t("inventory.stocktake.dateCompleted") },
+  ];
 
   const onStart = async () => {
     setCreating(true);
@@ -61,19 +84,49 @@ export default function Stocktake() {
 
   return (
     <Stack gap={4}>
-      <HStack justify="space-between">
+      <HStack justify="space-between" gap={3} wrap="wrap">
         <Text fontSize="sm" color="fg.muted">
           {t("inventory.stocktake.intro")}
         </Text>
-        <Button
-          size="sm"
-          colorPalette="blue"
-          onClick={onStart}
-          loading={creating}
-        >
-          <Plus size={16} />
-          {t("inventory.stocktake.newSession")}
-        </Button>
+        <HStack gap={2} wrap="wrap">
+          <DateRangeFilter
+            value={range}
+            onChange={setRange}
+            fields={dateFields}
+            field={dateField}
+            onFieldChange={setDateField}
+          />
+          <Button
+            size="sm"
+            colorPalette="blue"
+            onClick={onStart}
+            loading={creating}
+          >
+            <Plus size={16} />
+            {t("inventory.stocktake.newSession")}
+          </Button>
+        </HStack>
+      </HStack>
+
+      {/* Summary over every session in the active warehouse (server-side
+          aggregate), not a sum of the page on screen. */}
+      <HStack gap={3} wrap="wrap">
+        <SummaryTile
+          label={t("inventory.stocktake.summaryTiles.draft")}
+          value={String(summary?.draftCount ?? 0)}
+        />
+        <SummaryTile
+          label={t("inventory.stocktake.summaryTiles.completed")}
+          value={String(summary?.completedCount ?? 0)}
+        />
+        <SummaryTile
+          label={t("inventory.stocktake.summaryTiles.varianceLines")}
+          value={String(summary?.varianceLines ?? 0)}
+        />
+        <SummaryTile
+          label={t("inventory.stocktake.summaryTiles.lastCount")}
+          value={formatUnixOrDash(summary?.lastCompletedAt ?? 0)}
+        />
       </HStack>
 
       {listQ.isLoading ? (

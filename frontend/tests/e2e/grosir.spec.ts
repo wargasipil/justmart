@@ -90,7 +90,7 @@ function cart(page: Page) {
 }
 
 test.describe("Grosir (wholesale tiers)", () => {
-  test("authoring: add a tier on the Grosir tab, see the ladder, delete via ConfirmDialog", async ({
+  test("authoring: add a tier on the Grosir card, see the ladder, delete via ConfirmDialog", async ({
     page,
   }) => {
     const marker = String(Date.now());
@@ -98,7 +98,9 @@ test.describe("Grosir (wholesale tiers)", () => {
     try {
       await page.goto(`/products/${s.productId}`);
       await page.waitForLoadState("networkidle");
-      await page.getByRole("tab", { name: /Grosir|Wholesale/i }).click();
+      // The grosir ladder is a CARD in the top grid (under Satuan), not a tab —
+      // a tier prices ONE unit, so it only reads correctly beside the unit list.
+      await expect(page.getByRole("heading", { name: /^(Grosir|Wholesale)$/ })).toBeVisible();
 
       // Empty state before any rung exists.
       await expect(page.getByText(/Belum ada harga grosir|No wholesale prices/i)).toBeVisible();
@@ -120,7 +122,6 @@ test.describe("Grosir (wholesale tiers)", () => {
       await addTier(page, s, 60, 8000);
       await addTier(page, s, 144, 7200);
       await page.reload();
-      await page.getByRole("tab", { name: /Grosir|Wholesale/i }).click();
       const rungs = page.getByText(/Beli ≥ \d+|Buy ≥ \d+/);
       await expect(rungs).toHaveCount(3);
       await expect(rungs.nth(0)).toHaveText(/12/);

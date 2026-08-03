@@ -266,6 +266,105 @@ func (x *ListSuppliersResponse) GetTotal() int32 {
 	return 0
 }
 
+// Same filter set as ListSuppliersRequest, minus paging — the summary counts
+// every matching supplier, not a page. Keep the two in sync: the list and the
+// stat row above it must always describe the same set.
+type GetSuppliersSummaryRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	IncludeInactive bool                   `protobuf:"varint,1,opt,name=include_inactive,json=includeInactive,proto3" json:"include_inactive,omitempty"`
+	Query           string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetSuppliersSummaryRequest) Reset() {
+	*x = GetSuppliersSummaryRequest{}
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSuppliersSummaryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSuppliersSummaryRequest) ProtoMessage() {}
+
+func (x *GetSuppliersSummaryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSuppliersSummaryRequest.ProtoReflect.Descriptor instead.
+func (*GetSuppliersSummaryRequest) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetSuppliersSummaryRequest) GetIncludeInactive() bool {
+	if x != nil {
+		return x.IncludeInactive
+	}
+	return false
+}
+
+func (x *GetSuppliersSummaryRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+type GetSuppliersSummaryResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TotalSuppliers int64                  `protobuf:"varint,1,opt,name=total_suppliers,json=totalSuppliers,proto3" json:"total_suppliers,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetSuppliersSummaryResponse) Reset() {
+	*x = GetSuppliersSummaryResponse{}
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSuppliersSummaryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSuppliersSummaryResponse) ProtoMessage() {}
+
+func (x *GetSuppliersSummaryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSuppliersSummaryResponse.ProtoReflect.Descriptor instead.
+func (*GetSuppliersSummaryResponse) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetSuppliersSummaryResponse) GetTotalSuppliers() int64 {
+	if x != nil {
+		return x.TotalSuppliers
+	}
+	return 0
+}
+
 type GetSupplierRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -275,7 +374,7 @@ type GetSupplierRequest struct {
 
 func (x *GetSupplierRequest) Reset() {
 	*x = GetSupplierRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[3]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +386,7 @@ func (x *GetSupplierRequest) String() string {
 func (*GetSupplierRequest) ProtoMessage() {}
 
 func (x *GetSupplierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[3]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +399,7 @@ func (x *GetSupplierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSupplierRequest.ProtoReflect.Descriptor instead.
 func (*GetSupplierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{3}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetSupplierRequest) GetId() string {
@@ -319,7 +418,7 @@ type GetSupplierResponse struct {
 
 func (x *GetSupplierResponse) Reset() {
 	*x = GetSupplierResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[4]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +430,7 @@ func (x *GetSupplierResponse) String() string {
 func (*GetSupplierResponse) ProtoMessage() {}
 
 func (x *GetSupplierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[4]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +443,7 @@ func (x *GetSupplierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSupplierResponse.ProtoReflect.Descriptor instead.
 func (*GetSupplierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{4}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetSupplierResponse) GetSupplier() *Supplier {
@@ -370,7 +469,7 @@ type CreateSupplierRequest struct {
 
 func (x *CreateSupplierRequest) Reset() {
 	*x = CreateSupplierRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[5]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +481,7 @@ func (x *CreateSupplierRequest) String() string {
 func (*CreateSupplierRequest) ProtoMessage() {}
 
 func (x *CreateSupplierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[5]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +494,7 @@ func (x *CreateSupplierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSupplierRequest.ProtoReflect.Descriptor instead.
 func (*CreateSupplierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{5}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateSupplierRequest) GetName() string {
@@ -463,7 +562,7 @@ type CreateSupplierResponse struct {
 
 func (x *CreateSupplierResponse) Reset() {
 	*x = CreateSupplierResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[6]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -475,7 +574,7 @@ func (x *CreateSupplierResponse) String() string {
 func (*CreateSupplierResponse) ProtoMessage() {}
 
 func (x *CreateSupplierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[6]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -488,7 +587,7 @@ func (x *CreateSupplierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSupplierResponse.ProtoReflect.Descriptor instead.
 func (*CreateSupplierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{6}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateSupplierResponse) GetSupplier() *Supplier {
@@ -515,7 +614,7 @@ type UpdateSupplierRequest struct {
 
 func (x *UpdateSupplierRequest) Reset() {
 	*x = UpdateSupplierRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[7]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -527,7 +626,7 @@ func (x *UpdateSupplierRequest) String() string {
 func (*UpdateSupplierRequest) ProtoMessage() {}
 
 func (x *UpdateSupplierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[7]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -540,7 +639,7 @@ func (x *UpdateSupplierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSupplierRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSupplierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{7}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateSupplierRequest) GetId() string {
@@ -615,7 +714,7 @@ type UpdateSupplierResponse struct {
 
 func (x *UpdateSupplierResponse) Reset() {
 	*x = UpdateSupplierResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[8]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -627,7 +726,7 @@ func (x *UpdateSupplierResponse) String() string {
 func (*UpdateSupplierResponse) ProtoMessage() {}
 
 func (x *UpdateSupplierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[8]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -640,7 +739,7 @@ func (x *UpdateSupplierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSupplierResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSupplierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{8}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateSupplierResponse) GetSupplier() *Supplier {
@@ -659,7 +758,7 @@ type ArchiveSupplierRequest struct {
 
 func (x *ArchiveSupplierRequest) Reset() {
 	*x = ArchiveSupplierRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[9]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -671,7 +770,7 @@ func (x *ArchiveSupplierRequest) String() string {
 func (*ArchiveSupplierRequest) ProtoMessage() {}
 
 func (x *ArchiveSupplierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[9]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -684,7 +783,7 @@ func (x *ArchiveSupplierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveSupplierRequest.ProtoReflect.Descriptor instead.
 func (*ArchiveSupplierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{9}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ArchiveSupplierRequest) GetId() string {
@@ -703,7 +802,7 @@ type ArchiveSupplierResponse struct {
 
 func (x *ArchiveSupplierResponse) Reset() {
 	*x = ArchiveSupplierResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[10]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -715,7 +814,7 @@ func (x *ArchiveSupplierResponse) String() string {
 func (*ArchiveSupplierResponse) ProtoMessage() {}
 
 func (x *ArchiveSupplierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[10]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -728,7 +827,7 @@ func (x *ArchiveSupplierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveSupplierResponse.ProtoReflect.Descriptor instead.
 func (*ArchiveSupplierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{10}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ArchiveSupplierResponse) GetSupplier() *Supplier {
@@ -747,7 +846,7 @@ type UnarchiveSupplierRequest struct {
 
 func (x *UnarchiveSupplierRequest) Reset() {
 	*x = UnarchiveSupplierRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[11]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -759,7 +858,7 @@ func (x *UnarchiveSupplierRequest) String() string {
 func (*UnarchiveSupplierRequest) ProtoMessage() {}
 
 func (x *UnarchiveSupplierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[11]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -772,7 +871,7 @@ func (x *UnarchiveSupplierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnarchiveSupplierRequest.ProtoReflect.Descriptor instead.
 func (*UnarchiveSupplierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{11}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UnarchiveSupplierRequest) GetId() string {
@@ -791,7 +890,7 @@ type UnarchiveSupplierResponse struct {
 
 func (x *UnarchiveSupplierResponse) Reset() {
 	*x = UnarchiveSupplierResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[12]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -803,7 +902,7 @@ func (x *UnarchiveSupplierResponse) String() string {
 func (*UnarchiveSupplierResponse) ProtoMessage() {}
 
 func (x *UnarchiveSupplierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[12]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -816,7 +915,7 @@ func (x *UnarchiveSupplierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnarchiveSupplierResponse.ProtoReflect.Descriptor instead.
 func (*UnarchiveSupplierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{12}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UnarchiveSupplierResponse) GetSupplier() *Supplier {
@@ -836,7 +935,7 @@ type SearchSuppliersRequest struct {
 
 func (x *SearchSuppliersRequest) Reset() {
 	*x = SearchSuppliersRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[13]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -848,7 +947,7 @@ func (x *SearchSuppliersRequest) String() string {
 func (*SearchSuppliersRequest) ProtoMessage() {}
 
 func (x *SearchSuppliersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[13]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -861,7 +960,7 @@ func (x *SearchSuppliersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSuppliersRequest.ProtoReflect.Descriptor instead.
 func (*SearchSuppliersRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{13}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SearchSuppliersRequest) GetQuery() string {
@@ -887,7 +986,7 @@ type SearchSuppliersResponse struct {
 
 func (x *SearchSuppliersResponse) Reset() {
 	*x = SearchSuppliersResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[14]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -899,7 +998,7 @@ func (x *SearchSuppliersResponse) String() string {
 func (*SearchSuppliersResponse) ProtoMessage() {}
 
 func (x *SearchSuppliersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[14]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -912,7 +1011,7 @@ func (x *SearchSuppliersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchSuppliersResponse.ProtoReflect.Descriptor instead.
 func (*SearchSuppliersResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{14}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SearchSuppliersResponse) GetSuppliers() []*Supplier {
@@ -934,7 +1033,7 @@ type SupplierRef struct {
 
 func (x *SupplierRef) Reset() {
 	*x = SupplierRef{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[15]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -946,7 +1045,7 @@ func (x *SupplierRef) String() string {
 func (*SupplierRef) ProtoMessage() {}
 
 func (x *SupplierRef) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[15]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -959,7 +1058,7 @@ func (x *SupplierRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SupplierRef.ProtoReflect.Descriptor instead.
 func (*SupplierRef) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{15}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SupplierRef) GetId() string {
@@ -992,7 +1091,7 @@ type ResolveSuppliersRequest struct {
 
 func (x *ResolveSuppliersRequest) Reset() {
 	*x = ResolveSuppliersRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[16]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1004,7 +1103,7 @@ func (x *ResolveSuppliersRequest) String() string {
 func (*ResolveSuppliersRequest) ProtoMessage() {}
 
 func (x *ResolveSuppliersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[16]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1017,7 +1116,7 @@ func (x *ResolveSuppliersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveSuppliersRequest.ProtoReflect.Descriptor instead.
 func (*ResolveSuppliersRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{16}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ResolveSuppliersRequest) GetIds() []string {
@@ -1036,7 +1135,7 @@ type ResolveSuppliersResponse struct {
 
 func (x *ResolveSuppliersResponse) Reset() {
 	*x = ResolveSuppliersResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[17]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1048,7 +1147,7 @@ func (x *ResolveSuppliersResponse) String() string {
 func (*ResolveSuppliersResponse) ProtoMessage() {}
 
 func (x *ResolveSuppliersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[17]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1061,7 +1160,7 @@ func (x *ResolveSuppliersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveSuppliersResponse.ProtoReflect.Descriptor instead.
 func (*ResolveSuppliersResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{17}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ResolveSuppliersResponse) GetSuppliers() []*SupplierRef {
@@ -1089,7 +1188,7 @@ type SupplierProductRestock struct {
 
 func (x *SupplierProductRestock) Reset() {
 	*x = SupplierProductRestock{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[18]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1101,7 +1200,7 @@ func (x *SupplierProductRestock) String() string {
 func (*SupplierProductRestock) ProtoMessage() {}
 
 func (x *SupplierProductRestock) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[18]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1114,7 +1213,7 @@ func (x *SupplierProductRestock) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SupplierProductRestock.ProtoReflect.Descriptor instead.
 func (*SupplierProductRestock) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{18}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SupplierProductRestock) GetProductId() string {
@@ -1185,7 +1284,7 @@ type ListSupplierRestocksRequest struct {
 
 func (x *ListSupplierRestocksRequest) Reset() {
 	*x = ListSupplierRestocksRequest{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[19]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1197,7 +1296,7 @@ func (x *ListSupplierRestocksRequest) String() string {
 func (*ListSupplierRestocksRequest) ProtoMessage() {}
 
 func (x *ListSupplierRestocksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[19]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1210,7 +1309,7 @@ func (x *ListSupplierRestocksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSupplierRestocksRequest.ProtoReflect.Descriptor instead.
 func (*ListSupplierRestocksRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{19}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListSupplierRestocksRequest) GetSupplierId() string {
@@ -1251,7 +1350,7 @@ type ListSupplierRestocksResponse struct {
 
 func (x *ListSupplierRestocksResponse) Reset() {
 	*x = ListSupplierRestocksResponse{}
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[20]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1263,7 +1362,7 @@ func (x *ListSupplierRestocksResponse) String() string {
 func (*ListSupplierRestocksResponse) ProtoMessage() {}
 
 func (x *ListSupplierRestocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[20]
+	mi := &file_inventory_iface_v1_supplier_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1276,7 +1375,7 @@ func (x *ListSupplierRestocksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSupplierRestocksResponse.ProtoReflect.Descriptor instead.
 func (*ListSupplierRestocksResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{20}
+	return file_inventory_iface_v1_supplier_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListSupplierRestocksResponse) GetRestocks() []*SupplierProductRestock {
@@ -1319,7 +1418,12 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x05query\x18\x04 \x01(\tR\x05query\"i\n" +
 	"\x15ListSuppliersResponse\x12:\n" +
 	"\tsuppliers\x18\x01 \x03(\v2\x1c.inventory_iface.v1.SupplierR\tsuppliers\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"$\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"]\n" +
+	"\x1aGetSuppliersSummaryRequest\x12)\n" +
+	"\x10include_inactive\x18\x01 \x01(\bR\x0fincludeInactive\x12\x14\n" +
+	"\x05query\x18\x02 \x01(\tR\x05query\"F\n" +
+	"\x1bGetSuppliersSummaryResponse\x12'\n" +
+	"\x0ftotal_suppliers\x18\x01 \x01(\x03R\x0etotalSuppliers\"$\n" +
 	"\x12GetSupplierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"O\n" +
 	"\x13GetSupplierResponse\x128\n" +
@@ -1387,9 +1491,10 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x05query\x18\x04 \x01(\tR\x05query\"|\n" +
 	"\x1cListSupplierRestocksResponse\x12F\n" +
 	"\brestocks\x18\x01 \x03(\v2*.inventory_iface.v1.SupplierProductRestockR\brestocks\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xa6\b\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xa6\t\n" +
 	"\x0fSupplierService\x12l\n" +
-	"\rListSuppliers\x12(.inventory_iface.v1.ListSuppliersRequest\x1a).inventory_iface.v1.ListSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
+	"\rListSuppliers\x12(.inventory_iface.v1.ListSuppliersRequest\x1a).inventory_iface.v1.ListSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12~\n" +
+	"\x13GetSuppliersSummary\x12..inventory_iface.v1.GetSuppliersSummaryRequest\x1a/.inventory_iface.v1.GetSuppliersSummaryResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
 	"\vGetSupplier\x12&.inventory_iface.v1.GetSupplierRequest\x1a'.inventory_iface.v1.GetSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
 	"\x0eCreateSupplier\x12).inventory_iface.v1.CreateSupplierRequest\x1a*.inventory_iface.v1.CreateSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
 	"\x0eUpdateSupplier\x12).inventory_iface.v1.UpdateSupplierRequest\x1a*.inventory_iface.v1.UpdateSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12r\n" +
@@ -1411,29 +1516,31 @@ func file_inventory_iface_v1_supplier_proto_rawDescGZIP() []byte {
 	return file_inventory_iface_v1_supplier_proto_rawDescData
 }
 
-var file_inventory_iface_v1_supplier_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_inventory_iface_v1_supplier_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_inventory_iface_v1_supplier_proto_goTypes = []any{
 	(*Supplier)(nil),                     // 0: inventory_iface.v1.Supplier
 	(*ListSuppliersRequest)(nil),         // 1: inventory_iface.v1.ListSuppliersRequest
 	(*ListSuppliersResponse)(nil),        // 2: inventory_iface.v1.ListSuppliersResponse
-	(*GetSupplierRequest)(nil),           // 3: inventory_iface.v1.GetSupplierRequest
-	(*GetSupplierResponse)(nil),          // 4: inventory_iface.v1.GetSupplierResponse
-	(*CreateSupplierRequest)(nil),        // 5: inventory_iface.v1.CreateSupplierRequest
-	(*CreateSupplierResponse)(nil),       // 6: inventory_iface.v1.CreateSupplierResponse
-	(*UpdateSupplierRequest)(nil),        // 7: inventory_iface.v1.UpdateSupplierRequest
-	(*UpdateSupplierResponse)(nil),       // 8: inventory_iface.v1.UpdateSupplierResponse
-	(*ArchiveSupplierRequest)(nil),       // 9: inventory_iface.v1.ArchiveSupplierRequest
-	(*ArchiveSupplierResponse)(nil),      // 10: inventory_iface.v1.ArchiveSupplierResponse
-	(*UnarchiveSupplierRequest)(nil),     // 11: inventory_iface.v1.UnarchiveSupplierRequest
-	(*UnarchiveSupplierResponse)(nil),    // 12: inventory_iface.v1.UnarchiveSupplierResponse
-	(*SearchSuppliersRequest)(nil),       // 13: inventory_iface.v1.SearchSuppliersRequest
-	(*SearchSuppliersResponse)(nil),      // 14: inventory_iface.v1.SearchSuppliersResponse
-	(*SupplierRef)(nil),                  // 15: inventory_iface.v1.SupplierRef
-	(*ResolveSuppliersRequest)(nil),      // 16: inventory_iface.v1.ResolveSuppliersRequest
-	(*ResolveSuppliersResponse)(nil),     // 17: inventory_iface.v1.ResolveSuppliersResponse
-	(*SupplierProductRestock)(nil),       // 18: inventory_iface.v1.SupplierProductRestock
-	(*ListSupplierRestocksRequest)(nil),  // 19: inventory_iface.v1.ListSupplierRestocksRequest
-	(*ListSupplierRestocksResponse)(nil), // 20: inventory_iface.v1.ListSupplierRestocksResponse
+	(*GetSuppliersSummaryRequest)(nil),   // 3: inventory_iface.v1.GetSuppliersSummaryRequest
+	(*GetSuppliersSummaryResponse)(nil),  // 4: inventory_iface.v1.GetSuppliersSummaryResponse
+	(*GetSupplierRequest)(nil),           // 5: inventory_iface.v1.GetSupplierRequest
+	(*GetSupplierResponse)(nil),          // 6: inventory_iface.v1.GetSupplierResponse
+	(*CreateSupplierRequest)(nil),        // 7: inventory_iface.v1.CreateSupplierRequest
+	(*CreateSupplierResponse)(nil),       // 8: inventory_iface.v1.CreateSupplierResponse
+	(*UpdateSupplierRequest)(nil),        // 9: inventory_iface.v1.UpdateSupplierRequest
+	(*UpdateSupplierResponse)(nil),       // 10: inventory_iface.v1.UpdateSupplierResponse
+	(*ArchiveSupplierRequest)(nil),       // 11: inventory_iface.v1.ArchiveSupplierRequest
+	(*ArchiveSupplierResponse)(nil),      // 12: inventory_iface.v1.ArchiveSupplierResponse
+	(*UnarchiveSupplierRequest)(nil),     // 13: inventory_iface.v1.UnarchiveSupplierRequest
+	(*UnarchiveSupplierResponse)(nil),    // 14: inventory_iface.v1.UnarchiveSupplierResponse
+	(*SearchSuppliersRequest)(nil),       // 15: inventory_iface.v1.SearchSuppliersRequest
+	(*SearchSuppliersResponse)(nil),      // 16: inventory_iface.v1.SearchSuppliersResponse
+	(*SupplierRef)(nil),                  // 17: inventory_iface.v1.SupplierRef
+	(*ResolveSuppliersRequest)(nil),      // 18: inventory_iface.v1.ResolveSuppliersRequest
+	(*ResolveSuppliersResponse)(nil),     // 19: inventory_iface.v1.ResolveSuppliersResponse
+	(*SupplierProductRestock)(nil),       // 20: inventory_iface.v1.SupplierProductRestock
+	(*ListSupplierRestocksRequest)(nil),  // 21: inventory_iface.v1.ListSupplierRestocksRequest
+	(*ListSupplierRestocksResponse)(nil), // 22: inventory_iface.v1.ListSupplierRestocksResponse
 }
 var file_inventory_iface_v1_supplier_proto_depIdxs = []int32{
 	0,  // 0: inventory_iface.v1.ListSuppliersResponse.suppliers:type_name -> inventory_iface.v1.Supplier
@@ -1443,28 +1550,30 @@ var file_inventory_iface_v1_supplier_proto_depIdxs = []int32{
 	0,  // 4: inventory_iface.v1.ArchiveSupplierResponse.supplier:type_name -> inventory_iface.v1.Supplier
 	0,  // 5: inventory_iface.v1.UnarchiveSupplierResponse.supplier:type_name -> inventory_iface.v1.Supplier
 	0,  // 6: inventory_iface.v1.SearchSuppliersResponse.suppliers:type_name -> inventory_iface.v1.Supplier
-	15, // 7: inventory_iface.v1.ResolveSuppliersResponse.suppliers:type_name -> inventory_iface.v1.SupplierRef
-	18, // 8: inventory_iface.v1.ListSupplierRestocksResponse.restocks:type_name -> inventory_iface.v1.SupplierProductRestock
+	17, // 7: inventory_iface.v1.ResolveSuppliersResponse.suppliers:type_name -> inventory_iface.v1.SupplierRef
+	20, // 8: inventory_iface.v1.ListSupplierRestocksResponse.restocks:type_name -> inventory_iface.v1.SupplierProductRestock
 	1,  // 9: inventory_iface.v1.SupplierService.ListSuppliers:input_type -> inventory_iface.v1.ListSuppliersRequest
-	3,  // 10: inventory_iface.v1.SupplierService.GetSupplier:input_type -> inventory_iface.v1.GetSupplierRequest
-	5,  // 11: inventory_iface.v1.SupplierService.CreateSupplier:input_type -> inventory_iface.v1.CreateSupplierRequest
-	7,  // 12: inventory_iface.v1.SupplierService.UpdateSupplier:input_type -> inventory_iface.v1.UpdateSupplierRequest
-	9,  // 13: inventory_iface.v1.SupplierService.ArchiveSupplier:input_type -> inventory_iface.v1.ArchiveSupplierRequest
-	11, // 14: inventory_iface.v1.SupplierService.UnarchiveSupplier:input_type -> inventory_iface.v1.UnarchiveSupplierRequest
-	13, // 15: inventory_iface.v1.SupplierService.SearchSuppliers:input_type -> inventory_iface.v1.SearchSuppliersRequest
-	16, // 16: inventory_iface.v1.SupplierService.ResolveSuppliers:input_type -> inventory_iface.v1.ResolveSuppliersRequest
-	19, // 17: inventory_iface.v1.SupplierService.ListSupplierRestocks:input_type -> inventory_iface.v1.ListSupplierRestocksRequest
-	2,  // 18: inventory_iface.v1.SupplierService.ListSuppliers:output_type -> inventory_iface.v1.ListSuppliersResponse
-	4,  // 19: inventory_iface.v1.SupplierService.GetSupplier:output_type -> inventory_iface.v1.GetSupplierResponse
-	6,  // 20: inventory_iface.v1.SupplierService.CreateSupplier:output_type -> inventory_iface.v1.CreateSupplierResponse
-	8,  // 21: inventory_iface.v1.SupplierService.UpdateSupplier:output_type -> inventory_iface.v1.UpdateSupplierResponse
-	10, // 22: inventory_iface.v1.SupplierService.ArchiveSupplier:output_type -> inventory_iface.v1.ArchiveSupplierResponse
-	12, // 23: inventory_iface.v1.SupplierService.UnarchiveSupplier:output_type -> inventory_iface.v1.UnarchiveSupplierResponse
-	14, // 24: inventory_iface.v1.SupplierService.SearchSuppliers:output_type -> inventory_iface.v1.SearchSuppliersResponse
-	17, // 25: inventory_iface.v1.SupplierService.ResolveSuppliers:output_type -> inventory_iface.v1.ResolveSuppliersResponse
-	20, // 26: inventory_iface.v1.SupplierService.ListSupplierRestocks:output_type -> inventory_iface.v1.ListSupplierRestocksResponse
-	18, // [18:27] is the sub-list for method output_type
-	9,  // [9:18] is the sub-list for method input_type
+	3,  // 10: inventory_iface.v1.SupplierService.GetSuppliersSummary:input_type -> inventory_iface.v1.GetSuppliersSummaryRequest
+	5,  // 11: inventory_iface.v1.SupplierService.GetSupplier:input_type -> inventory_iface.v1.GetSupplierRequest
+	7,  // 12: inventory_iface.v1.SupplierService.CreateSupplier:input_type -> inventory_iface.v1.CreateSupplierRequest
+	9,  // 13: inventory_iface.v1.SupplierService.UpdateSupplier:input_type -> inventory_iface.v1.UpdateSupplierRequest
+	11, // 14: inventory_iface.v1.SupplierService.ArchiveSupplier:input_type -> inventory_iface.v1.ArchiveSupplierRequest
+	13, // 15: inventory_iface.v1.SupplierService.UnarchiveSupplier:input_type -> inventory_iface.v1.UnarchiveSupplierRequest
+	15, // 16: inventory_iface.v1.SupplierService.SearchSuppliers:input_type -> inventory_iface.v1.SearchSuppliersRequest
+	18, // 17: inventory_iface.v1.SupplierService.ResolveSuppliers:input_type -> inventory_iface.v1.ResolveSuppliersRequest
+	21, // 18: inventory_iface.v1.SupplierService.ListSupplierRestocks:input_type -> inventory_iface.v1.ListSupplierRestocksRequest
+	2,  // 19: inventory_iface.v1.SupplierService.ListSuppliers:output_type -> inventory_iface.v1.ListSuppliersResponse
+	4,  // 20: inventory_iface.v1.SupplierService.GetSuppliersSummary:output_type -> inventory_iface.v1.GetSuppliersSummaryResponse
+	6,  // 21: inventory_iface.v1.SupplierService.GetSupplier:output_type -> inventory_iface.v1.GetSupplierResponse
+	8,  // 22: inventory_iface.v1.SupplierService.CreateSupplier:output_type -> inventory_iface.v1.CreateSupplierResponse
+	10, // 23: inventory_iface.v1.SupplierService.UpdateSupplier:output_type -> inventory_iface.v1.UpdateSupplierResponse
+	12, // 24: inventory_iface.v1.SupplierService.ArchiveSupplier:output_type -> inventory_iface.v1.ArchiveSupplierResponse
+	14, // 25: inventory_iface.v1.SupplierService.UnarchiveSupplier:output_type -> inventory_iface.v1.UnarchiveSupplierResponse
+	16, // 26: inventory_iface.v1.SupplierService.SearchSuppliers:output_type -> inventory_iface.v1.SearchSuppliersResponse
+	19, // 27: inventory_iface.v1.SupplierService.ResolveSuppliers:output_type -> inventory_iface.v1.ResolveSuppliersResponse
+	22, // 28: inventory_iface.v1.SupplierService.ListSupplierRestocks:output_type -> inventory_iface.v1.ListSupplierRestocksResponse
+	19, // [19:29] is the sub-list for method output_type
+	9,  // [9:19] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -1481,7 +1590,7 @@ func file_inventory_iface_v1_supplier_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_inventory_iface_v1_supplier_proto_rawDesc), len(file_inventory_iface_v1_supplier_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

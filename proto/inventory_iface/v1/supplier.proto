@@ -25,6 +25,12 @@ service SupplierService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // GetSuppliersSummary counts every supplier matching the same filters as
+  // ListSuppliers — not the current page. Drives the stat row above the list.
+  rpc GetSuppliersSummary(GetSuppliersSummaryRequest) returns (GetSuppliersSummaryResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   rpc GetSupplier(GetSupplierRequest) returns (GetSupplierResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
@@ -73,6 +79,17 @@ message ListSuppliersRequest {
 message ListSuppliersResponse {
   repeated Supplier suppliers = 1;
   int32 total = 2;
+}
+
+// Same filter set as ListSuppliersRequest, minus paging — the summary counts
+// every matching supplier, not a page. Keep the two in sync: the list and the
+// stat row above it must always describe the same set.
+message GetSuppliersSummaryRequest {
+  bool include_inactive = 1;
+  string query = 2;
+}
+message GetSuppliersSummaryResponse {
+  int64 total_suppliers = 1;
 }
 
 message GetSupplierRequest { string id = 1; }

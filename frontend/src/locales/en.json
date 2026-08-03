@@ -54,7 +54,8 @@
       "next": "Next",
       "perPage": "{{count}} / page"
     },
-    "back": "Back"
+    "back": "Back",
+    "clear": "Clear"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -338,6 +339,12 @@
     "remaining": "Remaining",
     "statusTabs": {
       "all": "All"
+    },
+    "summary": {
+      "orders": "Transactions",
+      "products": "$t(glossary.productsCap)",
+      "items": "Items ordered",
+      "total": "Total value"
     }
   },
   "auth": {
@@ -518,6 +525,8 @@
     "cancel": "Cancel sale",
     "exit": "Exit",
     "outOfStock": "Out of stock",
+    "showOutOfStock": "Show out of stock",
+    "noResultsHiddenOutOfStock": "No $t(glossary.products) in stock match this. Turn on \"Show out of stock\" to see the rest.",
     "stock": "in stock",
     "receiptTitle": "Receipt",
     "saleNo": "Sale #",
@@ -722,6 +731,12 @@
       "lastSupplier": "Last supplier",
       "colGroupStandard": "Standard",
       "colGroupRestock": "Restock",
+      "summary": {
+        "ready": "Ready stock",
+        "readyValue": "Ready value",
+        "onOrder": "Ongoing stock",
+        "onOrderValue": "Ongoing value"
+      },
       "importTitle": "Import CSV",
       "importChooseFile": "Choose CSV file",
       "importTemplate": "Download template",
@@ -768,6 +783,9 @@
       "bankName": "Bank",
       "bankAccountNumber": "Account number",
       "bankAccountHolder": "Account holder",
+      "summary": {
+        "total": "Total suppliers"
+      },
       "searchPlaceholder": "Search by code / name…",
       "infoSection": "Information",
       "restockSection": "Products & Restock",
@@ -830,7 +848,7 @@
       "po": "PO",
       "receive": "Receive",
       "expired": "expired",
-      "selectProduct": "— select —",
+      "selectProduct": "Select a $t(glossary.product)",
       "importTitle": "Import Stock",
       "importChooseFile": "Choose CSV file",
       "importTemplate": "Download template",
@@ -853,7 +871,7 @@
       "title": "Stock movements",
       "recordTitle": "Record Movement (Adjustment / Write-off)",
       "filterByBatch": "Filter by batch:",
-      "filterAll": "— all —",
+      "filterAll": "All batches",
       "searchPlaceholder": "Search batch / $t(glossary.product)…",
       "when": "When",
       "batch": "Batch",
@@ -877,6 +895,14 @@
       "createdToast": "Session created",
       "completed": "Stocktake completed — {{count}} adjustments written",
       "voided": "Session voided",
+      "summaryTiles": {
+        "draft": "In progress",
+        "completed": "Completed",
+        "varianceLines": "Variance lines",
+        "lastCount": "Last count"
+      },
+      "dateCreated": "Started",
+      "dateCompleted": "Completed",
       "name": "Name",
       "status": "Status",
       "lines": "Lines",
@@ -1200,7 +1226,8 @@
     "summary": {
       "sales": "Sales",
       "itemsSold": "Items sold",
-      "revenue": "Revenue"
+      "revenue": "Revenue",
+      "avgBasket": "Avg basket"
     },
     "detail": {
       "description": "Items, totals and payment for this order.",

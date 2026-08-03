@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { AddAllInStockBatchesRequest, AddAllInStockBatchesResponse, AddBatchesToSessionRequest, AddBatchesToSessionResponse, CompleteStocktakeRequest, CompleteStocktakeResponse, GetStocktakeRequest, GetStocktakeResponse, ListStocktakesRequest, ListStocktakesResponse, RecordCountRequest, RecordCountResponse, RemoveLineRequest, RemoveLineResponse, SetLineDispositionRequest, SetLineDispositionResponse, StartStocktakeRequest, StartStocktakeResponse, VoidStocktakeRequest, VoidStocktakeResponse } from "./stocktake_pb.js";
+import { AddAllInStockBatchesRequest, AddAllInStockBatchesResponse, AddBatchesToSessionRequest, AddBatchesToSessionResponse, CompleteStocktakeRequest, CompleteStocktakeResponse, GetStocktakeRequest, GetStocktakeResponse, GetStocktakeSummaryRequest, GetStocktakeSummaryResponse, ListStocktakesRequest, ListStocktakesResponse, RecordCountRequest, RecordCountResponse, RemoveLineRequest, RemoveLineResponse, SetLineDispositionRequest, SetLineDispositionResponse, StartStocktakeRequest, StartStocktakeResponse, VoidStocktakeRequest, VoidStocktakeResponse } from "./stocktake_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -100,6 +100,15 @@ export const StocktakeService = {
       name: "GetStocktake",
       I: GetStocktakeRequest,
       O: GetStocktakeResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc stocktake_iface.v1.StocktakeService.GetStocktakeSummary
+     */
+    getStocktakeSummary: {
+      name: "GetStocktakeSummary",
+      I: GetStocktakeSummaryRequest,
+      O: GetStocktakeSummaryResponse,
       kind: MethodKind.Unary,
     },
   }
