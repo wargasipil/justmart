@@ -99,6 +99,9 @@ Remove-Item -Recurse -Force $outDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
 Copy-Item $exe (Join-Path $outDir "justmart.exe")
+# One-off pricing migration (discounts -> grosir tiers). No placeholders to
+# render; it finds justmart.exe + config.yaml next to itself.
+Copy-Item (Join-Path $here "justmart-discount-to-grosir.bat") (Join-Path $outDir "justmart-discount-to-grosir.bat")
 
 # Render each template with literal placeholder substitution, write as ASCII (no BOM).
 function Write-Rendered([string]$srcName, [string]$dstName) {

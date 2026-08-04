@@ -101,6 +101,8 @@ Copy-Item -Recurse -Force (Join-Path $pgExtract "pgsql") (Join-Path $payload "pg
 Copy-Item (Join-Path $here "setup.ps1")          (Join-Path $payload "scripts\setup.ps1")
 Copy-Item (Join-Path $here "uninstall.ps1")      (Join-Path $payload "scripts\uninstall.ps1")
 Copy-Item (Join-Path $here "justmart-backup.bat") (Join-Path $payload "scripts\justmart-backup.bat")
+# One-off pricing migration; the .bat finds justmart.exe one folder up from scripts\.
+Copy-Item (Join-Path $here "justmart-discount-to-grosir.bat") (Join-Path $payload "scripts\justmart-discount-to-grosir.bat")
 
 # --- 3. Run Inno Setup -------------------------------------------------------
 $iscc = (Get-Command iscc.exe -ErrorAction SilentlyContinue).Source

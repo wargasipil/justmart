@@ -59,6 +59,17 @@ rule in LAN mode, drops shortcuts, and opens the browser.
 6. Backup: run `scripts\justmart-backup.bat` → a `.sql` lands in `backups\`.
 7. Uninstall → services removed; choose whether to keep or drop the data dir.
 
+## One-off maintenance scripts
+- **`justmart-discount-to-grosir.bat`** — converts qty-gated product discounts
+  into grosir (wholesale) price tiers. Ships in `scripts\` (installer) and at the
+  folder root (portable); it finds `justmart.exe` + `config.yaml` in either
+  layout. **Dry run by default** — double-click it, open the CSV it drops in
+  `reports\`, then re-run as `justmart-discount-to-grosir.bat apply` (it asks for
+  a typed `YES`, because a converted discount is deleted). Extra arguments:
+  `linefixed` (also convert whole-line FIXED discounts, dividing the amount by
+  the quantity threshold) and `nopause` (for Task Scheduler). The report lists
+  skipped rows with the reason, not just the conversions.
+
 ## Known caveats
 - **Unsigned** installer + exe → SmartScreen "unknown publisher". Code-sign with
   an Authenticode cert for production distribution.
