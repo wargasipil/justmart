@@ -30,5 +30,7 @@ func (s *BatchService) GetBatch(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewResponse(&inventoryifacev1.GetBatchResponse{Batch: batchToProto(batch, qty)}), nil
+	out := batchToProto(batch, qty)
+	redactCost(caller, []*inventoryifacev1.Batch{out})
+	return connect.NewResponse(&inventoryifacev1.GetBatchResponse{Batch: out}), nil
 }

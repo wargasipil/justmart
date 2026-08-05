@@ -121,6 +121,7 @@ func (s *BatchService) ListBatches(
 			}
 		}
 	}
+	redactCost(caller, out)
 	return connect.NewResponse(&inventoryifacev1.ListBatchesResponse{
 		Batches: out,
 		Total:   int32(total),

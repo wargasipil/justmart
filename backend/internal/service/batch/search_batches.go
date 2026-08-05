@@ -84,5 +84,6 @@ func (s *BatchService) SearchBatches(
 	if err := s.attachUnits(ctx, out); err != nil {
 		return nil, err
 	}
+	redactCost(caller, out)
 	return connect.NewResponse(&inventoryifacev1.SearchBatchesResponse{Batches: out}), nil
 }

@@ -51,6 +51,7 @@ func (s *ProductService) ListProducts(
 	if err := s.attachUnits(ctx, out); err != nil {
 		return nil, err
 	}
+	redactCost(caller, out)
 	return connect.NewResponse(&inventoryifacev1.ListProductsResponse{
 		Products: out,
 		Total:    int32(total),

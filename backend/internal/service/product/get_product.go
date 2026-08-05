@@ -108,5 +108,6 @@ func (s *ProductService) GetProduct(
 	if err := s.attachUnits(ctx, []*inventoryifacev1.Product{out}); err != nil {
 		return nil, err
 	}
+	redactCost(caller, []*inventoryifacev1.Product{out})
 	return connect.NewResponse(&inventoryifacev1.GetProductResponse{Product: out}), nil
 }

@@ -148,10 +148,19 @@ const router = createBrowserRouter([
         ],
       },
       {
-        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST]} />,
+        // The catalog is readable by the till: a cashier needs to look up a
+        // price, a stock level or an expiry without leaving the app. Both pages
+        // render read-only and cost-free for CASHIER/APOTEKER (see
+        // lib/roles.ts canSeeCost); the write RPCs stay OWNER+PHARMACIST.
+        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER]} />,
         children: [
           { path: "products", element: <Products /> },
           { path: "products/:id", element: <ProductDetail /> },
+        ],
+      },
+      {
+        element: <ProtectedRoute requiredRoles={[Role.OWNER, Role.PHARMACIST]} />,
+        children: [
           {
             path: "inventory",
             element: <Inventory />,

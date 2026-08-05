@@ -17,6 +17,16 @@ export function roleKey(role: Role): string {
   }
 }
 
+// canSeeCost mirrors the backend's common.CanSeeCost: purchase cost (what the
+// shop paid, and who it paid) is manager information. The till roles read the
+// catalog — POS needs it, and the Products list/detail pages are open to them
+// read-only — and the backend blanks the cost fields on those responses, so a
+// page must not render cost cells (they would all be 0/"—") or fire the
+// manager-only RPCs that carry it.
+export function canSeeCost(role: Role | undefined): boolean {
+  return role === Role.OWNER || role === Role.PHARMACIST;
+}
+
 // displayName prefers the user's name and falls back to the email's local part
 // ("pdcai64@gmail.com" -> "pdcai64") so the avatar never derives initials from
 // the mail domain.
