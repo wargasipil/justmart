@@ -326,6 +326,7 @@
     "lineTotalInput": "Harga modal total (IDR)",
     "costPerItemInput": "Harga modal / item (IDR)",
     "unitCostDerived": "Harga / satuan dasar",
+    "unitCostDerivedPpn": "Harga / satuan dasar + PPN {{rate}}%",
     "agreedPrice": "Disepakati: {{price}}",
     "aboveAgreement": "Di atas harga kesepakatan",
     "lineDiscount": "Diskon item",

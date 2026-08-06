@@ -60,20 +60,23 @@ func (s *ProductService) GetProductsSummary(
 	out.ReadyValuation = ready.Valuation
 
 	// On-order: per LINE, not pre-summed in SQL, because the valuation rate is
-	// netUnitCost — its rounding must match what CreateReceipt stamps on the
-	// batch, or "ongoing" valuation wouldn't land where "ready" valuation will.
-	// Same reason enrichStock fetches lines; see the note there.
+	// common.NetUnitCost — its rounding must match what CreateReceipt stamps on
+	// the batch, or "ongoing" valuation wouldn't land where "ready" valuation
+	// will. Same reason enrichStock fetches lines; see the note there.
 	type orderRow struct {
 		OrderedQty  int64 `gorm:"column:ordered_qty"`
 		ReceivedQty int64 `gorm:"column:received_qty"`
 		Subtotal    int64 `gorm:"column:subtotal"`
 		UnitCost    int64 `gorm:"column:unit_cost_price"`
+		PpnEnabled  bool  `gorm:"column:ppn_enabled"`
+		PpnRate     int32 `gorm:"column:ppn_rate"`
 	}
 	var orderRows []orderRow
 	if err := s.db.WithContext(ctx).
 		Table("purchase_order_items AS poi").
 		Select("poi.ordered_qty AS ordered_qty, poi.received_qty AS received_qty, "+
-			"poi.subtotal AS subtotal, poi.unit_cost_price AS unit_cost_price").
+			"poi.subtotal AS subtotal, poi.unit_cost_price AS unit_cost_price, "+
+			"po.ppn_enabled AS ppn_enabled, po.ppn_rate AS ppn_rate").
 		Joins("JOIN purchase_orders po ON po.id = poi.purchase_order_id").
 		Where("poi.product_id IN ? AND po.status NOT IN ?", ids,
 			[]string{common.POStatusVoided, common.POStatusClosed, common.POStatusReceived}).
@@ -86,7 +89,12 @@ func (s *ProductService) GetProductsSummary(
 			continue
 		}
 		out.OnOrderStock += outstanding
-		out.OnOrderValuation += outstanding * netUnitCost(r.Subtotal, r.OrderedQty, r.UnitCost)
+		ppnRate := int32(0)
+		if r.PpnEnabled {
+			ppnRate = r.PpnRate
+		}
+		out.OnOrderValuation +=
+			outstanding * common.NetUnitCost(r.Subtotal, r.OrderedQty, r.UnitCost, ppnRate)
 	}
 	return connect.NewResponse(out), nil
 }

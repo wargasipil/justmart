@@ -191,13 +191,15 @@ test.describe("restock (purchase order) end-to-end", () => {
 
       // Fill batch number + expiry inside the row. Every input here is a
       // textbox (qty is a <NumberInput>, NOT role "spinbutton"), so address them
-      // by CELL: [0] product [1] qty [2] unit cost [3] batch # [4] expiry.
-      // Indexing the row's textboxes flat put the batch number into unit cost
-      // and left expiry empty, which silently kept Receive disabled.
+      // by CELL: [0] product [1] qty [2] batch # [3] expiry. There is no unit
+      // cost cell — the backend derives it from the PO line (net of discount,
+      // plus PPN), so a receive can never contradict the order it fulfils.
+      // Indexing the row's textboxes flat left expiry empty, which silently
+      // kept Receive disabled.
       const receiveCells = dialog.getByRole("table").getByRole("row").nth(1).getByRole("cell");
-      await receiveCells.nth(3).getByRole("textbox").fill(`RS-B1-${m}`);
+      await receiveCells.nth(2).getByRole("textbox").fill(`RS-B1-${m}`);
       // DatePicker.Input under en locale takes MM/DD/YYYY.
-      const expiry = receiveCells.nth(4).getByRole("textbox");
+      const expiry = receiveCells.nth(3).getByRole("textbox");
       await expiry.fill("12/31/2099");
       await expiry.blur();
 

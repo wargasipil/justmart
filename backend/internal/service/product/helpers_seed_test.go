@@ -67,6 +67,21 @@ func seedOpenPOItem(
 	unitCost, subtotal int64,
 ) string {
 	t.Helper()
+	return seedOpenPOItemPPN(t, db, productID, supplierID, warehouseID, userID,
+		orderedQty, receivedQty, unitCost, subtotal, 0)
+}
+
+// seedOpenPOItemPPN is seedOpenPOItem with the PO's PPN rate as a whole percent
+// (0 = off). On-order valuation must capitalize it exactly as a receipt will.
+func seedOpenPOItemPPN(
+	t *testing.T,
+	db *gorm.DB,
+	productID, supplierID, warehouseID, userID string,
+	orderedQty, receivedQty int32,
+	unitCost, subtotal int64,
+	ppnRate int32,
+) string {
+	t.Helper()
 	po := model.PurchaseOrder{
 		SupplierID:   supplierID,
 		Status:       "SENT",
@@ -74,6 +89,8 @@ func seedOpenPOItem(
 		OrderedTotal: subtotal,
 		CreatedBy:    userID,
 		WarehouseID:  warehouseID,
+		PpnEnabled:   ppnRate > 0,
+		PpnRate:      ppnRate,
 	}
 	require.NoError(t, db.Create(&po).Error)
 	require.NoError(t, db.Create(&model.PurchaseOrderItem{

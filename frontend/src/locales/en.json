@@ -326,6 +326,7 @@
     "lineTotalInput": "Total cost (IDR)",
     "costPerItemInput": "Cost / item (IDR)",
     "unitCostDerived": "Cost / base unit",
+    "unitCostDerivedPpn": "Cost / base unit + PPN {{rate}}%",
     "agreedPrice": "Agreed: {{price}}",
     "aboveAgreement": "Above agreed price",
     "lineDiscount": "Line discount",

@@ -105,6 +105,107 @@ func TestCreateReceipt_DiscountedCostFlowsToBatch(t *testing.T) {
 	require.Equal(t, int64(875), batch.CostPrice) // 8750 / 10 — discount reflected in COGS
 }
 
+// TestCreateReceipt_PPNCapitalizedIntoBatchCost proves PPN reaches inventory
+// cost. It is unrecoverable for a non-PKP shop, so it is part of what the goods
+// cost — leaving it out understated COGS and overstated every margin figure.
+func TestCreateReceipt_PPNCapitalizedIntoBatchCost(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR-PPN", "PPN supplier")
+	prodID := e.seedProduct(t, "cr-ppn-sku", "PPN product", 2000)
+
+	// 10 × 1000 = 10000 net, PPN 11% → 1000/base becomes 1110/base.
+	poResp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		PpnEnabled: true,
+		PpnRate:    11,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000},
+		},
+	}))
+	require.NoError(t, err)
+	po := poResp.Msg.Order
+	require.True(t, po.PpnEnabled)
+	e.sendPO(t, po.Id)
+
+	e.receiveFull(t, po.Id, po.Items[0].Id, 10, "CR-PPN-B1")
+
+	var batch model.Batch
+	require.NoError(t, e.db.Where("batch_number = ?", "CR-PPN-B1").First(&batch).Error)
+	require.Equal(t, int64(1110), batch.CostPrice, "PPN must be capitalized into cost_price")
+
+	// The restock history rides the same figure, so "last cost" and the margin
+	// reference it feeds stay on one basis.
+	var last model.ProductLastRestock
+	require.NoError(t, e.db.Where("product_id = ? AND supplier_id = ?", prodID, supID).First(&last).Error)
+	require.Equal(t, int64(1110), last.LastPrice)
+}
+
+// TestCreateReceipt_PPNStacksOnLineDiscount pins the order of operations: the
+// line discount lowers the net first, THEN PPN scales it. Reversing the two
+// would over-charge PPN on money never paid.
+func TestCreateReceipt_PPNStacksOnLineDiscount(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR-PPND", "PPN+disc supplier")
+	prodID := e.seedProduct(t, "cr-ppnd-sku", "PPN+disc product", 2000)
+
+	// 10 × 1000 gross = 10000, −10% → 9000 net → 900/base, +11% → 999.
+	poResp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		PpnEnabled: true,
+		PpnRate:    11,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000, DiscountType: "PERCENT", DiscountValue: 1000},
+		},
+	}))
+	require.NoError(t, err)
+	po := poResp.Msg.Order
+	e.sendPO(t, po.Id)
+	e.receiveFull(t, po.Id, po.Items[0].Id, 10, "CR-PPND-B1")
+
+	var batch model.Batch
+	require.NoError(t, e.db.Where("batch_number = ?", "CR-PPND-B1").First(&batch).Error)
+	require.Equal(t, int64(999), batch.CostPrice)
+}
+
+// TestCreateReceipt_PPNAppliesToCostOverride pins that PPN stays a uniform
+// PO-level property: an explicit receipt cost is read on the same basis as the
+// PO's entered costs (PPN-exclusive) and is scaled too, so the tax never
+// depends on which lines an operator happened to override.
+func TestCreateReceipt_PPNAppliesToCostOverride(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR-PPNO", "PPN override supplier")
+	prodID := e.seedProduct(t, "cr-ppno-sku", "PPN override product", 2000)
+
+	poResp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		PpnEnabled: true,
+		PpnRate:    11,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: prodID, OrderedQty: 10, UnitCostPrice: 1000},
+		},
+	}))
+	require.NoError(t, err)
+	po := poResp.Msg.Order
+	e.sendPO(t, po.Id)
+
+	// Override at 2000/base → 2220 with PPN, ignoring the PO's 1000.
+	_, err = e.receipts.CreateReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.CreateReceiptRequest{
+		PurchaseOrderId: po.Id,
+		Lines: []*purchasingifacev1.ReceiveLineInput{
+			{PurchaseOrderItemId: po.Items[0].Id, Qty: 10, ExpiryDate: "2099-12-31",
+				BatchNumber: "CR-PPNO-B1", UnitCostPrice: 2000},
+		},
+	}))
+	require.NoError(t, err)
+
+	var batch model.Batch
+	require.NoError(t, e.db.Where("batch_number = ?", "CR-PPNO-B1").First(&batch).Error)
+	require.Equal(t, int64(2220), batch.CostPrice)
+}
+
 // TestRestock_CreateAndAccept is the end-to-end spec check (inventory > Restock:
 // "ensure can create and accept restock"): create a restock order (PO), send it,
 // then ACCEPT the full quantity (receipt) — the PO becomes RECEIVED and the stock

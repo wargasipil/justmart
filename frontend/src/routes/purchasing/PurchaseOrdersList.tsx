@@ -27,6 +27,7 @@ import {
 import { downloadCsv } from "../../lib/csv";
 import { formatMoney, formatDate } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
+import { fmtUnitQty } from "../../lib/purchaseLine";
 import { fetchPurchaseOrdersForExport, usePurchaseOrdersQuery } from "../../queries/purchasing";
 import { resolveSupplierMap, useSupplierRefs } from "../../queries/refs";
 import { restockPageKey, useRestockFilters } from "./restockFilters";
@@ -237,14 +238,6 @@ export default function PurchaseOrdersList() {
       />
     </Stack>
   );
-}
-
-// fmtUnitQty renders a BASE-unit quantity in its purchasable unit, e.g.
-// (500, "box", 100n) -> "5 box". Falls back to the bare number when no unit.
-function fmtUnitQty(qty: number, unitName: string, factor: bigint): string {
-  const f = Number(factor) || 1;
-  const q = f > 1 ? qty / f : qty;
-  return unitName ? `${q} ${unitName}` : String(q);
 }
 
 function ItemsList({ po, moreLabel }: { po: PurchaseOrder; moreLabel: string }) {

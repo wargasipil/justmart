@@ -228,6 +228,7 @@ export default function NewPurchaseOrder() {
             onRemove={removeLine}
             agreementFor={agreementFor}
             isAboveAgreement={isAboveAgreement}
+            ppnRate={ppnEnabled ? rateClamped : 0}
           />
         </Box>
 

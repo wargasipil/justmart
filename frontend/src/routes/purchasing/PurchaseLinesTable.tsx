@@ -28,6 +28,13 @@ export type PurchaseLinesTableProps = {
   agreementFor: (l: Line) => PriceAgreement | undefined;
   /** True when the entered cost is above the agreed price (warns, never blocks). */
   isAboveAgreement: (l: Line) => boolean;
+  /**
+   * The PO's PPN as a whole percent, or 0 when the switch is off. PPN is
+   * capitalized into inventory cost, so it moves the derived per-base-unit
+   * column — and the header says so, since that figure then no longer
+   * multiplies out against the PPN-exclusive Subtotal beside it.
+   */
+  ppnRate?: number;
 };
 
 // The editable line table of the restock (purchase order) form. Page-local: it
@@ -43,6 +50,7 @@ export default function PurchaseLinesTable({
   onRemove,
   agreementFor,
   isAboveAgreement,
+  ppnRate = 0,
 }: PurchaseLinesTableProps) {
   const { t } = useTranslation();
   return (
@@ -55,7 +63,11 @@ export default function PurchaseLinesTable({
             <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
             <Table.ColumnHeader>{t("purchasing.costPerItemInput")}</Table.ColumnHeader>
             <Table.ColumnHeader>{t("purchasing.lineDiscount")}</Table.ColumnHeader>
-            <Table.ColumnHeader>{t("purchasing.unitCostDerived")}</Table.ColumnHeader>
+            <Table.ColumnHeader>
+              {ppnRate > 0
+                ? t("purchasing.unitCostDerivedPpn", { rate: ppnRate })
+                : t("purchasing.unitCostDerived")}
+            </Table.ColumnHeader>
             <Table.ColumnHeader>{t("purchasing.subtotal")}</Table.ColumnHeader>
             <Table.ColumnHeader />
           </Table.Row>
@@ -177,7 +189,7 @@ export default function PurchaseLinesTable({
                   </HStack>
                 </Table.Cell>
                 <Table.Cell fontFamily="mono" color="fg.muted">
-                  {formatMoney(netUnitCostOf(l))}
+                  {formatMoney(netUnitCostOf(l, ppnRate))}
                   {factorOf(l) > 1 && (
                     <Text fontSize="xs">/{t("inventory.products.baseUnit").toLowerCase()}</Text>
                   )}

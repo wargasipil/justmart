@@ -103,9 +103,32 @@ export const lineDiscountAmount = (l: Line): number => {
 export const lineNet = (l: Line): number => grossOf(l) - lineDiscountAmount(l);
 
 // NET cost per base unit — what flows to the received batch's cost_price.
-export const netUnitCostOf = (l: Line): number => {
-  const base = baseQtyOf(l);
-  return base > 0 ? Math.round(lineNet(l) / base) : 0;
+//
+// Net of the line discount and INCLUSIVE of PPN, because PPN is capitalized
+// into inventory cost (unrecoverable for a non-PKP shop). Pass the PO's rate as
+// a whole percent, or 0 when the PPN switch is off.
+//
+// Mirrors common.NetUnitCost on the backend — scale first, round ONCE, so the
+// preview and the stored batch agree to the rupiah. Change one, change both.
+// Takes the raw net + base qty rather than a Line so the saved-PO detail page
+// (which reads a PurchaseOrderItem, not an editable Line) shares it.
+export const netUnitCostFrom = (net: number, baseQty: number, ppnRate = 0): number => {
+  if (baseQty <= 0) return 0;
+  const rate = Math.max(0, Math.min(100, ppnRate));
+  return Math.round((net * (100 + rate)) / (baseQty * 100));
+};
+
+export const netUnitCostOf = (l: Line, ppnRate = 0): number =>
+  netUnitCostFrom(lineNet(l), baseQtyOf(l), ppnRate);
+
+// fmtUnitQty renders a BASE-unit quantity in its purchasable unit, e.g.
+// (500, "box", 100n) -> "5 box". Falls back to the bare number when no unit.
+// Lives here rather than beside a route because both the PO list and the PO
+// detail page render purchase quantities and each had its own copy.
+export const fmtUnitQty = (qty: number, unitName: string, factor: bigint): string => {
+  const f = Number(factor) || 1;
+  const q = f > 1 ? qty / f : qty;
+  return unitName ? `${q} ${unitName}` : String(q);
 };
 
 export const unitNameOf = (l: Line): string =>

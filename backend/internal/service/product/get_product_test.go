@@ -67,6 +67,29 @@ func TestGetProduct_OnOrderQtyAndValuation(t *testing.T) {
 	require.Equal(t, int64(0), p.StockValuation)
 }
 
+// On-order valuation must capitalize PPN exactly as CreateReceipt will, or the
+// Ongoing tile would drop by the tax the moment the goods arrive and became the
+// Ready tile. Both call common.NetUnitCost — this pins that they agree.
+func TestGetProduct_OnOrderValuationIncludesPPN(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	pid := seedProduct(t, svc, ctx, "SKU-GET-ONORDER-PPN", "Paracetamol 500mg", 3000)
+	whID := defaultWarehouseID(t, gormDB)
+	supID := seedSupplierRow(t, gormDB, "SUP-ONORDER-PPN", "On-order PPN supplier")
+
+	// 10 ordered, none received, 10000 net -> 1000/base, +11% -> 1110/base.
+	seedOpenPOItemPPN(t, gormDB, pid, supID, whID, ownerID, 10, 0, 1000, 10000, 11)
+
+	resp, err := svc.GetProduct(ctx, connect.NewRequest(&inventoryifacev1.GetProductRequest{Id: pid}))
+	require.NoError(t, err)
+	require.Equal(t, int64(10), resp.Msg.Product.OnOrderStock)
+	require.Equal(t, int64(10*1110), resp.Msg.Product.OnOrderValuation)
+}
+
 // A fully-received or voided PO is not "ongoing" — neither its qty nor its value
 // may leak into the tile.
 func TestGetProduct_OnOrderExcludesClosedPOs(t *testing.T) {

@@ -133,18 +133,26 @@ func (p *PurchaseReceipts) CreateReceipt(
 						line.Qty, unit.Name, baseQty, remaining, poItem.ProductID))
 			}
 
-			unitCost := line.UnitCostPrice
-			if unitCost == 0 {
-				// Derive the NET per-base-unit cost from the PO line so a per-line
-				// discount lowers inventory cost (COGS/margins reflect it). Subtotal
-				// is NET; OrderedQty is BASE units. For a non-discounted line this
-				// equals the gross UnitCostPrice exactly → no behavior change. An
-				// explicit receipt override (line.UnitCostPrice != 0) still wins.
-				if poItem.OrderedQty > 0 {
-					unitCost = (poItem.Subtotal + int64(poItem.OrderedQty)/2) / int64(poItem.OrderedQty)
-				} else {
-					unitCost = poItem.UnitCostPrice
-				}
+			// Cost the batch carries, via the one shared derivation (see
+			// common.NetUnitCost): NET of the PO line's discount and INCLUSIVE of
+			// PPN, so COGS and margins reflect what the stock actually cost.
+			//
+			// unit_cost_price on the receipt line is a true override — the UI
+			// leaves it 0 so this derivation runs. When an operator does type
+			// one, it is read on the same basis as the PO's entered costs
+			// (per base unit, PPN-exclusive) and PPN is applied to it too, so
+			// the tax stays a uniform PO-level property instead of depending on
+			// which lines happened to be overridden.
+			ppnRate := int32(0)
+			if po.PpnEnabled {
+				ppnRate = po.PpnRate
+			}
+			var unitCost int64
+			if line.UnitCostPrice != 0 {
+				unitCost = common.NetUnitCost(0, 0, line.UnitCostPrice, ppnRate)
+			} else {
+				unitCost = common.NetUnitCost(
+					poItem.Subtotal, int64(poItem.OrderedQty), poItem.UnitCostPrice, ppnRate)
 			}
 
 			// Create the batch row carrying supplier + cost + expiry.
