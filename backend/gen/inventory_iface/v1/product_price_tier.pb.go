@@ -136,6 +136,121 @@ func (x *ProductPriceTier) GetCreatedAt() int64 {
 	return 0
 }
 
+// One version of a grosir RUNG's price. The history is keyed by
+// (product_unit_id, min_qty), not by a tier id: tiers are hard-deleted, so the
+// rung — ">= min_qty of THIS unit" — is the thing that carries a price over
+// time. Exactly one row per rung is open (effective_to = 0); editing the price
+// closes it and opens a new one, moving the threshold closes the old rung and
+// opens the new one, and deleting the tier closes the rung without opening
+// anything.
+type ProductTierPrice struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	ProductUnitId string                 `protobuf:"bytes,3,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"`
+	UnitName      string                 `protobuf:"bytes,4,opt,name=unit_name,json=unitName,proto3" json:"unit_name,omitempty"` // snapshot of the unit at the time (e.g. "pcs")
+	MinQty        int32                  `protobuf:"varint,5,opt,name=min_qty,json=minQty,proto3" json:"min_qty,omitempty"`      // the rung's threshold, in that unit
+	Price         int64                  `protobuf:"varint,6,opt,name=price,proto3" json:"price,omitempty"`                      // price for 1 of the unit at this rung (minor units)
+	EffectiveFrom int64                  `protobuf:"varint,7,opt,name=effective_from,json=effectiveFrom,proto3" json:"effective_from,omitempty"`
+	EffectiveTo   int64                  `protobuf:"varint,8,opt,name=effective_to,json=effectiveTo,proto3" json:"effective_to,omitempty"` // 0 = still current
+	ChangedBy     string                 `protobuf:"bytes,9,opt,name=changed_by,json=changedBy,proto3" json:"changed_by,omitempty"`        // user id; "" for the migration-seeded baseline
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProductTierPrice) Reset() {
+	*x = ProductTierPrice{}
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProductTierPrice) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProductTierPrice) ProtoMessage() {}
+
+func (x *ProductTierPrice) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProductTierPrice.ProtoReflect.Descriptor instead.
+func (*ProductTierPrice) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ProductTierPrice) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ProductTierPrice) GetProductId() string {
+	if x != nil {
+		return x.ProductId
+	}
+	return ""
+}
+
+func (x *ProductTierPrice) GetProductUnitId() string {
+	if x != nil {
+		return x.ProductUnitId
+	}
+	return ""
+}
+
+func (x *ProductTierPrice) GetUnitName() string {
+	if x != nil {
+		return x.UnitName
+	}
+	return ""
+}
+
+func (x *ProductTierPrice) GetMinQty() int32 {
+	if x != nil {
+		return x.MinQty
+	}
+	return 0
+}
+
+func (x *ProductTierPrice) GetPrice() int64 {
+	if x != nil {
+		return x.Price
+	}
+	return 0
+}
+
+func (x *ProductTierPrice) GetEffectiveFrom() int64 {
+	if x != nil {
+		return x.EffectiveFrom
+	}
+	return 0
+}
+
+func (x *ProductTierPrice) GetEffectiveTo() int64 {
+	if x != nil {
+		return x.EffectiveTo
+	}
+	return 0
+}
+
+func (x *ProductTierPrice) GetChangedBy() string {
+	if x != nil {
+		return x.ChangedBy
+	}
+	return ""
+}
+
 type ListProductPriceTiersRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
@@ -147,7 +262,7 @@ type ListProductPriceTiersRequest struct {
 
 func (x *ListProductPriceTiersRequest) Reset() {
 	*x = ListProductPriceTiersRequest{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[1]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -159,7 +274,7 @@ func (x *ListProductPriceTiersRequest) String() string {
 func (*ListProductPriceTiersRequest) ProtoMessage() {}
 
 func (x *ListProductPriceTiersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[1]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -172,7 +287,7 @@ func (x *ListProductPriceTiersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProductPriceTiersRequest.ProtoReflect.Descriptor instead.
 func (*ListProductPriceTiersRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{1}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ListProductPriceTiersRequest) GetProductId() string {
@@ -206,7 +321,7 @@ type ListProductPriceTiersResponse struct {
 
 func (x *ListProductPriceTiersResponse) Reset() {
 	*x = ListProductPriceTiersResponse{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[2]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -218,7 +333,7 @@ func (x *ListProductPriceTiersResponse) String() string {
 func (*ListProductPriceTiersResponse) ProtoMessage() {}
 
 func (x *ListProductPriceTiersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[2]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -231,7 +346,7 @@ func (x *ListProductPriceTiersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProductPriceTiersResponse.ProtoReflect.Descriptor instead.
 func (*ListProductPriceTiersResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{2}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListProductPriceTiersResponse) GetTiers() []*ProductPriceTier {
@@ -242,6 +357,118 @@ func (x *ListProductPriceTiersResponse) GetTiers() []*ProductPriceTier {
 }
 
 func (x *ListProductPriceTiersResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type ListProductTierPricesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProductTierPricesRequest) Reset() {
+	*x = ListProductTierPricesRequest{}
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProductTierPricesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProductTierPricesRequest) ProtoMessage() {}
+
+func (x *ListProductTierPricesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProductTierPricesRequest.ProtoReflect.Descriptor instead.
+func (*ListProductTierPricesRequest) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListProductTierPricesRequest) GetProductId() string {
+	if x != nil {
+		return x.ProductId
+	}
+	return ""
+}
+
+func (x *ListProductTierPricesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListProductTierPricesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListProductTierPricesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Prices        []*ProductTierPrice    `protobuf:"bytes,1,rep,name=prices,proto3" json:"prices,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"` // all history rows for the product, ignoring the page window
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProductTierPricesResponse) Reset() {
+	*x = ListProductTierPricesResponse{}
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProductTierPricesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProductTierPricesResponse) ProtoMessage() {}
+
+func (x *ListProductTierPricesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProductTierPricesResponse.ProtoReflect.Descriptor instead.
+func (*ListProductTierPricesResponse) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListProductTierPricesResponse) GetPrices() []*ProductTierPrice {
+	if x != nil {
+		return x.Prices
+	}
+	return nil
+}
+
+func (x *ListProductTierPricesResponse) GetTotal() int32 {
 	if x != nil {
 		return x.Total
 	}
@@ -260,7 +487,7 @@ type CreateProductPriceTierRequest struct {
 
 func (x *CreateProductPriceTierRequest) Reset() {
 	*x = CreateProductPriceTierRequest{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[3]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -272,7 +499,7 @@ func (x *CreateProductPriceTierRequest) String() string {
 func (*CreateProductPriceTierRequest) ProtoMessage() {}
 
 func (x *CreateProductPriceTierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[3]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,7 +512,7 @@ func (x *CreateProductPriceTierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProductPriceTierRequest.ProtoReflect.Descriptor instead.
 func (*CreateProductPriceTierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{3}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreateProductPriceTierRequest) GetProductId() string {
@@ -325,7 +552,7 @@ type CreateProductPriceTierResponse struct {
 
 func (x *CreateProductPriceTierResponse) Reset() {
 	*x = CreateProductPriceTierResponse{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[4]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +564,7 @@ func (x *CreateProductPriceTierResponse) String() string {
 func (*CreateProductPriceTierResponse) ProtoMessage() {}
 
 func (x *CreateProductPriceTierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[4]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,7 +577,7 @@ func (x *CreateProductPriceTierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProductPriceTierResponse.ProtoReflect.Descriptor instead.
 func (*CreateProductPriceTierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{4}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateProductPriceTierResponse) GetTier() *ProductPriceTier {
@@ -372,7 +599,7 @@ type UpdateProductPriceTierRequest struct {
 
 func (x *UpdateProductPriceTierRequest) Reset() {
 	*x = UpdateProductPriceTierRequest{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[5]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -384,7 +611,7 @@ func (x *UpdateProductPriceTierRequest) String() string {
 func (*UpdateProductPriceTierRequest) ProtoMessage() {}
 
 func (x *UpdateProductPriceTierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[5]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -397,7 +624,7 @@ func (x *UpdateProductPriceTierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProductPriceTierRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProductPriceTierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{5}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateProductPriceTierRequest) GetId() string {
@@ -437,7 +664,7 @@ type UpdateProductPriceTierResponse struct {
 
 func (x *UpdateProductPriceTierResponse) Reset() {
 	*x = UpdateProductPriceTierResponse{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[6]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -449,7 +676,7 @@ func (x *UpdateProductPriceTierResponse) String() string {
 func (*UpdateProductPriceTierResponse) ProtoMessage() {}
 
 func (x *UpdateProductPriceTierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[6]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -462,7 +689,7 @@ func (x *UpdateProductPriceTierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProductPriceTierResponse.ProtoReflect.Descriptor instead.
 func (*UpdateProductPriceTierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{6}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateProductPriceTierResponse) GetTier() *ProductPriceTier {
@@ -481,7 +708,7 @@ type DeleteProductPriceTierRequest struct {
 
 func (x *DeleteProductPriceTierRequest) Reset() {
 	*x = DeleteProductPriceTierRequest{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[7]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -493,7 +720,7 @@ func (x *DeleteProductPriceTierRequest) String() string {
 func (*DeleteProductPriceTierRequest) ProtoMessage() {}
 
 func (x *DeleteProductPriceTierRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[7]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -506,7 +733,7 @@ func (x *DeleteProductPriceTierRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProductPriceTierRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProductPriceTierRequest) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{7}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteProductPriceTierRequest) GetId() string {
@@ -524,7 +751,7 @@ type DeleteProductPriceTierResponse struct {
 
 func (x *DeleteProductPriceTierResponse) Reset() {
 	*x = DeleteProductPriceTierResponse{}
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[8]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -536,7 +763,7 @@ func (x *DeleteProductPriceTierResponse) String() string {
 func (*DeleteProductPriceTierResponse) ProtoMessage() {}
 
 func (x *DeleteProductPriceTierResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[8]
+	mi := &file_inventory_iface_v1_product_price_tier_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -549,7 +776,7 @@ func (x *DeleteProductPriceTierResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProductPriceTierResponse.ProtoReflect.Descriptor instead.
 func (*DeleteProductPriceTierResponse) Descriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{8}
+	return file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP(), []int{11}
 }
 
 var File_inventory_iface_v1_product_price_tier_proto protoreflect.FileDescriptor
@@ -568,7 +795,19 @@ const file_inventory_iface_v1_product_price_tier_proto_rawDesc = "" +
 	"\amin_qty\x18\x06 \x01(\x05R\x06minQty\x12\x14\n" +
 	"\x05price\x18\a \x01(\x03R\x05price\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\x03R\tcreatedAt\"k\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\"\x9e\x02\n" +
+	"\x10ProductTierPrice\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x02 \x01(\tR\tproductId\x12&\n" +
+	"\x0fproduct_unit_id\x18\x03 \x01(\tR\rproductUnitId\x12\x1b\n" +
+	"\tunit_name\x18\x04 \x01(\tR\bunitName\x12\x17\n" +
+	"\amin_qty\x18\x05 \x01(\x05R\x06minQty\x12\x14\n" +
+	"\x05price\x18\x06 \x01(\x03R\x05price\x12%\n" +
+	"\x0eeffective_from\x18\a \x01(\x03R\reffectiveFrom\x12!\n" +
+	"\feffective_to\x18\b \x01(\x03R\veffectiveTo\x12\x1d\n" +
+	"\n" +
+	"changed_by\x18\t \x01(\tR\tchangedBy\"k\n" +
 	"\x1cListProductPriceTiersRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x14\n" +
@@ -576,6 +815,14 @@ const file_inventory_iface_v1_product_price_tier_proto_rawDesc = "" +
 	"\x06offset\x18\x03 \x01(\x05R\x06offset\"q\n" +
 	"\x1dListProductPriceTiersResponse\x12:\n" +
 	"\x05tiers\x18\x01 \x03(\v2$.inventory_iface.v1.ProductPriceTierR\x05tiers\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"k\n" +
+	"\x1cListProductTierPricesRequest\x12\x1d\n" +
+	"\n" +
+	"product_id\x18\x01 \x01(\tR\tproductId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"s\n" +
+	"\x1dListProductTierPricesResponse\x12<\n" +
+	"\x06prices\x18\x01 \x03(\v2$.inventory_iface.v1.ProductTierPriceR\x06prices\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"\x95\x01\n" +
 	"\x1dCreateProductPriceTierRequest\x12\x1d\n" +
 	"\n" +
@@ -594,9 +841,10 @@ const file_inventory_iface_v1_product_price_tier_proto_rawDesc = "" +
 	"\x04tier\x18\x01 \x01(\v2$.inventory_iface.v1.ProductPriceTierR\x04tier\"/\n" +
 	"\x1dDeleteProductPriceTierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\" \n" +
-	"\x1eDeleteProductPriceTierResponse2\xbe\x04\n" +
+	"\x1eDeleteProductPriceTierResponse2\xc5\x05\n" +
 	"\x17ProductPriceTierService\x12\x84\x01\n" +
-	"\x15ListProductPriceTiers\x120.inventory_iface.v1.ListProductPriceTiersRequest\x1a1.inventory_iface.v1.ListProductPriceTiersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
+	"\x15ListProductPriceTiers\x120.inventory_iface.v1.ListProductPriceTiersRequest\x1a1.inventory_iface.v1.ListProductPriceTiersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
+	"\x15ListProductTierPrices\x120.inventory_iface.v1.ListProductTierPricesRequest\x1a1.inventory_iface.v1.ListProductTierPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
 	"\x16CreateProductPriceTier\x121.inventory_iface.v1.CreateProductPriceTierRequest\x1a2.inventory_iface.v1.CreateProductPriceTierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
 	"\x16UpdateProductPriceTier\x121.inventory_iface.v1.UpdateProductPriceTierRequest\x1a2.inventory_iface.v1.UpdateProductPriceTierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
 	"\x16DeleteProductPriceTier\x121.inventory_iface.v1.DeleteProductPriceTierRequest\x1a2.inventory_iface.v1.DeleteProductPriceTierResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
@@ -613,35 +861,41 @@ func file_inventory_iface_v1_product_price_tier_proto_rawDescGZIP() []byte {
 	return file_inventory_iface_v1_product_price_tier_proto_rawDescData
 }
 
-var file_inventory_iface_v1_product_price_tier_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_inventory_iface_v1_product_price_tier_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_inventory_iface_v1_product_price_tier_proto_goTypes = []any{
 	(*ProductPriceTier)(nil),               // 0: inventory_iface.v1.ProductPriceTier
-	(*ListProductPriceTiersRequest)(nil),   // 1: inventory_iface.v1.ListProductPriceTiersRequest
-	(*ListProductPriceTiersResponse)(nil),  // 2: inventory_iface.v1.ListProductPriceTiersResponse
-	(*CreateProductPriceTierRequest)(nil),  // 3: inventory_iface.v1.CreateProductPriceTierRequest
-	(*CreateProductPriceTierResponse)(nil), // 4: inventory_iface.v1.CreateProductPriceTierResponse
-	(*UpdateProductPriceTierRequest)(nil),  // 5: inventory_iface.v1.UpdateProductPriceTierRequest
-	(*UpdateProductPriceTierResponse)(nil), // 6: inventory_iface.v1.UpdateProductPriceTierResponse
-	(*DeleteProductPriceTierRequest)(nil),  // 7: inventory_iface.v1.DeleteProductPriceTierRequest
-	(*DeleteProductPriceTierResponse)(nil), // 8: inventory_iface.v1.DeleteProductPriceTierResponse
+	(*ProductTierPrice)(nil),               // 1: inventory_iface.v1.ProductTierPrice
+	(*ListProductPriceTiersRequest)(nil),   // 2: inventory_iface.v1.ListProductPriceTiersRequest
+	(*ListProductPriceTiersResponse)(nil),  // 3: inventory_iface.v1.ListProductPriceTiersResponse
+	(*ListProductTierPricesRequest)(nil),   // 4: inventory_iface.v1.ListProductTierPricesRequest
+	(*ListProductTierPricesResponse)(nil),  // 5: inventory_iface.v1.ListProductTierPricesResponse
+	(*CreateProductPriceTierRequest)(nil),  // 6: inventory_iface.v1.CreateProductPriceTierRequest
+	(*CreateProductPriceTierResponse)(nil), // 7: inventory_iface.v1.CreateProductPriceTierResponse
+	(*UpdateProductPriceTierRequest)(nil),  // 8: inventory_iface.v1.UpdateProductPriceTierRequest
+	(*UpdateProductPriceTierResponse)(nil), // 9: inventory_iface.v1.UpdateProductPriceTierResponse
+	(*DeleteProductPriceTierRequest)(nil),  // 10: inventory_iface.v1.DeleteProductPriceTierRequest
+	(*DeleteProductPriceTierResponse)(nil), // 11: inventory_iface.v1.DeleteProductPriceTierResponse
 }
 var file_inventory_iface_v1_product_price_tier_proto_depIdxs = []int32{
-	0, // 0: inventory_iface.v1.ListProductPriceTiersResponse.tiers:type_name -> inventory_iface.v1.ProductPriceTier
-	0, // 1: inventory_iface.v1.CreateProductPriceTierResponse.tier:type_name -> inventory_iface.v1.ProductPriceTier
-	0, // 2: inventory_iface.v1.UpdateProductPriceTierResponse.tier:type_name -> inventory_iface.v1.ProductPriceTier
-	1, // 3: inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers:input_type -> inventory_iface.v1.ListProductPriceTiersRequest
-	3, // 4: inventory_iface.v1.ProductPriceTierService.CreateProductPriceTier:input_type -> inventory_iface.v1.CreateProductPriceTierRequest
-	5, // 5: inventory_iface.v1.ProductPriceTierService.UpdateProductPriceTier:input_type -> inventory_iface.v1.UpdateProductPriceTierRequest
-	7, // 6: inventory_iface.v1.ProductPriceTierService.DeleteProductPriceTier:input_type -> inventory_iface.v1.DeleteProductPriceTierRequest
-	2, // 7: inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers:output_type -> inventory_iface.v1.ListProductPriceTiersResponse
-	4, // 8: inventory_iface.v1.ProductPriceTierService.CreateProductPriceTier:output_type -> inventory_iface.v1.CreateProductPriceTierResponse
-	6, // 9: inventory_iface.v1.ProductPriceTierService.UpdateProductPriceTier:output_type -> inventory_iface.v1.UpdateProductPriceTierResponse
-	8, // 10: inventory_iface.v1.ProductPriceTierService.DeleteProductPriceTier:output_type -> inventory_iface.v1.DeleteProductPriceTierResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: inventory_iface.v1.ListProductPriceTiersResponse.tiers:type_name -> inventory_iface.v1.ProductPriceTier
+	1,  // 1: inventory_iface.v1.ListProductTierPricesResponse.prices:type_name -> inventory_iface.v1.ProductTierPrice
+	0,  // 2: inventory_iface.v1.CreateProductPriceTierResponse.tier:type_name -> inventory_iface.v1.ProductPriceTier
+	0,  // 3: inventory_iface.v1.UpdateProductPriceTierResponse.tier:type_name -> inventory_iface.v1.ProductPriceTier
+	2,  // 4: inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers:input_type -> inventory_iface.v1.ListProductPriceTiersRequest
+	4,  // 5: inventory_iface.v1.ProductPriceTierService.ListProductTierPrices:input_type -> inventory_iface.v1.ListProductTierPricesRequest
+	6,  // 6: inventory_iface.v1.ProductPriceTierService.CreateProductPriceTier:input_type -> inventory_iface.v1.CreateProductPriceTierRequest
+	8,  // 7: inventory_iface.v1.ProductPriceTierService.UpdateProductPriceTier:input_type -> inventory_iface.v1.UpdateProductPriceTierRequest
+	10, // 8: inventory_iface.v1.ProductPriceTierService.DeleteProductPriceTier:input_type -> inventory_iface.v1.DeleteProductPriceTierRequest
+	3,  // 9: inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers:output_type -> inventory_iface.v1.ListProductPriceTiersResponse
+	5,  // 10: inventory_iface.v1.ProductPriceTierService.ListProductTierPrices:output_type -> inventory_iface.v1.ListProductTierPricesResponse
+	7,  // 11: inventory_iface.v1.ProductPriceTierService.CreateProductPriceTier:output_type -> inventory_iface.v1.CreateProductPriceTierResponse
+	9,  // 12: inventory_iface.v1.ProductPriceTierService.UpdateProductPriceTier:output_type -> inventory_iface.v1.UpdateProductPriceTierResponse
+	11, // 13: inventory_iface.v1.ProductPriceTierService.DeleteProductPriceTier:output_type -> inventory_iface.v1.DeleteProductPriceTierResponse
+	9,  // [9:14] is the sub-list for method output_type
+	4,  // [4:9] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_inventory_iface_v1_product_price_tier_proto_init() }
@@ -655,7 +909,7 @@ func file_inventory_iface_v1_product_price_tier_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_inventory_iface_v1_product_price_tier_proto_rawDesc), len(file_inventory_iface_v1_product_price_tier_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

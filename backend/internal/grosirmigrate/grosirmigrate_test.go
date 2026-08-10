@@ -258,6 +258,33 @@ func TestApply_IsIdempotent(t *testing.T) {
 	require.Equal(t, int64(1), tiers)
 }
 
+// A converted tier must start its price history like any other, or the ladder
+// reads as if its price appeared from nowhere on the first UI edit.
+func TestApply_OpensTierPriceHistory(t *testing.T) {
+	t.Parallel()
+	db := newDB(t)
+	pid, _, _ := seedProduct(t, db, "SKU-HIST")
+	seedDiscount(t, db, model.ProductDiscount{
+		ProductID: pid, DiscountType: "PERCENT", Value: 1000, MinQty: 12,
+	})
+
+	n, err := grosirmigrate.Apply(db, plan(t, db, grosirmigrate.Options{}))
+	require.NoError(t, err)
+	require.Equal(t, 1, n)
+
+	var tier model.ProductPriceTier
+	require.NoError(t, db.Where("product_id = ?", pid).First(&tier).Error)
+
+	var rows []model.ProductTierPrice
+	require.NoError(t, db.Where("product_id = ?", pid).Find(&rows).Error)
+	require.Len(t, rows, 1)
+	require.Equal(t, tier.ProductUnitID, rows[0].ProductUnitID)
+	require.Equal(t, tier.MinQty, rows[0].MinQty)
+	require.Equal(t, tier.Price, rows[0].Price)
+	require.Nil(t, rows[0].EffectiveTo, "the rung is open")
+	require.Nil(t, rows[0].ChangedBy, "a system conversion has no user")
+}
+
 func TestBuildPlan_EmptyDatabase(t *testing.T) {
 	t.Parallel()
 	got := plan(t, newDB(t), grosirmigrate.Options{})

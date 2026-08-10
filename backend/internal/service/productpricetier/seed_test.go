@@ -15,10 +15,16 @@ import (
 	"github.com/justmart/backend/internal/service/servicetest"
 )
 
-func newSvc(t *testing.T) (*productpricetiersvc.ProductPriceTierService, *gorm.DB) {
+// newSvc returns the service, its DB, and an OWNER-principal context. The
+// principal is not optional: every tier write stamps product_tier_prices.
+// changed_by, which is an FK to users(id) — so the caller must be a real seeded
+// user, not a random uuid.
+func newSvc(t *testing.T) (*productpricetiersvc.ProductPriceTierService, *gorm.DB, context.Context) {
 	t.Helper()
-	db := servicetest.NewDB(t, servicetest.NewConfig(t))
-	return productpricetiersvc.NewProductPriceTierService(db), db
+	db, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, db, cfg)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+	return productpricetiersvc.NewProductPriceTierService(db), db, ctx
 }
 
 // seedProductWithUnits inserts a product with a base "pcs" unit and a larger
@@ -41,11 +47,9 @@ func seedProductWithUnits(t *testing.T, db *gorm.DB, sku string) (string, string
 	return p.ID, base.ID, box.ID
 }
 
-func ctx() context.Context { return context.Background() }
-
-func create(t *testing.T, svc *productpricetiersvc.ProductPriceTierService, productID, unitID string, minQty int32, price int64) *inventoryifacev1.ProductPriceTier {
+func create(t *testing.T, ctx context.Context, svc *productpricetiersvc.ProductPriceTierService, productID, unitID string, minQty int32, price int64) *inventoryifacev1.ProductPriceTier {
 	t.Helper()
-	r, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	r, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: productID, ProductUnitId: unitID, MinQty: minQty, Price: price,
 	}))
 	require.NoError(t, err)

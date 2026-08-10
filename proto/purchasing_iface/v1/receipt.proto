@@ -16,6 +16,18 @@ message PurchaseReceipt {
   int64 created_at = 7;
   repeated PurchaseReceiptItem items = 8;
   string invoice_no = 9;           // supplier invoice / nomor faktur
+  // Cancellation ("batal terima"). A cancelled receipt keeps its row and its
+  // RCV number — hiding it would leave an unexplained gap in the sequence — but
+  // its lots and stock movements are gone and the PO reads as if the goods
+  // never arrived. 0 / empty when the receipt is live.
+  int64 voided_at = 10;
+  string voided_by = 11;
+  string void_reason = 12;
+  // Whether CancelReceipt would succeed right now, so the UI can disable the
+  // action with a reason instead of failing on click. cancel_blocked_reason is
+  // a stable token (see serverErrors.ts), empty when cancellable.
+  bool cancellable = 13;
+  string cancel_blocked_reason = 14;
 }
 
 message PurchaseReceiptItem {
@@ -59,6 +71,14 @@ service PurchaseReceiptService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // CancelReceipt undoes a receipt entered in error: it deletes the lots it
+  // created and reverses received_qty. Only while every lot is still untouched.
+  // Same roles as CreateReceipt — the person who mistypes a receive is the one
+  // who has to fix it, and VoidPurchaseOrder (more destructive) is already both.
+  rpc CancelReceipt(CancelReceiptRequest) returns (CancelReceiptResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 message CreateReceiptRequest {
@@ -84,3 +104,11 @@ message ListReceiptsResponse {
 
 message GetReceiptRequest { string id = 1; }
 message GetReceiptResponse { PurchaseReceipt receipt = 1; }
+
+message CancelReceiptRequest {
+  string id = 1;
+  string reason = 2;               // required — why the receive is being undone
+}
+message CancelReceiptResponse {
+  PurchaseReceipt receipt = 1;     // the voided receipt (batch links cleared)
+}

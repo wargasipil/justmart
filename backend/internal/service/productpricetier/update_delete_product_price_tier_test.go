@@ -12,11 +12,11 @@ import (
 
 func TestUpdateProductPriceTier_ChangesThresholdPriceAndUnit(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, boxID := seedProductWithUnits(t, db, "PT-U1")
-	tier := create(t, svc, prodID, baseID, 12, 8500)
+	tier := create(t, ctx, svc, prodID, baseID, 12, 8500)
 
-	resp, err := svc.UpdateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
+	resp, err := svc.UpdateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
 		Id: tier.Id, ProductUnitId: boxID, MinQty: 5, Price: 100000,
 	}))
 	require.NoError(t, err)
@@ -33,11 +33,11 @@ func TestUpdateProductPriceTier_ChangesThresholdPriceAndUnit(t *testing.T) {
 // uniqueness pre-check against itself.
 func TestUpdateProductPriceTier_SelfExclusion(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-U2")
-	tier := create(t, svc, prodID, baseID, 12, 8500)
+	tier := create(t, ctx, svc, prodID, baseID, 12, 8500)
 
-	resp, err := svc.UpdateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
+	resp, err := svc.UpdateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
 		Id: tier.Id, ProductUnitId: baseID, MinQty: 12, Price: 8200,
 	}))
 	require.NoError(t, err)
@@ -46,12 +46,12 @@ func TestUpdateProductPriceTier_SelfExclusion(t *testing.T) {
 
 func TestUpdateProductPriceTier_OntoExistingRungRejected(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-U3")
-	create(t, svc, prodID, baseID, 12, 8500)
-	second := create(t, svc, prodID, baseID, 60, 8000)
+	create(t, ctx, svc, prodID, baseID, 12, 8500)
+	second := create(t, ctx, svc, prodID, baseID, 60, 8000)
 
-	_, err := svc.UpdateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
+	_, err := svc.UpdateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
 		Id: second.Id, ProductUnitId: baseID, MinQty: 12, Price: 8000,
 	}))
 	requireToken(t, err, connect.CodeAlreadyExists, "product_price_tier.tier_taken")
@@ -59,21 +59,21 @@ func TestUpdateProductPriceTier_OntoExistingRungRejected(t *testing.T) {
 
 func TestUpdateProductPriceTier_Validation(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-U4")
-	tier := create(t, svc, prodID, baseID, 12, 8500)
+	tier := create(t, ctx, svc, prodID, baseID, 12, 8500)
 
-	_, err := svc.UpdateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
+	_, err := svc.UpdateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
 		Id: tier.Id, ProductUnitId: baseID, MinQty: 1, Price: 8500,
 	}))
 	requireToken(t, err, connect.CodeInvalidArgument, "product_price_tier.min_qty_invalid")
 
-	_, err = svc.UpdateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
+	_, err = svc.UpdateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
 		Id: tier.Id, ProductUnitId: baseID, MinQty: 12, Price: -1,
 	}))
 	requireToken(t, err, connect.CodeInvalidArgument, "product_price_tier.price_invalid")
 
-	_, err = svc.UpdateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
+	_, err = svc.UpdateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.UpdateProductPriceTierRequest{
 		Id: "22222222-2222-2222-2222-222222222222", ProductUnitId: baseID, MinQty: 12, Price: 8500,
 	}))
 	require.Error(t, err)
@@ -82,11 +82,11 @@ func TestUpdateProductPriceTier_Validation(t *testing.T) {
 
 func TestDeleteProductPriceTier(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-D1")
-	tier := create(t, svc, prodID, baseID, 12, 8500)
+	tier := create(t, ctx, svc, prodID, baseID, 12, 8500)
 
-	_, err := svc.DeleteProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.DeleteProductPriceTierRequest{Id: tier.Id}))
+	_, err := svc.DeleteProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.DeleteProductPriceTierRequest{Id: tier.Id}))
 	require.NoError(t, err)
 
 	var n int64
@@ -94,14 +94,14 @@ func TestDeleteProductPriceTier(t *testing.T) {
 	require.Zero(t, n, "hard delete, mirroring DeleteProductDiscount")
 
 	// The rung is free again after deletion.
-	create(t, svc, prodID, baseID, 12, 8000)
+	create(t, ctx, svc, prodID, baseID, 12, 8000)
 }
 
 func TestDeleteProductPriceTier_NotFound(t *testing.T) {
 	t.Parallel()
-	svc, _ := newSvc(t)
+	svc, _, ctx := newSvc(t)
 
-	_, err := svc.DeleteProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.DeleteProductPriceTierRequest{
+	_, err := svc.DeleteProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.DeleteProductPriceTierRequest{
 		Id: "33333333-3333-3333-3333-333333333333",
 	}))
 	require.Error(t, err)

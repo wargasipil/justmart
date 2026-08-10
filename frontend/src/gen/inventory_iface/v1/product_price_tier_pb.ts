@@ -109,6 +109,109 @@ export class ProductPriceTier extends Message<ProductPriceTier> {
 }
 
 /**
+ * One version of a grosir RUNG's price. The history is keyed by
+ * (product_unit_id, min_qty), not by a tier id: tiers are hard-deleted, so the
+ * rung — ">= min_qty of THIS unit" — is the thing that carries a price over
+ * time. Exactly one row per rung is open (effective_to = 0); editing the price
+ * closes it and opens a new one, moving the threshold closes the old rung and
+ * opens the new one, and deleting the tier closes the rung without opening
+ * anything.
+ *
+ * @generated from message inventory_iface.v1.ProductTierPrice
+ */
+export class ProductTierPrice extends Message<ProductTierPrice> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string product_id = 2;
+   */
+  productId = "";
+
+  /**
+   * @generated from field: string product_unit_id = 3;
+   */
+  productUnitId = "";
+
+  /**
+   * snapshot of the unit at the time (e.g. "pcs")
+   *
+   * @generated from field: string unit_name = 4;
+   */
+  unitName = "";
+
+  /**
+   * the rung's threshold, in that unit
+   *
+   * @generated from field: int32 min_qty = 5;
+   */
+  minQty = 0;
+
+  /**
+   * price for 1 of the unit at this rung (minor units)
+   *
+   * @generated from field: int64 price = 6;
+   */
+  price = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 effective_from = 7;
+   */
+  effectiveFrom = protoInt64.zero;
+
+  /**
+   * 0 = still current
+   *
+   * @generated from field: int64 effective_to = 8;
+   */
+  effectiveTo = protoInt64.zero;
+
+  /**
+   * user id; "" for the migration-seeded baseline
+   *
+   * @generated from field: string changed_by = 9;
+   */
+  changedBy = "";
+
+  constructor(data?: PartialMessage<ProductTierPrice>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ProductTierPrice";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "unit_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "min_qty", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 6, name: "price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 7, name: "effective_from", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "effective_to", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 9, name: "changed_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProductTierPrice {
+    return new ProductTierPrice().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProductTierPrice {
+    return new ProductTierPrice().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProductTierPrice {
+    return new ProductTierPrice().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ProductTierPrice | PlainMessage<ProductTierPrice> | undefined, b: ProductTierPrice | PlainMessage<ProductTierPrice> | undefined): boolean {
+    return proto3.util.equals(ProductTierPrice, a, b);
+  }
+}
+
+/**
  * @generated from message inventory_iface.v1.ListProductPriceTiersRequest
  */
 export class ListProductPriceTiersRequest extends Message<ListProductPriceTiersRequest> {
@@ -199,6 +302,100 @@ export class ListProductPriceTiersResponse extends Message<ListProductPriceTiers
 
   static equals(a: ListProductPriceTiersResponse | PlainMessage<ListProductPriceTiersResponse> | undefined, b: ListProductPriceTiersResponse | PlainMessage<ListProductPriceTiersResponse> | undefined): boolean {
     return proto3.util.equals(ListProductPriceTiersResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ListProductTierPricesRequest
+ */
+export class ListProductTierPricesRequest extends Message<ListProductTierPricesRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
+  constructor(data?: PartialMessage<ListProductTierPricesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ListProductTierPricesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductTierPricesRequest {
+    return new ListProductTierPricesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListProductTierPricesRequest {
+    return new ListProductTierPricesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListProductTierPricesRequest {
+    return new ListProductTierPricesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListProductTierPricesRequest | PlainMessage<ListProductTierPricesRequest> | undefined, b: ListProductTierPricesRequest | PlainMessage<ListProductTierPricesRequest> | undefined): boolean {
+    return proto3.util.equals(ListProductTierPricesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ListProductTierPricesResponse
+ */
+export class ListProductTierPricesResponse extends Message<ListProductTierPricesResponse> {
+  /**
+   * @generated from field: repeated inventory_iface.v1.ProductTierPrice prices = 1;
+   */
+  prices: ProductTierPrice[] = [];
+
+  /**
+   * all history rows for the product, ignoring the page window
+   *
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
+  constructor(data?: PartialMessage<ListProductTierPricesResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ListProductTierPricesResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "prices", kind: "message", T: ProductTierPrice, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListProductTierPricesResponse {
+    return new ListProductTierPricesResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListProductTierPricesResponse {
+    return new ListProductTierPricesResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListProductTierPricesResponse {
+    return new ListProductTierPricesResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListProductTierPricesResponse | PlainMessage<ListProductTierPricesResponse> | undefined, b: ListProductTierPricesResponse | PlainMessage<ListProductTierPricesResponse> | undefined): boolean {
+    return proto3.util.equals(ListProductTierPricesResponse, a, b);
   }
 }
 

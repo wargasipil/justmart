@@ -126,6 +126,13 @@ func receiptToProto(r *model.PurchaseReceipt) *purchasingifacev1.PurchaseReceipt
 	if r.ReceiptNo != nil {
 		out.ReceiptNo = *r.ReceiptNo
 	}
+	if r.VoidedAt != nil {
+		out.VoidedAt = r.VoidedAt.Unix()
+		out.VoidReason = r.VoidReason
+		if r.VoidedBy != nil {
+			out.VoidedBy = *r.VoidedBy
+		}
+	}
 	for i := range r.Items {
 		out.Items = append(out.Items, receiptItemToProto(&r.Items[i]))
 	}

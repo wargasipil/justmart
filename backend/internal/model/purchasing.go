@@ -66,6 +66,13 @@ type PurchaseReceipt struct {
 	Note            string    `gorm:"not null;default:''"`
 	InvoiceNo       string    `gorm:"not null;default:'';column:invoice_no"`
 	CreatedAt       time.Time
+	// Cancelled ("batal terima") — the receipt was entered in error. The row and
+	// its RCV number survive as a voided document, but its lots and their stock
+	// movements are deleted and received_qty is reversed. Only ever set while
+	// every lot was still untouched; see CancelReceipt.
+	VoidedAt   *time.Time `gorm:"column:voided_at"`
+	VoidedBy   *string    `gorm:"type:uuid;column:voided_by"`
+	VoidReason string     `gorm:"not null;default:'';column:void_reason"`
 
 	Items []PurchaseReceiptItem `gorm:"foreignKey:PurchaseReceiptID"`
 }

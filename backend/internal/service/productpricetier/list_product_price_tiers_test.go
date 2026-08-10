@@ -14,15 +14,15 @@ import (
 // order.
 func TestListProductPriceTiers_OrdersBaseFirstThenAscending(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, boxID := seedProductWithUnits(t, db, "PT-L1")
 	// Insert deliberately out of order.
-	create(t, svc, prodID, boxID, 5, 100000)
-	create(t, svc, prodID, baseID, 144, 7200)
-	create(t, svc, prodID, baseID, 12, 8500)
-	create(t, svc, prodID, baseID, 60, 8000)
+	create(t, ctx, svc, prodID, boxID, 5, 100000)
+	create(t, ctx, svc, prodID, baseID, 144, 7200)
+	create(t, ctx, svc, prodID, baseID, 12, 8500)
+	create(t, ctx, svc, prodID, baseID, 60, 8000)
 
-	resp, err := svc.ListProductPriceTiers(ctx(), connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
+	resp, err := svc.ListProductPriceTiers(ctx, connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
 		ProductId: prodID,
 	}))
 	require.NoError(t, err)
@@ -41,16 +41,16 @@ func TestListProductPriceTiers_OrdersBaseFirstThenAscending(t *testing.T) {
 // tier for the product regardless of the page window.
 func TestListProductPriceTiers_Paginates(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, boxID := seedProductWithUnits(t, db, "PT-PAGE")
-	create(t, svc, prodID, boxID, 5, 100000)
-	create(t, svc, prodID, baseID, 144, 7200)
-	create(t, svc, prodID, baseID, 12, 8500)
-	create(t, svc, prodID, baseID, 60, 8000)
+	create(t, ctx, svc, prodID, boxID, 5, 100000)
+	create(t, ctx, svc, prodID, baseID, 144, 7200)
+	create(t, ctx, svc, prodID, baseID, 12, 8500)
+	create(t, ctx, svc, prodID, baseID, 60, 8000)
 
 	page := func(limit, offset int32) *inventoryifacev1.ListProductPriceTiersResponse {
 		t.Helper()
-		resp, err := svc.ListProductPriceTiers(ctx(), connect.NewRequest(
+		resp, err := svc.ListProductPriceTiers(ctx, connect.NewRequest(
 			&inventoryifacev1.ListProductPriceTiersRequest{
 				ProductId: prodID, Limit: limit, Offset: offset,
 			}))
@@ -82,12 +82,12 @@ func TestListProductPriceTiers_Paginates(t *testing.T) {
 // pre-pagination callers keep working unchanged.
 func TestListProductPriceTiers_DefaultLimitReturnsAll(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-DEF")
-	create(t, svc, prodID, baseID, 12, 8500)
-	create(t, svc, prodID, baseID, 60, 8000)
+	create(t, ctx, svc, prodID, baseID, 12, 8500)
+	create(t, ctx, svc, prodID, baseID, 60, 8000)
 
-	resp, err := svc.ListProductPriceTiers(ctx(), connect.NewRequest(
+	resp, err := svc.ListProductPriceTiers(ctx, connect.NewRequest(
 		&inventoryifacev1.ListProductPriceTiersRequest{ProductId: prodID}))
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.Tiers, 2)
@@ -96,13 +96,13 @@ func TestListProductPriceTiers_DefaultLimitReturnsAll(t *testing.T) {
 
 func TestListProductPriceTiers_ScopedToProduct(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodA, baseA, _ := seedProductWithUnits(t, db, "PT-L2a")
 	prodB, baseB, _ := seedProductWithUnits(t, db, "PT-L2b")
-	create(t, svc, prodA, baseA, 12, 8500)
-	create(t, svc, prodB, baseB, 20, 9000)
+	create(t, ctx, svc, prodA, baseA, 12, 8500)
+	create(t, ctx, svc, prodB, baseB, 20, 9000)
 
-	resp, err := svc.ListProductPriceTiers(ctx(), connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
+	resp, err := svc.ListProductPriceTiers(ctx, connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
 		ProductId: prodA,
 	}))
 	require.NoError(t, err)
@@ -112,16 +112,16 @@ func TestListProductPriceTiers_ScopedToProduct(t *testing.T) {
 
 func TestListProductPriceTiers_EmptyAndMissingProduct(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, _, _ := seedProductWithUnits(t, db, "PT-L3")
 
-	resp, err := svc.ListProductPriceTiers(ctx(), connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
+	resp, err := svc.ListProductPriceTiers(ctx, connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
 		ProductId: prodID,
 	}))
 	require.NoError(t, err)
 	require.Empty(t, resp.Msg.Tiers)
 
-	_, err = svc.ListProductPriceTiers(ctx(), connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
+	_, err = svc.ListProductPriceTiers(ctx, connect.NewRequest(&inventoryifacev1.ListProductPriceTiersRequest{
 		ProductId: "",
 	}))
 	require.Error(t, err)

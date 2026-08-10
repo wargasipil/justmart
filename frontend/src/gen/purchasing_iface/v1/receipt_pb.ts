@@ -59,6 +59,40 @@ export class PurchaseReceipt extends Message<PurchaseReceipt> {
    */
   invoiceNo = "";
 
+  /**
+   * Cancellation ("batal terima"). A cancelled receipt keeps its row and its
+   * RCV number — hiding it would leave an unexplained gap in the sequence — but
+   * its lots and stock movements are gone and the PO reads as if the goods
+   * never arrived. 0 / empty when the receipt is live.
+   *
+   * @generated from field: int64 voided_at = 10;
+   */
+  voidedAt = protoInt64.zero;
+
+  /**
+   * @generated from field: string voided_by = 11;
+   */
+  voidedBy = "";
+
+  /**
+   * @generated from field: string void_reason = 12;
+   */
+  voidReason = "";
+
+  /**
+   * Whether CancelReceipt would succeed right now, so the UI can disable the
+   * action with a reason instead of failing on click. cancel_blocked_reason is
+   * a stable token (see serverErrors.ts), empty when cancellable.
+   *
+   * @generated from field: bool cancellable = 13;
+   */
+  cancellable = false;
+
+  /**
+   * @generated from field: string cancel_blocked_reason = 14;
+   */
+  cancelBlockedReason = "";
+
   constructor(data?: PartialMessage<PurchaseReceipt>) {
     super();
     proto3.util.initPartial(data, this);
@@ -76,6 +110,11 @@ export class PurchaseReceipt extends Message<PurchaseReceipt> {
     { no: 7, name: "created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "items", kind: "message", T: PurchaseReceiptItem, repeated: true },
     { no: 9, name: "invoice_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "voided_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 11, name: "voided_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 12, name: "void_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "cancellable", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 14, name: "cancel_blocked_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseReceipt {
@@ -553,6 +592,90 @@ export class GetReceiptResponse extends Message<GetReceiptResponse> {
 
   static equals(a: GetReceiptResponse | PlainMessage<GetReceiptResponse> | undefined, b: GetReceiptResponse | PlainMessage<GetReceiptResponse> | undefined): boolean {
     return proto3.util.equals(GetReceiptResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message purchasing_iface.v1.CancelReceiptRequest
+ */
+export class CancelReceiptRequest extends Message<CancelReceiptRequest> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * required — why the receive is being undone
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason = "";
+
+  constructor(data?: PartialMessage<CancelReceiptRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "purchasing_iface.v1.CancelReceiptRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CancelReceiptRequest {
+    return new CancelReceiptRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CancelReceiptRequest {
+    return new CancelReceiptRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CancelReceiptRequest {
+    return new CancelReceiptRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CancelReceiptRequest | PlainMessage<CancelReceiptRequest> | undefined, b: CancelReceiptRequest | PlainMessage<CancelReceiptRequest> | undefined): boolean {
+    return proto3.util.equals(CancelReceiptRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message purchasing_iface.v1.CancelReceiptResponse
+ */
+export class CancelReceiptResponse extends Message<CancelReceiptResponse> {
+  /**
+   * the voided receipt (batch links cleared)
+   *
+   * @generated from field: purchasing_iface.v1.PurchaseReceipt receipt = 1;
+   */
+  receipt?: PurchaseReceipt;
+
+  constructor(data?: PartialMessage<CancelReceiptResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "purchasing_iface.v1.CancelReceiptResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "receipt", kind: "message", T: PurchaseReceipt },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CancelReceiptResponse {
+    return new CancelReceiptResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): CancelReceiptResponse {
+    return new CancelReceiptResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): CancelReceiptResponse {
+    return new CancelReceiptResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: CancelReceiptResponse | PlainMessage<CancelReceiptResponse> | undefined, b: CancelReceiptResponse | PlainMessage<CancelReceiptResponse> | undefined): boolean {
+    return proto3.util.equals(CancelReceiptResponse, a, b);
   }
 }
 

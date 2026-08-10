@@ -36,6 +36,9 @@ const (
 	// ProductPriceTierServiceListProductPriceTiersProcedure is the fully-qualified name of the
 	// ProductPriceTierService's ListProductPriceTiers RPC.
 	ProductPriceTierServiceListProductPriceTiersProcedure = "/inventory_iface.v1.ProductPriceTierService/ListProductPriceTiers"
+	// ProductPriceTierServiceListProductTierPricesProcedure is the fully-qualified name of the
+	// ProductPriceTierService's ListProductTierPrices RPC.
+	ProductPriceTierServiceListProductTierPricesProcedure = "/inventory_iface.v1.ProductPriceTierService/ListProductTierPrices"
 	// ProductPriceTierServiceCreateProductPriceTierProcedure is the fully-qualified name of the
 	// ProductPriceTierService's CreateProductPriceTier RPC.
 	ProductPriceTierServiceCreateProductPriceTierProcedure = "/inventory_iface.v1.ProductPriceTierService/CreateProductPriceTier"
@@ -51,6 +54,8 @@ const (
 // service.
 type ProductPriceTierServiceClient interface {
 	ListProductPriceTiers(context.Context, *connect.Request[v1.ListProductPriceTiersRequest]) (*connect.Response[v1.ListProductPriceTiersResponse], error)
+	// Grosir price history for a product, across every unit and rung.
+	ListProductTierPrices(context.Context, *connect.Request[v1.ListProductTierPricesRequest]) (*connect.Response[v1.ListProductTierPricesResponse], error)
 	CreateProductPriceTier(context.Context, *connect.Request[v1.CreateProductPriceTierRequest]) (*connect.Response[v1.CreateProductPriceTierResponse], error)
 	UpdateProductPriceTier(context.Context, *connect.Request[v1.UpdateProductPriceTierRequest]) (*connect.Response[v1.UpdateProductPriceTierResponse], error)
 	DeleteProductPriceTier(context.Context, *connect.Request[v1.DeleteProductPriceTierRequest]) (*connect.Response[v1.DeleteProductPriceTierResponse], error)
@@ -71,6 +76,12 @@ func NewProductPriceTierServiceClient(httpClient connect.HTTPClient, baseURL str
 			httpClient,
 			baseURL+ProductPriceTierServiceListProductPriceTiersProcedure,
 			connect.WithSchema(productPriceTierServiceMethods.ByName("ListProductPriceTiers")),
+			connect.WithClientOptions(opts...),
+		),
+		listProductTierPrices: connect.NewClient[v1.ListProductTierPricesRequest, v1.ListProductTierPricesResponse](
+			httpClient,
+			baseURL+ProductPriceTierServiceListProductTierPricesProcedure,
+			connect.WithSchema(productPriceTierServiceMethods.ByName("ListProductTierPrices")),
 			connect.WithClientOptions(opts...),
 		),
 		createProductPriceTier: connect.NewClient[v1.CreateProductPriceTierRequest, v1.CreateProductPriceTierResponse](
@@ -97,6 +108,7 @@ func NewProductPriceTierServiceClient(httpClient connect.HTTPClient, baseURL str
 // productPriceTierServiceClient implements ProductPriceTierServiceClient.
 type productPriceTierServiceClient struct {
 	listProductPriceTiers  *connect.Client[v1.ListProductPriceTiersRequest, v1.ListProductPriceTiersResponse]
+	listProductTierPrices  *connect.Client[v1.ListProductTierPricesRequest, v1.ListProductTierPricesResponse]
 	createProductPriceTier *connect.Client[v1.CreateProductPriceTierRequest, v1.CreateProductPriceTierResponse]
 	updateProductPriceTier *connect.Client[v1.UpdateProductPriceTierRequest, v1.UpdateProductPriceTierResponse]
 	deleteProductPriceTier *connect.Client[v1.DeleteProductPriceTierRequest, v1.DeleteProductPriceTierResponse]
@@ -105,6 +117,11 @@ type productPriceTierServiceClient struct {
 // ListProductPriceTiers calls inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers.
 func (c *productPriceTierServiceClient) ListProductPriceTiers(ctx context.Context, req *connect.Request[v1.ListProductPriceTiersRequest]) (*connect.Response[v1.ListProductPriceTiersResponse], error) {
 	return c.listProductPriceTiers.CallUnary(ctx, req)
+}
+
+// ListProductTierPrices calls inventory_iface.v1.ProductPriceTierService.ListProductTierPrices.
+func (c *productPriceTierServiceClient) ListProductTierPrices(ctx context.Context, req *connect.Request[v1.ListProductTierPricesRequest]) (*connect.Response[v1.ListProductTierPricesResponse], error) {
+	return c.listProductTierPrices.CallUnary(ctx, req)
 }
 
 // CreateProductPriceTier calls inventory_iface.v1.ProductPriceTierService.CreateProductPriceTier.
@@ -126,6 +143,8 @@ func (c *productPriceTierServiceClient) DeleteProductPriceTier(ctx context.Conte
 // inventory_iface.v1.ProductPriceTierService service.
 type ProductPriceTierServiceHandler interface {
 	ListProductPriceTiers(context.Context, *connect.Request[v1.ListProductPriceTiersRequest]) (*connect.Response[v1.ListProductPriceTiersResponse], error)
+	// Grosir price history for a product, across every unit and rung.
+	ListProductTierPrices(context.Context, *connect.Request[v1.ListProductTierPricesRequest]) (*connect.Response[v1.ListProductTierPricesResponse], error)
 	CreateProductPriceTier(context.Context, *connect.Request[v1.CreateProductPriceTierRequest]) (*connect.Response[v1.CreateProductPriceTierResponse], error)
 	UpdateProductPriceTier(context.Context, *connect.Request[v1.UpdateProductPriceTierRequest]) (*connect.Response[v1.UpdateProductPriceTierResponse], error)
 	DeleteProductPriceTier(context.Context, *connect.Request[v1.DeleteProductPriceTierRequest]) (*connect.Response[v1.DeleteProductPriceTierResponse], error)
@@ -142,6 +161,12 @@ func NewProductPriceTierServiceHandler(svc ProductPriceTierServiceHandler, opts 
 		ProductPriceTierServiceListProductPriceTiersProcedure,
 		svc.ListProductPriceTiers,
 		connect.WithSchema(productPriceTierServiceMethods.ByName("ListProductPriceTiers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productPriceTierServiceListProductTierPricesHandler := connect.NewUnaryHandler(
+		ProductPriceTierServiceListProductTierPricesProcedure,
+		svc.ListProductTierPrices,
+		connect.WithSchema(productPriceTierServiceMethods.ByName("ListProductTierPrices")),
 		connect.WithHandlerOptions(opts...),
 	)
 	productPriceTierServiceCreateProductPriceTierHandler := connect.NewUnaryHandler(
@@ -166,6 +191,8 @@ func NewProductPriceTierServiceHandler(svc ProductPriceTierServiceHandler, opts 
 		switch r.URL.Path {
 		case ProductPriceTierServiceListProductPriceTiersProcedure:
 			productPriceTierServiceListProductPriceTiersHandler.ServeHTTP(w, r)
+		case ProductPriceTierServiceListProductTierPricesProcedure:
+			productPriceTierServiceListProductTierPricesHandler.ServeHTTP(w, r)
 		case ProductPriceTierServiceCreateProductPriceTierProcedure:
 			productPriceTierServiceCreateProductPriceTierHandler.ServeHTTP(w, r)
 		case ProductPriceTierServiceUpdateProductPriceTierProcedure:
@@ -183,6 +210,10 @@ type UnimplementedProductPriceTierServiceHandler struct{}
 
 func (UnimplementedProductPriceTierServiceHandler) ListProductPriceTiers(context.Context, *connect.Request[v1.ListProductPriceTiersRequest]) (*connect.Response[v1.ListProductPriceTiersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers is not implemented"))
+}
+
+func (UnimplementedProductPriceTierServiceHandler) ListProductTierPrices(context.Context, *connect.Request[v1.ListProductTierPricesRequest]) (*connect.Response[v1.ListProductTierPricesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductPriceTierService.ListProductTierPrices is not implemented"))
 }
 
 func (UnimplementedProductPriceTierServiceHandler) CreateProductPriceTier(context.Context, *connect.Request[v1.CreateProductPriceTierRequest]) (*connect.Response[v1.CreateProductPriceTierResponse], error) {

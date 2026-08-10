@@ -14,6 +14,7 @@ import type {
   UpdatePurchaseOrderRequest,
 } from "../gen/purchasing_iface/v1/order_pb";
 import type {
+  CancelReceiptRequest,
   CreateReceiptRequest,
   ListReceiptsRequest,
 } from "../gen/purchasing_iface/v1/receipt_pb";
@@ -163,6 +164,24 @@ export function useCreateReceiptMutation() {
       void qc.invalidateQueries({ queryKey: purchasingKeys.all });
       void qc.invalidateQueries({ queryKey: ["batches"] });
       void qc.invalidateQueries({ queryKey: ["stock"] });
+    },
+  });
+}
+
+// Cancel an accepted restock entered in error ("batal terima"). Undoes the lots
+// the receipt created, so it invalidates the same caches a receive does — plus
+// products (the last-restock cost is rebuilt) and the restock history tab.
+export function useCancelReceiptMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<CancelReceiptRequest>) =>
+      purchaseReceiptClient.cancelReceipt(req),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: purchasingKeys.all });
+      void qc.invalidateQueries({ queryKey: ["batches"] });
+      void qc.invalidateQueries({ queryKey: ["stock"] });
+      void qc.invalidateQueries({ queryKey: ["products"] });
+      void qc.invalidateQueries({ queryKey: ["productRestocks"] });
     },
   });
 }

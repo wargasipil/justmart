@@ -31,8 +31,32 @@ message ProductPriceTier {
   int64 created_at = 8;
 }
 
+// One version of a grosir RUNG's price. The history is keyed by
+// (product_unit_id, min_qty), not by a tier id: tiers are hard-deleted, so the
+// rung — ">= min_qty of THIS unit" — is the thing that carries a price over
+// time. Exactly one row per rung is open (effective_to = 0); editing the price
+// closes it and opens a new one, moving the threshold closes the old rung and
+// opens the new one, and deleting the tier closes the rung without opening
+// anything.
+message ProductTierPrice {
+  string id = 1;
+  string product_id = 2;
+  string product_unit_id = 3;
+  string unit_name = 4;    // snapshot of the unit at the time (e.g. "pcs")
+  int32 min_qty = 5;       // the rung's threshold, in that unit
+  int64 price = 6;         // price for 1 of the unit at this rung (minor units)
+  int64 effective_from = 7;
+  int64 effective_to = 8;  // 0 = still current
+  string changed_by = 9;   // user id; "" for the migration-seeded baseline
+}
+
 service ProductPriceTierService {
   rpc ListProductPriceTiers(ListProductPriceTiersRequest) returns (ListProductPriceTiersResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // Grosir price history for a product, across every unit and rung.
+  rpc ListProductTierPrices(ListProductTierPricesRequest) returns (ListProductTierPricesResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
@@ -58,6 +82,16 @@ message ListProductPriceTiersRequest {
 message ListProductPriceTiersResponse {
   repeated ProductPriceTier tiers = 1;
   int32 total = 2; // all tiers for the product, ignoring the page window
+}
+
+message ListProductTierPricesRequest {
+  string product_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListProductTierPricesResponse {
+  repeated ProductTierPrice prices = 1;
+  int32 total = 2; // all history rows for the product, ignoring the page window
 }
 
 message CreateProductPriceTierRequest {

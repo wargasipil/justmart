@@ -308,6 +308,16 @@
     "expiryDate": "Kedaluwarsa",
     "receiveTitle": "Catat pengiriman",
     "noReceipts": "Belum ada tanda terima",
+    "cancel": {
+      "action": "Batalkan",
+      "title": "Batalkan penerimaan ini?",
+      "confirm": "Batalkan penerimaan",
+      "voided": "Dibatalkan",
+      "reason": "Alasan",
+      "reasonPlaceholder": "mis. terinput dua kali",
+      "warning": "Stok di bawah ini akan dihapus dari gudang dan order restock dibuka kembali, seolah pengiriman tidak pernah dicatat. Hanya bisa selama stoknya belum terpakai. Kalau barangnya memang dikembalikan ke pemasok, buat retur pembelian saja.",
+      "done": "Penerimaan dibatalkan"
+    },
     "payments": "Pembayaran",
     "payTitle": "Catat pembayaran",
     "amount": "Jumlah",
@@ -681,6 +691,11 @@
       "priceHistory": "Riwayat harga",
       "priceHistoryEmpty": "Belum ada perubahan harga.",
       "priceHistoryUnitCol": "Satuan",
+      "priceHistoryUnitScope": "Per satuan",
+      "priceHistoryTierScope": "Grosir",
+      "priceHistoryTierEmpty": "Belum ada perubahan harga grosir.",
+      "tierMinQty": "Min. beli",
+      "tierRung": "≥{{qty}}",
       "priceFrom": "Dari",
       "priceTo": "Sampai",
       "priceCurrent": "(saat ini)",
@@ -1145,9 +1160,13 @@
       "poNotReturnable": "PO ini tidak punya barang diterima untuk diretur",
       "returnExceedsOnHand": "Tidak bisa meretur melebihi jumlah yang masih ada stok",
       "receiptItemNotFound": "Baris penerimaan tidak ditemukan pada PO ini",
-      "reasonRequired": "Alasan wajib diisi untuk retur",
+      "reasonRequired": "Alasan wajib diisi",
       "duplicateLine": "Baris penerimaan muncul lebih dari sekali pada retur ini",
-      "noBatch": "Baris penerimaan tidak punya batch untuk diretur"
+      "noBatch": "Baris penerimaan tidak punya batch untuk diretur",
+      "receiptLotConsumed": "Stok ini sudah terpakai, jadi penerimaan tidak bisa dibatalkan lagi. Buat retur pembelian saja.",
+      "receiptLotInStocktake": "Stok ini sedang dipakai di stok opname yang masih terbuka. Hapus dulu dari opname.",
+      "receiptCancelPoClosed": "Order restock ini sudah lunas. Buat retur pembelian saja.",
+      "receiptAlreadyVoided": "Penerimaan ini sudah dibatalkan"
     },
     "transfer": {
       "sameWarehouse": "Gudang asal dan tujuan harus berbeda"

@@ -33,8 +33,20 @@ type PurchaseReceipt struct {
 	CreatedAt       int64                  `protobuf:"varint,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	Items           []*PurchaseReceiptItem `protobuf:"bytes,8,rep,name=items,proto3" json:"items,omitempty"`
 	InvoiceNo       string                 `protobuf:"bytes,9,opt,name=invoice_no,json=invoiceNo,proto3" json:"invoice_no,omitempty"` // supplier invoice / nomor faktur
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Cancellation ("batal terima"). A cancelled receipt keeps its row and its
+	// RCV number — hiding it would leave an unexplained gap in the sequence — but
+	// its lots and stock movements are gone and the PO reads as if the goods
+	// never arrived. 0 / empty when the receipt is live.
+	VoidedAt   int64  `protobuf:"varint,10,opt,name=voided_at,json=voidedAt,proto3" json:"voided_at,omitempty"`
+	VoidedBy   string `protobuf:"bytes,11,opt,name=voided_by,json=voidedBy,proto3" json:"voided_by,omitempty"`
+	VoidReason string `protobuf:"bytes,12,opt,name=void_reason,json=voidReason,proto3" json:"void_reason,omitempty"`
+	// Whether CancelReceipt would succeed right now, so the UI can disable the
+	// action with a reason instead of failing on click. cancel_blocked_reason is
+	// a stable token (see serverErrors.ts), empty when cancellable.
+	Cancellable         bool   `protobuf:"varint,13,opt,name=cancellable,proto3" json:"cancellable,omitempty"`
+	CancelBlockedReason string `protobuf:"bytes,14,opt,name=cancel_blocked_reason,json=cancelBlockedReason,proto3" json:"cancel_blocked_reason,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *PurchaseReceipt) Reset() {
@@ -126,6 +138,41 @@ func (x *PurchaseReceipt) GetItems() []*PurchaseReceiptItem {
 func (x *PurchaseReceipt) GetInvoiceNo() string {
 	if x != nil {
 		return x.InvoiceNo
+	}
+	return ""
+}
+
+func (x *PurchaseReceipt) GetVoidedAt() int64 {
+	if x != nil {
+		return x.VoidedAt
+	}
+	return 0
+}
+
+func (x *PurchaseReceipt) GetVoidedBy() string {
+	if x != nil {
+		return x.VoidedBy
+	}
+	return ""
+}
+
+func (x *PurchaseReceipt) GetVoidReason() string {
+	if x != nil {
+		return x.VoidReason
+	}
+	return ""
+}
+
+func (x *PurchaseReceipt) GetCancellable() bool {
+	if x != nil {
+		return x.Cancellable
+	}
+	return false
+}
+
+func (x *PurchaseReceipt) GetCancelBlockedReason() string {
+	if x != nil {
+		return x.CancelBlockedReason
 	}
 	return ""
 }
@@ -677,11 +724,107 @@ func (x *GetReceiptResponse) GetReceipt() *PurchaseReceipt {
 	return nil
 }
 
+type CancelReceiptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"` // required — why the receive is being undone
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelReceiptRequest) Reset() {
+	*x = CancelReceiptRequest{}
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelReceiptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelReceiptRequest) ProtoMessage() {}
+
+func (x *CancelReceiptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelReceiptRequest.ProtoReflect.Descriptor instead.
+func (*CancelReceiptRequest) Descriptor() ([]byte, []int) {
+	return file_purchasing_iface_v1_receipt_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CancelReceiptRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CancelReceiptRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type CancelReceiptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Receipt       *PurchaseReceipt       `protobuf:"bytes,1,opt,name=receipt,proto3" json:"receipt,omitempty"` // the voided receipt (batch links cleared)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelReceiptResponse) Reset() {
+	*x = CancelReceiptResponse{}
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelReceiptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelReceiptResponse) ProtoMessage() {}
+
+func (x *CancelReceiptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelReceiptResponse.ProtoReflect.Descriptor instead.
+func (*CancelReceiptResponse) Descriptor() ([]byte, []int) {
+	return file_purchasing_iface_v1_receipt_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CancelReceiptResponse) GetReceipt() *PurchaseReceipt {
+	if x != nil {
+		return x.Receipt
+	}
+	return nil
+}
+
 var File_purchasing_iface_v1_receipt_proto protoreflect.FileDescriptor
 
 const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\n" +
-	"!purchasing_iface/v1/receipt.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xc0\x02\n" +
+	"!purchasing_iface/v1/receipt.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xf1\x03\n" +
 	"\x0fPurchaseReceipt\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -696,7 +839,14 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"created_at\x18\a \x01(\x03R\tcreatedAt\x12>\n" +
 	"\x05items\x18\b \x03(\v2(.purchasing_iface.v1.PurchaseReceiptItemR\x05items\x12\x1d\n" +
 	"\n" +
-	"invoice_no\x18\t \x01(\tR\tinvoiceNo\"\xcf\x03\n" +
+	"invoice_no\x18\t \x01(\tR\tinvoiceNo\x12\x1b\n" +
+	"\tvoided_at\x18\n" +
+	" \x01(\x03R\bvoidedAt\x12\x1b\n" +
+	"\tvoided_by\x18\v \x01(\tR\bvoidedBy\x12\x1f\n" +
+	"\vvoid_reason\x18\f \x01(\tR\n" +
+	"voidReason\x12 \n" +
+	"\vcancellable\x18\r \x01(\bR\vcancellable\x122\n" +
+	"\x15cancel_blocked_reason\x18\x0e \x01(\tR\x13cancelBlockedReason\"\xcf\x03\n" +
 	"\x13PurchaseReceiptItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x13purchase_receipt_id\x18\x02 \x01(\tR\x11purchaseReceiptId\x123\n" +
@@ -743,12 +893,18 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\x11GetReceiptRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"T\n" +
 	"\x12GetReceiptResponse\x12>\n" +
-	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt2\xdc\x02\n" +
+	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt\">\n" +
+	"\x14CancelReceiptRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"W\n" +
+	"\x15CancelReceiptResponse\x12>\n" +
+	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt2\xcc\x03\n" +
 	"\x16PurchaseReceiptService\x12n\n" +
 	"\rCreateReceipt\x12).purchasing_iface.v1.CreateReceiptRequest\x1a*.purchasing_iface.v1.CreateReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12k\n" +
 	"\fListReceipts\x12(.purchasing_iface.v1.ListReceiptsRequest\x1a).purchasing_iface.v1.ListReceiptsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12e\n" +
 	"\n" +
-	"GetReceipt\x12&.purchasing_iface.v1.GetReceiptRequest\x1a'.purchasing_iface.v1.GetReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02BGZEgithub.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1b\x06proto3"
+	"GetReceipt\x12&.purchasing_iface.v1.GetReceiptRequest\x1a'.purchasing_iface.v1.GetReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12n\n" +
+	"\rCancelReceipt\x12).purchasing_iface.v1.CancelReceiptRequest\x1a*.purchasing_iface.v1.CancelReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02BGZEgithub.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1b\x06proto3"
 
 var (
 	file_purchasing_iface_v1_receipt_proto_rawDescOnce sync.Once
@@ -762,7 +918,7 @@ func file_purchasing_iface_v1_receipt_proto_rawDescGZIP() []byte {
 	return file_purchasing_iface_v1_receipt_proto_rawDescData
 }
 
-var file_purchasing_iface_v1_receipt_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_purchasing_iface_v1_receipt_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_purchasing_iface_v1_receipt_proto_goTypes = []any{
 	(*PurchaseReceipt)(nil),       // 0: purchasing_iface.v1.PurchaseReceipt
 	(*PurchaseReceiptItem)(nil),   // 1: purchasing_iface.v1.PurchaseReceiptItem
@@ -773,24 +929,29 @@ var file_purchasing_iface_v1_receipt_proto_goTypes = []any{
 	(*ListReceiptsResponse)(nil),  // 6: purchasing_iface.v1.ListReceiptsResponse
 	(*GetReceiptRequest)(nil),     // 7: purchasing_iface.v1.GetReceiptRequest
 	(*GetReceiptResponse)(nil),    // 8: purchasing_iface.v1.GetReceiptResponse
+	(*CancelReceiptRequest)(nil),  // 9: purchasing_iface.v1.CancelReceiptRequest
+	(*CancelReceiptResponse)(nil), // 10: purchasing_iface.v1.CancelReceiptResponse
 }
 var file_purchasing_iface_v1_receipt_proto_depIdxs = []int32{
-	1, // 0: purchasing_iface.v1.PurchaseReceipt.items:type_name -> purchasing_iface.v1.PurchaseReceiptItem
-	2, // 1: purchasing_iface.v1.CreateReceiptRequest.lines:type_name -> purchasing_iface.v1.ReceiveLineInput
-	0, // 2: purchasing_iface.v1.CreateReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
-	0, // 3: purchasing_iface.v1.ListReceiptsResponse.receipts:type_name -> purchasing_iface.v1.PurchaseReceipt
-	0, // 4: purchasing_iface.v1.GetReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
-	3, // 5: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:input_type -> purchasing_iface.v1.CreateReceiptRequest
-	5, // 6: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:input_type -> purchasing_iface.v1.ListReceiptsRequest
-	7, // 7: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:input_type -> purchasing_iface.v1.GetReceiptRequest
-	4, // 8: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:output_type -> purchasing_iface.v1.CreateReceiptResponse
-	6, // 9: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:output_type -> purchasing_iface.v1.ListReceiptsResponse
-	8, // 10: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:output_type -> purchasing_iface.v1.GetReceiptResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1,  // 0: purchasing_iface.v1.PurchaseReceipt.items:type_name -> purchasing_iface.v1.PurchaseReceiptItem
+	2,  // 1: purchasing_iface.v1.CreateReceiptRequest.lines:type_name -> purchasing_iface.v1.ReceiveLineInput
+	0,  // 2: purchasing_iface.v1.CreateReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 3: purchasing_iface.v1.ListReceiptsResponse.receipts:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 4: purchasing_iface.v1.GetReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 5: purchasing_iface.v1.CancelReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	3,  // 6: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:input_type -> purchasing_iface.v1.CreateReceiptRequest
+	5,  // 7: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:input_type -> purchasing_iface.v1.ListReceiptsRequest
+	7,  // 8: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:input_type -> purchasing_iface.v1.GetReceiptRequest
+	9,  // 9: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:input_type -> purchasing_iface.v1.CancelReceiptRequest
+	4,  // 10: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:output_type -> purchasing_iface.v1.CreateReceiptResponse
+	6,  // 11: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:output_type -> purchasing_iface.v1.ListReceiptsResponse
+	8,  // 12: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:output_type -> purchasing_iface.v1.GetReceiptResponse
+	10, // 13: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:output_type -> purchasing_iface.v1.CancelReceiptResponse
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_purchasing_iface_v1_receipt_proto_init() }
@@ -804,7 +965,7 @@ func file_purchasing_iface_v1_receipt_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_purchasing_iface_v1_receipt_proto_rawDesc), len(file_purchasing_iface_v1_receipt_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

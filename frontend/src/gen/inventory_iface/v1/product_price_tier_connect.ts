@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateProductPriceTierRequest, CreateProductPriceTierResponse, DeleteProductPriceTierRequest, DeleteProductPriceTierResponse, ListProductPriceTiersRequest, ListProductPriceTiersResponse, UpdateProductPriceTierRequest, UpdateProductPriceTierResponse } from "./product_price_tier_pb.js";
+import { CreateProductPriceTierRequest, CreateProductPriceTierResponse, DeleteProductPriceTierRequest, DeleteProductPriceTierResponse, ListProductPriceTiersRequest, ListProductPriceTiersResponse, ListProductTierPricesRequest, ListProductTierPricesResponse, UpdateProductPriceTierRequest, UpdateProductPriceTierResponse } from "./product_price_tier_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -19,6 +19,17 @@ export const ProductPriceTierService = {
       name: "ListProductPriceTiers",
       I: ListProductPriceTiersRequest,
       O: ListProductPriceTiersResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Grosir price history for a product, across every unit and rung.
+     *
+     * @generated from rpc inventory_iface.v1.ProductPriceTierService.ListProductTierPrices
+     */
+    listProductTierPrices: {
+      name: "ListProductTierPrices",
+      I: ListProductTierPricesRequest,
+      O: ListProductTierPricesResponse,
       kind: MethodKind.Unary,
     },
     /**

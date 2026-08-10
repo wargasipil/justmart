@@ -11,10 +11,10 @@ import (
 
 func TestCreateProductPriceTier_HappyPath(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-C1")
 
-	tier := create(t, svc, prodID, baseID, 12, 8500)
+	tier := create(t, ctx, svc, prodID, baseID, 12, 8500)
 	require.NotEmpty(t, tier.Id)
 	require.Equal(t, prodID, tier.ProductId)
 	require.Equal(t, baseID, tier.ProductUnitId)
@@ -28,10 +28,10 @@ func TestCreateProductPriceTier_HappyPath(t *testing.T) {
 // A tier on a larger unit snapshots that unit's name and factor.
 func TestCreateProductPriceTier_OnLargerUnit(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, _, boxID := seedProductWithUnits(t, db, "PT-C2")
 
-	tier := create(t, svc, prodID, boxID, 5, 100000)
+	tier := create(t, ctx, svc, prodID, boxID, 5, 100000)
 	require.Equal(t, "box", tier.UnitName)
 	require.Equal(t, int64(12), tier.UnitFactor)
 }
@@ -41,11 +41,11 @@ func TestCreateProductPriceTier_OnLargerUnit(t *testing.T) {
 // one bad row silently suppress every auto discount for the product.
 func TestCreateProductPriceTier_MinQtyBelowTwoRejected(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-C3")
 
 	for _, minQty := range []int32{0, 1, -5} {
-		_, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+		_, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 			ProductId: prodID, ProductUnitId: baseID, MinQty: minQty, Price: 8500,
 		}))
 		requireToken(t, err, connect.CodeInvalidArgument, "product_price_tier.min_qty_invalid")
@@ -54,10 +54,10 @@ func TestCreateProductPriceTier_MinQtyBelowTwoRejected(t *testing.T) {
 
 func TestCreateProductPriceTier_NegativePriceRejected(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-C4")
 
-	_, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	_, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: prodID, ProductUnitId: baseID, MinQty: 12, Price: -1,
 	}))
 	requireToken(t, err, connect.CodeInvalidArgument, "product_price_tier.price_invalid")
@@ -67,19 +67,19 @@ func TestCreateProductPriceTier_NegativePriceRejected(t *testing.T) {
 // moves later, so the "is it cheaper?" question belongs to POS, not to storage.
 func TestCreateProductPriceTier_AbovePriceAccepted(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, _ := seedProductWithUnits(t, db, "PT-C5")
 
-	tier := create(t, svc, prodID, baseID, 12, 99000)
+	tier := create(t, ctx, svc, prodID, baseID, 12, 99000)
 	require.Equal(t, int64(99000), tier.Price)
 }
 
 func TestCreateProductPriceTier_UnitRequired(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, _, _ := seedProductWithUnits(t, db, "PT-C6")
 
-	_, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	_, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: prodID, ProductUnitId: "", MinQty: 12, Price: 8500,
 	}))
 	requireToken(t, err, connect.CodeFailedPrecondition, "product_price_tier.unit_invalid")
@@ -89,11 +89,11 @@ func TestCreateProductPriceTier_UnitRequired(t *testing.T) {
 // product's unit and corrupt the denormalized product_id.
 func TestCreateProductPriceTier_UnitOfAnotherProductRejected(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodA, _, _ := seedProductWithUnits(t, db, "PT-C7a")
 	_, otherBase, _ := seedProductWithUnits(t, db, "PT-C7b")
 
-	_, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	_, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: prodA, ProductUnitId: otherBase, MinQty: 12, Price: 8500,
 	}))
 	requireToken(t, err, connect.CodeFailedPrecondition, "product_price_tier.unit_invalid")
@@ -101,15 +101,15 @@ func TestCreateProductPriceTier_UnitOfAnotherProductRejected(t *testing.T) {
 
 func TestCreateProductPriceTier_ProductMissing(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	_, baseID, _ := seedProductWithUnits(t, db, "PT-C8")
 
-	_, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	_, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: "", ProductUnitId: baseID, MinQty: 12, Price: 8500,
 	}))
 	requireToken(t, err, connect.CodeInvalidArgument, "product_price_tier.product_missing")
 
-	_, err = svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	_, err = svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: "11111111-1111-1111-1111-111111111111", ProductUnitId: baseID, MinQty: 12, Price: 8500,
 	}))
 	requireToken(t, err, connect.CodeFailedPrecondition, "product_price_tier.product_missing")
@@ -117,16 +117,16 @@ func TestCreateProductPriceTier_ProductMissing(t *testing.T) {
 
 func TestCreateProductPriceTier_DuplicateRungRejected(t *testing.T) {
 	t.Parallel()
-	svc, db := newSvc(t)
+	svc, db, ctx := newSvc(t)
 	prodID, baseID, boxID := seedProductWithUnits(t, db, "PT-C9")
-	create(t, svc, prodID, baseID, 12, 8500)
+	create(t, ctx, svc, prodID, baseID, 12, 8500)
 
-	_, err := svc.CreateProductPriceTier(ctx(), connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
+	_, err := svc.CreateProductPriceTier(ctx, connect.NewRequest(&inventoryifacev1.CreateProductPriceTierRequest{
 		ProductId: prodID, ProductUnitId: baseID, MinQty: 12, Price: 8000,
 	}))
 	requireToken(t, err, connect.CodeAlreadyExists, "product_price_tier.tier_taken")
 
 	// Same threshold on a DIFFERENT unit is a different rung and is fine.
-	other := create(t, svc, prodID, boxID, 12, 100000)
+	other := create(t, ctx, svc, prodID, boxID, 12, 100000)
 	require.Equal(t, boxID, other.ProductUnitId)
 }

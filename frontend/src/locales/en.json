@@ -308,6 +308,16 @@
     "expiryDate": "Expiry",
     "receiveTitle": "Record delivery",
     "noReceipts": "No receipts yet",
+    "cancel": {
+      "action": "Cancel receipt",
+      "title": "Cancel this receipt?",
+      "confirm": "Cancel receipt",
+      "voided": "Cancelled",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. entered twice by mistake",
+      "warning": "This removes the stock below from the warehouse and reopens the restock order, as if the delivery had never been recorded. Only possible while none of it has been used. If the goods physically went back to the supplier, record a purchase return instead.",
+      "done": "Receipt cancelled"
+    },
     "payments": "Payments",
     "payTitle": "Record payment",
     "amount": "Amount",
@@ -681,6 +691,11 @@
       "priceHistory": "Price history",
       "priceHistoryEmpty": "No price changes recorded.",
       "priceHistoryUnitCol": "Unit",
+      "priceHistoryUnitScope": "Per unit",
+      "priceHistoryTierScope": "Wholesale",
+      "priceHistoryTierEmpty": "No wholesale price changes recorded.",
+      "tierMinQty": "Min. qty",
+      "tierRung": "≥{{qty}}",
       "priceFrom": "From",
       "priceTo": "To",
       "priceCurrent": "(current)",
@@ -1145,9 +1160,13 @@
       "poNotReturnable": "This purchase order has no received goods to return",
       "returnExceedsOnHand": "Cannot return more than the quantity still in stock",
       "receiptItemNotFound": "That receipt line was not found on this purchase order",
-      "reasonRequired": "A reason is required for a return",
+      "reasonRequired": "A reason is required",
       "duplicateLine": "A receipt line appears more than once in this return",
-      "noBatch": "That receipt line has no batch to return"
+      "noBatch": "That receipt line has no batch to return",
+      "receiptLotConsumed": "This stock has already been used, so the receipt can no longer be cancelled. Record a purchase return instead.",
+      "receiptLotInStocktake": "This stock is part of an open stocktake. Remove it from the count first.",
+      "receiptCancelPoClosed": "This restock order is already settled. Record a purchase return instead.",
+      "receiptAlreadyVoided": "This receipt has already been cancelled"
     },
     "transfer": {
       "sameWarehouse": "Source and destination warehouses must differ"

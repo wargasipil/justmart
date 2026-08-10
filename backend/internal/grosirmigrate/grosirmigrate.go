@@ -326,6 +326,7 @@ func Apply(db *gorm.DB, plan *Plan) (int, error) {
 	if len(items) == 0 {
 		return 0, nil
 	}
+	now := time.Now()
 	err := db.Transaction(func(tx *gorm.DB) error {
 		for _, it := range items {
 			t := &model.ProductPriceTier{
@@ -338,6 +339,13 @@ func Apply(db *gorm.DB, plan *Plan) (int, error) {
 			}
 			if err := tx.Create(t).Error; err != nil {
 				return fmt.Errorf("create tier for discount %s: %w", it.DiscountID, err)
+			}
+			// Open the rung's price history, exactly as CreateProductPriceTier does
+			// — otherwise a converted ladder starts with no price on record and its
+			// first UI edit looks like the price appeared from nowhere. changedBy is
+			// "" (NULL): this is a system conversion, not a user's edit.
+			if err := common.RecordTierPrice(tx, t, "", now); err != nil {
+				return fmt.Errorf("record tier price for discount %s: %w", it.DiscountID, err)
 			}
 			if err := tx.Where("id = ?", it.DiscountID).Delete(&model.ProductDiscount{}).Error; err != nil {
 				return fmt.Errorf("delete discount %s: %w", it.DiscountID, err)

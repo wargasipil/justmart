@@ -20,6 +20,30 @@ import (
 // automatic product discount for that product. Mirrored by a DB CHECK.
 const minTierQty = 2
 
+// lockProduct serializes a product's tier writes on its product row, the same
+// mutex UpdateProduct takes for the unit-price versioning. Without it two
+// concurrent edits can both close the open history row and both insert a new
+// one, colliding on product_tier_prices_open_idx. No-op on SQLite (single-writer
+// pool).
+func lockProduct(tx *gorm.DB, productID string) error {
+	return common.RowLock(tx).Where("id = ?", productID).First(&model.Product{}).Error
+}
+
+// wrapTxError passes a token/connect error from inside a transaction through
+// unchanged (the frontend maps those to a field) and wraps anything else as
+// Internal.
+func wrapTxError(err error) error {
+	var ce *connect.Error
+	if errors.As(err, &ce) {
+		return err
+	}
+	return connect.NewError(connect.CodeInternal, err)
+}
+
+// The rung versioning itself lives in common (CloseTierRung / RecordTierPrice)
+// because the `discount-to-grosir` CLI creates tiers too and must open their
+// history the same way.
+
 func (s *ProductPriceTierService) load(ctx context.Context, id string) (*model.ProductPriceTier, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("id required"))

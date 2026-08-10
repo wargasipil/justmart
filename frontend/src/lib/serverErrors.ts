@@ -107,6 +107,14 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "purchasing.receipt_item_not_found": { i18nKey: "serverErrors.purchasing.receiptItemNotFound" },
   "purchasing.duplicate_line": { i18nKey: "serverErrors.purchasing.duplicateLine" },
   "purchasing.no_batch": { i18nKey: "serverErrors.purchasing.noBatch" },
+  // Cancel-an-accepted-restock guards. Also precomputed onto
+  // PurchaseReceipt.cancel_blocked_reason so the UI can disable the action with
+  // the same wording it would otherwise have failed with.
+  "purchasing.receipt_required": { i18nKey: "validation.required" },
+  "purchasing.receipt_lot_consumed": { i18nKey: "serverErrors.purchasing.receiptLotConsumed" },
+  "purchasing.receipt_lot_in_stocktake": { i18nKey: "serverErrors.purchasing.receiptLotInStocktake" },
+  "purchasing.receipt_cancel_po_closed": { i18nKey: "serverErrors.purchasing.receiptCancelPoClosed" },
+  "purchasing.receipt_already_voided": { i18nKey: "serverErrors.purchasing.receiptAlreadyVoided" },
   // transfer
   "transfer.warehouse_required": { i18nKey: "validation.required" },
   "transfer.same_warehouse": { i18nKey: "serverErrors.transfer.sameWarehouse" },

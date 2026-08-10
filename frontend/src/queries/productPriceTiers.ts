@@ -15,6 +15,8 @@ export const productPriceTierKeys = {
   all: ["productPriceTiers"] as const,
   list: (productId: string, page: number, pageSize: number) =>
     [...productPriceTierKeys.all, "list", productId, page, pageSize] as const,
+  history: (productId: string, page: number, pageSize: number) =>
+    [...productPriceTierKeys.all, "history", productId, page, pageSize] as const,
 };
 
 // One page of grosir (wholesale) tiers for a product — the Product detail
@@ -38,6 +40,29 @@ export function useProductPriceTiersQuery(
         offset: page * pageSize,
       });
       return { rows: res.tiers, total: res.total };
+    },
+    enabled: enabled && !!productId,
+  });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
+}
+
+// Grosir price history for a product — every rung of every unit, one row per
+// price it has ever carried (effectiveTo 0 = still current). Keyed by the rung,
+// so a deleted tier's prices stay on record. Server-paginated; { rows, total }.
+export function useProductTierPricesQuery(
+  productId: string,
+  opts: { page?: number; pageSize?: number; enabled?: boolean } = {},
+) {
+  const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
+  const q = useQuery({
+    queryKey: productPriceTierKeys.history(productId, page, pageSize),
+    queryFn: async () => {
+      const res = await productPriceTierClient.listProductTierPrices({
+        productId,
+        limit: pageSize,
+        offset: page * pageSize,
+      });
+      return { rows: res.prices, total: res.total };
     },
     enabled: enabled && !!productId,
   });

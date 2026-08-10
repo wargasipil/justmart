@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateReceiptRequest, CreateReceiptResponse, GetReceiptRequest, GetReceiptResponse, ListReceiptsRequest, ListReceiptsResponse } from "./receipt_pb.js";
+import { CancelReceiptRequest, CancelReceiptResponse, CreateReceiptRequest, CreateReceiptResponse, GetReceiptRequest, GetReceiptResponse, ListReceiptsRequest, ListReceiptsResponse } from "./receipt_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -37,6 +37,20 @@ export const PurchaseReceiptService = {
       name: "GetReceipt",
       I: GetReceiptRequest,
       O: GetReceiptResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * CancelReceipt undoes a receipt entered in error: it deletes the lots it
+     * created and reverses received_qty. Only while every lot is still untouched.
+     * Same roles as CreateReceipt — the person who mistypes a receive is the one
+     * who has to fix it, and VoidPurchaseOrder (more destructive) is already both.
+     *
+     * @generated from rpc purchasing_iface.v1.PurchaseReceiptService.CancelReceipt
+     */
+    cancelReceipt: {
+      name: "CancelReceipt",
+      I: CancelReceiptRequest,
+      O: CancelReceiptResponse,
       kind: MethodKind.Unary,
     },
   }

@@ -42,6 +42,9 @@ const (
 	// PurchaseReceiptServiceGetReceiptProcedure is the fully-qualified name of the
 	// PurchaseReceiptService's GetReceipt RPC.
 	PurchaseReceiptServiceGetReceiptProcedure = "/purchasing_iface.v1.PurchaseReceiptService/GetReceipt"
+	// PurchaseReceiptServiceCancelReceiptProcedure is the fully-qualified name of the
+	// PurchaseReceiptService's CancelReceipt RPC.
+	PurchaseReceiptServiceCancelReceiptProcedure = "/purchasing_iface.v1.PurchaseReceiptService/CancelReceipt"
 )
 
 // PurchaseReceiptServiceClient is a client for the purchasing_iface.v1.PurchaseReceiptService
@@ -50,6 +53,11 @@ type PurchaseReceiptServiceClient interface {
 	CreateReceipt(context.Context, *connect.Request[v1.CreateReceiptRequest]) (*connect.Response[v1.CreateReceiptResponse], error)
 	ListReceipts(context.Context, *connect.Request[v1.ListReceiptsRequest]) (*connect.Response[v1.ListReceiptsResponse], error)
 	GetReceipt(context.Context, *connect.Request[v1.GetReceiptRequest]) (*connect.Response[v1.GetReceiptResponse], error)
+	// CancelReceipt undoes a receipt entered in error: it deletes the lots it
+	// created and reverses received_qty. Only while every lot is still untouched.
+	// Same roles as CreateReceipt — the person who mistypes a receive is the one
+	// who has to fix it, and VoidPurchaseOrder (more destructive) is already both.
+	CancelReceipt(context.Context, *connect.Request[v1.CancelReceiptRequest]) (*connect.Response[v1.CancelReceiptResponse], error)
 }
 
 // NewPurchaseReceiptServiceClient constructs a client for the
@@ -81,6 +89,12 @@ func NewPurchaseReceiptServiceClient(httpClient connect.HTTPClient, baseURL stri
 			connect.WithSchema(purchaseReceiptServiceMethods.ByName("GetReceipt")),
 			connect.WithClientOptions(opts...),
 		),
+		cancelReceipt: connect.NewClient[v1.CancelReceiptRequest, v1.CancelReceiptResponse](
+			httpClient,
+			baseURL+PurchaseReceiptServiceCancelReceiptProcedure,
+			connect.WithSchema(purchaseReceiptServiceMethods.ByName("CancelReceipt")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -89,6 +103,7 @@ type purchaseReceiptServiceClient struct {
 	createReceipt *connect.Client[v1.CreateReceiptRequest, v1.CreateReceiptResponse]
 	listReceipts  *connect.Client[v1.ListReceiptsRequest, v1.ListReceiptsResponse]
 	getReceipt    *connect.Client[v1.GetReceiptRequest, v1.GetReceiptResponse]
+	cancelReceipt *connect.Client[v1.CancelReceiptRequest, v1.CancelReceiptResponse]
 }
 
 // CreateReceipt calls purchasing_iface.v1.PurchaseReceiptService.CreateReceipt.
@@ -106,12 +121,22 @@ func (c *purchaseReceiptServiceClient) GetReceipt(ctx context.Context, req *conn
 	return c.getReceipt.CallUnary(ctx, req)
 }
 
+// CancelReceipt calls purchasing_iface.v1.PurchaseReceiptService.CancelReceipt.
+func (c *purchaseReceiptServiceClient) CancelReceipt(ctx context.Context, req *connect.Request[v1.CancelReceiptRequest]) (*connect.Response[v1.CancelReceiptResponse], error) {
+	return c.cancelReceipt.CallUnary(ctx, req)
+}
+
 // PurchaseReceiptServiceHandler is an implementation of the
 // purchasing_iface.v1.PurchaseReceiptService service.
 type PurchaseReceiptServiceHandler interface {
 	CreateReceipt(context.Context, *connect.Request[v1.CreateReceiptRequest]) (*connect.Response[v1.CreateReceiptResponse], error)
 	ListReceipts(context.Context, *connect.Request[v1.ListReceiptsRequest]) (*connect.Response[v1.ListReceiptsResponse], error)
 	GetReceipt(context.Context, *connect.Request[v1.GetReceiptRequest]) (*connect.Response[v1.GetReceiptResponse], error)
+	// CancelReceipt undoes a receipt entered in error: it deletes the lots it
+	// created and reverses received_qty. Only while every lot is still untouched.
+	// Same roles as CreateReceipt — the person who mistypes a receive is the one
+	// who has to fix it, and VoidPurchaseOrder (more destructive) is already both.
+	CancelReceipt(context.Context, *connect.Request[v1.CancelReceiptRequest]) (*connect.Response[v1.CancelReceiptResponse], error)
 }
 
 // NewPurchaseReceiptServiceHandler builds an HTTP handler from the service implementation. It
@@ -139,6 +164,12 @@ func NewPurchaseReceiptServiceHandler(svc PurchaseReceiptServiceHandler, opts ..
 		connect.WithSchema(purchaseReceiptServiceMethods.ByName("GetReceipt")),
 		connect.WithHandlerOptions(opts...),
 	)
+	purchaseReceiptServiceCancelReceiptHandler := connect.NewUnaryHandler(
+		PurchaseReceiptServiceCancelReceiptProcedure,
+		svc.CancelReceipt,
+		connect.WithSchema(purchaseReceiptServiceMethods.ByName("CancelReceipt")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/purchasing_iface.v1.PurchaseReceiptService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PurchaseReceiptServiceCreateReceiptProcedure:
@@ -147,6 +178,8 @@ func NewPurchaseReceiptServiceHandler(svc PurchaseReceiptServiceHandler, opts ..
 			purchaseReceiptServiceListReceiptsHandler.ServeHTTP(w, r)
 		case PurchaseReceiptServiceGetReceiptProcedure:
 			purchaseReceiptServiceGetReceiptHandler.ServeHTTP(w, r)
+		case PurchaseReceiptServiceCancelReceiptProcedure:
+			purchaseReceiptServiceCancelReceiptHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -166,4 +199,8 @@ func (UnimplementedPurchaseReceiptServiceHandler) ListReceipts(context.Context, 
 
 func (UnimplementedPurchaseReceiptServiceHandler) GetReceipt(context.Context, *connect.Request[v1.GetReceiptRequest]) (*connect.Response[v1.GetReceiptResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("purchasing_iface.v1.PurchaseReceiptService.GetReceipt is not implemented"))
+}
+
+func (UnimplementedPurchaseReceiptServiceHandler) CancelReceipt(context.Context, *connect.Request[v1.CancelReceiptRequest]) (*connect.Response[v1.CancelReceiptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("purchasing_iface.v1.PurchaseReceiptService.CancelReceipt is not implemented"))
 }

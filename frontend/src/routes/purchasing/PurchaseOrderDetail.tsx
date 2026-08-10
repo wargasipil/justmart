@@ -33,7 +33,10 @@ import {
   useSendPurchaseOrderMutation,
   useVoidPurchaseOrderMutation,
 } from "../../queries/purchasing";
-import { PayDialog, ReceiveDialog, ReturnDialog } from "./purchaseOrderDialogs";
+import { PayDialog } from "./PayDialog";
+import PurchaseOrderReceipts from "./PurchaseOrderReceipts";
+import { ReceiveDialog } from "./ReceiveDialog";
+import { ReturnDialog } from "./ReturnDialog";
 
 const STATUS_PALETTE: Record<POStatus, string> = {
   [POStatus.PO_STATUS_UNSPECIFIED]: "gray",
@@ -295,70 +298,16 @@ export default function PurchaseOrderDetail() {
         </Box>
       </Box>
 
-      {/* Receipts */}
-      <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
-        <Heading size="sm" mb={3}>
-          {t("purchasing.receipt")}s
-        </Heading>
-        {receiptsQ.isLoading ? (
-          <Spinner size="sm" />
-        ) : receiptsQ.rows.length === 0 ? (
-          <Text fontSize="sm" color="fg.muted">
-            {t("purchasing.noReceipts")}
-          </Text>
-        ) : (
-          <Stack gap={3}>
-            {receiptsQ.rows.map((r) => (
-              <Box key={r.id} borderWidth="1px" borderRadius="md" p={3}>
-                <HStack justify="space-between" mb={2}>
-                  <HStack gap={3}>
-                    <Text fontFamily="mono" fontWeight="medium">
-                      {r.receiptNo}
-                    </Text>
-                    {r.invoiceNo && (
-                      <Text fontSize="sm" color="fg.muted">
-                        {t("purchasing.invoiceNo")}: {r.invoiceNo}
-                      </Text>
-                    )}
-                  </HStack>
-                  <Text fontSize="sm" color="fg.muted">
-                    {formatDate(r.receivedAt)}
-                  </Text>
-                </HStack>
-                <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
-                  <Table.Root size="sm" stickyHeader>
-                    <Table.Header>
-                      <Table.Row>
-                        <Table.ColumnHeader>{t("purchasing.selectProduct")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("purchasing.qty")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("purchasing.batchNumber")}</Table.ColumnHeader>
-                        <Table.ColumnHeader>{t("purchasing.expiryDate")}</Table.ColumnHeader>
-                      </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                      {r.items.map((it) => (
-                        <Table.Row key={it.id}>
-                          <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
-                          <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
-                          <Table.Cell>{it.batchNumber || "—"}</Table.Cell>
-                          <Table.Cell>{formatDate(it.expiryDate)}</Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Root>
-                </TableScroll>
-              </Box>
-            ))}
-          </Stack>
-        )}
-        <Pagination
-          page={receiptsPage.page}
-          pageSize={receiptsPage.pageSize}
-          total={receiptsQ.total}
-          onPageChange={receiptsPage.setPage}
-          onPageSizeChange={receiptsPage.setPageSize}
-        />
-      </Box>
+      <PurchaseOrderReceipts
+        receipts={receiptsQ.rows}
+        isLoading={receiptsQ.isLoading}
+        total={receiptsQ.total}
+        page={receiptsPage.page}
+        pageSize={receiptsPage.pageSize}
+        onPageChange={receiptsPage.setPage}
+        onPageSizeChange={receiptsPage.setPageSize}
+        productRefs={productRefs}
+      />
 
       {/* Returns */}
       {returnsQ.rows.length > 0 && (
