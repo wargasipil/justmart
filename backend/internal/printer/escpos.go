@@ -99,6 +99,85 @@ func (b *Builder) Cut() *Builder {
 	return b
 }
 
+// HRI (human-readable interpretation) print positions for GS H.
+const (
+	HRINone  byte = 0
+	HRIAbove byte = 1
+	HRIBelow byte = 2
+	HRIBoth  byte = 3
+)
+
+// BarcodeHeight sets the bar height in dots (GS h n). Typical label heights are
+// 50-100; the printer default is 162, which eats a whole label.
+func (b *Builder) BarcodeHeight(dots byte) *Builder {
+	b.buf.WriteByte(gs)
+	b.buf.WriteByte('h')
+	b.buf.WriteByte(dots)
+	return b
+}
+
+// BarcodeWidth sets the narrow-module width (GS w n). Valid range is 2-6 on most
+// firmware; 2 keeps a long SKU inside 58mm paper, 3 scans more reliably.
+func (b *Builder) BarcodeWidth(n byte) *Builder {
+	b.buf.WriteByte(gs)
+	b.buf.WriteByte('w')
+	b.buf.WriteByte(n)
+	return b
+}
+
+// BarcodeHRI sets where the human-readable digits print (GS H n) — use one of
+// the HRI* constants.
+func (b *Builder) BarcodeHRI(pos byte) *Builder {
+	b.buf.WriteByte(gs)
+	b.buf.WriteByte('H')
+	b.buf.WriteByte(pos)
+	return b
+}
+
+// Code128 prints `data` as a CODE128 barcode using GS k function B
+// (`GS k m n d1..dn`, m=73). The printer firmware does the symbology encoding —
+// we only frame the payload — so there is no module table to get wrong here.
+//
+// The payload is prefixed with the code-set selector `{B`, which covers
+// printable ASCII 32-126; a literal `{` in the data is escaped as `{{` per the
+// CODE128 data convention. Callers must validate the data with
+// Code128Encodable first: a byte outside code set B is silently mis-scanned by
+// the printer rather than rejected, so this method drops nothing and checks
+// nothing.
+func (b *Builder) Code128(data string) *Builder {
+	payload := []byte{'{', 'B'}
+	for i := 0; i < len(data); i++ {
+		if data[i] == '{' {
+			payload = append(payload, '{')
+		}
+		payload = append(payload, data[i])
+	}
+	// n is a single byte: 255 max, and the {B prefix + escapes count toward it.
+	if len(payload) > 255 {
+		payload = payload[:255]
+	}
+	b.buf.WriteByte(gs)
+	b.buf.WriteByte('k')
+	b.buf.WriteByte(73) // m = 73: CODE128, length-prefixed form
+	b.buf.WriteByte(byte(len(payload)))
+	b.buf.Write(payload)
+	return b
+}
+
+// Code128Encodable reports whether every byte of s is representable in CODE128
+// code set B (printable ASCII, 0x20-0x7E). Empty strings are not encodable.
+func Code128Encodable(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < 0x20 || s[i] > 0x7E {
+			return false
+		}
+	}
+	return true
+}
+
 // OpenDrawer fires the cash-drawer kick pulse on pin 2.
 func (b *Builder) OpenDrawer() *Builder {
 	// ESC p m t1 t2: m=0 (pin 2), t1=t2=50 (~100ms on, 100ms off).

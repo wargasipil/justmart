@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
+import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, PrintProductLabelRequest, PrintProductLabelResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -193,6 +193,23 @@ export const ProductService = {
       name: "DeleteProductImage",
       I: DeleteProductImageRequest,
       O: DeleteProductImageResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * PrintProductLabel renders a shelf/product barcode label (name + CODE128 of
+     * the SKU + the chosen unit's sell price) and sends it to the shop's thermal
+     * printer over the same connector/usb/tcp dispatch PrintReceipt uses.
+     * 
+     * Open to every catalog reader, like PrintReceipt: the label carries only
+     * sell-side data (name, SKU, unit price), never cost — so it stays inside the
+     * cost-visibility policy while letting whoever restocks a shelf label it.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.PrintProductLabel
+     */
+    printProductLabel: {
+      name: "PrintProductLabel",
+      I: PrintProductLabelRequest,
+      O: PrintProductLabelResponse,
       kind: MethodKind.Unary,
     },
   }

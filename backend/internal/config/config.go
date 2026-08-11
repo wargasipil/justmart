@@ -222,9 +222,29 @@ func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_UPDATE_DISABLED"); v != "" {
 		c.Update.Disabled = v == "1" || strings.EqualFold(v, "true")
 	}
+	// The env var can also switch the tunnel OFF. Without this it was
+	// on-only — an empty value means "not set", so a config.yaml carrying a
+	// token could not be overridden, and any automated run on that machine
+	// (recording an FAQ video, a local test pass) silently published the dev
+	// database on a public hostname. "off" is the way to say no.
 	if v := os.Getenv("JUSTMART_CLOUDFLARE_TUNNEL_TOKEN"); v != "" {
-		c.CloudflareTunnelToken = v
+		if isDisabledValue(v) {
+			c.CloudflareTunnelToken = ""
+		} else {
+			c.CloudflareTunnelToken = v
+		}
 	}
+}
+
+// isDisabledValue reports whether an env value is an explicit "no" rather than
+// a credential. Kept deliberately narrow: a real Cloudflare token is a long
+// base64 blob, so none of these can collide with one.
+func isDisabledValue(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "off", "none", "false", "0", "disabled":
+		return true
+	}
+	return false
 }
 
 // applyDefaults fills in safe fallbacks for fields that the packaged flavors

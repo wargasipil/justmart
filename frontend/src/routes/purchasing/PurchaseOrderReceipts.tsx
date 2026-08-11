@@ -53,7 +53,7 @@ export default function PurchaseOrderReceipts({
   return (
     <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
       <Heading size="sm" mb={3}>
-        {t("purchasing.receipt")}s
+        {t("purchasing.receipts")}
       </Heading>
       {isLoading ? (
         <Spinner size="sm" />

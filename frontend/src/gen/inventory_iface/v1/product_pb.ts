@@ -766,6 +766,119 @@ export class ProductRestockLog extends Message<ProductRestockLog> {
 }
 
 /**
+ * @generated from message inventory_iface.v1.PrintProductLabelRequest
+ */
+export class PrintProductLabelRequest extends Message<PrintProductLabelRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * Which unit's price to print. Empty = the base unit.
+   *
+   * @generated from field: string product_unit_id = 2;
+   */
+  productUnitId = "";
+
+  /**
+   * How many identical labels to print. 0 = 1; capped server-side (MaxLabelCopies).
+   *
+   * @generated from field: int32 copies = 3;
+   */
+  copies = 0;
+
+  /**
+   * Print target, same semantics as PrintReceiptRequest: empty falls back to the
+   * saved Settings ▸ Printing default, then to the sole connected connector.
+   *
+   * @generated from field: string connector_device_id = 4;
+   */
+  connectorDeviceId = "";
+
+  /**
+   * @generated from field: string printer_name = 5;
+   */
+  printerName = "";
+
+  constructor(data?: PartialMessage<PrintProductLabelRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.PrintProductLabelRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "copies", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "connector_device_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "printer_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PrintProductLabelRequest {
+    return new PrintProductLabelRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PrintProductLabelRequest {
+    return new PrintProductLabelRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PrintProductLabelRequest {
+    return new PrintProductLabelRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PrintProductLabelRequest | PlainMessage<PrintProductLabelRequest> | undefined, b: PrintProductLabelRequest | PlainMessage<PrintProductLabelRequest> | undefined): boolean {
+    return proto3.util.equals(PrintProductLabelRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.PrintProductLabelResponse
+ */
+export class PrintProductLabelResponse extends Message<PrintProductLabelResponse> {
+  /**
+   * @generated from field: int32 bytes_sent = 1;
+   */
+  bytesSent = 0;
+
+  /**
+   * what was actually printed after defaulting/capping
+   *
+   * @generated from field: int32 copies = 2;
+   */
+  copies = 0;
+
+  constructor(data?: PartialMessage<PrintProductLabelResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.PrintProductLabelResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "bytes_sent", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 2, name: "copies", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PrintProductLabelResponse {
+    return new PrintProductLabelResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): PrintProductLabelResponse {
+    return new PrintProductLabelResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): PrintProductLabelResponse {
+    return new PrintProductLabelResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: PrintProductLabelResponse | PlainMessage<PrintProductLabelResponse> | undefined, b: PrintProductLabelResponse | PlainMessage<PrintProductLabelResponse> | undefined): boolean {
+    return proto3.util.equals(PrintProductLabelResponse, a, b);
+  }
+}
+
+/**
  * @generated from message inventory_iface.v1.ListProductsRequest
  */
 export class ListProductsRequest extends Message<ListProductsRequest> {

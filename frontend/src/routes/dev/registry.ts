@@ -596,6 +596,24 @@ const q = useProductsQuery({ page, pageSize });
         Demo: demo.TrendChartDemo,
       },
       {
+        id: "barcode",
+        name: "Barcode",
+        file: "src/components/Barcode.tsx",
+        summary: "CODE128 barcode as inline SVG — for product labels and anything scannable.",
+        props: [
+          { name: "value", type: "string", required: true, desc: "Data to encode. For products this is the SKU, since POS scans by exact-SKU match." },
+          { name: "width", type: "number", desc: "Narrow-module width in px. Default 2 — higher is wider and easier to scan." },
+          { name: "height", type: "number", desc: "Bar height in px. Default 60." },
+          { name: "displayValue", type: "boolean", desc: "Print the value as text under the bars. Default true." },
+          { name: "fontSize", type: "number", desc: "Size of that text in px. Default 14." },
+          { name: "margin", type: "number", desc: "Quiet-zone margin in px. Default 10 — scanners need one, don't set it to 0." },
+        ],
+        usage: `<Barcode value={product.sku} height={50} fontSize={13} />`,
+        notes:
+          "Always black-on-white in BOTH themes: a barcode is an optical target, so inverting it in dark mode makes it unscannable and prints as a black rectangle. Encoding is jsbarcode, not a hand-rolled module table — a wrong table yields a symbol that prints perfectly and scans as a different string. CODE128 code set B only covers printable ASCII: check `isCode128Encodable` (lib/barcode.ts) before offering a Print action, since the backend's `printer.Code128Encodable` refuses the same inputs. An unencodable value renders a warning, never a fake symbol.",
+        Demo: demo.BarcodeDemo,
+      },
+      {
         id: "expiry-badge",
         name: "ExpiryBadge",
         file: "src/components/ExpiryBadge.tsx",

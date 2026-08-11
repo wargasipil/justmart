@@ -1,0 +1,42 @@
+# Config for the throwaway instance the release video is recorded against.
+#
+# Its own SQLite file and its own port, so recording never touches the dev
+# shop's data — and no tunnel, because this instance exists only on the machine
+# doing the recording and must not become publicly reachable while it runs.
+#
+# `make release-demo` copies this to $(DEMO_DIR)/config.yaml on first run and
+# then leaves it alone, so local edits survive a re-record.
+cloudflare_tunnel_token: ""
+
+server:
+  host: 127.0.0.1
+  port: 8099
+
+database:
+  driver: sqlite
+  path: ./demo.db
+  auto_migrate: true
+
+auth:
+  jwt_secret: release-video-demo-instance-not-a-real-secret
+  access_token_ttl: 1h
+  refresh_token_ttl: 720h
+
+bootstrap:
+  owner_email: owner@justmart.local
+  owner_password: demo12345
+
+# The tour never prints, and a demo instance should not be dialling a printer
+# on the recording machine's LAN.
+printer:
+  enabled: false
+  address: 127.0.0.1:9100
+  width: 32
+  timeout: 5s
+  open_drawer: false
+
+connector:
+  mode: tcp
+
+backup:
+  directory: ./backups

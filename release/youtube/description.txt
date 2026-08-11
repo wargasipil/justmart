@@ -1,0 +1,35 @@
+Justmart menggabungkan kasir, stok, restok, dan laporan dalam satu aplikasi —
+untuk toko maupun apotek.
+
+Video ini merekam aplikasi yang benar-benar berjalan: setiap angka di layar
+berasal dari transaksi yang dicatat aplikasinya sendiri, bukan mockup.
+
+Isi video:
+
+0:00 Sekilas Justmart
+0:17 Kasir & harga grosir
+1:07 Riwayat order
+1:19 Katalog & stok
+1:36 Restok & terima barang
+2:02 Analitik
+2:21 Banyak gudang
+2:34 Mode apotek
+
+Beberapa hal yang terlihat di sepanjang video:
+
+- Kasir cepat: cari barang atau scan barcode, lalu selesaikan transaksi.
+- Harga grosir otomatis: tentukan "beli 12 harga sekian", kasir memakainya
+  sendiri tanpa dihitung manual.
+- Jual dan beli dalam satuan berbeda (pcs, dus) — stok tetap dihitung dalam
+  satuan terkecil.
+- Catat barang datang lengkap dengan nomor batch dan tanggal kedaluwarsa;
+  modal per batch dipakai untuk menghitung profit.
+- Laporan harian: terjual, HPP, dan profit, dalam bentuk tabel maupun grafik.
+- Banyak gudang atau cabang, dengan stok dan laporan yang mengikuti gudang aktif.
+- Mode apotek: menu Resep muncul dan kasir meminta resep untuk obat yang
+  memerlukannya.
+
+Jalan di satu komputer, tanpa langganan bulanan.
+
+Info & unduh: LINK
+Tanya-jawab: LINK

@@ -302,6 +302,7 @@
       "voided": "Voided"
     },
     "receipt": "Receipt",
+    "receipts": "Receipts",
     "receiptNo": "Receipt #",
     "receivedAt": "Received at",
     "batchNumber": "Batch #",
@@ -707,6 +708,23 @@
       "batchesSection": "Batches",
       "movementsSection": "Recent Movements",
       "confirmArchive": "Archive this $t(glossary.product)?",
+      "label": {
+        "action": "Print barcode",
+        "title": "Print barcode label",
+        "print": "Print",
+        "preview": "Preview",
+        "destination": "Print to",
+        "thermal": "Thermal printer",
+        "sheet": "Label sheet",
+        "thermalHint": "Sent to the shop printer, using the same printer the till prints receipts on.",
+        "sheetHint": "Opens your browser's print dialog — for sticker sheets on a normal printer.",
+        "unit": "Price shown",
+        "copies": "Copies",
+        "columns": "Per row",
+        "sent_one": "{{count}} label sent to the printer",
+        "sent_other": "{{count}} labels sent to the printer",
+        "skuNotPrintable": "The SKU \"{{sku}}\" contains characters a barcode cannot carry. Use only letters, digits and basic punctuation."
+      },
       "unarchive": "Restore",
       "confirmUnarchive": "Restore this $t(glossary.product)?",
       "lastRestock": "Last restock",
@@ -990,6 +1008,9 @@
     "defaultLockedTooltip": "This is the user's default — promote another warehouse instead.",
     "noUsers": "No users have access yet."
   },
+  "barcode": {
+    "notEncodable": "This code cannot be shown as a barcode."
+  },
   "expiryBadge": {
     "expired": "expired",
     "today": "today",
@@ -1116,7 +1137,10 @@
       "discountInvalid": "Invalid discount"
     },
     "product": {
-      "skuTaken": "This SKU is already in use"
+      "skuTaken": "This SKU is already in use",
+      "skuNotPrintable": "This SKU contains characters a barcode cannot carry",
+      "skuTooWideForPaper": "This SKU is too long to print a scannable barcode on the current paper width. Use 80mm paper, a shorter SKU, or print a label sheet instead.",
+      "unitArchived": "That unit has been archived — pick another"
     },
     "supplier": {
       "codeTaken": "This supplier code is already in use",

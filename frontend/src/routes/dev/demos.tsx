@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import BackButton from "../../components/BackButton";
+import Barcode from "../../components/Barcode";
 import BatchSelect from "../../components/BatchSelect";
 import ChartCard from "../../components/ChartCard";
 import ColumnsPopover from "../../components/ColumnsPopover";
@@ -888,6 +889,18 @@ export function ToastDemo() {
       >
         fromError
       </Button>
+    </HStack>
+  );
+}
+
+export function BarcodeDemo() {
+  return (
+    <HStack gap={6} flexWrap="wrap" align="flex-start">
+      <Barcode value="SKU-00123" />
+      <Barcode value="OBAT-88219" height={40} width={1.5} fontSize={11} />
+      {/* Non-ASCII: renders the warning rather than a symbol that looks
+          scannable but isn't. */}
+      <Barcode value="obat-é" />
     </HStack>
   );
 }

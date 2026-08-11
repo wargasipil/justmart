@@ -17,12 +17,8 @@ func (s *SaleService) PrintReceipt(
 	ctx context.Context,
 	req *connect.Request[posifacev1.PrintReceiptRequest],
 ) (*connect.Response[posifacev1.PrintReceiptResponse], error) {
-	mode := s.connectorCfg.Mode
-	// tcp is the only mode that needs printer.enabled; connector/usb are gated by
-	// the mode itself.
-	if mode != "connector" && mode != "usb" && !s.printer.Enabled {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			errors.New("printing is not configured (set printer.enabled, or connector.mode to connector/usb, in config.yaml)"))
+	if err := s.print.EnsureConfigured(); err != nil {
+		return nil, err
 	}
 	sale, err := s.loadFull(ctx, req.Msg.SaleId)
 	if err != nil {
@@ -94,10 +90,10 @@ func (s *SaleService) PrintReceipt(
 	}
 
 	receipt := printer.Receipt{
-		SaleNo:      saleNo,
-		CompletedAt: completedAt,
-		Cashier:     cashierName,
-		Customer:    customerName,
+		SaleNo:       saleNo,
+		CompletedAt:  completedAt,
+		Cashier:      cashierName,
+		Customer:     customerName,
 		Items:        lines,
 		Subtotal:     sale.Subtotal,
 		CartDiscount: sale.CartDiscount,
@@ -127,51 +123,12 @@ func (s *SaleService) PrintReceipt(
 	}
 	payload := printer.Render(receipt, settings)
 
-	switch mode {
-	case "connector":
-		if s.connector == nil {
-			return nil, connect.NewError(connect.CodeFailedPrecondition,
-				errors.New("connector mode is on but no print connector registry is wired"))
-		}
-		deviceID := req.Msg.ConnectorDeviceId
-		printerName := req.Msg.PrinterName
-		// No explicit target on the request → fall back to the saved default.
-		if deviceID == "" {
-			d, p, derr := common.GetPrintTarget(ctx, s.db)
-			if derr != nil {
-				return nil, connect.NewError(connect.CodeInternal, derr)
-			}
-			deviceID = d
-			if printerName == "" {
-				printerName = p
-			}
-		}
-		// deviceID may still be "" → Push targets the sole connected connector.
-		if _, err := s.connector.Push(deviceID, printerName, payload); err != nil {
-			return nil, err // already a connect error (Unavailable)
-		}
-	case "usb":
-		// Print straight to a locally-installed printer via the OS spooler
-		// (Windows only; the !windows spooler stub errors out). Printer precedence:
-		// request → saved Settings default → config.printer_name → "" (host default).
-		printerName := req.Msg.PrinterName
-		if printerName == "" {
-			_, saved, derr := common.GetPrintTarget(ctx, s.db)
-			if derr != nil {
-				return nil, connect.NewError(connect.CodeInternal, derr)
-			}
-			printerName = saved
-		}
-		if printerName == "" {
-			printerName = s.connectorCfg.PrinterName
-		}
-		if err := s.spool(printerName, payload, req.Msg.SaleId); err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
-		}
-	default: // "tcp"
-		if err := printer.DispatchTCP(s.printer.Address, payload, s.printer.Timeout); err != nil {
-			return nil, connect.NewError(connect.CodeUnavailable, err)
-		}
+	if err := s.print.Dispatch(
+		ctx, s.db,
+		req.Msg.ConnectorDeviceId, req.Msg.PrinterName,
+		payload, req.Msg.SaleId,
+	); err != nil {
+		return nil, err
 	}
 	return connect.NewResponse(&posifacev1.PrintReceiptResponse{
 		BytesSent: int32(len(payload)),

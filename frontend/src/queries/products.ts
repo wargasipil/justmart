@@ -374,3 +374,23 @@ export function useDeleteProductImageMutation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }
+
+/**
+ * Print a product barcode label on the shop's thermal printer.
+ *
+ * Targets the same printer POS uses (empty target → the server resolves the
+ * saved Settings ▸ Printing default / sole connected connector / TCP address).
+ * The browser-sheet path does not come through here — it never touches the
+ * server (see lib/labelSheet.ts).
+ */
+export function usePrintProductLabelMutation() {
+  return useMutation({
+    mutationFn: (req: {
+      productId: string;
+      productUnitId?: string;
+      copies?: number;
+      connectorDeviceId?: string;
+      printerName?: string;
+    }) => productClient.printProductLabel(req),
+  });
+}

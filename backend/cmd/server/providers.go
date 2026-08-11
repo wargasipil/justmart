@@ -139,7 +139,6 @@ var serviceSet = wire.NewSet(
 	health.NewHealthService,
 	prescription.NewPrescriptionService,
 	priceagreement.NewPriceAgreementService,
-	product.NewProductService,
 	productdiscount.NewProductDiscountService,
 	productpricetier.NewProductPriceTierService,
 	purchasing.NewPurchaseOrderService,
@@ -154,6 +153,7 @@ var serviceSet = wire.NewSet(
 	user.NewUserService,
 	warehouse.NewWarehouseService,
 	provideConnectorService,
+	provideProductService,
 	provideSaleService,
 	provideSettingsService,
 	wire.Struct(new(Handlers), "*"),
@@ -255,6 +255,15 @@ func provideInterceptors(issuer *auth.Issuer, policy map[string]auth.Policy, gor
 // internet-facing deploy (Fly) this keeps the stream shut.
 func provideConnectorService(cfg *config.Config) *connector.ConnectorService {
 	return connector.NewConnectorService(cfg.Connector.Mode == "connector")
+}
+
+// provideProductService wires the printer into the catalog so PrintProductLabel
+// can reach the shop's label printer over the same connector/usb/tcp dispatch
+// receipts use.
+func provideProductService(gormDB *gorm.DB, cfg *config.Config, pusher *connector.ConnectorService) *product.ProductService {
+	svc := product.NewProductService(gormDB)
+	svc.SetPrinter(cfg.Printer, cfg.Connector, pusher)
+	return svc
 }
 
 func provideSaleService(gormDB *gorm.DB, cfg *config.Config, pusher *connector.ConnectorService) *sale.SaleService {

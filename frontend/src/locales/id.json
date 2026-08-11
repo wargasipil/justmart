@@ -302,6 +302,7 @@
       "voided": "Dibatalkan"
     },
     "receipt": "Tanda terima",
+    "receipts": "Tanda terima",
     "receiptNo": "No. tanda terima",
     "receivedAt": "Diterima pada",
     "batchNumber": "No. batch",
@@ -707,6 +708,23 @@
       "batchesSection": "Batch",
       "movementsSection": "Mutasi Terbaru",
       "confirmArchive": "Arsipkan $t(glossary.product) ini?",
+      "label": {
+        "action": "Cetak barcode",
+        "title": "Cetak label barcode",
+        "print": "Cetak",
+        "preview": "Pratinjau",
+        "destination": "Cetak ke",
+        "thermal": "Printer termal",
+        "sheet": "Lembar label",
+        "thermalHint": "Dikirim ke printer toko, printer yang sama dipakai kasir untuk struk.",
+        "sheetHint": "Membuka dialog cetak browser — untuk kertas stiker di printer biasa.",
+        "unit": "Harga yang ditampilkan",
+        "copies": "Jumlah",
+        "columns": "Per baris",
+        "sent_one": "{{count}} label dikirim ke printer",
+        "sent_other": "{{count}} label dikirim ke printer",
+        "skuNotPrintable": "SKU \"{{sku}}\" memuat karakter yang tidak bisa dibawa barcode. Gunakan hanya huruf, angka, dan tanda baca dasar."
+      },
       "unarchive": "Pulihkan",
       "confirmUnarchive": "Pulihkan $t(glossary.product) ini?",
       "lastRestock": "Restok terakhir",
@@ -990,6 +1008,9 @@
     "defaultLockedTooltip": "Sudah menjadi default pengguna — pindahkan default ke gudang lain.",
     "noUsers": "Belum ada pengguna dengan akses."
   },
+  "barcode": {
+    "notEncodable": "Kode ini tidak bisa ditampilkan sebagai barcode."
+  },
   "expiryBadge": {
     "expired": "kedaluwarsa",
     "today": "hari ini",
@@ -1116,7 +1137,10 @@
       "discountInvalid": "Diskon tidak valid"
     },
     "product": {
-      "skuTaken": "SKU ini sudah dipakai"
+      "skuTaken": "SKU ini sudah dipakai",
+      "skuNotPrintable": "SKU ini memuat karakter yang tidak bisa dibawa barcode",
+      "skuTooWideForPaper": "SKU ini terlalu panjang untuk mencetak barcode yang bisa dipindai pada lebar kertas saat ini. Gunakan kertas 80mm, SKU yang lebih pendek, atau cetak lembar label.",
+      "unitArchived": "Satuan itu sudah diarsipkan — pilih yang lain"
     },
     "supplier": {
       "codeTaken": "Kode pemasok ini sudah dipakai",

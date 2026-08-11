@@ -16,7 +16,6 @@ import (
 	"github.com/justmart/backend/internal/service/health"
 	"github.com/justmart/backend/internal/service/prescription"
 	"github.com/justmart/backend/internal/service/priceagreement"
-	"github.com/justmart/backend/internal/service/product"
 	"github.com/justmart/backend/internal/service/productdiscount"
 	"github.com/justmart/backend/internal/service/productpricetier"
 	"github.com/justmart/backend/internal/service/purchasing"
@@ -65,7 +64,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 	prescriptionService := prescription.NewPrescriptionService(db)
 	productDiscountService := productdiscount.NewProductDiscountService(db)
 	productPriceTierService := productpricetier.NewProductPriceTierService(db)
-	productService := product.NewProductService(db)
+	productService := provideProductService(db, config, connectorService)
 	purchaseOrders := purchasing.NewPurchaseOrderService(db)
 	purchasePayments := purchasing.NewPurchasePaymentService(db)
 	purchaseReceipts := purchasing.NewPurchaseReceiptService(db)

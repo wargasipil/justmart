@@ -2,7 +2,8 @@
         migrate-up migrate-down migrate-status migrate-create \
         web-install web \
         embed-web build dist-windows dist-connector-windows docker-build docker-up docker-down installer \
-        portable-windows backup \
+        portable-windows backup faq-video \
+        release-demo release-seed release-video release-encode release-all \
         graph graph-full graph-label graph-viz \
         fly-app fly-volume fly-secrets fly-setup fly-deploy fly-status fly-logs fly-ssh
 
@@ -227,8 +228,13 @@ portable-windows:
 # SQLite DB (one temp file per test, see internal/service/servicetest). Self-
 # contained: no dev Postgres, no config.yaml, no server. `-count=1` skips the
 # test cache. Safe to run in parallel (each test has its own DB file).
+#
+# internal/printer rides along (it needs no DB at all): it renders the ESC/POS
+# byte streams for receipts and barcode labels, and a wrong GS k frame produces
+# a label that prints fine and scans as the wrong product — the kind of bug only
+# a byte-level test catches.
 test-unit: test-migrations
-	$(GO_BACKEND) test ./internal/service/... -count=1
+	$(GO_BACKEND) test ./internal/service/... ./internal/printer/... -count=1
 
 # Migration guards. A committed migration has already run in production, so
 # editing one desynchronises every existing database from a fresh install —
@@ -329,6 +335,61 @@ test-browser:
 # browser E2E. test-unit-all runs first (SQLite then Postgres), failing fast on
 # the cheapest engine.
 test-all: test-unit-all test-e2e test-browser
+
+# --- FAQ tutorial videos -----------------------------------------------------
+# Re-record the screen-capture tutorials in faq/videos/<question>/tutorial.webm
+# by driving the real app (frontend/tests/faq/*.spec.ts). Deliberately NOT part
+# of test-all: these assert nothing and take minutes each.
+# Same prerequisites as test-browser (`make run` + `make web` up, dev DB), plus
+# JUSTMART_TEST_OWNER_PASSWORD matching config.yaml bootstrap.owner_password.
+# Narrow to one question with q=<slug substring>. See faq/README.md.
+faq-video:
+	cd frontend && npx playwright test -c playwright.faq.config.ts $(q)
+
+# --- Release video -----------------------------------------------------------
+# The YouTube product tour: release/video/justmart-product-tour-1080p.mp4.
+#
+# Unlike faq-video, this does NOT record against the dev stack. It drives a
+# throwaway demo instance — its own binary, its own SQLite file, port 8099 —
+# because the dev database is full of half-finished test rows and none of them
+# belong in something published publicly. See release/README.md for the full
+# walkthrough; the short version is:
+#
+#   make release-demo     # terminal 1: build + serve the demo instance
+#   make release-seed     # once, into a fresh demo DB
+#   make release-video    # record (~3.5 min)
+#   make release-encode   # -> MP4 + youtube.md
+#
+# DEMO_DIR defaults to a scratch folder; override to keep the demo shop around.
+DEMO_DIR ?= .release-demo
+DEMO_URL ?= http://127.0.0.1:8099
+DEMO_PASSWORD ?= demo12345
+
+# Build the single binary and serve it against DEMO_DIR/demo.db. Runs in the
+# foreground: leave it in its own terminal for the duration of a recording.
+release-demo: build
+	@mkdir -p $(DEMO_DIR)
+	@test -f $(DEMO_DIR)/config.yaml || cp release/demo.config.yaml $(DEMO_DIR)/config.yaml
+	cp dist/justmart $(DEMO_DIR)/justmart
+	cd $(DEMO_DIR) && ./justmart
+
+# Build the demo shop: catalog, grosir ladder, restock orders, and a month of
+# backdated trading. Expects a FRESH demo.db — re-running over a seeded one
+# fails on the uniqueness checks rather than doubling the catalog.
+release-seed:
+	node release/seed-demo.mjs --base $(DEMO_URL) --db $(DEMO_DIR)/demo.db --password $(DEMO_PASSWORD)
+
+release-video:
+	cd frontend && npx playwright test -c playwright.release.config.ts
+
+# Encode the capture and build every upload asset: MP4, thumbnails, and the
+# paste-ready title/description/tags under release/youtube/.
+release-encode:
+	node release/encode.mjs
+	node release/thumbnail.mjs
+	node release/description.mjs
+
+release-all: release-video release-encode
 
 # --- Backups -----------------------------------------------------------------
 # Snapshot the running Postgres into backups/backup_<timestamp>/.

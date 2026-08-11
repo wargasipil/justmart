@@ -75,3 +75,9 @@ backend/justmart-demo.db-wal
 backend/e2e/justmart.db
 backend/e2e/justmart.db-shm
 backend/e2e/justmart.db-wal
+
+# Release video: the throwaway demo instance it records against, and the
+# capture/encode outputs. The recorder and its seed are versioned; the 20-30 MB
+# media they produce is a build output — see release/README.md.
+/.release-demo/
+/release/video/

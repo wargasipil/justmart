@@ -18,6 +18,9 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "product.required": { i18nKey: "validation.required" },
   "product.unit_price_negative": { field: "unitPrice", i18nKey: "validation.minValue" },
   "product.sku_taken": { field: "sku", i18nKey: "serverErrors.product.skuTaken" },
+  "product.sku_not_printable": { i18nKey: "serverErrors.product.skuNotPrintable" },
+  "product.sku_too_wide_for_paper": { i18nKey: "serverErrors.product.skuTooWideForPaper" },
+  "product.unit_archived": { i18nKey: "serverErrors.product.unitArchived" },
   // supplier
   "supplier.required": { i18nKey: "validation.required" },
   "supplier.code_taken": { field: "code", i18nKey: "serverErrors.supplier.codeTaken" },

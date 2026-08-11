@@ -10,7 +10,12 @@ import {
   Tabs,
   Text,
 } from "@chakra-ui/react";
-import { Archive, ArchiveRestore, Pencil } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Barcode as BarcodeIcon,
+  Pencil,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -30,6 +35,7 @@ import {
   useUnarchiveProductMutation,
 } from "../../queries/products";
 import { EditProductDialog } from "./productDrawers";
+import ProductLabelDialog from "./ProductLabelDialog";
 import { Card, Field, Tile, UnitsCard } from "./productDetailCards";
 import ProductBatchesTab from "./ProductBatchesTab";
 import DiscountTab from "./ProductDiscountTab";
@@ -53,6 +59,7 @@ export default function ProductDetail() {
   // dropped rather than rendered empty.
   const showCost = canSeeCost(user?.role);
   const [editing, setEditing] = useState(false);
+  const [labeling, setLabeling] = useState(false);
   const [pendingArchive, setPendingArchive] = useState(false);
   const [pendingUnarchive, setPendingUnarchive] = useState(false);
 
@@ -114,39 +121,52 @@ export default function ProductDetail() {
           </Badge>
         }
         actions={
-          !showCost ? undefined : (
-            <HStack>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setEditing(true)}
-              >
-                <Pencil size={14} />
-                {t("common.edit")}
-              </Button>
-              {med.active ? (
+          <HStack>
+            {/* Labelling a shelf is not a manager task, and the label carries
+                only sell-side data (name, SKU, unit price) — so this one stays
+                for the till while Edit/Archive below do not. */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setLabeling(true)}
+            >
+              <BarcodeIcon size={14} />
+              {t("inventory.products.label.action")}
+            </Button>
+            {showCost && (
+              <>
                 <Button
                   size="sm"
                   variant="outline"
-                  colorPalette="red"
-                  onClick={() => setPendingArchive(true)}
+                  onClick={() => setEditing(true)}
                 >
-                  <Archive size={14} />
-                  {t("common.archive")}
+                  <Pencil size={14} />
+                  {t("common.edit")}
                 </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  colorPalette="green"
-                  onClick={() => setPendingUnarchive(true)}
-                >
-                  <ArchiveRestore size={14} />
-                  {t("inventory.products.unarchive")}
-                </Button>
-              )}
-            </HStack>
-          )
+                {med.active ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    colorPalette="red"
+                    onClick={() => setPendingArchive(true)}
+                  >
+                    <Archive size={14} />
+                    {t("common.archive")}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    colorPalette="green"
+                    onClick={() => setPendingUnarchive(true)}
+                  >
+                    <ArchiveRestore size={14} />
+                    {t("inventory.products.unarchive")}
+                  </Button>
+                )}
+              </>
+            )}
+          </HStack>
         }
       />
 
@@ -343,6 +363,11 @@ export default function ProductDetail() {
       <EditProductDialog
         product={editing ? med : null}
         onClose={() => setEditing(false)}
+      />
+
+      <ProductLabelDialog
+        product={labeling ? med : null}
+        onClose={() => setLabeling(false)}
       />
 
       <ConfirmDialog

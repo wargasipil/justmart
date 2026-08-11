@@ -84,6 +84,9 @@ const (
 	// ProductServiceDeleteProductImageProcedure is the fully-qualified name of the ProductService's
 	// DeleteProductImage RPC.
 	ProductServiceDeleteProductImageProcedure = "/inventory_iface.v1.ProductService/DeleteProductImage"
+	// ProductServicePrintProductLabelProcedure is the fully-qualified name of the ProductService's
+	// PrintProductLabel RPC.
+	ProductServicePrintProductLabelProcedure = "/inventory_iface.v1.ProductService/PrintProductLabel"
 )
 
 // ProductServiceClient is a client for the inventory_iface.v1.ProductService service.
@@ -127,6 +130,14 @@ type ProductServiceClient interface {
 	// POS renders the thumbnail in its search rows, so a cashier needs it.
 	GetProductImage(context.Context, *connect.Request[v1.GetProductImageRequest]) (*connect.Response[v1.GetProductImageResponse], error)
 	DeleteProductImage(context.Context, *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error)
+	// PrintProductLabel renders a shelf/product barcode label (name + CODE128 of
+	// the SKU + the chosen unit's sell price) and sends it to the shop's thermal
+	// printer over the same connector/usb/tcp dispatch PrintReceipt uses.
+	//
+	// Open to every catalog reader, like PrintReceipt: the label carries only
+	// sell-side data (name, SKU, unit price), never cost — so it stays inside the
+	// cost-visibility policy while letting whoever restocks a shelf label it.
+	PrintProductLabel(context.Context, *connect.Request[v1.PrintProductLabelRequest]) (*connect.Response[v1.PrintProductLabelResponse], error)
 }
 
 // NewProductServiceClient constructs a client for the inventory_iface.v1.ProductService service. By
@@ -242,6 +253,12 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(productServiceMethods.ByName("DeleteProductImage")),
 			connect.WithClientOptions(opts...),
 		),
+		printProductLabel: connect.NewClient[v1.PrintProductLabelRequest, v1.PrintProductLabelResponse](
+			httpClient,
+			baseURL+ProductServicePrintProductLabelProcedure,
+			connect.WithSchema(productServiceMethods.ByName("PrintProductLabel")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -264,6 +281,7 @@ type productServiceClient struct {
 	uploadProductImage     *connect.Client[v1.UploadProductImageRequest, v1.UploadProductImageResponse]
 	getProductImage        *connect.Client[v1.GetProductImageRequest, v1.GetProductImageResponse]
 	deleteProductImage     *connect.Client[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse]
+	printProductLabel      *connect.Client[v1.PrintProductLabelRequest, v1.PrintProductLabelResponse]
 }
 
 // ListProducts calls inventory_iface.v1.ProductService.ListProducts.
@@ -351,6 +369,11 @@ func (c *productServiceClient) DeleteProductImage(ctx context.Context, req *conn
 	return c.deleteProductImage.CallUnary(ctx, req)
 }
 
+// PrintProductLabel calls inventory_iface.v1.ProductService.PrintProductLabel.
+func (c *productServiceClient) PrintProductLabel(ctx context.Context, req *connect.Request[v1.PrintProductLabelRequest]) (*connect.Response[v1.PrintProductLabelResponse], error) {
+	return c.printProductLabel.CallUnary(ctx, req)
+}
+
 // ProductServiceHandler is an implementation of the inventory_iface.v1.ProductService service.
 type ProductServiceHandler interface {
 	ListProducts(context.Context, *connect.Request[v1.ListProductsRequest]) (*connect.Response[v1.ListProductsResponse], error)
@@ -392,6 +415,14 @@ type ProductServiceHandler interface {
 	// POS renders the thumbnail in its search rows, so a cashier needs it.
 	GetProductImage(context.Context, *connect.Request[v1.GetProductImageRequest]) (*connect.Response[v1.GetProductImageResponse], error)
 	DeleteProductImage(context.Context, *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error)
+	// PrintProductLabel renders a shelf/product barcode label (name + CODE128 of
+	// the SKU + the chosen unit's sell price) and sends it to the shop's thermal
+	// printer over the same connector/usb/tcp dispatch PrintReceipt uses.
+	//
+	// Open to every catalog reader, like PrintReceipt: the label carries only
+	// sell-side data (name, SKU, unit price), never cost — so it stays inside the
+	// cost-visibility policy while letting whoever restocks a shelf label it.
+	PrintProductLabel(context.Context, *connect.Request[v1.PrintProductLabelRequest]) (*connect.Response[v1.PrintProductLabelResponse], error)
 }
 
 // NewProductServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -503,6 +534,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		connect.WithSchema(productServiceMethods.ByName("DeleteProductImage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	productServicePrintProductLabelHandler := connect.NewUnaryHandler(
+		ProductServicePrintProductLabelProcedure,
+		svc.PrintProductLabel,
+		connect.WithSchema(productServiceMethods.ByName("PrintProductLabel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/inventory_iface.v1.ProductService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ProductServiceListProductsProcedure:
@@ -539,6 +576,8 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceGetProductImageHandler.ServeHTTP(w, r)
 		case ProductServiceDeleteProductImageProcedure:
 			productServiceDeleteProductImageHandler.ServeHTTP(w, r)
+		case ProductServicePrintProductLabelProcedure:
+			productServicePrintProductLabelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -614,4 +653,8 @@ func (UnimplementedProductServiceHandler) GetProductImage(context.Context, *conn
 
 func (UnimplementedProductServiceHandler) DeleteProductImage(context.Context, *connect.Request[v1.DeleteProductImageRequest]) (*connect.Response[v1.DeleteProductImageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.DeleteProductImage is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) PrintProductLabel(context.Context, *connect.Request[v1.PrintProductLabelRequest]) (*connect.Response[v1.PrintProductLabelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.PrintProductLabel is not implemented"))
 }

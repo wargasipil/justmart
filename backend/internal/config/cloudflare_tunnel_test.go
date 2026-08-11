@@ -65,3 +65,36 @@ func TestCloudflareTunnelToken_EnvOverride(t *testing.T) {
 		t.Fatalf("empty env: got %q, want %q", cfg.CloudflareTunnelToken, "from-yaml")
 	}
 }
+
+// The env var must also be able to say NO. Empty already means "not set" (see
+// above), so without a sentinel there was no way to override a token that is
+// already in config.yaml — and an automated local run (recording an FAQ video,
+// a test pass) would open a public tunnel to the dev database as a side effect.
+// Not parallel: mutates process env.
+func TestCloudflareTunnelToken_EnvCanDisable(t *testing.T) {
+	path := writeConfig(t, "cloudflare_tunnel_token: from-yaml\n")
+
+	for _, v := range []string{"off", "OFF", "none", "false", "0", "disabled", " off "} {
+		t.Run(v, func(t *testing.T) {
+			t.Setenv("JUSTMART_CLOUDFLARE_TUNNEL_TOKEN", v)
+			cfg, err := Load(path)
+			if err != nil {
+				t.Fatalf("Load: %v", err)
+			}
+			if cfg.CloudflareTunnelToken != "" {
+				t.Fatalf("%q should disable the tunnel, got %q", v, cfg.CloudflareTunnelToken)
+			}
+		})
+	}
+
+	// A real token is a long base64 blob; nothing about it should look like a
+	// disable sentinel.
+	t.Setenv("JUSTMART_CLOUDFLARE_TUNNEL_TOKEN", "eyJhIjoidG9rZW4ifQ")
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.CloudflareTunnelToken != "eyJhIjoidG9rZW4ifQ" {
+		t.Fatalf("real token was swallowed: got %q", cfg.CloudflareTunnelToken)
+	}
+}
