@@ -126,13 +126,55 @@ type Update struct {
 	Repo     string `yaml:"repo"`     // GitHub "owner/name"; default below
 }
 
+// License configures the getresolved licence guard used by the LICENSED
+// distribution flavor. The block is parsed by every build but only ACTED ON by
+// one compiled with `-tags license` (internal/licensegate), so a single
+// config.yaml shape works for both and an ordinary build ignores it entirely.
+//
+// There is deliberately no product key here: the SDK requires a build to know
+// what it is from its own source, or an operator could rename it into whatever
+// their licence happens to say. See licensegate.ProductKey.
+type License struct {
+	// BaseURL is the licensing server root. Empty defaults to
+	// licensegate.DefaultBaseURL.
+	BaseURL string `yaml:"base_url"`
+	// ID pre-seeds activation (GR-XXXX-XXXX-XXXX-XXXX) so an unattended install
+	// never shows the activation page. Empty = ask the operator in a browser.
+	ID string `yaml:"id"`
+	// CacheDir holds the install token + last-good signed claim. Relative to the
+	// binary's CWD, like database.path, so the portable folder stays self-contained.
+	CacheDir string `yaml:"cache_dir"`
+	// Grace is how long to keep running while the licensing server is
+	// UNREACHABLE. It never extends a licence past its paid-through date.
+	Grace time.Duration `yaml:"grace"`
+	// RecheckInterval is how often a running server re-verifies.
+	RecheckInterval time.Duration `yaml:"recheck_interval"`
+	// ActivationTimeout bounds the wait for an operator at first run. 0 = wait
+	// until the process is signalled.
+	ActivationTimeout time.Duration `yaml:"activation_timeout"`
+	// Headless suppresses opening a browser at activation (URL is logged).
+	Headless bool `yaml:"headless"`
+}
+
 type Config struct {
 	// CloudflareTunnelToken, when non-empty, makes the server run a Cloudflare
 	// Tunnel alongside the HTTP listener (pkgs/cloudflare_tunnel), so a shop
 	// behind NAT/CGNAT is reachable on a public hostname without port
 	// forwarding. Empty (the default) = no tunnel. It is a credential — prefer
 	// $JUSTMART_CLOUDFLARE_TUNNEL_TOKEN over writing it into config.yaml.
+	//
+	// A token saved in Settings ▸ Remote access (app_settings) takes precedence
+	// over this file — see common.ResolveTunnel for the full order.
 	CloudflareTunnelToken string `yaml:"cloudflare_tunnel_token"`
+
+	// CloudflareTunnelFromEnv / CloudflareTunnelDisabledByEnv record HOW the
+	// field above was decided, which the YAML alone can no longer tell you once
+	// applyEnvOverrides has collapsed both sources into one string. The Settings
+	// panel needs the distinction to explain why a saved token is being ignored:
+	// an env token outranks it, and an env "off" disables the tunnel outright.
+	// Derived, never read from the file.
+	CloudflareTunnelFromEnv       bool `yaml:"-"`
+	CloudflareTunnelDisabledByEnv bool `yaml:"-"`
 
 	Server    Server    `yaml:"server"`
 	Database  Database  `yaml:"database"`
@@ -142,6 +184,7 @@ type Config struct {
 	Connector Connector `yaml:"connector"`
 	Backup    Backup    `yaml:"backup"`
 	Update    Update    `yaml:"update"`
+	License   License   `yaml:"license"`
 }
 
 func (d Database) DSN() string {
@@ -222,6 +265,22 @@ func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_UPDATE_DISABLED"); v != "" {
 		c.Update.Disabled = v == "1" || strings.EqualFold(v, "true")
 	}
+	// Licence settings: overridable so a scripted rollout can activate a machine
+	// without editing the YAML, and so a staging build can be pointed at a local
+	// licensing server. Defaults for the empty cases live in internal/licensegate,
+	// not here — the guard is the only thing that reads them.
+	if v := os.Getenv("JUSTMART_LICENSE_BASE_URL"); v != "" {
+		c.License.BaseURL = v
+	}
+	if v := os.Getenv("JUSTMART_LICENSE_ID"); v != "" {
+		c.License.ID = v
+	}
+	if v := os.Getenv("JUSTMART_LICENSE_CACHE_DIR"); v != "" {
+		c.License.CacheDir = v
+	}
+	if v := os.Getenv("JUSTMART_LICENSE_HEADLESS"); v != "" {
+		c.License.Headless = v == "1" || strings.EqualFold(v, "true")
+	}
 	// The env var can also switch the tunnel OFF. Without this it was
 	// on-only — an empty value means "not set", so a config.yaml carrying a
 	// token could not be overridden, and any automated run on that machine
@@ -230,8 +289,10 @@ func applyEnvOverrides(c *Config) {
 	if v := os.Getenv("JUSTMART_CLOUDFLARE_TUNNEL_TOKEN"); v != "" {
 		if isDisabledValue(v) {
 			c.CloudflareTunnelToken = ""
+			c.CloudflareTunnelDisabledByEnv = true
 		} else {
 			c.CloudflareTunnelToken = v
+			c.CloudflareTunnelFromEnv = true
 		}
 	}
 }

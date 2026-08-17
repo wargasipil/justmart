@@ -60,6 +60,12 @@ const (
 	// SettingsServiceGetPrintingInfoProcedure is the fully-qualified name of the SettingsService's
 	// GetPrintingInfo RPC.
 	SettingsServiceGetPrintingInfoProcedure = "/settings_iface.v1.SettingsService/GetPrintingInfo"
+	// SettingsServiceGetTunnelSettingsProcedure is the fully-qualified name of the SettingsService's
+	// GetTunnelSettings RPC.
+	SettingsServiceGetTunnelSettingsProcedure = "/settings_iface.v1.SettingsService/GetTunnelSettings"
+	// SettingsServiceSetTunnelSettingsProcedure is the fully-qualified name of the SettingsService's
+	// SetTunnelSettings RPC.
+	SettingsServiceSetTunnelSettingsProcedure = "/settings_iface.v1.SettingsService/SetTunnelSettings"
 	// SettingsServiceCheckUpdateProcedure is the fully-qualified name of the SettingsService's
 	// CheckUpdate RPC.
 	SettingsServiceCheckUpdateProcedure = "/settings_iface.v1.SettingsService/CheckUpdate"
@@ -102,6 +108,14 @@ type SettingsServiceClient interface {
 	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
 	// which picker to show and the usb local-printer options. Manager-tier.
 	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
+	// GetTunnelSettings / SetTunnelSettings store the Cloudflare Tunnel token
+	// that makes this shop reachable on a public hostname without port
+	// forwarding. OWNER-only in BOTH directions — unlike the printing settings
+	// beside them, this is a credential that exposes the shop to the internet, so
+	// even the manager tier does not read it. The token itself is never returned;
+	// the response carries a masked preview.
+	GetTunnelSettings(context.Context, *connect.Request[v1.GetTunnelSettingsRequest]) (*connect.Response[v1.GetTunnelSettingsResponse], error)
+	SetTunnelSettings(context.Context, *connect.Request[v1.SetTunnelSettingsRequest]) (*connect.Response[v1.SetTunnelSettingsResponse], error)
 	// CheckUpdate reports the running build version + the latest GitHub release
 	// (autoupdater, portable Windows flavor). OWNER-only.
 	CheckUpdate(context.Context, *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error)
@@ -179,6 +193,18 @@ func NewSettingsServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		getTunnelSettings: connect.NewClient[v1.GetTunnelSettingsRequest, v1.GetTunnelSettingsResponse](
+			httpClient,
+			baseURL+SettingsServiceGetTunnelSettingsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("GetTunnelSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		setTunnelSettings: connect.NewClient[v1.SetTunnelSettingsRequest, v1.SetTunnelSettingsResponse](
+			httpClient,
+			baseURL+SettingsServiceSetTunnelSettingsProcedure,
+			connect.WithSchema(settingsServiceMethods.ByName("SetTunnelSettings")),
+			connect.WithClientOptions(opts...),
+		),
 		checkUpdate: connect.NewClient[v1.CheckUpdateRequest, v1.CheckUpdateResponse](
 			httpClient,
 			baseURL+SettingsServiceCheckUpdateProcedure,
@@ -211,6 +237,8 @@ type settingsServiceClient struct {
 	getReceiptSettings   *connect.Client[v1.GetReceiptSettingsRequest, v1.GetReceiptSettingsResponse]
 	setReceiptSettings   *connect.Client[v1.SetReceiptSettingsRequest, v1.SetReceiptSettingsResponse]
 	getPrintingInfo      *connect.Client[v1.GetPrintingInfoRequest, v1.GetPrintingInfoResponse]
+	getTunnelSettings    *connect.Client[v1.GetTunnelSettingsRequest, v1.GetTunnelSettingsResponse]
+	setTunnelSettings    *connect.Client[v1.SetTunnelSettingsRequest, v1.SetTunnelSettingsResponse]
 	checkUpdate          *connect.Client[v1.CheckUpdateRequest, v1.CheckUpdateResponse]
 	applyUpdate          *connect.Client[v1.ApplyUpdateRequest, v1.ApplyUpdateResponse]
 	revertUpdate         *connect.Client[v1.RevertUpdateRequest, v1.RevertUpdateResponse]
@@ -261,6 +289,16 @@ func (c *settingsServiceClient) GetPrintingInfo(ctx context.Context, req *connec
 	return c.getPrintingInfo.CallUnary(ctx, req)
 }
 
+// GetTunnelSettings calls settings_iface.v1.SettingsService.GetTunnelSettings.
+func (c *settingsServiceClient) GetTunnelSettings(ctx context.Context, req *connect.Request[v1.GetTunnelSettingsRequest]) (*connect.Response[v1.GetTunnelSettingsResponse], error) {
+	return c.getTunnelSettings.CallUnary(ctx, req)
+}
+
+// SetTunnelSettings calls settings_iface.v1.SettingsService.SetTunnelSettings.
+func (c *settingsServiceClient) SetTunnelSettings(ctx context.Context, req *connect.Request[v1.SetTunnelSettingsRequest]) (*connect.Response[v1.SetTunnelSettingsResponse], error) {
+	return c.setTunnelSettings.CallUnary(ctx, req)
+}
+
 // CheckUpdate calls settings_iface.v1.SettingsService.CheckUpdate.
 func (c *settingsServiceClient) CheckUpdate(ctx context.Context, req *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error) {
 	return c.checkUpdate.CallUnary(ctx, req)
@@ -307,6 +345,14 @@ type SettingsServiceHandler interface {
 	// empty off-Windows). Drives the mode-aware Settings ▸ Printing panel —
 	// which picker to show and the usb local-printer options. Manager-tier.
 	GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error)
+	// GetTunnelSettings / SetTunnelSettings store the Cloudflare Tunnel token
+	// that makes this shop reachable on a public hostname without port
+	// forwarding. OWNER-only in BOTH directions — unlike the printing settings
+	// beside them, this is a credential that exposes the shop to the internet, so
+	// even the manager tier does not read it. The token itself is never returned;
+	// the response carries a masked preview.
+	GetTunnelSettings(context.Context, *connect.Request[v1.GetTunnelSettingsRequest]) (*connect.Response[v1.GetTunnelSettingsResponse], error)
+	SetTunnelSettings(context.Context, *connect.Request[v1.SetTunnelSettingsRequest]) (*connect.Response[v1.SetTunnelSettingsResponse], error)
 	// CheckUpdate reports the running build version + the latest GitHub release
 	// (autoupdater, portable Windows flavor). OWNER-only.
 	CheckUpdate(context.Context, *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error)
@@ -380,6 +426,18 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 		connect.WithSchema(settingsServiceMethods.ByName("GetPrintingInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	settingsServiceGetTunnelSettingsHandler := connect.NewUnaryHandler(
+		SettingsServiceGetTunnelSettingsProcedure,
+		svc.GetTunnelSettings,
+		connect.WithSchema(settingsServiceMethods.ByName("GetTunnelSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	settingsServiceSetTunnelSettingsHandler := connect.NewUnaryHandler(
+		SettingsServiceSetTunnelSettingsProcedure,
+		svc.SetTunnelSettings,
+		connect.WithSchema(settingsServiceMethods.ByName("SetTunnelSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
 	settingsServiceCheckUpdateHandler := connect.NewUnaryHandler(
 		SettingsServiceCheckUpdateProcedure,
 		svc.CheckUpdate,
@@ -418,6 +476,10 @@ func NewSettingsServiceHandler(svc SettingsServiceHandler, opts ...connect.Handl
 			settingsServiceSetReceiptSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceGetPrintingInfoProcedure:
 			settingsServiceGetPrintingInfoHandler.ServeHTTP(w, r)
+		case SettingsServiceGetTunnelSettingsProcedure:
+			settingsServiceGetTunnelSettingsHandler.ServeHTTP(w, r)
+		case SettingsServiceSetTunnelSettingsProcedure:
+			settingsServiceSetTunnelSettingsHandler.ServeHTTP(w, r)
 		case SettingsServiceCheckUpdateProcedure:
 			settingsServiceCheckUpdateHandler.ServeHTTP(w, r)
 		case SettingsServiceApplyUpdateProcedure:
@@ -467,6 +529,14 @@ func (UnimplementedSettingsServiceHandler) SetReceiptSettings(context.Context, *
 
 func (UnimplementedSettingsServiceHandler) GetPrintingInfo(context.Context, *connect.Request[v1.GetPrintingInfoRequest]) (*connect.Response[v1.GetPrintingInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetPrintingInfo is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) GetTunnelSettings(context.Context, *connect.Request[v1.GetTunnelSettingsRequest]) (*connect.Response[v1.GetTunnelSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.GetTunnelSettings is not implemented"))
+}
+
+func (UnimplementedSettingsServiceHandler) SetTunnelSettings(context.Context, *connect.Request[v1.SetTunnelSettingsRequest]) (*connect.Response[v1.SetTunnelSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("settings_iface.v1.SettingsService.SetTunnelSettings is not implemented"))
 }
 
 func (UnimplementedSettingsServiceHandler) CheckUpdate(context.Context, *connect.Request[v1.CheckUpdateRequest]) (*connect.Response[v1.CheckUpdateResponse], error) {

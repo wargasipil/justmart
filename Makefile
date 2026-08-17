@@ -1,8 +1,8 @@
 .PHONY: up down reset-devel-data generate tidy wire run dev test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
-        web-install web \
-        embed-web build dist-windows dist-connector-windows docker-build docker-up docker-down installer \
-        portable-windows backup faq-video \
+        web-install web storybook storybook-build \
+        embed-web build dist-windows dist-windows-licensed dist-connector-windows docker-build docker-up docker-down installer \
+        portable-windows portable-windows-licensed test-license backup faq-video \
         release-demo release-seed release-video release-encode release-all \
         graph graph-full graph-label graph-viz \
         fly-app fly-volume fly-secrets fly-setup fly-deploy fly-status fly-logs fly-ssh
@@ -124,6 +124,16 @@ dist-windows: embed-web
 	@mkdir -p dist
 	GOOS=windows GOARCH=amd64 $(GO_BACKEND) build -ldflags "$(GO_LDFLAGS)" -o ../dist/justmart.exe ./cmd/server
 
+# Windows single binary WITH the getresolved licence guard compiled in. The
+# `license` build tag is the ONLY difference from dist-windows: it swaps
+# internal/licensegate's no-op stubs for the real guard, which refuses to serve
+# until the install is activated (see the Licensed flavor section in CLAUDE.md).
+# Separate output name so a licensed exe can never be mistaken for, or overwrite,
+# the free one in dist/.
+dist-windows-licensed: embed-web
+	@mkdir -p dist
+	GOOS=windows GOARCH=amd64 $(GO_BACKEND) build -tags license -ldflags "$(GO_LDFLAGS)" -o ../dist/justmart-licensed.exe ./cmd/server
+
 # Cross-compile the standalone Windows print connector (no embedded UI). Ships
 # as a small zip the shop runs next to the printer. The Windows-only spooler dep
 # is isolated behind //go:build windows, so this is the only target that links it.
@@ -223,6 +233,19 @@ installer: dist-windows
 portable-windows:
 	powershell -ExecutionPolicy Bypass -File packaging/windows/build-portable.ps1
 
+# --- Portable Windows distribution, LICENSED (SQLite + getresolved guard) -----
+# Same unzip-and-run shape as portable-windows, but the exe is built with
+# -tags license: on first run it opens a local activation page and will not
+# serve until a valid licence id is entered, then re-verifies while running.
+# Output: dist/justmart-portable-licensed-<ver>/ + .zip (never overwrites the
+# free portable build). Pass a licence id to pre-activate an unattended install:
+#   make portable-windows-licensed LICENCE_ID=GR-XXXX-XXXX-XXXX-XXXX
+LICENCE_ID       ?=
+LICENSE_BASE_URL ?=
+portable-windows-licensed:
+	powershell -ExecutionPolicy Bypass -File packaging/windows/build-portable.ps1 \
+	  -Licensed -LicenceId "$(LICENCE_ID)" -LicenseBaseUrl "$(LICENSE_BASE_URL)"
+
 # Co-located handler unit tests: each internal/service/<domain>/<rpc>_test.go
 # calls its handler method directly (no HTTP) against a fresh, migrated, throwaway
 # SQLite DB (one temp file per test, see internal/service/servicetest). Self-
@@ -233,8 +256,19 @@ portable-windows:
 # byte streams for receipts and barcode labels, and a wrong GS k frame produces
 # a label that prints fine and scans as the wrong product — the kind of bug only
 # a byte-level test catches.
+# internal/licensegate rides along too (no DB either). Untagged, it proves the
+# guard is genuinely inert in every free flavor; `make test-license` runs the
+# same package with -tags license for the enforcing half.
 test-unit: test-migrations
-	$(GO_BACKEND) test ./internal/service/... ./internal/printer/... -count=1
+	$(GO_BACKEND) test ./internal/service/... ./internal/printer/... ./internal/licensegate/... -count=1
+
+# The licensed flavor's own tests. A separate target because -tags license
+# selects a DIFFERENT set of files (gate_enabled*.go instead of gate_disabled*.go),
+# so it is a second compilation of the tree, not an extra assertion on the first.
+# Offline: no licensing server is contacted.
+test-license:
+	$(GO_BACKEND) test -tags license ./internal/licensegate/... -count=1
+	$(GO_BACKEND) build -tags license -o /dev/null ./cmd/server
 
 # Migration guards. A committed migration has already run in production, so
 # editing one desynchronises every existing database from a fresh install —
@@ -323,6 +357,23 @@ web-install:
 
 web:
 	npm --prefix frontend run dev
+
+# Storybook -- the isolated bench for the shared components in
+# frontend/src/components/. Complements the in-app dev gallery at /components
+# (which ships inside the app); a story pulls its prose from the SAME registry
+# entry the gallery renders, so the two catalogs cannot drift apart.
+#
+# Self-contained: needs neither `make run` nor `make web`. The three components
+# that ARE a backend search (SupplierSelect, BatchSelect, ProductPickerDialog)
+# are tagged `needs-backend` and reach the dev server through the app's own
+# vite /api proxy when `make run` happens to be up.
+storybook: | frontend/node_modules
+	npm --prefix frontend run storybook
+
+# Static build -> frontend/storybook-static/ (gitignored). Also the cheapest
+# way to prove every story still compiles.
+storybook-build: | frontend/node_modules
+	npm --prefix frontend run build-storybook
 
 # Browser E2E tests (Playwright). Assumes `make run` and `make web` are
 # already running in separate terminals; tests hit http://localhost:5173 and

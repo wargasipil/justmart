@@ -81,6 +81,19 @@ service SettingsService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
 
+  // GetTunnelSettings / SetTunnelSettings store the Cloudflare Tunnel token
+  // that makes this shop reachable on a public hostname without port
+  // forwarding. OWNER-only in BOTH directions — unlike the printing settings
+  // beside them, this is a credential that exposes the shop to the internet, so
+  // even the manager tier does not read it. The token itself is never returned;
+  // the response carries a masked preview.
+  rpc GetTunnelSettings(GetTunnelSettingsRequest) returns (GetTunnelSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+  rpc SetTunnelSettings(SetTunnelSettingsRequest) returns (SetTunnelSettingsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+  }
+
   // CheckUpdate reports the running build version + the latest GitHub release
   // (autoupdater, portable Windows flavor). OWNER-only.
   rpc CheckUpdate(CheckUpdateRequest) returns (CheckUpdateResponse) {
@@ -167,6 +180,32 @@ message GetPrintingInfoRequest {}
 message GetPrintingInfoResponse {
   string mode = 1;                    // "tcp" | "connector" | "usb"
   repeated string local_printers = 2; // server-host printers (usb mode; empty off-Windows)
+}
+
+message GetTunnelSettingsRequest {}
+// TunnelSettings is deliberately not a shared message with the request: what an
+// OWNER can WRITE is one token, while what they need to SEE is why the server
+// is (or is not) running one.
+message GetTunnelSettingsResponse {
+  bool configured = 1;        // a token is saved in Settings
+  string token_preview = 2;   // masked ("eyJhIj••••In0="); "" when none. The raw token never leaves the server
+  bool active = 3;            // this server booted with a tunnel running
+  string source = 4;          // which token won: "none"|"settings"|"config"|"env"|"env_off"
+  bool restart_required = 5;  // the saved token differs from the one this process booted on
+  bool supported = 6;         // false off-Windows: cloudflared is fetched as a windows-amd64 exe today
+}
+message SetTunnelSettingsRequest {
+  // The token, or "" to clear it. A pasted `cloudflared service install <token>`
+  // command is accepted — the server takes the token out of it.
+  string token = 1;
+}
+message SetTunnelSettingsResponse {
+  bool configured = 1;
+  string token_preview = 2;
+  bool active = 3;
+  string source = 4;
+  bool restart_required = 5;
+  bool supported = 6;
 }
 
 message CheckUpdateRequest {}

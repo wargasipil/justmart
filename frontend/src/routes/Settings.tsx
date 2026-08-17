@@ -18,6 +18,7 @@ export default function Settings() {
     { value: "general", to: "/settings/general", label: t("settings.tabs.general") },
     { value: "units", to: "/settings/units", label: t("settings.tabs.units") },
     { value: "printing", to: "/settings/printing", label: t("settings.tabs.printing") },
+    { value: "tunnel", to: "/settings/tunnel", label: t("settings.tabs.tunnel") },
     { value: "backups", to: "/settings/backups", label: t("settings.tabs.backups") },
     { value: "updates", to: "/settings/updates", label: t("settings.tabs.updates") },
   ];

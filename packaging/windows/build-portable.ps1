@@ -20,15 +20,33 @@
     powershell -ExecutionPolicy Bypass -File packaging\windows\build-portable.ps1 `
       -AppVersion 0.1.0 -Port 8080
 
+  LICENSED FLAVOR (-Licensed):
+    Same folder + zip, but justmart.exe is compiled with -tags license, so it
+    runs the getresolved licence guard: on first start it opens a local
+    activation page and refuses to serve until a licence id is entered, then
+    re-verifies periodically and stops if the licence lapses. Output is named
+    justmart-portable-licensed-<version> so it can never overwrite the free
+    build sitting beside it in dist\.
+
+      ... build-portable.ps1 -Licensed
+      ... build-portable.ps1 -Licensed -LicenceId GR-XXXX-XXXX-XXXX-XXXX
+
+    -LicenceId pre-seeds config.yaml so an unattended install activates itself
+    and the operator never sees the page. Leave it empty for a build handed to a
+    customer who will paste their own id.
+
   NOTE: keep this file ASCII-only (Windows PowerShell 5.1 reads -File as Windows-1252).
 #>
 [CmdletBinding()]
 param(
-  [string] $AppVersion    = "0.1.0",
-  [int]    $Port          = 8080,
-  [string] $OwnerEmail    = "owner@justmart.local",
-  [string] $OwnerPassword = "change-me-now",
-  [switch] $SkipExeBuild
+  [string] $AppVersion     = "0.1.0",
+  [int]    $Port           = 8080,
+  [string] $OwnerEmail     = "owner@justmart.local",
+  [string] $OwnerPassword  = "change-me-now",
+  [switch] $SkipExeBuild,
+  [switch] $Licensed,
+  [string] $LicenceId      = "",
+  [string] $LicenseBaseUrl = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,7 +59,19 @@ $embedDir = Join-Path $root "backend\internal\web\dist"
 New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
 # --- 1. Build justmart.exe (SPA + migrations embedded) ------------------------
-$exe = Join-Path $dist "justmart.exe"
+# The licensed flavor is a genuinely different binary: the `license` build tag
+# swaps internal/licensegate's no-op stubs for the real guard (and is the only
+# thing that links the getresolved SDK at all). So it gets its own output name --
+# sharing justmart.exe would let -SkipExeBuild package a free binary into a
+# licensed zip, or ship a guard to customers who did not buy one, with nothing
+# in the filename to tell them apart.
+$tagArgs = @()
+$exeName = "justmart.exe"
+if ($Licensed) {
+  $tagArgs = @("-tags", "license")
+  $exeName = "justmart-licensed.exe"
+}
+$exe = Join-Path $dist $exeName
 if ($SkipExeBuild -and (Test-Path $exe)) {
   Write-Host "Reusing existing $exe (-SkipExeBuild)."
 } else {
@@ -59,7 +89,7 @@ if ($SkipExeBuild -and (Test-Path $exe)) {
   Copy-Item -Recurse -Force (Join-Path $root "frontend\dist\*") $embedDir
   Push-Location (Join-Path $root "backend")
   $env:GOOS = "windows"; $env:GOARCH = "amd64"; $env:CGO_ENABLED = "0"
-  go build -ldflags "-s -w -X main.version=$AppVersion" -o $exe ./cmd/server
+  go build @tagArgs -ldflags "-s -w -X main.version=$AppVersion" -o $exe ./cmd/server
   $goExit = $LASTEXITCODE
   Remove-Item Env:\GOOS, Env:\GOARCH, Env:\CGO_ENABLED
   Pop-Location
@@ -92,8 +122,68 @@ function New-Secret([int]$bytes = 32) {
 }
 $jwt = New-Secret 32
 
+# --- 2b. Licence block rendered into config.yaml + README ---------------------
+# Both placeholders render to an empty string for the free build, so ONE set of
+# templates serves both flavors and they cannot drift apart.
+$licenseBlock    = ""
+$licenseReadme   = ""
+$licenseLauncher = ""
+if ($Licensed) {
+  # One extra line in the launcher's console banner. The console window is the
+  # only place a first-run operator is told what the waiting is for -- the app
+  # port stays closed until the licence is accepted, so there is nothing to see
+  # in the browser tab the launcher would otherwise have opened.
+  $licenseLauncher = "echo  First run: activate this PC in the page that opens."
+
+  $licBase = if ($LicenseBaseUrl) { $LicenseBaseUrl } else { "https://api.getresolved.id" }
+  $licenseBlock = @"
+
+# --- Licence (this is the LICENSED edition) -----------------------------------
+# Justmart verifies its licence at startup and will not serve until this PC is
+# activated. On first run it opens an activation page in your browser; paste the
+# licence id you were given.
+license:
+  base_url: $licBase
+  # Paste a licence id here to activate without the page (optional).
+  id: "$LicenceId"
+  # Where the activation credential and the signed licence are kept. Keep this
+  # folder with justmart.exe -- deleting it means activating this PC again.
+  cache_dir: ./license
+  # How long Justmart keeps working while the licence server is UNREACHABLE.
+  # This never extends a licence past the date it was paid through.
+  grace: 72h
+  # How often a running Justmart re-checks its licence.
+  recheck_interval: 6h
+  # true = never open a browser at activation; the page address is printed in
+  # the console window instead (for a PC with no desktop).
+  headless: false
+"@
+
+  $licenseReadme = @"
+
+LICENCE / ACTIVATION
+--------------------
+This is the licensed edition. The first time you start Justmart it opens an
+activation page in your browser and waits there: paste the licence id you were
+given (it looks like GR-XXXX-XXXX-XXXX-XXXX). Justmart starts as soon as it is
+accepted, and every later start goes straight through.
+
+- The licence is tied to THIS PC. Moving this folder to another PC needs a new
+  activation - ask us to release the old one first.
+- Justmart keeps working for up to 3 days if it cannot reach the licence server,
+  so a dropped internet connection is not a problem. It does stop when the
+  licence itself expires.
+- The  license\  folder next to justmart.exe holds the activation. Keep it with
+  the rest of the folder; deleting it means activating this PC again.
+- No page appeared? The address is printed in the black console window
+  (something like http://127.0.0.1:53112) - open it in a browser yourself.
+
+
+"@
+}
+
 # --- 3. Assemble the portable folder -----------------------------------------
-$outName = "justmart-portable-$AppVersion"
+$outName = if ($Licensed) { "justmart-portable-licensed-$AppVersion" } else { "justmart-portable-$AppVersion" }
 $outDir  = Join-Path $dist $outName
 Remove-Item -Recurse -Force $outDir -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
@@ -109,7 +199,10 @@ function Write-Rendered([string]$srcName, [string]$dstName) {
   $text = $text.Replace('__PORT__', "$Port").
                 Replace('__JWT_SECRET__', $jwt).
                 Replace('__OWNER_EMAIL__', $OwnerEmail).
-                Replace('__OWNER_PASSWORD__', $OwnerPassword)
+                Replace('__OWNER_PASSWORD__', $OwnerPassword).
+                Replace('__LICENSE_BLOCK__', $licenseBlock).
+                Replace('__LICENSE_README__', $licenseReadme).
+                Replace('__LICENSE_LAUNCHER_NOTE__', $licenseLauncher)
   Set-Content -Path (Join-Path $outDir $dstName) -Value $text -Encoding ascii -NoNewline
 }
 Write-Rendered "config.yaml"        "config.yaml"
@@ -130,7 +223,11 @@ Remove-Item -Force $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path $outDir -DestinationPath $zip -Force
 
 Write-Host ""
-Write-Host "Portable build complete:"
+if ($Licensed) {
+  Write-Host "Portable build complete (LICENSED - guard compiled in):"
+} else {
+  Write-Host "Portable build complete:"
+}
 Write-Host "  folder: $outDir"
 Write-Host "  zip:    $zip"
 Write-Host "  login:  $OwnerEmail / $OwnerPassword   (port $Port)"

@@ -18,6 +18,15 @@ type SettingsService struct {
 	version       string
 	updateCfg     config.Update
 	updateAPIBase string
+
+	// Cloudflare-tunnel wiring (set via SetTunnel). The token is resolved once
+	// at boot and handed here, because the panel's real question is whether the
+	// SAVED token differs from the one this process is running on — which the
+	// database alone cannot answer.
+	tunnelBootToken string
+	tunnelCfgToken  string
+	tunnelEnvSet    bool
+	tunnelEnvOff    bool
 }
 
 func NewSettingsService(db *gorm.DB) *SettingsService {
@@ -34,4 +43,15 @@ func (s *SettingsService) SetConnectorMode(mode string) { s.mode = mode }
 func (s *SettingsService) SetUpdate(version string, cfg config.Update) {
 	s.version = version
 	s.updateCfg = cfg
+}
+
+// SetTunnel records the Cloudflare token this process actually booted on plus
+// the config/env inputs, so GetTunnelSettings can re-resolve the precedence
+// against the current saved value and report whether a restart is pending.
+// Called once from the Wire provider.
+func (s *SettingsService) SetTunnel(bootToken, cfgToken string, envSet, envOff bool) {
+	s.tunnelBootToken = bootToken
+	s.tunnelCfgToken = cfgToken
+	s.tunnelEnvSet = envSet
+	s.tunnelEnvOff = envOff
 }

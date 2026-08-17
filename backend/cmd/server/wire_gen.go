@@ -70,7 +70,8 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 	purchaseReceipts := purchasing.NewPurchaseReceiptService(db)
 	purchaseReturns := purchasing.NewPurchaseReturnService(db)
 	saleService := provideSaleService(db, config, connectorService)
-	settingsService := provideSettingsService(db, config, version2)
+	mainTunnelToken := provideTunnelToken(config, db)
+	settingsService := provideSettingsService(db, config, version2, mainTunnelToken)
 	stockService := stock.NewStockService(db)
 	stocktakeService := stocktake.NewStocktakeService(db)
 	supplierService := supplier.NewSupplierService(db)
@@ -109,7 +110,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 	handlerOption := provideInterceptors(issuer, v, db)
 	handler := provideRootHandler(handlers, handlerOption)
 	server := provideHTTPServer(config, handler)
-	tunnelRunner := provideTunnelRunner(config)
+	tunnelRunner := provideTunnelRunner(mainTunnelToken)
 	app := &App{
 		Cfg:    config,
 		DB:     db,

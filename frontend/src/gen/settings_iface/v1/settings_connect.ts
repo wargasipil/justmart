@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
+import { ApplyUpdateRequest, ApplyUpdateResponse, CheckUpdateRequest, CheckUpdateResponse, GetBrandingRequest, GetBrandingResponse, GetBussinessSettingsRequest, GetBussinessSettingsResponse, GetPrintingInfoRequest, GetPrintingInfoResponse, GetPrintTargetRequest, GetPrintTargetResponse, GetReceiptSettingsRequest, GetReceiptSettingsResponse, GetSettingsRequest, GetSettingsResponse, GetTunnelSettingsRequest, GetTunnelSettingsResponse, RevertUpdateRequest, RevertUpdateResponse, SetPrintTargetRequest, SetPrintTargetResponse, SetReceiptSettingsRequest, SetReceiptSettingsResponse, SetTunnelSettingsRequest, SetTunnelSettingsResponse, UpdateSettingsRequest, UpdateSettingsResponse } from "./settings_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -116,6 +116,31 @@ export const SettingsService = {
       name: "GetPrintingInfo",
       I: GetPrintingInfoRequest,
       O: GetPrintingInfoResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetTunnelSettings / SetTunnelSettings store the Cloudflare Tunnel token
+     * that makes this shop reachable on a public hostname without port
+     * forwarding. OWNER-only in BOTH directions — unlike the printing settings
+     * beside them, this is a credential that exposes the shop to the internet, so
+     * even the manager tier does not read it. The token itself is never returned;
+     * the response carries a masked preview.
+     *
+     * @generated from rpc settings_iface.v1.SettingsService.GetTunnelSettings
+     */
+    getTunnelSettings: {
+      name: "GetTunnelSettings",
+      I: GetTunnelSettingsRequest,
+      O: GetTunnelSettingsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc settings_iface.v1.SettingsService.SetTunnelSettings
+     */
+    setTunnelSettings: {
+      name: "SetTunnelSettings",
+      I: SetTunnelSettingsRequest,
+      O: SetTunnelSettingsResponse,
       kind: MethodKind.Unary,
     },
     /**

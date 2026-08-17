@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^1.10.0",
@@ -31,11 +33,15 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@storybook/addon-a11y": "^10.5.8",
+    "@storybook/addon-docs": "^10.5.8",
+    "@storybook/react-vite": "^10.5.8",
     "@tanstack/react-query-devtools": "^5.100.10",
     "@types/jsbarcode": "^3.11.4",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "storybook": "^10.5.8",
     "typescript": "^5.7.3",
     "vite": "^5.4.11"
   }

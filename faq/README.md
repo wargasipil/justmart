@@ -5,13 +5,31 @@ One folder per question, named after the question as a slug:
 ```
 faq/videos/<question-slug>/
   question.md      the question + the written answer (Indonesian — shop staff read this)
-  tutorial.webm    a screen recording of the real app doing it, with a music bed
   youtube.md       optional: title / description / tags, if the video is published
-  thumbnail.jpg    optional: 1280x720 upload thumbnail, from faq/tools/make_thumbnail.py
+  tutorial.webm    GITIGNORED — the screen recording, from `make faq-video`
+  thumbnail.jpg    GITIGNORED — 1280x720 upload thumbnail, from faq/tools/make_thumbnail.py
 
 faq/assets/music/   the looping bed every video is scored with (generated — see its README)
 faq/tools/          make_music.py (the bed) + make_thumbnail.py (upload thumbnails)
 ```
+
+**The renders are not committed.** `tutorial.webm` and `thumbnail.jpg` are
+gitignored: each is a multi-megabyte binary that changes wholesale on every
+re-record, which is the worst possible shape for git history, and both are
+reproducible from what *is* committed — the recorder spec in
+[`frontend/tests/faq/`](../frontend/tests/faq/) and the `Variant` in
+[`make_thumbnail.py`](tools/make_thumbnail.py). Regenerate either with:
+
+```sh
+make faq-video q=<slug>                        # -> tutorial.webm
+python faq/tools/make_thumbnail.py <slug>      # -> thumbnail.jpg
+```
+
+So a fresh clone has the answers and the means to rebuild every video, but none
+of the renders. The published copies live on YouTube; the local ones are build
+output. The music bed is the one generated asset that stays tracked — it is
+small, shared by every video, and changes only when someone edits the
+generator.
 
 ## Publishing
 
@@ -69,20 +87,28 @@ up after itself. The recorder overwrites `faq/videos/<slug>/tutorial.webm` in
 place.
 
 **Recording never opens a Cloudflare tunnel**, even when `config.yaml` carries a
-`cloudflare_tunnel_token` — the config passes
-`JUSTMART_CLOUDFLARE_TUNNEL_TOKEN=off`. That sentinel exists for this: an empty
-env value means "not set", so before it there was no way to switch a configured
-tunnel off, and generating docs would have published the dev database on a
-public hostname.
+`cloudflare_tunnel_token`. The backend is started against `.faq-config.yaml` — a
+generated copy of your `config.yaml` with that one key blanked out — and the env
+var is pinned empty so a token exported in your shell cannot leak in either.
+
+This used to be a single `JUSTMART_CLOUDFLARE_TUNNEL_TOKEN=off`, which is why
+that sentinel exists at all (an empty env value means "not set", so a token in
+`config.yaml` could not otherwise be overridden). The stripped copy replaced it
+for two reasons: the process cannot read a token it was never handed, which is
+the stronger guarantee, and `off` puts the Settings ▸ Akses jarak jauh panel
+into a state — "disabled by the environment" — that no shop owner will ever see,
+which is unrecordable for the question about that very panel. The sentinel is
+still supported and still the right tool outside recording.
 
 **ffmpeg is needed for the music**, not for the capture. Without it on PATH a
 recording still succeeds and is simply written silent, with a warning — a
 missing tool must not throw away a take that took minutes. See
 [assets/music/README.md](assets/music/README.md) for the bed itself.
 
-> If `config.yaml` sets `cloudflare_tunnel_token`, `make run` also opens a public
-> tunnel to your dev machine for as long as it serves. Point `JUSTMART_CONFIG` at
-> a copy without that key while recording.
+> `make faq-video` handles this for you, but a plain `make run` does not: if
+> `config.yaml` sets `cloudflare_tunnel_token` — or a token is saved in
+> Settings ▸ Akses jarak jauh — it opens a public tunnel to your dev machine for
+> as long as it serves.
 
 ## Adding a question
 
@@ -106,12 +132,14 @@ filing a bug when the button they saw in the video isn't there.
 
 ## Questions
 
-| Question | Video |
+| Question | Rekam ulang |
 |---|---|
-| [Penerimaan restock yang sudah diterima, bisa dibatalkan?](videos/can-an-accepted-restock-be-cancelled/question.md) | [tutorial.webm](videos/can-an-accepted-restock-be-cancelled/tutorial.webm) |
-| [Bagaimana kasir membuat transaksi (order)?](videos/how-does-a-cashier-create-an-order/question.md) | [tutorial.webm](videos/how-does-a-cashier-create-an-order/tutorial.webm) |
-| [Bagaimana cara membuat restock (pesanan ke pemasok)?](videos/how-do-i-create-a-restock-order/question.md) | [tutorial.webm](videos/how-do-i-create-a-restock-order/tutorial.webm) |
-| [Bagaimana cara memperbarui aplikasi Justmart?](videos/how-do-i-update-the-app/question.md) | [tutorial.webm](videos/how-do-i-update-the-app/tutorial.webm) |
-| [Bagaimana memasukkan stok yang sudah ada di toko?](videos/how-do-i-enter-existing-stock/question.md) | [tutorial.webm](videos/how-do-i-enter-existing-stock/tutorial.webm) |
-| [Bagaimana cara mengganti judul / nama toko yang tampil?](videos/how-do-i-change-the-shop-name/question.md) | [tutorial.webm](videos/how-do-i-change-the-shop-name/tutorial.webm) |
-| [Bagaimana cara mencetak label barcode produk?](videos/how-do-i-print-a-product-barcode-label/question.md) | [tutorial.webm](videos/how-do-i-print-a-product-barcode-label/tutorial.webm) |
+| [Penerimaan restock yang sudah diterima, bisa dibatalkan?](videos/can-an-accepted-restock-be-cancelled/question.md) | `make faq-video q=can-an-accepted-restock-be-cancelled` |
+| [Bagaimana kasir membuat transaksi (order)?](videos/how-does-a-cashier-create-an-order/question.md) | `make faq-video q=how-does-a-cashier-create-an-order` |
+| [Bagaimana cara membuat restock (pesanan ke pemasok)?](videos/how-do-i-create-a-restock-order/question.md) | `make faq-video q=how-do-i-create-a-restock-order` |
+| [Bagaimana cara memperbarui aplikasi Justmart?](videos/how-do-i-update-the-app/question.md) | `make faq-video q=how-do-i-update-the-app` |
+| [Bagaimana memasukkan stok yang sudah ada di toko?](videos/how-do-i-enter-existing-stock/question.md) | `make faq-video q=how-do-i-enter-existing-stock` |
+| [Bagaimana cara mengganti judul / nama toko yang tampil?](videos/how-do-i-change-the-shop-name/question.md) | `make faq-video q=how-do-i-change-the-shop-name` |
+| [Bagaimana cara mencetak label barcode produk?](videos/how-do-i-print-a-product-barcode-label/question.md) | `make faq-video q=how-do-i-print-a-product-barcode-label` |
+| [Pesanan yang sudah selesai, bisa dibatalkan?](videos/can-an-order-be-cancelled/question.md) | `make faq-video q=can-an-order-be-cancelled` |
+| [Bagaimana cara mengisi token tunnel Cloudflare?](videos/how-do-i-add-a-cloudflare-tunnel-token/question.md) | `make faq-video q=how-do-i-add-a-cloudflare-tunnel-token` |

@@ -120,7 +120,8 @@
       "units": "Units",
       "printing": "Printing",
       "backups": "Backups",
-      "updates": "Updates"
+      "updates": "Updates",
+      "tunnel": "Remote access"
     },
     "updates": {
       "title": "Software updates",
@@ -201,6 +202,29 @@
       "deletedToast": "Backup deleted",
       "confirmTitle": "Delete backup?",
       "confirmBody": "This permanently removes {{name}} from the server. This action cannot be undone."
+    },
+    "tunnel": {
+      "statusLabel": "Tunnel",
+      "on": "Running",
+      "offBadge": "Off",
+      "status": {
+        "active": "This shop is reachable on its Cloudflare hostname.",
+        "off": "No tunnel. The app is reachable on this PC and your local network only.",
+        "config": "Running on the token in config.yaml. A token saved here takes over on the next restart.",
+        "env": "Running on the token from the JUSTMART_CLOUDFLARE_TUNNEL_TOKEN environment variable, which outranks the one saved here.",
+        "envOff": "The tunnel is switched off by the JUSTMART_CLOUDFLARE_TUNNEL_TOKEN environment variable on this machine. A saved token stays stored but is not used.",
+        "pending": "A token is saved, but no tunnel is running in this app yet."
+      },
+      "restartRequired": "Saved. Restart Justmart to apply it — the tunnel starts with the app.",
+      "unsupported": "Automatic tunnels are supported on Windows only for now. The token is saved, but this server will not start cloudflared.",
+      "token": "Cloudflare tunnel token",
+      "tokenHelp": "Paste the token only — no command, quotes or spaces.",
+      "tokenSavedHelp": "A token is saved ({{preview}}). Paste a new one to replace it — the saved token is never shown in full.",
+      "saved": "Token saved",
+      "cleared": "Token removed",
+      "clear": "Remove token",
+      "clearTitle": "Remove the tunnel token?",
+      "clearBody": "The shop stays reachable on its Cloudflare hostname until Justmart is restarted, then only on your local network."
     }
   },
   "profile": {
@@ -1080,7 +1104,8 @@
     "passwordMin": "Password must be at least 8 characters",
     "thresholdInvalid": "Threshold must be a non-negative integer",
     "appTitleTooLong": "Title must be 60 characters or fewer",
-    "businessTypeInvalid": "Choose a valid business mode"
+    "businessTypeInvalid": "Choose a valid business mode",
+    "tunnelTokenInvalid": "Paste the token only — no command, quotes or spaces"
   },
   "productDiscounts": {
     "section": "Discounts",

@@ -120,7 +120,8 @@
       "units": "Satuan",
       "printing": "Pencetakan",
       "backups": "Backup",
-      "updates": "Pembaruan"
+      "updates": "Pembaruan",
+      "tunnel": "Akses jarak jauh"
     },
     "updates": {
       "title": "Pembaruan aplikasi",
@@ -201,6 +202,29 @@
       "deletedToast": "Backup berhasil dihapus",
       "confirmTitle": "Hapus backup?",
       "confirmBody": "Ini akan menghapus {{name}} dari server secara permanen. Tindakan ini tidak dapat dibatalkan."
+    },
+    "tunnel": {
+      "statusLabel": "Tunnel",
+      "on": "Aktif",
+      "offBadge": "Mati",
+      "status": {
+        "active": "Toko ini bisa dibuka lewat alamat Cloudflare-nya.",
+        "off": "Tidak ada tunnel. Aplikasi hanya bisa dibuka dari PC ini dan jaringan lokal Anda.",
+        "config": "Sedang memakai token dari config.yaml. Token yang disimpan di sini akan menggantikannya setelah aplikasi dijalankan ulang.",
+        "env": "Sedang memakai token dari environment variable JUSTMART_CLOUDFLARE_TUNNEL_TOKEN, yang mengalahkan token yang disimpan di sini.",
+        "envOff": "Tunnel dimatikan lewat environment variable JUSTMART_CLOUDFLARE_TUNNEL_TOKEN di komputer ini. Token yang tersimpan tetap ada, tapi tidak dipakai.",
+        "pending": "Token sudah tersimpan, tapi belum ada tunnel yang berjalan di aplikasi ini."
+      },
+      "restartRequired": "Tersimpan. Jalankan ulang Justmart supaya berlaku — tunnel ikut menyala bersama aplikasi.",
+      "unsupported": "Tunnel otomatis baru didukung di Windows. Token tetap tersimpan, tapi server ini tidak akan menjalankan cloudflared.",
+      "token": "Token tunnel Cloudflare",
+      "tokenHelp": "Tempel tokennya saja — tanpa perintah, tanda kutip, atau spasi.",
+      "tokenSavedHelp": "Token sudah tersimpan ({{preview}}). Tempel token baru untuk menggantinya — token yang tersimpan tidak pernah ditampilkan utuh.",
+      "saved": "Token tersimpan",
+      "cleared": "Token dihapus",
+      "clear": "Hapus token",
+      "clearTitle": "Hapus token tunnel?",
+      "clearBody": "Toko masih bisa dibuka lewat alamat Cloudflare sampai Justmart dijalankan ulang, setelah itu hanya lewat jaringan lokal."
     }
   },
   "profile": {
@@ -1080,7 +1104,8 @@
     "passwordMin": "Kata sandi minimal 8 karakter",
     "thresholdInvalid": "Ambang harus bilangan bulat tak negatif",
     "appTitleTooLong": "Judul maksimal 60 karakter",
-    "businessTypeInvalid": "Pilih mode bisnis yang valid"
+    "businessTypeInvalid": "Pilih mode bisnis yang valid",
+    "tunnelTokenInvalid": "Isi tokennya saja — tanpa perintah, tanda kutip, atau spasi"
   },
   "productDiscounts": {
     "section": "Diskon",

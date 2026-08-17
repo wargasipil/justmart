@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/justmart/backend/internal/config"
+	"github.com/justmart/backend/internal/licensegate"
 	"github.com/justmart/backend/internal/service/common"
 	"github.com/justmart/backend/internal/service/sale"
 	"github.com/justmart/backend/internal/service/user"
@@ -39,6 +40,15 @@ type App struct {
 // the bootstrap owner, the set-if-absent receipt seeds, and the abandoned-DRAFT
 // sweeper. Construction stays in the Wire graph; this is lifecycle.
 func (a *App) Boot(ctx context.Context) error {
+	// Licence gate, first and fail-closed. A no-op in every build except the
+	// licensed flavor (-tags license), where it blocks — serving the SDK's
+	// activation page on loopback — until this install is licensed. Run here
+	// rather than before initApp so it reads the one already-loaded config; the
+	// DB is open by now but nothing is exposed, since Run binds the port.
+	if err := licensegate.Verify(ctx, licenseOptions(a.Cfg)); err != nil {
+		return fmt.Errorf("licence: %w", err)
+	}
+
 	if err := a.Users.EnsureBootstrapOwner(ctx, a.Cfg.Bootstrap); err != nil {
 		return fmt.Errorf("bootstrap owner: %w", err) // server can't start without it
 	}
@@ -78,6 +88,11 @@ func (a *App) Run(ctx context.Context) error {
 	// lets the shutdown path wait for it to be reaped.
 	tunnelDone := a.startTunnel(shutdownCtx)
 
+	// Licensed builds re-verify while running and stop the server when the
+	// licence lapses. nil in every other build — and a receive on a nil channel
+	// blocks forever, so the select case below is simply never taken.
+	licenseCh := a.startLicenseWatch(shutdownCtx)
+
 	errCh := make(chan error, 1)
 	go func() {
 		slog.Info("justmart listening", "addr", a.Server.Addr)
@@ -89,19 +104,66 @@ func (a *App) Run(ctx context.Context) error {
 	select {
 	case err := <-errCh:
 		return err
+	case reason := <-licenseCh:
+		// Drain rather than exit: an in-flight sale still gets committed and
+		// answered. The next boot's gate is what keeps it stopped.
+		slog.Error("licence is no longer valid; stopping justmart", "reason", reason)
+		stop()
+		return a.drain(tunnelDone)
 	case <-shutdownCtx.Done():
 		stop() // restore default handling: a second signal kills immediately
-		slog.Info("shutting down; draining in-flight requests")
-		drainCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		if err := a.Server.Shutdown(drainCtx); err != nil {
-			slog.Warn("graceful shutdown timed out", "err", err)
-			waitTunnel(tunnelDone)
-			return a.Server.Close()
-		}
+		return a.drain(tunnelDone)
+	}
+}
+
+// drain shuts the listener down gracefully, bounded, and reaps the tunnel. It
+// is the single shutdown path — every reason the server stops (signal, licence)
+// goes through it so none of them can drift into a harder kill than the others.
+func (a *App) drain(tunnelDone <-chan struct{}) error {
+	slog.Info("shutting down; draining in-flight requests")
+	drainCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := a.Server.Shutdown(drainCtx); err != nil {
+		slog.Warn("graceful shutdown timed out", "err", err)
 		waitTunnel(tunnelDone)
-		slog.Info("shutdown complete")
+		return a.Server.Close()
+	}
+	waitTunnel(tunnelDone)
+	slog.Info("shutdown complete")
+	return nil
+}
+
+// startLicenseWatch runs the periodic licence re-check in a licensed build and
+// returns the channel that carries the reason the first time it fails. It
+// returns nil otherwise, which makes the caller's select case unreachable
+// without a build-tag branch at the call site.
+func (a *App) startLicenseWatch(ctx context.Context) <-chan string {
+	if !licensegate.Enabled {
 		return nil
+	}
+	ch := make(chan string, 1)
+	go licensegate.Watch(ctx, licenseOptions(a.Cfg), func(reason string) {
+		// Non-blocking: Run may already be shutting down for another reason,
+		// and the watcher goroutine must never be left wedged on a send.
+		select {
+		case ch <- reason:
+		default:
+		}
+	})
+	return ch
+}
+
+// licenseOptions maps the config block onto the guard's options. Empty fields
+// are filled by internal/licensegate, which owns the defaults.
+func licenseOptions(cfg *config.Config) licensegate.Options {
+	return licensegate.Options{
+		BaseURL:           cfg.License.BaseURL,
+		LicenceID:         cfg.License.ID,
+		CacheDir:          cfg.License.CacheDir,
+		Grace:             cfg.License.Grace,
+		RecheckInterval:   cfg.License.RecheckInterval,
+		ActivationTimeout: cfg.License.ActivationTimeout,
+		Headless:          cfg.License.Headless,
 	}
 }
 

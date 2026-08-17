@@ -55,6 +55,7 @@ import Settings from "./routes/Settings";
 import SettingsGeneral from "./routes/settings/SettingsGeneral";
 import SettingsUnits from "./routes/settings/SettingsUnits";
 import SettingsPrinting from "./routes/settings/SettingsPrinting";
+import SettingsTunnel from "./routes/settings/SettingsTunnel";
 import SettingsBackups from "./routes/settings/SettingsBackups";
 import SettingsUpdates from "./routes/settings/SettingsUpdates";
 import Transfers from "./routes/inventory/Transfers";
@@ -118,6 +119,7 @@ const router = createBrowserRouter([
               { path: "general", element: <SettingsGeneral /> },
               { path: "units", element: <SettingsUnits /> },
               { path: "printing", element: <SettingsPrinting /> },
+              { path: "tunnel", element: <SettingsTunnel /> },
               { path: "backups", element: <SettingsBackups /> },
               { path: "updates", element: <SettingsUpdates /> },
             ],

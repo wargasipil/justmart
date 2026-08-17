@@ -65,6 +65,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/urfave/cli/v3 v3.9.1 h1:OLU13atWZ0M+a4xmyBuBNOLZsSRYXyPeMeNjOvgYP54=
 github.com/urfave/cli/v3 v3.9.1/go.mod h1:ysVLtOEmg2tOy6PknnYVhDoouyC/6N42TMeoMzskhso=
+github.com/wargasipil/getresolved_license v1.0.0 h1:rrm4w+8pc4ITJ4Fq1Uotuhmk/p5eR+dD+TogG5rycVY=
+github.com/wargasipil/getresolved_license v1.0.0/go.mod h1:bItc4evYboIUVSRF6jhVs6KkdlbI/iPAAQkkN80jq40=
 go.uber.org/multierr v1.11.0 h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=
 go.uber.org/multierr v1.11.0/go.mod h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=
 golang.org/x/crypto v0.53.0 h1:QZ4Muo8THX6CizN2vPPd5fBGHyogrdK9fG4wLPFUsto=

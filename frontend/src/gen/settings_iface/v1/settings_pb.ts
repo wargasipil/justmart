@@ -836,6 +836,227 @@ export class GetPrintingInfoResponse extends Message<GetPrintingInfoResponse> {
 }
 
 /**
+ * @generated from message settings_iface.v1.GetTunnelSettingsRequest
+ */
+export class GetTunnelSettingsRequest extends Message<GetTunnelSettingsRequest> {
+  constructor(data?: PartialMessage<GetTunnelSettingsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetTunnelSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTunnelSettingsRequest {
+    return new GetTunnelSettingsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTunnelSettingsRequest {
+    return new GetTunnelSettingsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTunnelSettingsRequest {
+    return new GetTunnelSettingsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTunnelSettingsRequest | PlainMessage<GetTunnelSettingsRequest> | undefined, b: GetTunnelSettingsRequest | PlainMessage<GetTunnelSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(GetTunnelSettingsRequest, a, b);
+  }
+}
+
+/**
+ * TunnelSettings is deliberately not a shared message with the request: what an
+ * OWNER can WRITE is one token, while what they need to SEE is why the server
+ * is (or is not) running one.
+ *
+ * @generated from message settings_iface.v1.GetTunnelSettingsResponse
+ */
+export class GetTunnelSettingsResponse extends Message<GetTunnelSettingsResponse> {
+  /**
+   * a token is saved in Settings
+   *
+   * @generated from field: bool configured = 1;
+   */
+  configured = false;
+
+  /**
+   * masked ("eyJhIj••••In0="); "" when none. The raw token never leaves the server
+   *
+   * @generated from field: string token_preview = 2;
+   */
+  tokenPreview = "";
+
+  /**
+   * this server booted with a tunnel running
+   *
+   * @generated from field: bool active = 3;
+   */
+  active = false;
+
+  /**
+   * which token won: "none"|"settings"|"config"|"env"|"env_off"
+   *
+   * @generated from field: string source = 4;
+   */
+  source = "";
+
+  /**
+   * the saved token differs from the one this process booted on
+   *
+   * @generated from field: bool restart_required = 5;
+   */
+  restartRequired = false;
+
+  /**
+   * false off-Windows: cloudflared is fetched as a windows-amd64 exe today
+   *
+   * @generated from field: bool supported = 6;
+   */
+  supported = false;
+
+  constructor(data?: PartialMessage<GetTunnelSettingsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.GetTunnelSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "configured", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "token_preview", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "active", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "restart_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: "supported", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetTunnelSettingsResponse {
+    return new GetTunnelSettingsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetTunnelSettingsResponse {
+    return new GetTunnelSettingsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetTunnelSettingsResponse {
+    return new GetTunnelSettingsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetTunnelSettingsResponse | PlainMessage<GetTunnelSettingsResponse> | undefined, b: GetTunnelSettingsResponse | PlainMessage<GetTunnelSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(GetTunnelSettingsResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetTunnelSettingsRequest
+ */
+export class SetTunnelSettingsRequest extends Message<SetTunnelSettingsRequest> {
+  /**
+   * The token, or "" to clear it. A pasted `cloudflared service install <token>`
+   * command is accepted — the server takes the token out of it.
+   *
+   * @generated from field: string token = 1;
+   */
+  token = "";
+
+  constructor(data?: PartialMessage<SetTunnelSettingsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetTunnelSettingsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "token", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetTunnelSettingsRequest {
+    return new SetTunnelSettingsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetTunnelSettingsRequest {
+    return new SetTunnelSettingsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetTunnelSettingsRequest {
+    return new SetTunnelSettingsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetTunnelSettingsRequest | PlainMessage<SetTunnelSettingsRequest> | undefined, b: SetTunnelSettingsRequest | PlainMessage<SetTunnelSettingsRequest> | undefined): boolean {
+    return proto3.util.equals(SetTunnelSettingsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message settings_iface.v1.SetTunnelSettingsResponse
+ */
+export class SetTunnelSettingsResponse extends Message<SetTunnelSettingsResponse> {
+  /**
+   * @generated from field: bool configured = 1;
+   */
+  configured = false;
+
+  /**
+   * @generated from field: string token_preview = 2;
+   */
+  tokenPreview = "";
+
+  /**
+   * @generated from field: bool active = 3;
+   */
+  active = false;
+
+  /**
+   * @generated from field: string source = 4;
+   */
+  source = "";
+
+  /**
+   * @generated from field: bool restart_required = 5;
+   */
+  restartRequired = false;
+
+  /**
+   * @generated from field: bool supported = 6;
+   */
+  supported = false;
+
+  constructor(data?: PartialMessage<SetTunnelSettingsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "settings_iface.v1.SetTunnelSettingsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "configured", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 2, name: "token_preview", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "active", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "source", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "restart_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 6, name: "supported", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetTunnelSettingsResponse {
+    return new SetTunnelSettingsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetTunnelSettingsResponse {
+    return new SetTunnelSettingsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetTunnelSettingsResponse {
+    return new SetTunnelSettingsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetTunnelSettingsResponse | PlainMessage<SetTunnelSettingsResponse> | undefined, b: SetTunnelSettingsResponse | PlainMessage<SetTunnelSettingsResponse> | undefined): boolean {
+    return proto3.util.equals(SetTunnelSettingsResponse, a, b);
+  }
+}
+
+/**
  * @generated from message settings_iface.v1.CheckUpdateRequest
  */
 export class CheckUpdateRequest extends Message<CheckUpdateRequest> {

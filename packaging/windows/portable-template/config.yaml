@@ -55,3 +55,4 @@ connector:
 # exe. SQLite backups use VACUUM INTO (a consistent snapshot, no external tools).
 backup:
   directory: ./backups
+__LICENSE_BLOCK__

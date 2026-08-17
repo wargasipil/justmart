@@ -18,7 +18,7 @@ HOW TO RUN
 
 First launch takes a moment while the database is created.
 
-
+__LICENSE_README__
 LOG IN
 ------
    Email:    __OWNER_EMAIL__

@@ -9,14 +9,14 @@ import (
 	"github.com/justmart/backend/internal/config"
 )
 
-// provideTunnelRunner returns nil unless a token is configured — that nil is
+// provideTunnelRunner returns nil unless a token was resolved — that nil is
 // what makes App.Run skip the tunnel entirely.
 func TestProvideTunnelRunner(t *testing.T) {
 	t.Parallel()
-	if got := provideTunnelRunner(&config.Config{}); got != nil {
+	if got := provideTunnelRunner(""); got != nil {
 		t.Fatal("no token configured: want a nil TunnelRunner, got non-nil")
 	}
-	if got := provideTunnelRunner(&config.Config{CloudflareTunnelToken: "tok"}); got == nil {
+	if got := provideTunnelRunner("tok"); got == nil {
 		t.Fatal("token configured: want a TunnelRunner, got nil")
 	}
 }

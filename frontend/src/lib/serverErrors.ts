@@ -76,6 +76,7 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "settings.threshold_negative": { field: "lowStockThreshold", i18nKey: "validation.thresholdInvalid" },
   "settings.app_title_too_long": { field: "appTitle", i18nKey: "validation.appTitleTooLong" },
   "settings.business_type_invalid": { field: "businessType", i18nKey: "validation.businessTypeInvalid" },
+  "settings.tunnel_token_invalid": { field: "token", i18nKey: "validation.tunnelTokenInvalid" },
   // stock movement
   "movement.batch_required": { field: "batchId", i18nKey: "validation.required" },
   "movement.qty_zero": { field: "qty", i18nKey: "validation.qtyNonZero" },

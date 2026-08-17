@@ -199,6 +199,47 @@ VARIANTS["how-do-i-enter-existing-stock"] = {
 }
 
 
+VARIANTS["how-do-i-add-a-cloudflare-tunnel-token"] = {
+    # The mistake, caught at the moment it is refused: a whole "cloudflared.exe
+    # service install ..." line in the field, red border, red message. That is
+    # the paste almost everyone tries first, because it is what Cloudflare puts
+    # on screen — so showing it rejected answers the question faster than
+    # showing it done right.
+    #
+    # 29.7 s is deliberate: the error appears while the click's trailing beat is
+    # still running, and the spotlight lands ~0.8 s later. The ring dims
+    # everything outside itself, and a crop of dimmed UI reads as a switched-off
+    # screen at feed size.
+    "a": Variant(
+        at=29.7,
+        crop=(455, 245, 995, 400),
+        kicker="SALAH TEMPEL?",
+        kicker_color=AMBER,
+        hero=["TOKEN", "SAJA"],
+        sub="bukan satu baris perintah",
+        # The input holding the rejected command line. Doubling the field's own
+        # red border is what makes the "this is wrong" read survive the
+        # downscale; kept clear of the message underneath it.
+        ring=(10, 31, 518, 41),
+        ring_color=RED,
+    ),
+    # The gotcha instead of the how-to. Use this one if the entry is published
+    # next to the other Settings videos, where the audience already knows where
+    # the field is and the thing that actually catches them is that saving alone
+    # does nothing.
+    "b": Variant(
+        at=54.0,
+        crop=(455, 145, 995, 320),
+        kicker="SUDAH DISIMPAN?",
+        kicker_color=AMBER,
+        hero=["BELUM", "MENYALA"],
+        sub="tunnel ikut jalan setelah restart",
+        ring=(8, 78, 522, 85),  # the "jalankan ulang" notice
+        ring_color=BLUE,
+    ),
+}
+
+
 VARIANTS["how-does-a-cashier-create-an-order"] = {
     # The outcome, cropped to the receipt dialog alone — it is the one element
     # in the whole video that says "a sale happened": the invoice number, the
@@ -323,6 +364,41 @@ VARIANTS["how-do-i-print-a-product-barcode-label"] = {
         kicker_color=RED,
         hero=["SKU", "PENDEK"],
         sub="kertas struk cuma muat sekitar 12 huruf",
+        ring=None,
+    ),
+}
+
+
+VARIANTS["can-an-order-be-cancelled"] = {
+    # The confirm dialog, cropped to itself. It is the one element in the video
+    # that reads as "a refund is being made" even once the words are gone: a
+    # small card with a toggle and an orange button. The frame is taken while
+    # the spotlight is off, so the page behind it is not dimmed — a dimmed crop
+    # reads as a switched-off screen at feed size.
+    "a": Variant(
+        at=40.0,
+        crop=(416, 62, 864, 390),
+        kicker="SALAH TRANSAKSI?",
+        kicker_color=AMBER,
+        hero=["UANG", "KEMBALI"],
+        sub="stok ikut balik kalau Anda mau",
+        # The switch row: the only real decision in the whole dialog. The width
+        # has to clear the end of "ke stok" — at 218 the ring cut through the
+        # last letter, which reads as a rendering fault rather than a highlight.
+        ring=(24, 212, 236, 36),
+        ring_color=BLUE,
+    ),
+    # The outcome instead, for a hook built on the thing people get wrong —
+    # they expect the order to vanish. Crop starts below the success toast and
+    # runs to the bottom of the Refund panel, so it carries the orange
+    # Dikembalikan badge, the totals, and the recorded reason in one block.
+    "b": Variant(
+        at=56.0,
+        crop=(250, 100, 1270, 585),
+        kicker="BATAL BUKAN HAPUS",
+        kicker_color=BLUE,
+        hero=["TETAP", "TERCATAT"],
+        sub="lengkap dengan alasan dan waktunya",
         ring=None,
     ),
 }

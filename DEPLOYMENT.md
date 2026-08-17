@@ -59,7 +59,9 @@ printing disabled**. Config lives in [fly.toml](fly.toml).
 # Every step no-ops when it already exists, so this is safe to re-run.
 make fly-setup OWNER_EMAIL=owner@justmart.com OWNER_PASSWORD='justmart123'
 
-# optional: fly secrets set JUSTMART_LICENSE=<token>   # selects pharmacy/retail mode
+# (The old JUSTMART_LICENSE mode token was removed - retail/pharmacy is now
+#  chosen by the OWNER in Settings > General. The getresolved licence guard is a
+#  different thing entirely and ships only in the licensed portable flavor.)
 
 make fly-deploy
 ```
@@ -188,6 +190,28 @@ The lightest Windows flavor: a folder you unzip and run — no install, no Postg
 - **End user**: unzip anywhere, double-click `Start Justmart.bat` (or `justmart.exe`), browse `http://localhost:<port>`, log in with the `bootstrap.owner_email`/`owner_password` from `config.yaml`. On first run the exe creates `justmart.db` (+ `-wal`/`-shm`) and `backups/` next to itself.
 - **Data / move / restore**: everything lives in the folder. Move the install = stop it and copy the folder. Back up = stop it and copy `justmart.db` (or use OWNER → Settings → Backups, which `VACUUM INTO`s a snapshot under `backups/`). Restore = stop it, replace `justmart.db` (remove stale `-wal`/`-shm`), start again.
 - **Change port / owner password**: edit `config.yaml` and restart (the owner password is re-applied on every boot, so `config.yaml` is the source of truth for that account). For LAN access set `host: 0.0.0.0` and allow the exe through Windows Firewall.
+
+### Portable, LICENSED (SQLite + getresolved licence guard)
+The same portable flavor, built with the `license` build tag so the install must be activated against the getresolved licensing server before it will serve. The free portable build is unchanged and still produced by `make portable-windows`.
+- **Build**: `make portable-windows-licensed` (optionally `LICENCE_ID=GR-XXXX-XXXX-XXXX-XXXX` to pre-activate an unattended install, `LICENSE_BASE_URL=…` to point at a staging server). Produces `dist/justmart-portable-licensed-<ver>/` + `.zip`, and the exe is built to `dist/justmart-licensed.exe` — a distinct name so a free binary can never be packaged into a licensed zip (or the reverse).
+- **First run (the operator's experience)**: start it as usual. Instead of coming up, it opens an **activation page** in the browser and waits — paste the licence id, and Justmart starts the moment it is accepted, at which point the launcher opens the app itself. Every later start goes straight through. With no desktop, set `license.headless: true`: the page address is printed in the console window instead.
+  - The launcher does **not** open `localhost:<port>` on a timer — it polls `/healthz` and opens a tab only once Justmart is really answering. So during activation you see the activation page and nothing else; there is no dead "connection refused" tab to explain away. (The app port stays closed for as long as the gate is waiting.)
+- **What the guard enforces**: the licence is bound to **that PC** (moving the folder to another machine needs a new activation — release the old one first) and to the **product** (a licence for another getresolved product is refused). It keeps running for `license.grace` (default 72h) while the licensing server is **unreachable**, so a dropped connection is not an outage — but grace never extends a licence past its paid-through date, and neither a device nor a product mismatch is ever graced.
+- **While running**: it re-verifies every `license.recheck_interval` (default 6h). A licence that has genuinely lapsed **stops the server**, draining in-flight requests first (an in-progress sale still commits) — it does not kill the process mid-request.
+- **What to keep**: the `license\` folder next to the exe holds the activation credential and the last-good signed licence. It travels with the folder; deleting it means activating that PC again. It is **not** in a backup created via Settings → Backups (that is the database only).
+- **Config** (`license:` block in `config.yaml`, all overridable via `JUSTMART_LICENSE_BASE_URL` / `_ID` / `_CACHE_DIR` / `_HEADLESS`):
+
+  | Key | Default | Meaning |
+  |---|---|---|
+  | `base_url` | `https://api.getresolved.id` | licensing server root |
+  | `id` | `""` | pre-seed activation; empty = ask in the browser |
+  | `cache_dir` | `./license` | install token + last-good signed claim |
+  | `grace` | `72h` | keep running while the server is unreachable |
+  | `recheck_interval` | `6h` | how often a running server re-verifies |
+  | `activation_timeout` | `0` | how long boot waits for the operator; 0 = until signalled |
+  | `headless` | `false` | true = log the page URL instead of opening a browser |
+
+- **Troubleshooting**: the console window is the log. `"justmart is not activated"` + a `url` means it is waiting for you at that address. An activation error is quoted straight from the server (`activation limit reached`, `this licence has expired`, `this licence is not for this product`). A DNS/connection error there means the PC cannot reach `base_url` — activation, unlike normal running, has no offline path.
 
 ## Backups
 - **Layout (one folder per backup)** — every backup is its own per-timestamp directory under `backup.directory` (Docker: `/var/lib/justmart/backups` mounted as the `justmart-backups` named volume; Windows: `C:\ProgramData\Justmart\backups\`; dev: `./backups`):

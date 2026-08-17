@@ -35,6 +35,7 @@ import (
 	"github.com/justmart/backend/internal/service/backup"
 	"github.com/justmart/backend/internal/service/batch"
 	"github.com/justmart/backend/internal/service/branch"
+	"github.com/justmart/backend/internal/service/common"
 	"github.com/justmart/backend/internal/service/connector"
 	"github.com/justmart/backend/internal/service/customer"
 	"github.com/justmart/backend/internal/service/health"
@@ -112,6 +113,7 @@ var appSet = wire.NewSet(
 var infraSet = wire.NewSet(
 	provideConfig,
 	provideDB,
+	provideTunnelToken,
 	provideTunnelRunner,
 )
 
@@ -201,16 +203,39 @@ func provideDB(cfg *config.Config) (*gorm.DB, func(), error) {
 	return gormDB, cleanup, nil
 }
 
+// tunnelToken is the Cloudflare token this process runs on, resolved once at
+// boot. It is its own type so Wire can tell it apart from the other strings in
+// the graph, and it is a single provider so the tunnel runner and the Settings
+// panel cannot disagree about what is actually running.
+type tunnelToken string
+
+// provideTunnelToken resolves the token across the environment, the saved
+// setting and config.yaml (see common.ResolveTunnel for the order). A read
+// failure is logged and falls back to the config/env answer — the tunnel is a
+// supporting process, so an unreadable settings row must not stop the shop.
+func provideTunnelToken(cfg *config.Config, gormDB *gorm.DB) tunnelToken {
+	state, err := common.ResolveTunnel(
+		context.Background(), gormDB,
+		cfg.CloudflareTunnelToken, cfg.CloudflareTunnelFromEnv, cfg.CloudflareTunnelDisabledByEnv,
+	)
+	if err != nil {
+		slog.Warn("could not read the saved cloudflare tunnel token", "error", err)
+	}
+	if state.Token != "" {
+		slog.Info("cloudflare tunnel configured", "source", string(state.Source))
+	}
+	return tunnelToken(state.Token)
+}
+
 // provideTunnelRunner returns the Cloudflare-tunnel starter, or nil when no
-// cloudflare_tunnel_token is configured (the default — no tunnel). App.Run
-// starts it alongside the listener and cancels it on shutdown.
-func provideTunnelRunner(cfg *config.Config) TunnelRunner {
-	token := cfg.CloudflareTunnelToken
+// token is configured (the default — no tunnel). App.Run starts it alongside
+// the listener and cancels it on shutdown.
+func provideTunnelRunner(token tunnelToken) TunnelRunner {
 	if token == "" {
 		return nil
 	}
 	return func(ctx context.Context) error {
-		return cloudflaretunnel.RunCloudflareTunnel(ctx, token)
+		return cloudflaretunnel.RunCloudflareTunnel(ctx, string(token))
 	}
 }
 
@@ -272,10 +297,16 @@ func provideSaleService(gormDB *gorm.DB, cfg *config.Config, pusher *connector.C
 	return svc
 }
 
-func provideSettingsService(gormDB *gorm.DB, cfg *config.Config, version buildVersion) *settings.SettingsService {
+func provideSettingsService(
+	gormDB *gorm.DB, cfg *config.Config, version buildVersion, tunnel tunnelToken,
+) *settings.SettingsService {
 	svc := settings.NewSettingsService(gormDB)
 	svc.SetConnectorMode(cfg.Connector.Mode)
 	svc.SetUpdate(string(version), cfg.Update)
+	svc.SetTunnel(
+		string(tunnel), cfg.CloudflareTunnelToken,
+		cfg.CloudflareTunnelFromEnv, cfg.CloudflareTunnelDisabledByEnv,
+	)
 	return svc
 }
 

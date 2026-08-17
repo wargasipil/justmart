@@ -10,6 +10,13 @@ No prerequisites for the pharmacist.
 > `dist\justmart-portable-<ver>\` folder + zip backed by SQLite — no PostgreSQL, no
 > Windows services, no Inno Setup. Best for a single-PC shop. See the "Portable
 > (SQLite, no installer)" section in [DEPLOYMENT.md](../../DEPLOYMENT.md).
+>
+> **Licensed portable:** `make portable-windows-licensed` runs the *same* script with
+> `-Licensed`, building the exe with `-tags license` so it must be activated against
+> getresolved before it serves (and stops if the licence lapses). Output is
+> `dist\justmart-portable-licensed-<ver>\` — a separate name and a separate exe
+> (`justmart-licensed.exe`), so it can never be confused with the free build. See
+> "Portable, LICENSED" in [DEPLOYMENT.md](../../DEPLOYMENT.md).
 
 ## What's in the box
 | Piece | How it runs |

@@ -59,7 +59,13 @@ jobs:
       - name: Vet
         run: go -C backend vet ./...
       - name: Unit tests
-        run: go -C backend test ./internal/service/... -count=1
+        run: go -C backend test ./internal/service/... ./internal/licensegate/... -count=1
+      # The licensed flavor selects a DIFFERENT set of files (internal/licensegate's
+      # gate_enabled.go instead of gate_disabled.go), so nothing above compiles it.
+      # Without this a change to the guard — or to App.Boot/Run around it — breaks
+      # `make portable-windows-licensed` and nobody finds out until release day.
+      - name: Licensed flavor (-tags license)
+        run: make test-license
 
   # The SAME unit suite against Postgres. HARD RULE: every handler test must pass
   # on both engines. servicetest gives each test its own throwaway schema; the

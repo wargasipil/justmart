@@ -9,6 +9,7 @@ export const settingsKeys = {
   all: ["settings"] as const,
   businessMode: ["settings", "businessMode"] as const,
   branding: ["settings", "branding"] as const,
+  tunnel: ["settings", "tunnel"] as const,
 };
 
 // Branding (business mode + configured app title) via the PUBLIC GetBranding RPC
@@ -113,6 +114,40 @@ export function useBusinessMode(enabled = true) {
     appTitle: q.data?.appTitle ?? "",
     isLoading: q.isLoading,
   };
+}
+
+// Cloudflare Tunnel state (Settings ▸ Remote access, OWNER-only). The response
+// carries a MASKED token preview plus where the running token came from — the
+// raw token never leaves the server, so there is nothing here to edit in place;
+// the form always writes a fresh value.
+export function useTunnelSettingsQuery(enabled = true) {
+  return useQuery({
+    queryKey: settingsKeys.tunnel,
+    queryFn: async () => {
+      const res = await settingsClient.getTunnelSettings({});
+      return {
+        configured: res.configured,
+        tokenPreview: res.tokenPreview,
+        active: res.active,
+        source: res.source,
+        restartRequired: res.restartRequired,
+        supported: res.supported,
+      };
+    },
+    enabled,
+    staleTime: 30_000,
+  });
+}
+
+export function useSetTunnelSettingsMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: { token: string }) => settingsClient.setTunnelSettings(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: settingsKeys.tunnel }),
+    // Handled by the panel via useServerFormErrors (tunnel_token_invalid is a
+    // field error on the token input, not a toast).
+    meta: { silentError: true },
+  });
 }
 
 export function useSettingsQuery() {
