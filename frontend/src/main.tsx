@@ -62,6 +62,7 @@ import Transfers from "./routes/inventory/Transfers";
 import PurchaseOrdersList from "./routes/purchasing/PurchaseOrdersList";
 import SuppliersLedger from "./routes/purchasing/SuppliersLedger";
 import NewPurchaseOrder from "./routes/purchasing/NewPurchaseOrder";
+import EditPurchaseOrder from "./routes/purchasing/EditPurchaseOrder";
 import PurchaseOrderDetail from "./routes/purchasing/PurchaseOrderDetail";
 import { Role } from "./gen/auth_iface/v1/policy_pb";
 
@@ -215,6 +216,7 @@ const router = createBrowserRouter([
               { path: "suppliers", element: <SuppliersLedger /> },
               { path: "new", element: <NewPurchaseOrder /> },
               { path: ":id", element: <PurchaseOrderDetail /> },
+              { path: ":id/edit", element: <EditPurchaseOrder /> },
             ],
           },
           {

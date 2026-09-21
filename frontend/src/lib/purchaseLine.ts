@@ -1,4 +1,5 @@
-import type { ProductUnit } from "../gen/inventory_iface/v1/product_pb";
+import type { Product, ProductUnit } from "../gen/inventory_iface/v1/product_pb";
+import type { PurchaseOrderItem } from "../gen/purchasing_iface/v1/order_pb";
 
 // Money + unit math for one editable purchase-order (restock) line.
 //
@@ -47,6 +48,44 @@ export const emptyLine = (): Line => ({
   discountPerItem: false,
   discountValue: 0,
 });
+
+// Rebuild an editable Line from a SAVED order line — the exact inverse of what
+// the form submits, so opening a DRAFT for edit and saving it untouched is a
+// no-op to the rupiah. Three unit conversions have to be undone:
+//
+//   ordered_qty is BASE units       -> Line.orderedQty is in the CHOSEN unit
+//   unit_cost_price is per BASE     -> Line.costPerItem is per CHOSEN unit
+//   PERCENT discount_value is bp    -> Line.discountValue is a human percent
+//
+// `product` supplies the unit list the row's selector needs. A unit that has
+// since been made non-purchasable or archived is KEPT when it is the one this
+// line was ordered in: dropping it would leave productUnitId pointing at
+// nothing, factorOf() would fall back to 1, and the row would quietly re-price
+// itself the moment the form loaded.
+export const lineFromItem = (it: PurchaseOrderItem, product?: Product): Line => {
+  const factor = Number(it.unitFactor) || 1;
+  const units = (product?.units ?? []).filter(
+    (u) => (u.purchasable && u.active) || u.id === it.productUnitId,
+  );
+  const isPct = it.discountType === "PERCENT";
+  return {
+    productId: it.productId,
+    // GetPurchaseOrder does not denormalize these (only the LIST does), so the
+    // hydrated product is the real source and the item fields are the fallback.
+    productName: product?.name ?? it.productName,
+    productSku: product?.sku ?? it.productSku,
+    // A legacy line stored against the base unit carries no unit id; point it at
+    // the base unit so the selector shows it. Never fall back to units[0] — that
+    // could be a box, and the factor would be wrong in the user's favour.
+    productUnitId: it.productUnitId || units.find((u) => u.isBase)?.id || "",
+    units,
+    orderedQty: it.orderedQty / factor,
+    costPerItem: Number(it.unitCostPrice) * factor,
+    discountType: isPct ? "PERCENT" : "FIXED",
+    discountPerItem: it.discountPerItem,
+    discountValue: isPct ? Number(it.discountValue) / 100 : Number(it.discountValue),
+  };
+};
 
 export const modeOf = (l: Line): DiscountMode =>
   l.discountPerItem

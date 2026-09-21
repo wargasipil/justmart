@@ -11,14 +11,13 @@ import {
   Table,
   Text,
 } from "@chakra-ui/react";
-import { Ban, DollarSign, PackageCheck, Send, Undo2 } from "lucide-react";
+import { Ban, DollarSign, PackageCheck, Pencil, Send, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
-import Pagination from "../../components/Pagination";
 import { usePageState } from "../../lib/pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { POStatus } from "../../gen/purchasing_iface/v1/order_pb";
@@ -35,6 +34,7 @@ import {
 } from "../../queries/purchasing";
 import { PayDialog } from "./PayDialog";
 import PurchaseOrderReceipts from "./PurchaseOrderReceipts";
+import PurchaseOrderReturns from "./PurchaseOrderReturns";
 import { ReceiveDialog } from "./ReceiveDialog";
 import { ReturnDialog } from "./ReturnDialog";
 
@@ -98,6 +98,9 @@ export default function PurchaseOrderDetail() {
   // net cost and drops the "+ PPN" from its header.
   const ppnRate = po.ppnEnabled ? po.ppnRate || 11 : 0;
 
+  // Editable only while DRAFT — UpdatePurchaseOrder refuses anything past it,
+  // because once the order is SENT the supplier is holding the document.
+  const canEdit = po.status === POStatus.PO_STATUS_DRAFT;
   const canSend = po.status === POStatus.PO_STATUS_DRAFT && po.items.length > 0;
   const canVoid = po.status === POStatus.PO_STATUS_DRAFT || po.status === POStatus.PO_STATUS_SENT;
   const canReceive =
@@ -144,6 +147,16 @@ export default function PurchaseOrderDetail() {
           </Badge>
         </HStack>
         <HStack gap={2}>
+          {canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/purchasing/${po.id}/edit`)}
+            >
+              <Pencil size={14} />
+              {t("common.edit")}
+            </Button>
+          )}
           {canSend && (
             <Button size="sm" colorPalette="blue" onClick={onSend} loading={sendMut.isPending}>
               <Send size={14} />
@@ -309,59 +322,17 @@ export default function PurchaseOrderDetail() {
         productRefs={productRefs}
       />
 
-      {/* Returns */}
+      {/* Returns — rendered only when the order actually has some. */}
       {returnsQ.rows.length > 0 && (
-        <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
-          <Heading size="sm" mb={3}>
-            {t("purchasing.return.section")}
-          </Heading>
-          <Stack gap={3}>
-            {returnsQ.rows.map((r) => (
-              <Box key={r.id} borderWidth="1px" borderRadius="md" p={3}>
-                <HStack justify="space-between" mb={2} wrap="wrap" gap={2}>
-                  <HStack gap={3}>
-                    <Text fontFamily="mono" fontWeight="medium">
-                      {r.returnNo}
-                    </Text>
-                    <Text fontSize="sm" color="fg.muted">
-                      {r.reason}
-                    </Text>
-                  </HStack>
-                  <HStack gap={3}>
-                    <Text fontFamily="mono" fontSize="sm">
-                      −{formatMoney(Number(r.refundAmount))}
-                    </Text>
-                    <Text fontSize="sm" color="fg.muted">
-                      {formatDate(r.returnedAt)}
-                    </Text>
-                  </HStack>
-                </HStack>
-                <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
-                  <Table.Root size="sm" stickyHeader>
-                    <Table.Body>
-                      {r.items.map((it) => (
-                        <Table.Row key={it.id}>
-                          <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
-                          <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
-                          <Table.Cell fontFamily="mono" color="fg.muted">
-                            {formatMoney(Number(it.unitCostPrice))}
-                          </Table.Cell>
-                        </Table.Row>
-                      ))}
-                    </Table.Body>
-                  </Table.Root>
-                </TableScroll>
-              </Box>
-            ))}
-          </Stack>
-          <Pagination
-            page={returnsPage.page}
-            pageSize={returnsPage.pageSize}
-            total={returnsQ.total}
-            onPageChange={returnsPage.setPage}
-            onPageSizeChange={returnsPage.setPageSize}
-          />
-        </Box>
+        <PurchaseOrderReturns
+          returns={returnsQ.rows}
+          total={returnsQ.total}
+          page={returnsPage.page}
+          pageSize={returnsPage.pageSize}
+          onPageChange={returnsPage.setPage}
+          onPageSizeChange={returnsPage.setPageSize}
+          productRefs={productRefs}
+        />
       )}
 
       <ReceiveDialog
@@ -379,9 +350,7 @@ export default function PurchaseOrderDetail() {
       />
       <PayDialog open={payOpen} onClose={() => setPayOpen(false)} poId={po.id} outstanding={Number(po.outstanding)} />
 
-      <Button variant="ghost" alignSelf="flex-start" onClick={() => navigate("/purchasing/all")}>
-        ← {t("purchasing.title")}
-      </Button>
+      <BackButton to="/purchasing/all" label={t("purchasing.title")} />
     </Stack>
   );
 }

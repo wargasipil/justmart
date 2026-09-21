@@ -269,6 +269,10 @@
       "suppliersLedger": "Suppliers"
     },
     "newPo": "New PO",
+    "editPo": "Edit PO",
+    "supplierLocked": "The supplier cannot be changed after the order exists.",
+    "editOnlyDraft": "Only draft orders can be edited. Once an order has been sent, void it and create a new one.",
+    "editLoadFailed": "Could not load this order's products, so it cannot be edited safely. Try again.",
     "po": "Purchase order",
     "poNo": "PO #",
     "status": "Status",

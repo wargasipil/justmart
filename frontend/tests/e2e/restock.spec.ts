@@ -271,4 +271,71 @@ test.describe("restock (purchase order) end-to-end", () => {
       await cleanup(page, { ...ids, poId });
     }
   });
+
+  // Editing a DRAFT. The load-bearing part is the SEED: the order stores base
+  // units and a per-base cost, the form edits per-CHOSEN-unit figures, and the
+  // conversion runs in both directions. A wrong factor here silently re-prices
+  // the order at 1/100th, and the only place that shows is this round trip.
+  test("edit a DRAFT restock: seeds per-unit figures, saves, and is gone once sent", async ({
+    page,
+  }) => {
+    const m = String(Date.now());
+    const ids = await seed(page, m);
+    let poId: string | undefined;
+    try {
+      // Create the DRAFT over the API — the UI create path is already covered
+      // above, and this test is about what happens after it.
+      poId = await page.evaluate(async (s: { productId: string; supplierId: string }) => {
+        const token = localStorage.getItem("justmart_access_token");
+        const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+        const post = async (path: string, body: unknown) => {
+          const res = await fetch(`/api/${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+          if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
+          return res.json();
+        };
+        const got = await post("inventory_iface.v1.ProductService/GetProduct", { id: s.productId });
+        const box = got.product.units.find((u: { name: string }) => u.name === "box");
+        const po = await post("purchasing_iface.v1.PurchaseOrderService/CreatePurchaseOrder", {
+          supplierId: s.supplierId,
+          items: [
+            {
+              productId: s.productId,
+              productUnitId: box.id,
+              orderedQty: 5, // 5 box => 500 base
+              unitCostPrice: "3000", // per BASE => 300 000 per box
+            },
+          ],
+        });
+        return po.order.id as string;
+      }, ids);
+
+      await page.goto(`/purchasing/${poId}`);
+      await page.getByRole("button", { name: "Edit" }).click();
+      await page.waitForURL(/\/purchasing\/[0-9a-f-]{36}\/edit$/);
+
+      // The supplier is immutable (UpdatePurchaseOrder carries no supplier_id),
+      // so it renders as a label and the picker is gone.
+      await expect(page.getByText(`Restock Supplier ${m}`)).toBeVisible();
+      await expect(page.getByPlaceholder("Select supplier")).toHaveCount(0);
+
+      // The line came back in the unit it was ordered in, at the per-box cost —
+      // NOT the per-base 3 000 the order actually stores.
+      const cells = page.getByRole("table").getByRole("row").nth(1).getByRole("cell");
+      await expect(cells.nth(2).getByRole("textbox")).toHaveValue("5");
+      const cost = await cells.nth(3).getByRole("textbox").inputValue();
+      expect(cost.replace(/\D/g, "")).toBe("300000");
+
+      // Change the qty and save.
+      await cells.nth(2).getByRole("textbox").fill("7");
+      await page.getByRole("button", { name: "Save" }).click();
+      await page.waitForURL(/\/purchasing\/[0-9a-f-]{36}$/);
+      await expect(page.getByText("7 box").first()).toBeVisible();
+
+      // Once sent it is frozen: the action disappears rather than failing on click.
+      await page.getByRole("button", { name: "Send" }).click();
+      await expect(page.getByRole("button", { name: "Edit" })).toHaveCount(0);
+    } finally {
+      await cleanup(page, { ...ids, poId });
+    }
+  });
 });

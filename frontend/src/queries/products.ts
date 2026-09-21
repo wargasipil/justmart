@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { productClient } from "../lib/clients";
 import { ProductImageVariant } from "../gen/inventory_iface/v1/product_pb";
 import type {
+  Product,
   ArchiveProductRequest,
   CreateProductRequest,
   ImportProductsRequest,
@@ -99,6 +101,47 @@ export function useProductQuery(id: string, enabled = true) {
   });
 }
 
+// Stable empty result: a fresh Map() per render would be a new reference every
+// time and re-run every useMemo downstream of it.
+const NO_PRODUCTS: ReadonlyMap<string, Product> = new Map();
+
+/**
+ * Full products — units included — for a known set of ids, as a Map.
+ *
+ * NOT the resolve-by-IDs name path: `ResolveProducts` returns `{id,name,sku}`,
+ * which is enough for a name map but not to rebuild an editable purchase line.
+ * That needs the product's purchasable units, because a line's qty and cost are
+ * entered per CHOSEN unit while the order stores them per BASE unit — with no
+ * unit list the row silently falls back to factor 1 and mis-prices itself.
+ *
+ * So this fans `GetProduct` out over the ids in parallel under ONE query key: a
+ * handful of requests on a form the user opened deliberately, not an N+1 inside
+ * a list. If a second surface needs this, promote `units` onto ProductRef and
+ * delete it.
+ */
+export function useProductsWithUnitsQuery(ids: string[], enabled = true) {
+  // Sorted + deduped so the key is stable regardless of line order.
+  const uniq = useMemo(
+    () => Array.from(new Set(ids.filter(Boolean))).sort(),
+    [ids],
+  );
+  const q = useQuery({
+    queryKey: [...productKeys.all, "withUnits", uniq] as const,
+    queryFn: async () => {
+      const res = await Promise.all(
+        uniq.map((id) => productClient.getProduct({ id })),
+      );
+      const m = new Map<string, Product>();
+      for (const r of res) if (r.product) m.set(r.product.id, r.product);
+      return m as ReadonlyMap<string, Product>;
+    },
+    enabled: enabled && uniq.length > 0,
+    staleTime: 60_000,
+  });
+  // An empty id set never fetches, so "no rows" is a success state, not loading.
+  return { ...q, map: q.data ?? NO_PRODUCTS, isReady: uniq.length === 0 || !!q.data };
+}
+
 // Server-paginated. Returns { rows, total } plus the React Query state.
 // For page-level name maps / preload selects pass { pageSize: ALL_LIMIT }.
 export function useProductsQuery(opts: ProductsQueryOpts = {}) {
@@ -145,8 +188,8 @@ export type ProductsSummaryOpts = Omit<
  * ONE PAGE, so the figures would change as the user pages. Mirrors
  * useSalesSummaryQuery on /orders.
  *
- * OWNER + PHARMACIST only (the valuations are cost data) — pass `enabled: false`
- * from a surface a cashier can reach.
+ * Open to every role, like the list it summarizes — `enabled` stays so a caller
+ * that hides the tile row (or a narrowed cost policy) can keep it from firing.
  */
 export function useProductsSummaryQuery(
   opts: Partial<ProductsSummaryOpts> & { enabled?: boolean } = {},

@@ -269,6 +269,10 @@
       "suppliersLedger": "Pemasok"
     },
     "newPo": "PO baru",
+    "editPo": "Ubah PO",
+    "supplierLocked": "Pemasok tidak bisa diubah setelah restock dibuat.",
+    "editOnlyDraft": "Hanya restock berstatus draf yang bisa diubah. Setelah dikirim, batalkan lalu buat yang baru.",
+    "editLoadFailed": "Produk pada restock ini gagal dimuat, jadi belum aman diubah. Coba lagi.",
     "po": "Pesanan pembelian",
     "poNo": "No. PO",
     "status": "Status",
