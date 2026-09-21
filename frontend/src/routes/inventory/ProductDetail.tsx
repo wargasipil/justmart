@@ -27,7 +27,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
 import { useAuth } from "../../lib/auth";
 import { formatMoney } from "../../lib/format";
-import { canSeeCost } from "../../lib/roles";
+import { canManageProducts, canSeeCost } from "../../lib/roles";
 import { toast } from "../../lib/toaster";
 import {
   useArchiveProductMutation,
@@ -54,10 +54,12 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { id = "" } = useParams();
   const { user } = useAuth();
-  // The till reads this page: identity, sell price, stock and expiry only. Every
-  // surface below that shows cost — or is backed by a manager-only RPC — is
-  // dropped rather than rendered empty.
+  // The till reads this page in full — cost, restock history, the ledger and
+  // the grosir ladder included. What it does NOT get is the write surfaces
+  // (edit / archive / image upload / tier + discount mutations), whose RPCs
+  // stay manager-only, so those hang off canManage instead.
   const showCost = canSeeCost(user?.role);
+  const canManage = canManageProducts(user?.role);
   const [editing, setEditing] = useState(false);
   const [labeling, setLabeling] = useState(false);
   const [pendingArchive, setPendingArchive] = useState(false);
@@ -133,7 +135,7 @@ export default function ProductDetail() {
               <BarcodeIcon size={14} />
               {t("inventory.products.label.action")}
             </Button>
-            {showCost && (
+            {canManage && (
               <>
                 <Button
                   size="sm"
@@ -181,7 +183,7 @@ export default function ProductDetail() {
           <Stack gap={6}>
             <Card title={t("inventory.products.imageSection")}>
               <Box p={4}>
-                {showCost ? (
+                {canManage ? (
                   <ProductImagePicker
                     productId={med.id}
                     name={med.name}
@@ -283,13 +285,13 @@ export default function ProductDetail() {
               directly under the unit list it keys off. */}
           <Stack gap={6}>
             <UnitsCard product={med} showCost={showCost} />
-            {/* Grosir is a manager surface: it prices against cost (margin per
-                rung) and its list/create/delete RPCs are manager-only. The till
-                sees the ladder where it matters — POS, at the moment of sale. */}
+            {/* The ladder itself is readable by the till (it prices against
+                cost, which the till now sees); only the add/edit/delete
+                controls inside are manager-gated. */}
             {showCost && (
               <Card title={t("priceTiers.section")}>
                 <Box p={4}>
-                  <GrosirPanel product={med} />
+                  <GrosirPanel product={med} canManage={canManage} />
                 </Box>
               </Card>
             )}
@@ -311,10 +313,10 @@ export default function ProductDetail() {
               <Tabs.Trigger value="batches">
                 {t("inventory.products.batchesSection")}
               </Tabs.Trigger>
-              {/* The other four tabs are all manager-only reads (price history,
-                  restock log, the stock ledger, discount rules), so the till
-                  gets the batches tab alone — the one that answers "what do we
-                  actually have on the shelf, and when does it expire". */}
+              {/* All five tabs are reads, and reads are open to the till. They
+                  stay behind the flag so re-narrowing cost visibility takes the
+                  four cost-bearing ones (price history, restock log, the stock
+                  ledger, discount rules) with it, leaving batches alone. */}
               {showCost && (
                 <>
                   <Tabs.Trigger value="prices">
@@ -352,7 +354,7 @@ export default function ProductDetail() {
                   <ProductMovementsTab productId={id} />
                 </Tabs.Content>
                 <Tabs.Content value="discount" p={4}>
-                  <DiscountTab productId={id} />
+                  <DiscountTab productId={id} canManage={canManage} />
                 </Tabs.Content>
               </>
             )}

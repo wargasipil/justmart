@@ -57,9 +57,16 @@ service SupplierService {
   }
   // ResolveSuppliers returns minimal display refs for a set of ids (batch
   // lookup-by-IDs for name resolution; never a full-list preload).
+  //
+  // The only supplier RPC open to the till: the product pages surface the
+  // supplier of a batch / restock, and an id with no name is unreadable. It
+  // returns code+name for ids the caller already holds — not a browsable list,
+  // which is why ListSuppliers / SearchSuppliers stay manager-only.
   rpc ResolveSuppliers(ResolveSuppliersRequest) returns (ResolveSuppliersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // ListSupplierRestocks returns the last restock of each product from this
   // supplier in the caller's active warehouse (from product_last_restocks),

@@ -96,9 +96,8 @@ type ProductServiceClient interface {
 	// cost) over ALL products matching the same filters as ListProducts — not the
 	// current page. Drives the catalog stat row above the list.
 	//
-	// Narrower roles than ListProducts on purpose: the valuations are cost data,
-	// and cost never goes to a cashier (same posture as GetMyPerformance omitting
-	// COGS). POS reads the catalog through ListProducts and needs none of this.
+	// Same roles as ListProducts: the catalog is FULLY READABLE by the till,
+	// cost included (see common.CanSeeCost). Writes stay OWNER+PHARMACIST.
 	GetProductsSummary(context.Context, *connect.Request[v1.GetProductsSummaryRequest]) (*connect.Response[v1.GetProductsSummaryResponse], error)
 	GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error)
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)
@@ -381,9 +380,8 @@ type ProductServiceHandler interface {
 	// cost) over ALL products matching the same filters as ListProducts — not the
 	// current page. Drives the catalog stat row above the list.
 	//
-	// Narrower roles than ListProducts on purpose: the valuations are cost data,
-	// and cost never goes to a cashier (same posture as GetMyPerformance omitting
-	// COGS). POS reads the catalog through ListProducts and needs none of this.
+	// Same roles as ListProducts: the catalog is FULLY READABLE by the till,
+	// cost included (see common.CanSeeCost). Writes stay OWNER+PHARMACIST.
 	GetProductsSummary(context.Context, *connect.Request[v1.GetProductsSummaryRequest]) (*connect.Response[v1.GetProductsSummaryResponse], error)
 	GetProduct(context.Context, *connect.Request[v1.GetProductRequest]) (*connect.Response[v1.GetProductResponse], error)
 	CreateProduct(context.Context, *connect.Request[v1.CreateProductRequest]) (*connect.Response[v1.CreateProductResponse], error)

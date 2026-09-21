@@ -87,8 +87,8 @@ function buildItems(t: (k: string) => string, isPharmacy: boolean): NavEntry[] {
       // In pharmacy mode the catalog is "Obat" (medicines); in retail it's "Produk".
       label: isPharmacy ? t("nav.medicines") : t("nav.products"),
       icon: isPharmacy ? Pill : Package,
-      // All four roles: the till gets a read-only, cost-free view of the same
-      // pages so a cashier can look up a price or a stock level.
+      // All four roles: the till gets a read-only view of the same pages, cost
+      // included, so a cashier can look up a price, a stock level or a margin.
       roles: [Role.OWNER, Role.PHARMACIST, Role.CASHIER, Role.APOTEKER],
     },
     {

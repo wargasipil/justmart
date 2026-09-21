@@ -32,9 +32,14 @@ message StockLevel {
 }
 
 service StockMovementService {
+  // Read-only ledger view: open to the till because the product detail page's
+  // Movements tab is part of the fully-readable catalog. RecordMovement (the
+  // write) stays OWNER+PHARMACIST.
   rpc ListMovements(ListMovementsRequest) returns (ListMovementsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc RecordMovement(RecordMovementRequest) returns (RecordMovementResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;

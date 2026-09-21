@@ -841,10 +841,10 @@ const file_inventory_iface_v1_product_price_tier_proto_rawDesc = "" +
 	"\x04tier\x18\x01 \x01(\v2$.inventory_iface.v1.ProductPriceTierR\x04tier\"/\n" +
 	"\x1dDeleteProductPriceTierRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\" \n" +
-	"\x1eDeleteProductPriceTierResponse2\xc5\x05\n" +
-	"\x17ProductPriceTierService\x12\x84\x01\n" +
-	"\x15ListProductPriceTiers\x120.inventory_iface.v1.ListProductPriceTiersRequest\x1a1.inventory_iface.v1.ListProductPriceTiersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
-	"\x15ListProductTierPrices\x120.inventory_iface.v1.ListProductTierPricesRequest\x1a1.inventory_iface.v1.ListProductTierPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
+	"\x1eDeleteProductPriceTierResponse2\xc9\x05\n" +
+	"\x17ProductPriceTierService\x12\x86\x01\n" +
+	"\x15ListProductPriceTiers\x120.inventory_iface.v1.ListProductPriceTiersRequest\x1a1.inventory_iface.v1.ListProductPriceTiersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x86\x01\n" +
+	"\x15ListProductTierPrices\x120.inventory_iface.v1.ListProductTierPricesRequest\x1a1.inventory_iface.v1.ListProductTierPricesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x87\x01\n" +
 	"\x16CreateProductPriceTier\x121.inventory_iface.v1.CreateProductPriceTierRequest\x1a2.inventory_iface.v1.CreateProductPriceTierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
 	"\x16UpdateProductPriceTier\x121.inventory_iface.v1.UpdateProductPriceTierRequest\x1a2.inventory_iface.v1.UpdateProductPriceTierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
 	"\x16DeleteProductPriceTier\x121.inventory_iface.v1.DeleteProductPriceTierRequest\x1a2.inventory_iface.v1.DeleteProductPriceTierResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"

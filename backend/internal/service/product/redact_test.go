@@ -13,12 +13,17 @@ import (
 	"github.com/justmart/backend/internal/service/servicetest"
 )
 
-// The till roles read the catalog (POS + the read-only Products pages), so cost
-// must be stripped from the RESPONSE, not just hidden in the UI. Both tests seed
-// the same shop and assert the manager sees every cost figure while the till
-// sees zeros — a single missing line in redactCost fails one of them.
+// The catalog is FULLY READABLE by the till: cost included (common.CanSeeCost
+// is true for every role). These two tests seed a shop and assert the manager
+// and the till get the SAME figures — they are what would fail if redactCost
+// started blanking again, and they sit at the handler boundary because that is
+// where the redactor runs (last step, after every enrich).
+//
+// The write side is unaffected: Create/Update/Archive/Import remain
+// OWNER+PHARMACIST via their proto allowed_roles, enforced by the interceptor
+// rather than here.
 
-func TestListProducts_RedactsCostForTillRoles(t *testing.T) {
+func TestListProducts_TillSeesCost(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
 	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
@@ -31,8 +36,9 @@ func TestListProducts_RedactsCostForTillRoles(t *testing.T) {
 	seedRestockLast(t, gormDB, whID, pid, supID, 1200, 30, time.Now().Add(-24*time.Hour))
 	seedOpenPOItem(t, gormDB, pid, supID, whID, ownerID, 10, 0, 1000, 10000)
 
-	// Manager: the enrich actually populated something, so the till assertions
-	// below are proving redaction rather than an empty fixture.
+	// Manager first: proves the enrich actually populated something, so the till
+	// assertions below are comparing against real data rather than an empty
+	// fixture that would pass either way.
 	resp, err := svc.ListProducts(ownerCtx, connect.NewRequest(&inventoryifacev1.ListProductsRequest{Query: "Redact product"}))
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.Products, 1)
@@ -48,24 +54,25 @@ func TestListProducts_RedactsCostForTillRoles(t *testing.T) {
 		require.Len(t, resp.Msg.Products, 1, role)
 		p := resp.Msg.Products[0]
 
-		require.Zero(t, p.LastRestockPrice, role)
-		require.Zero(t, p.LastRestockQty, role)
-		require.Empty(t, p.LastRestockDiscountType, role)
-		require.Zero(t, p.LastRestockDiscountValue, role)
-		require.Zero(t, p.LastRestockCreatedAt, role)
-		require.Zero(t, p.LastRestockArrivedAt, role)
-		require.Empty(t, p.LastRestockSupplierId, role)
-		require.Zero(t, p.OnOrderValuation, role)
+		// The whole restock block, field for field — this is the list the
+		// redactor used to blank, so it is the list that has to survive.
+		require.Equal(t, mgr.LastRestockPrice, p.LastRestockPrice, role)
+		require.Equal(t, mgr.LastRestockQty, p.LastRestockQty, role)
+		require.Equal(t, mgr.LastRestockDiscountType, p.LastRestockDiscountType, role)
+		require.Equal(t, mgr.LastRestockDiscountValue, p.LastRestockDiscountValue, role)
+		require.Equal(t, mgr.LastRestockCreatedAt, p.LastRestockCreatedAt, role)
+		require.Equal(t, mgr.LastRestockArrivedAt, p.LastRestockArrivedAt, role)
+		require.Equal(t, mgr.LastRestockSupplierId, p.LastRestockSupplierId, role)
+		require.Equal(t, mgr.OnOrderValuation, p.OnOrderValuation, role)
 
-		// Sell-side data and quantities still come through — a cashier prices
-		// and counts with these.
+		// Sell-side data and quantities are unchanged by any of this.
 		require.Equal(t, int64(2000), p.UnitPrice, role)
 		require.Equal(t, int64(10), p.OnOrderStock, role)
 		require.NotEmpty(t, p.Units, role)
 	}
 }
 
-func TestGetProduct_RedactsCostForTillRoles(t *testing.T) {
+func TestGetProduct_TillSeesCost(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
 	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
@@ -78,8 +85,9 @@ func TestGetProduct_RedactsCostForTillRoles(t *testing.T) {
 
 	resp, err := svc.GetProduct(ownerCtx, connect.NewRequest(&inventoryifacev1.GetProductRequest{Id: pid}))
 	require.NoError(t, err)
-	require.Equal(t, int64(40*1200), resp.Msg.Product.StockValuation)
-	require.Equal(t, int64(1200), resp.Msg.Product.ReferenceCost)
+	mgr := resp.Msg.Product
+	require.Equal(t, int64(40*1200), mgr.StockValuation)
+	require.Equal(t, int64(1200), mgr.ReferenceCost)
 
 	for _, role := range []string{"CASHIER", "APOTEKER"} {
 		tillCtx := servicetest.CtxAs(context.Background(), role, ownerID)
@@ -87,13 +95,11 @@ func TestGetProduct_RedactsCostForTillRoles(t *testing.T) {
 		require.NoError(t, err, role)
 		p := resp.Msg.Product
 
-		require.Zero(t, p.StockValuation, role)
-		require.Zero(t, p.ReferenceCost, role)
-		require.Empty(t, p.LastRestockDate, role)
-		require.Empty(t, p.LastRestockSupplier, role)
+		require.Equal(t, mgr.StockValuation, p.StockValuation, role)
+		require.Equal(t, mgr.ReferenceCost, p.ReferenceCost, role)
+		require.Equal(t, mgr.LastRestockDate, p.LastRestockDate, role)
+		require.Equal(t, mgr.LastRestockSupplier, p.LastRestockSupplier, role)
 
-		// Stock counts survive: the point of the page for a cashier is "do we
-		// have it, and what does it sell for".
 		require.Equal(t, int64(40), p.ReadyStock, role)
 		require.Equal(t, int64(40), p.TotalStock, role)
 		require.Equal(t, int64(2000), p.UnitPrice, role)

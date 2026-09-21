@@ -31,9 +31,9 @@ export default function ProductBatchesTab({
     page: page.page,
     pageSize: page.pageSize,
   });
-  // Supplier ids are redacted out of batch reads for the till, and
-  // ResolveSuppliers is manager-only — an empty id list keeps the hook from
-  // firing at all.
+  // Keyed off showCost because the supplier id is one of the fields the
+  // redactor blanks: if cost visibility is ever narrowed again the ids arrive
+  // empty, and an empty list keeps the hook from firing at all.
   const supplierRefs = useSupplierRefs(
     useMemo(
       () =>

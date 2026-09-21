@@ -46,6 +46,9 @@ const (
 
 // StockMovementServiceClient is a client for the inventory_iface.v1.StockMovementService service.
 type StockMovementServiceClient interface {
+	// Read-only ledger view: open to the till because the product detail page's
+	// Movements tab is part of the fully-readable catalog. RecordMovement (the
+	// write) stays OWNER+PHARMACIST.
 	ListMovements(context.Context, *connect.Request[v1.ListMovementsRequest]) (*connect.Response[v1.ListMovementsResponse], error)
 	RecordMovement(context.Context, *connect.Request[v1.RecordMovementRequest]) (*connect.Response[v1.RecordMovementResponse], error)
 	GetStockLevels(context.Context, *connect.Request[v1.GetStockLevelsRequest]) (*connect.Response[v1.GetStockLevelsResponse], error)
@@ -108,6 +111,9 @@ func (c *stockMovementServiceClient) GetStockLevels(ctx context.Context, req *co
 // StockMovementServiceHandler is an implementation of the inventory_iface.v1.StockMovementService
 // service.
 type StockMovementServiceHandler interface {
+	// Read-only ledger view: open to the till because the product detail page's
+	// Movements tab is part of the fully-readable catalog. RecordMovement (the
+	// write) stays OWNER+PHARMACIST.
 	ListMovements(context.Context, *connect.Request[v1.ListMovementsRequest]) (*connect.Response[v1.ListMovementsResponse], error)
 	RecordMovement(context.Context, *connect.Request[v1.RecordMovementRequest]) (*connect.Response[v1.RecordMovementResponse], error)
 	GetStockLevels(context.Context, *connect.Request[v1.GetStockLevelsRequest]) (*connect.Response[v1.GetStockLevelsResponse], error)

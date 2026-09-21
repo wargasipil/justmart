@@ -51,14 +51,20 @@ message ProductTierPrice {
 }
 
 service ProductPriceTierService {
+  // Both reads are open to the till (the catalog is fully readable — see
+  // common.CanSeeCost); the write RPCs below stay OWNER+PHARMACIST.
   rpc ListProductPriceTiers(ListProductPriceTiersRequest) returns (ListProductPriceTiersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // Grosir price history for a product, across every unit and rung.
   rpc ListProductTierPrices(ListProductTierPricesRequest) returns (ListProductTierPricesResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc CreateProductPriceTier(CreateProductPriceTierRequest) returns (CreateProductPriceTierResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;

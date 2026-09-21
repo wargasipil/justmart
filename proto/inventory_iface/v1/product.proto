@@ -125,12 +125,13 @@ service ProductService {
   // cost) over ALL products matching the same filters as ListProducts — not the
   // current page. Drives the catalog stat row above the list.
   //
-  // Narrower roles than ListProducts on purpose: the valuations are cost data,
-  // and cost never goes to a cashier (same posture as GetMyPerformance omitting
-  // COGS). POS reads the catalog through ListProducts and needs none of this.
+  // Same roles as ListProducts: the catalog is FULLY READABLE by the till,
+  // cost included (see common.CanSeeCost). Writes stay OWNER+PHARMACIST.
   rpc GetProductsSummary(GetProductsSummaryRequest) returns (GetProductsSummaryResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
@@ -169,12 +170,16 @@ service ProductService {
   rpc ListProductUnitPrices(ListProductUnitPricesRequest) returns (ListProductUnitPricesResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   // ListProductRestockLogs returns the restock history (append-only log) for a
   // product in the caller's active warehouse, newest-arrival first, paginated.
   rpc ListProductRestockLogs(ListProductRestockLogsRequest) returns (ListProductRestockLogsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;

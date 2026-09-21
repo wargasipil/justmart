@@ -79,6 +79,11 @@ type SupplierServiceClient interface {
 	SearchSuppliers(context.Context, *connect.Request[v1.SearchSuppliersRequest]) (*connect.Response[v1.SearchSuppliersResponse], error)
 	// ResolveSuppliers returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
+	//
+	// The only supplier RPC open to the till: the product pages surface the
+	// supplier of a batch / restock, and an id with no name is unreadable. It
+	// returns code+name for ids the caller already holds — not a browsable list,
+	// which is why ListSuppliers / SearchSuppliers stay manager-only.
 	ResolveSuppliers(context.Context, *connect.Request[v1.ResolveSuppliersRequest]) (*connect.Response[v1.ResolveSuppliersResponse], error)
 	// ListSupplierRestocks returns the last restock of each product from this
 	// supplier in the caller's active warehouse (from product_last_restocks),
@@ -238,6 +243,11 @@ type SupplierServiceHandler interface {
 	SearchSuppliers(context.Context, *connect.Request[v1.SearchSuppliersRequest]) (*connect.Response[v1.SearchSuppliersResponse], error)
 	// ResolveSuppliers returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
+	//
+	// The only supplier RPC open to the till: the product pages surface the
+	// supplier of a batch / restock, and an id with no name is unreadable. It
+	// returns code+name for ids the caller already holds — not a browsable list,
+	// which is why ListSuppliers / SearchSuppliers stay manager-only.
 	ResolveSuppliers(context.Context, *connect.Request[v1.ResolveSuppliersRequest]) (*connect.Response[v1.ResolveSuppliersResponse], error)
 	// ListSupplierRestocks returns the last restock of each product from this
 	// supplier in the caller's active warehouse (from product_last_restocks),

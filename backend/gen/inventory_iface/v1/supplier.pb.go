@@ -1491,7 +1491,7 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x05query\x18\x04 \x01(\tR\x05query\"|\n" +
 	"\x1cListSupplierRestocksResponse\x12F\n" +
 	"\brestocks\x18\x01 \x03(\v2*.inventory_iface.v1.SupplierProductRestockR\brestocks\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total2\xa6\t\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total2\xa8\t\n" +
 	"\x0fSupplierService\x12l\n" +
 	"\rListSuppliers\x12(.inventory_iface.v1.ListSuppliersRequest\x1a).inventory_iface.v1.ListSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12~\n" +
 	"\x13GetSuppliersSummary\x12..inventory_iface.v1.GetSuppliersSummaryRequest\x1a/.inventory_iface.v1.GetSuppliersSummaryResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
@@ -1500,8 +1500,8 @@ const file_inventory_iface_v1_supplier_proto_rawDesc = "" +
 	"\x0eUpdateSupplier\x12).inventory_iface.v1.UpdateSupplierRequest\x1a*.inventory_iface.v1.UpdateSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12r\n" +
 	"\x0fArchiveSupplier\x12*.inventory_iface.v1.ArchiveSupplierRequest\x1a+.inventory_iface.v1.ArchiveSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12x\n" +
 	"\x11UnarchiveSupplier\x12,.inventory_iface.v1.UnarchiveSupplierRequest\x1a-.inventory_iface.v1.UnarchiveSupplierResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12r\n" +
-	"\x0fSearchSuppliers\x12*.inventory_iface.v1.SearchSuppliersRequest\x1a+.inventory_iface.v1.SearchSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12u\n" +
-	"\x10ResolveSuppliers\x12+.inventory_iface.v1.ResolveSuppliersRequest\x1a,.inventory_iface.v1.ResolveSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x81\x01\n" +
+	"\x0fSearchSuppliers\x12*.inventory_iface.v1.SearchSuppliersRequest\x1a+.inventory_iface.v1.SearchSuppliersResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12w\n" +
+	"\x10ResolveSuppliers\x12+.inventory_iface.v1.ResolveSuppliersRequest\x1a,.inventory_iface.v1.ResolveSuppliersResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x81\x01\n" +
 	"\x14ListSupplierRestocks\x12/.inventory_iface.v1.ListSupplierRestocksRequest\x1a0.inventory_iface.v1.ListSupplierRestocksResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
 
 var (

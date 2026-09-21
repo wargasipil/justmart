@@ -29,7 +29,16 @@ import ProductPriceTierDrawer from "./ProductPriceTierDrawer";
 // Per-product grosir (wholesale) ladder manager: the Product detail "Grosir" card,
 // which sits beside the unit list. Grouped by unit because a tier prices ONE unit
 // — a pcs ladder and a box ladder are independent, and a flat list would hide that.
-export default function GrosirPanel({ product }: { product: Product }) {
+// canManage gates the ladder's writes only. The till reads the ladder (and the
+// margin column beside it) but its create/update/delete RPCs stay
+// OWNER+PHARMACIST — see lib/roles.ts canManageProducts.
+export default function GrosirPanel({
+  product,
+  canManage,
+}: {
+  product: Product;
+  canManage: boolean;
+}) {
   const { t } = useTranslation();
   const productId = product.id;
   const units = product.units;
@@ -59,18 +68,20 @@ export default function GrosirPanel({ product }: { product: Product }) {
         <Text fontSize="xs" color="fg.muted">
           {t("priceTiers.overridesDiscount")}
         </Text>
-        <Button
-          size="sm"
-          colorPalette="blue"
-          flexShrink={0}
-          onClick={() => {
-            setEditing(null);
-            setDrawerOpen(true);
-          }}
-        >
-          <Plus size={16} />
-          {t("priceTiers.add")}
-        </Button>
+        {canManage && (
+          <Button
+            size="sm"
+            colorPalette="blue"
+            flexShrink={0}
+            onClick={() => {
+              setEditing(null);
+              setDrawerOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            {t("priceTiers.add")}
+          </Button>
+        )}
       </HStack>
       <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
         <Table.Root size="sm" stickyHeader>
@@ -87,14 +98,16 @@ export default function GrosirPanel({ product }: { product: Product }) {
                 {t("priceTiers.saving")}
               </Table.ColumnHeader>
               <Table.ColumnHeader />
-              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+              {canManage && (
+                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+              )}
             </Table.Row>
           </Table.Header>
           <Table.Body>
             {groups.map(({ unit, tiers }) => (
               <Fragment key={unit.id}>
                 <Table.Row bg="bg.muted">
-                  <Table.Cell colSpan={6} py={1}>
+                  <Table.Cell colSpan={canManage ? 6 : 5} py={1}>
                     <HStack gap={2}>
                       <Text fontSize="xs" fontWeight="medium">
                         {unit.name}
@@ -161,28 +174,30 @@ export default function GrosirPanel({ product }: { product: Product }) {
                           )}
                         </HStack>
                       </Table.Cell>
-                      <Table.Cell>
-                        <HStack gap={1}>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            onClick={() => {
-                              setEditing(tier);
-                              setDrawerOpen(true);
-                            }}
-                          >
-                            <Pencil size={14} />
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant="ghost"
-                            colorPalette="red"
-                            onClick={() => setPendingDelete(tier)}
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </HStack>
-                      </Table.Cell>
+                      {canManage && (
+                        <Table.Cell>
+                          <HStack gap={1}>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => {
+                                setEditing(tier);
+                                setDrawerOpen(true);
+                              }}
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              colorPalette="red"
+                              onClick={() => setPendingDelete(tier)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </HStack>
+                        </Table.Cell>
+                      )}
                     </Table.Row>
                   );
                 })}
@@ -190,7 +205,7 @@ export default function GrosirPanel({ product }: { product: Product }) {
             ))}
             {groups.length === 0 && (
               <Table.Row>
-                <Table.Cell colSpan={6}>
+                <Table.Cell colSpan={canManage ? 6 : 5}>
                   <Stack gap={1} py={4} align="center">
                     <Text color="fg.muted">{t("priceTiers.empty")}</Text>
                     <Text color="fg.muted" fontSize="xs">

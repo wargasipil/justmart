@@ -18,12 +18,31 @@ export function roleKey(role: Role): string {
 }
 
 // canSeeCost mirrors the backend's common.CanSeeCost: purchase cost (what the
-// shop paid, and who it paid) is manager information. The till roles read the
-// catalog — POS needs it, and the Products list/detail pages are open to them
-// read-only — and the backend blanks the cost fields on those responses, so a
-// page must not render cost cells (they would all be 0/"—") or fire the
-// manager-only RPCs that carry it.
+// shop paid, and who it paid) is readable by every role — the catalog is fully
+// readable by the till. Kept as a named predicate rather than inlined `true` so
+// re-narrowing it stays one edit on each side; the backend redactors still run
+// on every catalog read, so flipping this alone would leave the fields arriving
+// as zeros. Change one side, change both.
+//
+// It is NOT the write gate — see canManageProducts.
 export function canSeeCost(role: Role | undefined): boolean {
+  return (
+    role === Role.OWNER ||
+    role === Role.PHARMACIST ||
+    role === Role.CASHIER ||
+    role === Role.APOTEKER
+  );
+}
+
+// canManageProducts gates the catalog WRITE surfaces: create / import / edit /
+// archive, the product image upload, and the price-tier + discount mutations.
+// Those RPCs are OWNER+PHARMACIST in their proto allowed_roles, so rendering
+// the controls for anyone else only produces a PermissionDenied toast.
+//
+// This used to be conflated with canSeeCost — one boolean hid both the cost
+// figures and the buttons. Widening cost visibility to the till split them:
+// cost is now readable by everyone, writing the catalog still is not.
+export function canManageProducts(role: Role | undefined): boolean {
   return role === Role.OWNER || role === Role.PHARMACIST;
 }
 

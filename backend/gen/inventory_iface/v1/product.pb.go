@@ -3320,10 +3320,10 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\x13ProductImageVariant\x12%\n" +
 	"!PRODUCT_IMAGE_VARIANT_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bPRODUCT_IMAGE_VARIANT_THUMB\x10\x01\x12\"\n" +
-	"\x1ePRODUCT_IMAGE_VARIANT_ORIGINAL\x10\x022\xe1\x10\n" +
+	"\x1ePRODUCT_IMAGE_VARIANT_ORIGINAL\x10\x022\xe7\x10\n" +
 	"\x0eProductService\x12k\n" +
-	"\fListProducts\x12'.inventory_iface.v1.ListProductsRequest\x1a(.inventory_iface.v1.ListProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12{\n" +
-	"\x12GetProductsSummary\x12-.inventory_iface.v1.GetProductsSummaryRequest\x1a..inventory_iface.v1.GetProductsSummaryResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12e\n" +
+	"\fListProducts\x12'.inventory_iface.v1.ListProductsRequest\x1a(.inventory_iface.v1.ListProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12}\n" +
+	"\x12GetProductsSummary\x12-.inventory_iface.v1.GetProductsSummaryRequest\x1a..inventory_iface.v1.GetProductsSummaryResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12e\n" +
 	"\n" +
 	"GetProduct\x12%.inventory_iface.v1.GetProductRequest\x1a&.inventory_iface.v1.GetProductResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12l\n" +
 	"\rCreateProduct\x12(.inventory_iface.v1.CreateProductRequest\x1a).inventory_iface.v1.CreateProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
@@ -3331,9 +3331,9 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\rUpdateProduct\x12(.inventory_iface.v1.UpdateProductRequest\x1a).inventory_iface.v1.UpdateProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12o\n" +
 	"\x0eArchiveProduct\x12).inventory_iface.v1.ArchiveProductRequest\x1a*.inventory_iface.v1.ArchiveProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12u\n" +
 	"\x10UnarchiveProduct\x12+.inventory_iface.v1.UnarchiveProductRequest\x1a,.inventory_iface.v1.UnarchiveProductResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12x\n" +
-	"\x11ListProductPrices\x12,.inventory_iface.v1.ListProductPricesRequest\x1a-.inventory_iface.v1.ListProductPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
-	"\x15ListProductUnitPrices\x120.inventory_iface.v1.ListProductUnitPricesRequest\x1a1.inventory_iface.v1.ListProductUnitPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
-	"\x16ListProductRestockLogs\x121.inventory_iface.v1.ListProductRestockLogsRequest\x1a2.inventory_iface.v1.ListProductRestockLogsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12q\n" +
+	"\x11ListProductPrices\x12,.inventory_iface.v1.ListProductPricesRequest\x1a-.inventory_iface.v1.ListProductPricesResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x86\x01\n" +
+	"\x15ListProductUnitPrices\x120.inventory_iface.v1.ListProductUnitPricesRequest\x1a1.inventory_iface.v1.ListProductUnitPricesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x89\x01\n" +
+	"\x16ListProductRestockLogs\x121.inventory_iface.v1.ListProductRestockLogsRequest\x1a2.inventory_iface.v1.ListProductRestockLogsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
 	"\x0eSearchProducts\x12).inventory_iface.v1.SearchProductsRequest\x1a*.inventory_iface.v1.SearchProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12t\n" +
 	"\x0fResolveProducts\x12*.inventory_iface.v1.ResolveProductsRequest\x1a+.inventory_iface.v1.ResolveProductsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12i\n" +
 	"\fListLowStock\x12'.inventory_iface.v1.ListLowStockRequest\x1a(.inventory_iface.v1.ListLowStockResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12{\n" +

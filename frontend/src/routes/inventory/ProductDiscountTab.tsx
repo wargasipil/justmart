@@ -23,7 +23,16 @@ function todayStr() {
 }
 
 // Per-product discount manager: the Product detail "Discount" tab.
-export default function DiscountTab({ productId }: { productId: string }) {
+// canManage gates the writes only — the till reads the discount rules (they
+// explain a POS price) but cannot author them. See lib/roles.ts
+// canManageProducts.
+export default function DiscountTab({
+  productId,
+  canManage,
+}: {
+  productId: string;
+  canManage: boolean;
+}) {
   const { t } = useTranslation();
   const page = usePageState(`discounts:${productId}`);
   const q = useProductDiscountsQuery(productId, {
@@ -51,19 +60,21 @@ export default function DiscountTab({ productId }: { productId: string }) {
 
   return (
     <Box>
-      <HStack justify="flex-end" mb={3}>
-        <Button
-          size="sm"
-          colorPalette="blue"
-          onClick={() => {
-            setEditing(null);
-            setDrawerOpen(true);
-          }}
-        >
-          <Plus size={16} />
-          {t("productDiscounts.add")}
-        </Button>
-      </HStack>
+      {canManage && (
+        <HStack justify="flex-end" mb={3}>
+          <Button
+            size="sm"
+            colorPalette="blue"
+            onClick={() => {
+              setEditing(null);
+              setDrawerOpen(true);
+            }}
+          >
+            <Plus size={16} />
+            {t("productDiscounts.add")}
+          </Button>
+        </HStack>
+      )}
       <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
         <Table.Root size="sm" stickyHeader>
           <Table.Header bg="bg.muted">
@@ -80,7 +91,9 @@ export default function DiscountTab({ productId }: { productId: string }) {
               <Table.ColumnHeader>
                 {t("productDiscounts.expiresAt")}
               </Table.ColumnHeader>
-              <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+              {canManage && (
+                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+              )}
             </Table.Row>
           </Table.Header>
           <Table.Body>
@@ -124,34 +137,36 @@ export default function DiscountTab({ productId }: { productId: string }) {
                       </Text>
                     )}
                   </Table.Cell>
-                  <Table.Cell>
-                    <HStack gap={1}>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditing(d);
-                          setDrawerOpen(true);
-                        }}
-                      >
-                        <Pencil size={14} />
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        colorPalette="red"
-                        onClick={() => setPendingDelete(d)}
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </HStack>
-                  </Table.Cell>
+                  {canManage && (
+                    <Table.Cell>
+                      <HStack gap={1}>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditing(d);
+                            setDrawerOpen(true);
+                          }}
+                        >
+                          <Pencil size={14} />
+                        </Button>
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorPalette="red"
+                          onClick={() => setPendingDelete(d)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </HStack>
+                    </Table.Cell>
+                  )}
                 </Table.Row>
               );
             })}
             {rows.length === 0 && (
               <Table.Row>
-                <Table.Cell colSpan={5}>
+                <Table.Cell colSpan={canManage ? 5 : 4}>
                   <Text color="fg.muted" textAlign="center" py={4}>
                     {t("productDiscounts.empty")}
                   </Text>

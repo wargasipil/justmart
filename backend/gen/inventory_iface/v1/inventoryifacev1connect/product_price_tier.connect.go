@@ -53,6 +53,8 @@ const (
 // ProductPriceTierServiceClient is a client for the inventory_iface.v1.ProductPriceTierService
 // service.
 type ProductPriceTierServiceClient interface {
+	// Both reads are open to the till (the catalog is fully readable — see
+	// common.CanSeeCost); the write RPCs below stay OWNER+PHARMACIST.
 	ListProductPriceTiers(context.Context, *connect.Request[v1.ListProductPriceTiersRequest]) (*connect.Response[v1.ListProductPriceTiersResponse], error)
 	// Grosir price history for a product, across every unit and rung.
 	ListProductTierPrices(context.Context, *connect.Request[v1.ListProductTierPricesRequest]) (*connect.Response[v1.ListProductTierPricesResponse], error)
@@ -142,6 +144,8 @@ func (c *productPriceTierServiceClient) DeleteProductPriceTier(ctx context.Conte
 // ProductPriceTierServiceHandler is an implementation of the
 // inventory_iface.v1.ProductPriceTierService service.
 type ProductPriceTierServiceHandler interface {
+	// Both reads are open to the till (the catalog is fully readable — see
+	// common.CanSeeCost); the write RPCs below stay OWNER+PHARMACIST.
 	ListProductPriceTiers(context.Context, *connect.Request[v1.ListProductPriceTiersRequest]) (*connect.Response[v1.ListProductPriceTiersResponse], error)
 	// Grosir price history for a product, across every unit and rung.
 	ListProductTierPrices(context.Context, *connect.Request[v1.ListProductTierPricesRequest]) (*connect.Response[v1.ListProductTierPricesResponse], error)

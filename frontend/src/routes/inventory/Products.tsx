@@ -25,7 +25,7 @@ import SummaryTile from "../../components/SummaryTile";
 import TableScroll from "../../components/TableScroll";
 import { formatCount, formatMoney } from "../../lib/format";
 import { ALL_LIMIT, usePageState } from "../../lib/pagination";
-import { canSeeCost } from "../../lib/roles";
+import { canManageProducts, canSeeCost } from "../../lib/roles";
 import { useAuth } from "../../lib/auth";
 import { unitGroupsFromCatalog } from "../../lib/stockUnit";
 import {
@@ -50,10 +50,11 @@ export default function Products() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  // The till reads this page: no cost columns, no valuation tiles, no writes.
-  // Not cosmetic — the summary + supplier RPCs are manager-only, so firing them
-  // here would toast a permission error on every load.
+  // The till reads this page in full — cost columns and valuation tiles
+  // included. Only the writes (import / add) are manager-only, and those hang
+  // off canManageProducts instead.
   const showCost = canSeeCost(user?.role);
+  const canManage = canManageProducts(user?.role);
   const { isPharmacy } = useBusinessMode();
   const catalogLabel = isPharmacy ? t("nav.medicines") : t("nav.products");
   const [createOpen, setCreateOpen] = useState(false);
@@ -108,9 +109,9 @@ export default function Products() {
     [unitsQ.rows, productsQ.rows],
   );
 
-  // Resolve the "last supplier that restocked" names for the page's rows. Empty
-  // for the till: the ids are redacted server-side and ResolveSuppliers is
-  // manager-only, so an empty list is what keeps the hook from firing.
+  // Resolve the "last supplier that restocked" names for the page's rows. Kept
+  // behind showCost because the ids are one of the redacted fields — narrow the
+  // policy again and they arrive empty, so the hook must not fire.
   const supplierRefs = useSupplierRefs(
     useMemo(
       () =>
@@ -153,9 +154,10 @@ export default function Products() {
             across products, so a catalog holding both tablets and bottles adds
             them together; read them as "total units on hand", with the money as
             the comparable figure (the per-product columns carry the real unit). */}
-        {/* Half of these tiles are valuations at cost, and the RPC behind all
-            four is manager-only — so the row is dropped whole for the till
-            rather than shown with two empty cells. */}
+        {/* Half of these tiles are valuations at cost, so the row follows cost
+            visibility — which now includes the till. It stays behind the flag
+            (rather than being unconditional) so re-narrowing the policy drops
+            the row whole instead of showing two empty cells. */}
         {showCost && (
           <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
             <SummaryTile
@@ -234,11 +236,11 @@ export default function Products() {
               groups={columnGroups}
               defaults={new Set(DEFAULT_PRODUCT_COLUMNS)}
             />
-            {/* Export carries the cost columns, and create/import are
-                manager-only RPCs — the till's view is read-only. */}
-            {showCost && (
+            {/* Export is a read (it re-fetches the same list), so it follows
+                cost visibility; create/import are manager-only RPCs. */}
+            {showCost && <ExportButton onExport={onExport} />}
+            {canManage && (
               <>
-                <ExportButton onExport={onExport} />
                 <Button
                   size="sm"
                   variant="outline"
