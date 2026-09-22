@@ -9,6 +9,7 @@ import { MINIMAL_VIEWPORTS } from "storybook/viewport";
 import { z } from "zod";
 
 import i18n from "../src/lib/i18n";
+import { hashWithBigInt } from "../src/lib/queryClient";
 import { zodErrorMap } from "../src/lib/zodErrorMap";
 import { AppToaster } from "../src/lib/toaster";
 import { VIEWPORTS } from "../src/screens/viewports";
@@ -47,7 +48,17 @@ function StoryProviders({
   const client = useMemo(
     () =>
       new QueryClient({
-        defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+        defaultOptions: {
+          queries: {
+            retry: false,
+            refetchOnWindowFocus: false,
+            // The app's own hash (lib/queryClient.ts). Proto int64 fields land
+            // in query keys as BigInt, which the default JSON.stringify hash
+            // throws on — so a page keyed on a date range or an id would fail
+            // to mount here while working fine in the app.
+            queryKeyHashFn: hashWithBigInt,
+          },
+        },
       }),
     [],
   );

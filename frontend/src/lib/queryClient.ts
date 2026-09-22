@@ -6,7 +6,13 @@ import { toast } from "./toaster";
 // serialize them, which breaks TanStack Query's default hashing. Stringify
 // BigInts explicitly here so every query key (analytics date ranges, IDs,
 // etc.) hashes deterministically.
-function hashWithBigInt(queryKey: readonly unknown[]): string {
+//
+// Exported because Storybook's preview builds its OWN QueryClient (fresh per
+// story) and has to install the same hash — without it, any page whose key
+// carries an int64 throws "Do not know how to serialize a BigInt" on mount and
+// the story renders nothing. That is a bench-only failure, invisible in the
+// app, so the one implementation is shared rather than re-declared.
+export function hashWithBigInt(queryKey: readonly unknown[]): string {
   return JSON.stringify(queryKey, (_key, value) =>
     typeof value === "bigint" ? value.toString() : value,
   );
