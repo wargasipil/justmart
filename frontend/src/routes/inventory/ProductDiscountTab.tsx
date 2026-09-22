@@ -165,7 +165,7 @@ export default function DiscountTab({ productId }: { productId: string }) {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={q.total}
+        total={q.total} loading={q.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

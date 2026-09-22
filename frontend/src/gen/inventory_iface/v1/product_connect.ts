@@ -25,7 +25,7 @@ export const ProductService = {
      * GetProductsSummary aggregates ready + on-order stock (count and valuation at
      * cost) over ALL products matching the same filters as ListProducts — not the
      * current page. Drives the catalog stat row above the list.
-     * 
+     *
      * Narrower roles than ListProducts on purpose: the valuations are cost data,
      * and cost never goes to a cashier (same posture as GetMyPerformance omitting
      * COGS). POS reads the catalog through ListProducts and needs none of this.
@@ -199,7 +199,7 @@ export const ProductService = {
      * PrintProductLabel renders a shelf/product barcode label (name + CODE128 of
      * the SKU + the chosen unit's sell price) and sends it to the shop's thermal
      * printer over the same connector/usb/tcp dispatch PrintReceipt uses.
-     * 
+     *
      * Open to every catalog reader, like PrintReceipt: the label carries only
      * sell-side data (name, SKU, unit price), never cost — so it stays inside the
      * cost-visibility policy while letting whoever restocks a shelf label it.

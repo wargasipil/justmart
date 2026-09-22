@@ -232,7 +232,7 @@ export default function PurchaseOrdersList() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={posQ.total}
+        total={posQ.total} loading={posQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

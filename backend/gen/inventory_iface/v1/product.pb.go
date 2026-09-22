@@ -174,6 +174,11 @@ type Product struct {
 	// marker is what tells the UI whether to fetch at all, and doubles as the
 	// client cache key so a re-upload appears without an invalidate.
 	ImageUpdatedAt int64 `protobuf:"varint,29,opt,name=image_updated_at,json=imageUpdatedAt,proto3" json:"image_updated_at,omitempty"`
+	// Who MADE this product ("pabrik"), as opposed to the supplier who sold it
+	// to the shop. Resolve to a name via ResolveManufacturers — never rendered
+	// as a raw id. Empty = not recorded, which is every product until someone
+	// sets it.
+	ManufacturerId string `protobuf:"bytes,30,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -402,6 +407,13 @@ func (x *Product) GetImageUpdatedAt() int64 {
 		return x.ImageUpdatedAt
 	}
 	return 0
+}
+
+func (x *Product) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -1424,7 +1436,8 @@ type CreateProductRequest struct {
 	Unit                 string                 `protobuf:"bytes,4,opt,name=unit,proto3" json:"unit,omitempty"`                             // base unit name (also used if `units` is empty)
 	UnitPrice            int64                  `protobuf:"varint,5,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"` // base unit sell price
 	PrescriptionRequired bool                   `protobuf:"varint,6,opt,name=prescription_required,json=prescriptionRequired,proto3" json:"prescription_required,omitempty"`
-	Units                []*ProductUnitInput    `protobuf:"bytes,7,rep,name=units,proto3" json:"units,omitempty"` // optional; if empty, a base unit is created from unit/unit_price
+	Units                []*ProductUnitInput    `protobuf:"bytes,7,rep,name=units,proto3" json:"units,omitempty"`                                         // optional; if empty, a base unit is created from unit/unit_price
+	ManufacturerId       string                 `protobuf:"bytes,8,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"` // optional; "" = none
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1499,6 +1512,13 @@ func (x *CreateProductRequest) GetUnits() []*ProductUnitInput {
 		return x.Units
 	}
 	return nil
+}
+
+func (x *CreateProductRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
 }
 
 type CreateProductResponse struct {
@@ -1741,8 +1761,9 @@ type UpdateProductRequest struct {
 	Unit                 string                 `protobuf:"bytes,4,opt,name=unit,proto3" json:"unit,omitempty"`
 	UnitPrice            int64                  `protobuf:"varint,5,opt,name=unit_price,json=unitPrice,proto3" json:"unit_price,omitempty"`
 	PrescriptionRequired bool                   `protobuf:"varint,6,opt,name=prescription_required,json=prescriptionRequired,proto3" json:"prescription_required,omitempty"`
-	Units                []*ProductUnitInput    `protobuf:"bytes,7,rep,name=units,proto3" json:"units,omitempty"` // upsert the full unit set (exactly one is_base, base factor 1)
-	Sku                  string                 `protobuf:"bytes,8,opt,name=sku,proto3" json:"sku,omitempty"`     // editable business code; unique (excludes self on update)
+	Units                []*ProductUnitInput    `protobuf:"bytes,7,rep,name=units,proto3" json:"units,omitempty"`                                         // upsert the full unit set (exactly one is_base, base factor 1)
+	Sku                  string                 `protobuf:"bytes,8,opt,name=sku,proto3" json:"sku,omitempty"`                                             // editable business code; unique (excludes self on update)
+	ManufacturerId       string                 `protobuf:"bytes,9,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"` // optional; "" clears it
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1822,6 +1843,13 @@ func (x *UpdateProductRequest) GetUnits() []*ProductUnitInput {
 func (x *UpdateProductRequest) GetSku() string {
 	if x != nil {
 		return x.Sku
+	}
+	return ""
+}
+
+func (x *UpdateProductRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
 	}
 	return ""
 }
@@ -3070,7 +3098,7 @@ var File_inventory_iface_v1_product_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\n" +
-	" inventory_iface/v1/product.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a+inventory_iface/v1/product_price_tier.proto\"\xc3\t\n" +
+	" inventory_iface/v1/product.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a+inventory_iface/v1/product_price_tier.proto\"\xec\t\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12\x12\n" +
@@ -3105,7 +3133,8 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\vprice_tiers\x18\x1b \x03(\v2$.inventory_iface.v1.ProductPriceTierR\n" +
 	"priceTiers\x12,\n" +
 	"\x12on_order_valuation\x18\x1c \x01(\x03R\x10onOrderValuation\x12(\n" +
-	"\x10image_updated_at\x18\x1d \x01(\x03R\x0eimageUpdatedAtJ\x04\b\x04\x10\x05R\fmanufacturer\"\x95\x02\n" +
+	"\x10image_updated_at\x18\x1d \x01(\x03R\x0eimageUpdatedAt\x12'\n" +
+	"\x0fmanufacturer_id\x18\x1e \x01(\tR\x0emanufacturerIdJ\x04\b\x04\x10\x05R\fmanufacturer\"\x95\x02\n" +
 	"\vProductUnit\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -3198,7 +3227,7 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\x11GetProductRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"K\n" +
 	"\x12GetProductResponse\x125\n" +
-	"\aproduct\x18\x01 \x01(\v2\x1b.inventory_iface.v1.ProductR\aproduct\"\xf4\x01\n" +
+	"\aproduct\x18\x01 \x01(\v2\x1b.inventory_iface.v1.ProductR\aproduct\"\x9d\x02\n" +
 	"\x14CreateProductRequest\x12\x10\n" +
 	"\x03sku\x18\x01 \x01(\tR\x03sku\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -3206,7 +3235,8 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"unit_price\x18\x05 \x01(\x03R\tunitPrice\x123\n" +
 	"\x15prescription_required\x18\x06 \x01(\bR\x14prescriptionRequired\x12:\n" +
-	"\x05units\x18\a \x03(\v2$.inventory_iface.v1.ProductUnitInputR\x05unitsJ\x04\b\x03\x10\x04R\fmanufacturer\"N\n" +
+	"\x05units\x18\a \x03(\v2$.inventory_iface.v1.ProductUnitInputR\x05units\x12'\n" +
+	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerIdJ\x04\b\x03\x10\x04R\fmanufacturer\"N\n" +
 	"\x15CreateProductResponse\x125\n" +
 	"\aproduct\x18\x01 \x01(\v2\x1b.inventory_iface.v1.ProductR\aproduct\"\xb3\x01\n" +
 	"\x13ImportProductResult\x12\x10\n" +
@@ -3222,7 +3252,7 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\aresults\x18\x01 \x03(\v2'.inventory_iface.v1.ImportProductResultR\aresults\x12\x18\n" +
 	"\acreated\x18\x02 \x01(\x05R\acreated\x12\x18\n" +
 	"\askipped\x18\x03 \x01(\x05R\askipped\x12\x18\n" +
-	"\aerrored\x18\x04 \x01(\x05R\aerrored\"\x84\x02\n" +
+	"\aerrored\x18\x04 \x01(\x05R\aerrored\"\xad\x02\n" +
 	"\x14UpdateProductRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -3231,7 +3261,8 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"unit_price\x18\x05 \x01(\x03R\tunitPrice\x123\n" +
 	"\x15prescription_required\x18\x06 \x01(\bR\x14prescriptionRequired\x12:\n" +
 	"\x05units\x18\a \x03(\v2$.inventory_iface.v1.ProductUnitInputR\x05units\x12\x10\n" +
-	"\x03sku\x18\b \x01(\tR\x03skuJ\x04\b\x03\x10\x04R\fmanufacturer\"N\n" +
+	"\x03sku\x18\b \x01(\tR\x03sku\x12'\n" +
+	"\x0fmanufacturer_id\x18\t \x01(\tR\x0emanufacturerIdJ\x04\b\x03\x10\x04R\fmanufacturer\"N\n" +
 	"\x15UpdateProductResponse\x125\n" +
 	"\aproduct\x18\x01 \x01(\v2\x1b.inventory_iface.v1.ProductR\aproduct\"'\n" +
 	"\x15ArchiveProductRequest\x12\x0e\n" +

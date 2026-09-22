@@ -13,7 +13,7 @@ const GROUPS: StockUnitGroup[] = [
 ];
 
 const meta = {
-  title: "Toolbar & filters/StockUnitPopover",
+  title: "components/toolbar/StockUnitPopover",
   component: StockUnitPopover,
   parameters: storyDocs("stock-unit-popover"),
   tags: ["autodocs"],

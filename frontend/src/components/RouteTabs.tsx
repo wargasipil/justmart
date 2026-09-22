@@ -1,7 +1,10 @@
 import { Tabs } from "@chakra-ui/react";
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import type { TabsOrientation } from "../lib/tabs";
+import EnumSelect from "./EnumSelect";
+import { useTabsAsSelect, type TabsOrientation } from "../lib/tabs";
 
 // URL-driven tabs that look and behave like Chakra v3's `Tabs.Root` (default
 // `variant="line"` — underline on active). Each tab is a `react-router-dom`
@@ -15,6 +18,12 @@ import type { TabsOrientation } from "../lib/tabs";
 // full-page reload on every tab click. The controlled-navigate approach below
 // is the documented fix. Tradeoff: no middle-click/"open in new tab" on a tab;
 // deep-linking is unaffected (each tab still has its own URL).
+//
+// Below `md` it is neither a strip nor a rail but an <EnumSelect> of the same
+// items (see `useTabsAsSelect`): a phone has no room for a row of tabs, and a
+// strip that scrolls hides the ones that do not fit — including, since nothing
+// scrolls the active trigger into view, the selected one. A picker cannot clip
+// an option and always names the current tab.
 //
 // Use this for page-level tab navigation where each panel has its own URL
 // (Analytics, Inventory, Purchasing). For state-driven tabs that share one
@@ -42,9 +51,21 @@ export type RouteTabsProps = {
 };
 
 export default function RouteTabs({ items, orientation = "horizontal" }: RouteTabsProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const vertical = orientation === "vertical";
+  const asSelect = useTabsAsSelect();
+
+  // EnumSelect memoizes its collection on the `items` IDENTITY, and every
+  // caller builds this array inline each render (the labels are `t(...)`
+  // calls), so passing it straight through would rebuild the collection on
+  // every paint — which is the spin its own comment warns about. Key on the
+  // CONTENT instead: a locale change alters the labels and correctly yields a
+  // new array; a re-render alone does not.
+  const itemsKey = items.map((it) => `${it.value}\u0000${it.label}\u0000${it.to}`).join("\u0001");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const options = useMemo(() => items, [itemsKey]);
 
   // Pick the tab whose `to` is the LONGEST prefix of the current pathname.
   // This avoids the wrong tab lighting up when one tab's path is itself a
@@ -54,6 +75,26 @@ export default function RouteTabs({ items, orientation = "horizontal" }: RouteTa
     items
       .filter((it) => location.pathname.startsWith(it.to))
       .sort((a, b) => b.to.length - a.to.length)[0]?.value ?? items[0]?.value;
+
+  if (asSelect) {
+    return (
+      <EnumSelect
+        width="full"
+        // The picker IS this page's navigation here, so it needs a name: the
+        // desktop form is a tablist whose triggers read as tabs, while an
+        // unnamed combobox announces only its current value.
+        ariaLabel={t("common.section")}
+        value={activeValue ?? null}
+        onChange={(v) => {
+          const to = items.find((it) => it.value === v)?.to;
+          if (to && v !== activeValue) navigate(to);
+        }}
+        items={options}
+        itemToString={(it) => it.label}
+        itemToValue={(it) => it.value}
+      />
+    );
+  }
 
   return (
     <Tabs.Root

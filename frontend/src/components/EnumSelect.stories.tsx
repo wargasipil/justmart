@@ -35,7 +35,7 @@ function Controlled({ value, ...rest }: React.ComponentProps<typeof EnumSelect<O
 }
 
 const meta = {
-  title: "Selects & pickers/EnumSelect",
+  title: "components/selects/EnumSelect",
   component: EnumSelect<Option>,
   parameters: storyDocs("enum-select"),
   tags: ["autodocs"],

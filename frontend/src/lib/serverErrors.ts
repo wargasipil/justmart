@@ -25,6 +25,10 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "supplier.required": { i18nKey: "validation.required" },
   "supplier.code_taken": { field: "code", i18nKey: "serverErrors.supplier.codeTaken" },
   "supplier.name_taken": { field: "name", i18nKey: "serverErrors.supplier.nameTaken" },
+  // manufacturer
+  "manufacturer.required": { i18nKey: "validation.required" },
+  "manufacturer.code_taken": { field: "code", i18nKey: "serverErrors.manufacturer.codeTaken" },
+  "manufacturer.name_taken": { field: "name", i18nKey: "serverErrors.manufacturer.nameTaken" },
   // price agreement
   "price_agreement.required": { i18nKey: "validation.required" },
   "price_agreement.items_required": { i18nKey: "serverErrors.common.itemsRequired" },

@@ -9,7 +9,7 @@ import type {
   UpdateSupplierRequest,
 } from "../gen/inventory_iface/v1/supplier_pb";
 
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type SuppliersQueryOpts = {
   includeInactive?: boolean;
@@ -70,6 +70,7 @@ export function useSupplierRestocksQuery(
   const { query = "", page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: supplierKeys.restocks(supplierId, query, page, pageSize),
+    placeholderData: keepPageData(supplierKeys.restocks(supplierId, query, page, pageSize)),
     queryFn: async () => {
       const res = await supplierClient.listSupplierRestocks({
         supplierId,
@@ -95,6 +96,7 @@ export function useSuppliersQuery(opts: SuppliersQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: supplierKeys.list({ includeInactive, query, page, pageSize }),
+    placeholderData: keepPageData(supplierKeys.list({ includeInactive, query, page, pageSize })),
     queryFn: async () => {
       const res = await supplierClient.listSuppliers({
         includeInactive,

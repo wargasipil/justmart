@@ -1,8 +1,7 @@
 import { type ReactNode } from "react";
-import { HStack, Stack, Text } from "@chakra-ui/react";
 
 import { type GroupSpec } from "../../components/ColumnsPopover";
-import ProductImage from "../../components/ProductImage";
+import ProductItem from "../../components/products/ProductItem";
 import { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { downloadCsv } from "../../lib/csv";
 import { formatDiscount, formatMoney, formatUnixOrDash } from "../../lib/format";
@@ -67,23 +66,7 @@ export function buildProductColumns({
       id: "name",
       header: t("inventory.products.name"),
       always: true,
-      render: (m) => (
-        <HStack gap={3}>
-          <ProductImage
-            productId={m.id}
-            name={m.name}
-            version={Number(m.imageUpdatedAt)}
-            size={56}
-            zoomable
-          />
-          <Stack gap={0} minW={0}>
-            <Text>{m.name}</Text>
-            <Text fontSize="xs" color="fg.muted" fontFamily="mono">
-              {m.sku}
-            </Text>
-          </Stack>
-        </HStack>
-      ),
+      render: (m) => <ProductItem product={m} zoomable />,
     },
     { id: "unit", header: t("inventory.products.unit"), render: (m) => m.unit },
     {

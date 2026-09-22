@@ -27,6 +27,7 @@
   "common": {
     "loading": "Loading…",
     "exportCsv": "Export CSV",
+    "selectManufacturer": "Select manufacturer",
     "selectSupplier": "Select supplier",
     "selectWarehouse": "Select warehouse",
     "save": "Save",
@@ -47,15 +48,18 @@
     "inactive": "Inactive",
     "actions": "Actions",
     "showArchived": "Show archived",
+    "archived": "Archived",
     "noResults": "No results",
     "pagination": {
       "showing": "Showing {{from}}–{{to}} of {{total}}",
       "prev": "Prev",
       "next": "Next",
+      "loadMore": "Load more",
       "perPage": "{{count}} / page"
     },
     "back": "Back",
-    "clear": "Clear"
+    "clear": "Clear",
+    "section": "Section"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -83,6 +87,10 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "userMenu": "User menu",
+    "home": "Home",
+    "menu": "Menu",
+    "profileShort": "Profile",
+    "mobileNav": "Main navigation",
     "language": "Language",
     "theme": "Theme",
     "themeDark": "Dark",
@@ -90,7 +98,11 @@
     "components": "Components"
   },
   "filters": {
-    "cashierAll": "All cashiers"
+    "cashierAll": "All cashiers",
+    "button": "Filter",
+    "title": "Filter",
+    "reset": "Reset",
+    "done": "Done"
   },
   "myPerformance": {
     "title": "My performance",
@@ -707,6 +719,7 @@
       "tabArchived": "Archived $t(glossary.productsCap)",
       "addTitle": "Add $t(glossary.productCap)",
       "editTitle": "Edit $t(glossary.productCap)",
+      "manufacturer": "Manufacturer",
       "sku": "SKU",
       "name": "Name",
       "unit": "Unit",
@@ -824,6 +837,33 @@
       "imageUpdated": "Product photo updated",
       "imageHelp": "JPG, PNG or WebP. A square photo on a plain background reads best in POS.",
       "imagePreview": "Preview photo"
+    },
+    "manufacturers": {
+      "title": "Manufacturer",
+      "addTitle": "Add manufacturer",
+      "detailDescription": "This manufacturer's contact details and the products it makes.",
+      "infoSection": "Information",
+      "productsSection": "Products from this manufacturer",
+      "productsSearchPlaceholder": "Search name / SKU…",
+      "productName": "Name",
+      "productPrice": "Price",
+      "productReady": "Ready stock",
+      "productsEmpty": "No products are linked to this manufacturer yet.",
+      "editTitle": "Edit manufacturer",
+      "confirmArchive": "Archive this manufacturer? It is hidden from the active list but its history is kept. You can restore it later.",
+      "confirmUnarchive": "Restore this manufacturer to the active list?",
+      "code": "Code",
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "note": "Note",
+      "notePlaceholder": "Principal, registration no., etc.",
+      "summary": {
+        "total": "Total manufacturers"
+      },
+      "searchPlaceholder": "Search code / name…",
+      "empty": "No manufacturers yet. Add the first one."
     },
     "suppliers": {
       "title": "Suppliers",
@@ -1166,6 +1206,10 @@
       "skuNotPrintable": "This SKU contains characters a barcode cannot carry",
       "skuTooWideForPaper": "This SKU is too long to print a scannable barcode on the current paper width. Use 80mm paper, a shorter SKU, or print a label sheet instead.",
       "unitArchived": "That unit has been archived — pick another"
+    },
+    "manufacturer": {
+      "codeTaken": "This manufacturer code is already in use",
+      "nameTaken": "An active manufacturer with this name already exists"
     },
     "supplier": {
       "codeTaken": "This supplier code is already in use",

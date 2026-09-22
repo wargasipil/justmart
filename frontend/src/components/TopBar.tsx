@@ -4,7 +4,6 @@ import {
   Button,
   Flex,
   HStack,
-  IconButton,
   Menu,
   Portal,
   Stack,
@@ -16,7 +15,7 @@ import ChangePasswordDialog from "./ChangePasswordDialog";
 import UserAvatar from "./UserAvatar";
 import LowStockBell from "./topbar/LowStockBell";
 import WarehouseSelector from "./topbar/WarehouseSelector";
-import { KeyRound, Languages, LogOut, Menu as MenuIcon, Moon, Sun, User as UserIcon } from "lucide-react";
+import { KeyRound, Languages, LogOut, Moon, Sun, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +25,7 @@ import { useAuth } from "../lib/auth";
 import { displayName, roleKey } from "../lib/roles";
 import { usePreferencesStore, type Locale } from "../stores/preferences";
 
+// Below `md` the nav lives in <BottomNav>, so the bar carries no hamburger.
 export default function TopBar() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -34,7 +34,6 @@ export default function TopBar() {
   const setTheme = usePreferencesStore((s) => s.setTheme);
   const locale = usePreferencesStore((s) => s.locale);
   const setLocale = usePreferencesStore((s) => s.setLocale);
-  const toggleSidebar = usePreferencesStore((s) => s.toggleSidebar);
 
   const [passwordOpen, setPasswordOpen] = useState(false);
 
@@ -59,19 +58,10 @@ export default function TopBar() {
       borderBottomWidth="1px"
       h="56px"
     >
-      <Flex align="center" justify="space-between" h="100%" px={4}>
-        {/* Left slot: hamburger + the app-wide "you are here" trail. The trail
-            is derived from the URL (lib/breadcrumbs.ts) — pages never pass it. */}
+      <Flex align="center" justify="space-between" h="100%" px={{ base: 2, md: 4 }} gap={2}>
+        {/* Left slot: the app-wide "you are here" trail. It is derived from
+            the URL (lib/breadcrumbs.ts) — pages never pass it. */}
         <HStack gap={2} minW={0} flex="1">
-          <IconButton
-            aria-label="toggle sidebar"
-            variant="ghost"
-            size="sm"
-            onClick={toggleSidebar}
-            display={{ base: "inline-flex", md: "none" }}
-          >
-            <MenuIcon size={18} />
-          </IconButton>
           {user && <Breadcrumbs />}
         </HStack>
 

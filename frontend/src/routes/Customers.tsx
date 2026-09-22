@@ -109,7 +109,7 @@ export default function Customers() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={customersQ.total}
+          total={customersQ.total} loading={customersQ.isPlaceholderData}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />

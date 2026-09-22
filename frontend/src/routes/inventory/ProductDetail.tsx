@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Badge,
   Box,
@@ -22,12 +22,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
 import ProductImage from "../../components/ProductImage";
+import { manufacturerLabel } from "../../components/ManufacturerSelect";
 import ProductImagePicker from "./ProductImagePicker";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
 import { useAuth } from "../../lib/auth";
 import { formatMoney } from "../../lib/format";
 import { canSeeCost } from "../../lib/roles";
+import { useManufacturerRefs } from "../../queries/refs";
 import { toast } from "../../lib/toaster";
 import {
   useArchiveProductMutation,
@@ -65,6 +67,10 @@ export default function ProductDetail() {
 
   const medQ = useProductQuery(id);
   useCrumbLabel(medQ.data?.name);
+  // Resolve-by-IDs for the one referenced pabrik (HARD RULE) — bounded to a
+  // single id, and disabled entirely when the product has none.
+  const mfrId = medQ.data?.manufacturerId ?? "";
+  const mfrRefs = useManufacturerRefs(useMemo(() => (mfrId ? [mfrId] : []), [mfrId]));
   const archive = useArchiveProductMutation();
   const unarchive = useUnarchiveProductMutation();
   // Each tab owns its own query and pager (keyed by product id, so navigating to
@@ -214,6 +220,12 @@ export default function ProductDetail() {
                   <Field
                     label={t("inventory.products.unit")}
                     value={med.unit}
+                  />
+                  {/* Pabrik — outside the showCost gate: who made it is not
+                      purchase cost, so the till sees it like the SKU. */}
+                  <Field
+                    label={t("inventory.products.manufacturer")}
+                    value={manufacturerLabel(mfrRefs.get(med.manufacturerId)) ?? "—"}
                   />
                   <Field
                     label={t("inventory.products.unitPrice")}

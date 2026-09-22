@@ -39,6 +39,7 @@ import (
 	"github.com/justmart/backend/internal/service/connector"
 	"github.com/justmart/backend/internal/service/customer"
 	"github.com/justmart/backend/internal/service/health"
+	"github.com/justmart/backend/internal/service/manufacturer"
 	"github.com/justmart/backend/internal/service/prescription"
 	"github.com/justmart/backend/internal/service/priceagreement"
 	"github.com/justmart/backend/internal/service/product"
@@ -92,6 +93,7 @@ type Handlers struct {
 	Stock             *stock.StockService
 	Stocktakes        *stocktake.StocktakeService
 	Suppliers         *supplier.SupplierService
+	Manufacturers     *manufacturer.ManufacturerService
 	Transfers         *transfer.TransferService
 	Units             *unit.UnitService
 	Users             *user.UserService
@@ -150,6 +152,7 @@ var serviceSet = wire.NewSet(
 	stock.NewStockService,
 	stocktake.NewStocktakeService,
 	supplier.NewSupplierService,
+	manufacturer.NewManufacturerService,
 	transfer.NewTransferService,
 	unit.NewUnitService,
 	user.NewUserService,
@@ -319,6 +322,7 @@ func provideRootHandler(h Handlers, interceptors connect.HandlerOption) http.Han
 	apiMux.Handle(userifacev1connect.NewAuthServiceHandler(h.Auth, interceptors))
 	apiMux.Handle(userifacev1connect.NewUserServiceHandler(h.Users, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewSupplierServiceHandler(h.Suppliers, interceptors))
+	apiMux.Handle(inventoryifacev1connect.NewManufacturerServiceHandler(h.Manufacturers, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewPriceAgreementServiceHandler(h.PriceAgreements, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductDiscountServiceHandler(h.ProductDiscounts, interceptors))
 	apiMux.Handle(inventoryifacev1connect.NewProductPriceTierServiceHandler(h.ProductPriceTiers, interceptors))

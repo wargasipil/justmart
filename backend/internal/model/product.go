@@ -10,6 +10,12 @@ type Product struct {
 	UnitPrice            int64  `gorm:"not null;column:unit_price"`
 	PrescriptionRequired bool   `gorm:"not null;default:false;column:prescription_required"`
 	Active               bool   `gorm:"not null;default:true"`
+	// Who MADE this product ("pabrik"). Pointer because the column is nullable
+	// and NULL is the normal state — a product has a manufacturer only once
+	// someone records one. Stored as *string so "" and "unset" stay distinct:
+	// UpdateProduct writes NULL to CLEAR the link, and a non-pointer field
+	// would make that indistinguishable from "leave it alone".
+	ManufacturerID *string `gorm:"column:manufacturer_id"`
 	// Denormalized "has a picture, and how fresh" marker. NULL = none. The bytes
 	// live in ProductImage; this is what every product read carries instead.
 	ImageUpdatedAt *time.Time `gorm:"column:image_updated_at"`

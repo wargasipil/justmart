@@ -8,7 +8,7 @@ import { Emitted } from "../routes/dev/storyDecorators";
 import { formatAbsolute, rangeBounds, resolveRange, type DateRange } from "../lib/dateRange";
 
 const meta = {
-  title: "Toolbar & filters/DateRangeFilter",
+  title: "components/toolbar/DateRangeFilter",
   component: DateRangeFilter,
   parameters: storyDocs("date-range-filter"),
   tags: ["autodocs"],

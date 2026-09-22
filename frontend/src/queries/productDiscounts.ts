@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { productDiscountClient } from "../lib/clients";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 import type {
   CreateProductDiscountRequest,
   UpdateProductDiscountRequest,
@@ -23,6 +23,7 @@ export function useProductDiscountsQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productDiscountKeys.list(productId, page, pageSize),
+    placeholderData: keepPageData(productDiscountKeys.list(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productDiscountClient.listProductDiscounts({
         productId,

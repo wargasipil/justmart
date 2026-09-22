@@ -4,7 +4,7 @@ import BackButton from "./BackButton";
 import { storyDocs } from "../routes/dev/storyDocs";
 
 const meta = {
-  title: "Layout & page chrome/BackButton",
+  title: "components/layout/BackButton",
   component: BackButton,
   parameters: storyDocs("back-button"),
   tags: ["autodocs"],

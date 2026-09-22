@@ -134,7 +134,26 @@ func productToProto(m *model.Product) *inventoryifacev1.Product {
 		Active:               m.Active,
 		CreatedAt:            m.CreatedAt.Unix(),
 		ImageUpdatedAt:       imageAt,
+		ManufacturerId:       derefString(m.ManufacturerID),
 	}
+}
+
+func derefString(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
+// manufacturerRef turns the wire's string into the column's nullable form: ""
+// means "no manufacturer" and must be stored as NULL, not as an empty string
+// that would violate the FK. On update this is also how the link is CLEARED.
+func manufacturerRef(id string) *string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil
+	}
+	return &id
 }
 
 func productUnitToProto(u *model.ProductUnit) *inventoryifacev1.ProductUnit {

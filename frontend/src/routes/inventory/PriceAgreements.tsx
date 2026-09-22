@@ -231,7 +231,7 @@ export default function PriceAgreements() {
           </TableScroll>
         )}
 
-        <Pagination page={page} pageSize={pageSize} total={q.total} onPageChange={setPage} onPageSizeChange={setPageSize} />
+        <Pagination page={page} pageSize={pageSize} total={q.total} loading={q.isPlaceholderData} onPageChange={setPage} onPageSizeChange={setPageSize} />
       </Stack>
 
       <PriceAgreementDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} editing={editing} />

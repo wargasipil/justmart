@@ -27,6 +27,7 @@
   "common": {
     "loading": "Memuat…",
     "exportCsv": "Ekspor CSV",
+    "selectManufacturer": "Pilih pabrik",
     "selectSupplier": "Pilih pemasok",
     "selectWarehouse": "Pilih gudang",
     "save": "Simpan",
@@ -47,15 +48,18 @@
     "inactive": "Tidak aktif",
     "actions": "Aksi",
     "showArchived": "Tampilkan arsip",
+    "archived": "Diarsipkan",
     "noResults": "Tidak ada hasil",
     "pagination": {
       "showing": "Menampilkan {{from}}–{{to}} dari {{total}}",
       "prev": "Sebelumnya",
       "next": "Berikutnya",
+      "loadMore": "Muat lebih banyak",
       "perPage": "{{count}} / halaman"
     },
     "back": "Kembali",
-    "clear": "Hapus"
+    "clear": "Hapus",
+    "section": "Bagian"
   },
   "nav": {
     "dashboard": "Dasbor",
@@ -83,6 +87,10 @@
     "settings": "Pengaturan",
     "signOut": "Keluar",
     "userMenu": "Menu pengguna",
+    "home": "Beranda",
+    "menu": "Menu",
+    "profileShort": "Profil",
+    "mobileNav": "Navigasi utama",
     "language": "Bahasa",
     "theme": "Tema",
     "themeDark": "Gelap",
@@ -90,7 +98,11 @@
     "components": "Komponen"
   },
   "filters": {
-    "cashierAll": "Semua kasir"
+    "cashierAll": "Semua kasir",
+    "button": "Filter",
+    "title": "Filter",
+    "reset": "Atur ulang",
+    "done": "Selesai"
   },
   "myPerformance": {
     "title": "Performa saya",
@@ -707,6 +719,7 @@
       "tabArchived": "$t(glossary.productsCap) Diarsipkan",
       "addTitle": "Tambah $t(glossary.productCap)",
       "editTitle": "Ubah $t(glossary.productCap)",
+      "manufacturer": "Pabrik",
       "sku": "SKU",
       "name": "Nama",
       "unit": "Satuan",
@@ -824,6 +837,33 @@
       "imageUpdated": "Foto produk diperbarui",
       "imageHelp": "JPG, PNG, atau WebP. Foto persegi dengan latar polos paling terbaca di POS.",
       "imagePreview": "Pratinjau foto"
+    },
+    "manufacturers": {
+      "title": "Pabrik",
+      "addTitle": "Tambah Pabrik",
+      "detailDescription": "Detail kontak pabrik ini dan produk yang dibuatnya.",
+      "infoSection": "Informasi",
+      "productsSection": "Produk dari pabrik ini",
+      "productsSearchPlaceholder": "Cari nama / SKU…",
+      "productName": "Nama",
+      "productPrice": "Harga",
+      "productReady": "Stok siap",
+      "productsEmpty": "Belum ada produk yang ditautkan ke pabrik ini.",
+      "editTitle": "Ubah Pabrik",
+      "confirmArchive": "Arsipkan pabrik ini? Pabrik disembunyikan dari daftar aktif tetapi riwayatnya tetap tersimpan. Anda bisa memulihkannya nanti.",
+      "confirmUnarchive": "Pulihkan pabrik ini ke daftar aktif?",
+      "code": "Kode",
+      "name": "Nama",
+      "phone": "Telepon",
+      "email": "Email",
+      "address": "Alamat",
+      "note": "Catatan",
+      "notePlaceholder": "Prinsipal, no. izin edar, dll.",
+      "summary": {
+        "total": "Total pabrik"
+      },
+      "searchPlaceholder": "Cari kode / nama…",
+      "empty": "Belum ada pabrik. Tambahkan yang pertama."
     },
     "suppliers": {
       "title": "Pemasok",
@@ -1166,6 +1206,10 @@
       "skuNotPrintable": "SKU ini memuat karakter yang tidak bisa dibawa barcode",
       "skuTooWideForPaper": "SKU ini terlalu panjang untuk mencetak barcode yang bisa dipindai pada lebar kertas saat ini. Gunakan kertas 80mm, SKU yang lebih pendek, atau cetak lembar label.",
       "unitArchived": "Satuan itu sudah diarsipkan — pilih yang lain"
+    },
+    "manufacturer": {
+      "codeTaken": "Kode pabrik ini sudah dipakai",
+      "nameTaken": "Pabrik aktif dengan nama ini sudah ada"
     },
     "supplier": {
       "codeTaken": "Kode pemasok ini sudah dipakai",

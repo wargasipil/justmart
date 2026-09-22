@@ -207,7 +207,7 @@ export default function GrosirPanel({ product }: { product: Product }) {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={q.total}
+        total={q.total} loading={q.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

@@ -60,7 +60,7 @@ function Rows({ wide = false }: { wide?: boolean }) {
 }
 
 const meta = {
-  title: "Data display/TableScroll",
+  title: "components/data/TableScroll",
   component: TableScroll,
   parameters: storyDocs("table-scroll"),
   tags: ["autodocs"],

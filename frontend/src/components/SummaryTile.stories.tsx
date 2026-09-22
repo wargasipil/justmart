@@ -5,7 +5,7 @@ import SummaryTile from "./SummaryTile";
 import { storyDocs } from "../routes/dev/storyDocs";
 
 const meta = {
-  title: "Layout & page chrome/SummaryTile",
+  title: "components/layout/SummaryTile",
   component: SummaryTile,
   parameters: storyDocs("summary-tile"),
   tags: ["autodocs"],

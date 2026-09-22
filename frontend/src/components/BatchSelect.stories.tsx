@@ -7,7 +7,7 @@ import { storyDocs } from "../routes/dev/storyDocs";
 import { Emitted } from "../routes/dev/storyDecorators";
 
 const meta = {
-  title: "Selects & pickers/BatchSelect",
+  title: "components/selects/BatchSelect",
   component: BatchSelect,
   parameters: storyDocs("batch-select", { needsBackend: true }),
   tags: ["autodocs", "needs-backend"],

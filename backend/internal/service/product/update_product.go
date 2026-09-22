@@ -54,6 +54,10 @@ func (s *ProductService) UpdateProduct(
 			"name":                  name,
 			"unit":                  unit,
 			"prescription_required": req.Msg.PrescriptionRequired,
+			// Always written, so an empty id CLEARS the link (NULL) rather than
+			// being indistinguishable from "field omitted" — the form always
+			// sends the current value.
+			"manufacturer_id": manufacturerRef(req.Msg.ManufacturerId),
 		}
 		// SKU is an editable unique business code. Apply only when a (changed)
 		// value is provided — empty keeps the current SKU (partial-update safe).

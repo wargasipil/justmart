@@ -12,7 +12,7 @@ import type {
 } from "../gen/inventory_iface/v1/product_pb";
 
 import { dataUrlFromBytes, makeImageRenditions } from "../lib/imageRenditions";
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type ProductsQueryOpts = {
   includeInactive?: boolean;
@@ -71,6 +71,7 @@ export function useLowStockQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: ["lowStock", page, pageSize],
+    placeholderData: keepPageData(["lowStock", page, pageSize]),
     queryFn: async () => {
       const res = await productClient.listLowStock({
         limit: pageSize,
@@ -113,6 +114,7 @@ export function useProductsQuery(opts: ProductsQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: productKeys.list({ includeInactive, onlyArchived, query, opnameBefore, page, pageSize }),
+    placeholderData: keepPageData(productKeys.list({ includeInactive, onlyArchived, query, opnameBefore, page, pageSize })),
     queryFn: async () => {
       const res = await productClient.listProducts({
         includeInactive,
@@ -202,6 +204,7 @@ export function useProductPricesQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productKeys.prices(productId, page, pageSize),
+    placeholderData: keepPageData(productKeys.prices(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productClient.listProductPrices({
         productId,
@@ -225,6 +228,7 @@ export function useProductUnitPricesQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productKeys.unitPrices(productId, page, pageSize),
+    placeholderData: keepPageData(productKeys.unitPrices(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productClient.listProductUnitPrices({
         productId,
@@ -248,6 +252,7 @@ export function useProductRestockLogsQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productKeys.restockLogs(productId, page, pageSize),
+    placeholderData: keepPageData(productKeys.restockLogs(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productClient.listProductRestockLogs({
         productId,

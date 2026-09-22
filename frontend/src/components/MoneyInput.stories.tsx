@@ -21,7 +21,7 @@ function Controlled({ value, ...rest }: React.ComponentProps<typeof MoneyInput>)
 }
 
 const meta = {
-  title: "Forms & inputs/MoneyInput",
+  title: "components/forms/MoneyInput",
   component: MoneyInput,
   parameters: storyDocs("money-input"),
   tags: ["autodocs"],

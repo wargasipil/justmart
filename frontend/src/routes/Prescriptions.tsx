@@ -201,7 +201,7 @@ export default function Prescriptions() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={rxQ.total}
+          total={rxQ.total} loading={rxQ.isPlaceholderData}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />

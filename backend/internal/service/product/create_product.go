@@ -82,6 +82,7 @@ func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, us
 		Unit:                 strings.TrimSpace(msg.Unit),
 		UnitPrice:            msg.UnitPrice,
 		PrescriptionRequired: msg.PrescriptionRequired,
+		ManufacturerID:       manufacturerRef(msg.ManufacturerId),
 		Active:               true,
 	}
 	if err := tx.Create(med).Error; err != nil {

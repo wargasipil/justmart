@@ -18,7 +18,7 @@ const DATA = [
 const plot = <TrendChart data={DATA} xKey="day" money series={[{ dataKey: "revenue", label: "Terjual" }]} />;
 
 const meta = {
-  title: "Data display/ChartCard",
+  title: "components/data/ChartCard",
   component: ChartCard,
   parameters: storyDocs("chart-card"),
   tags: ["autodocs"],

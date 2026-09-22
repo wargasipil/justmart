@@ -58,6 +58,8 @@ const ROUTES: RouteDef[] = [
 
   { path: "/inventory/suppliers", labelKey: "inventory.tabs.suppliers", parent: "@inventory" },
   { path: "/inventory/suppliers/:id", dynamic: true, parent: "/inventory/suppliers" },
+  { path: "/inventory/manufacturers", labelKey: "inventory.manufacturers.title", parent: "@inventory" },
+  { path: "/inventory/manufacturers/:id", dynamic: true, parent: "/inventory/manufacturers" },
   { path: "/inventory/price-agreements", labelKey: "nav.priceAgreements", parent: "@inventory" },
   {
     path: "/inventory/price-agreements/new",

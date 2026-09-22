@@ -4,11 +4,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { Decorator, Preview } from "@storybook/react";
 import type { ReactNode } from "react";
+import { mswLoader } from "msw-storybook-addon/csf3";
+import { MINIMAL_VIEWPORTS } from "storybook/viewport";
 import { z } from "zod";
 
 import i18n from "../src/lib/i18n";
 import { zodErrorMap } from "../src/lib/zodErrorMap";
 import { AppToaster } from "../src/lib/toaster";
+import { VIEWPORTS } from "../src/screens/viewports";
 import { usePreferencesStore, type Locale, type Theme } from "../src/stores/preferences";
 
 // Install the global Zod error map, exactly as main.tsx does after i18n init —
@@ -29,11 +32,13 @@ function StoryProviders({
   theme,
   locale,
   initialEntries,
+  padding,
   children,
 }: {
   theme: Theme;
   locale: Locale;
   initialEntries: string[];
+  padding: number;
   children: ReactNode;
 }) {
   // One client per story render. A module-level singleton would leak cached
@@ -66,7 +71,7 @@ function StoryProviders({
         <MemoryRouter initialEntries={initialEntries}>
           {/* Explicit bg/fg so the canvas follows the theme toggle — Storybook
               paints its own white ground behind the story otherwise. */}
-          <Box bg="bg" color="fg" minH="100vh" p={6}>
+          <Box bg="bg" color="fg" minH="100vh" p={padding}>
             {children}
           </Box>
           <AppToaster />
@@ -83,6 +88,9 @@ const withProviders: Decorator = (Story, context) => (
     // A story that cares where it "is" (RouteTabs, Breadcrumbs, an active nav
     // link) sets parameters.router.initialEntries.
     initialEntries={(context.parameters.router?.initialEntries as string[]) ?? ["/"]}
+    // A full-app screen (screens/<device>/*) draws its own chrome edge to edge
+    // and sets 0; a phone page story matches the shell's narrower gutter.
+    padding={(context.parameters.canvasPadding as number | undefined) ?? 6}
   >
     <Story />
   </StoryProviders>
@@ -90,6 +98,13 @@ const withProviders: Decorator = (Story, context) => (
 
 const preview: Preview = {
   decorators: [withProviders],
+
+  // Starts the MSW worker before a story renders and resets handlers between
+  // stories. Nothing is mocked globally: a page story declares its own
+  // handlers in `parameters.msw` (see routes/dev/storyMocks.ts), and a
+  // story with none — every component story, including the three
+  // `needs-backend` ones — passes straight through to the vite /api proxy.
+  loaders: [mswLoader()],
 
   globalTypes: {
     theme: {
@@ -125,6 +140,9 @@ const preview: Preview = {
     // Storybook's backgrounds addon would just fight it.
     layout: "fullscreen",
     backgrounds: { disable: true },
+    // The two versions of Justmart. screens/desktop/* and screens/mobile/*
+    // pin one via `globals`; component stories leave the toolbar free.
+    viewport: { options: { ...VIEWPORTS, ...MINIMAL_VIEWPORTS } },
     controls: {
       matchers: { color: /(background|color)$/i, date: /Date$/i },
     },

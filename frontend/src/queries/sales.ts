@@ -19,7 +19,7 @@ import type {
   SetSaleCustomerRequest,
   VoidSaleRequest,
 } from "../gen/pos_iface/v1/sale_pb";
-import { ALL_LIMIT } from "../lib/pagination";
+import { ALL_LIMIT, keepPageData } from "../lib/pagination";
 
 export const saleKeys = {
   all: ["sales"] as const,
@@ -191,6 +191,7 @@ export function usePrintReceiptMutation() {
 export function useListSalesQuery(filters: PartialMessage<ListSalesRequest> = {}) {
   const q = useQuery({
     queryKey: saleKeys.list(filters),
+    placeholderData: keepPageData(saleKeys.list(filters)),
     queryFn: async () => {
       const res = await saleClient.listSales(filters);
       return { rows: res.sales, total: res.total };

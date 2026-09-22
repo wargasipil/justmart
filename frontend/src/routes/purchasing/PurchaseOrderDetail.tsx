@@ -357,7 +357,7 @@ export default function PurchaseOrderDetail() {
           <Pagination
             page={returnsPage.page}
             pageSize={returnsPage.pageSize}
-            total={returnsQ.total}
+            total={returnsQ.total} loading={returnsQ.isPlaceholderData}
             onPageChange={returnsPage.setPage}
             onPageSizeChange={returnsPage.setPageSize}
           />

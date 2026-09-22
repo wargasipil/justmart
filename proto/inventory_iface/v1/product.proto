@@ -51,6 +51,11 @@ message Product {
   // marker is what tells the UI whether to fetch at all, and doubles as the
   // client cache key so a re-upload appears without an invalidate.
   int64 image_updated_at = 29;
+  // Who MADE this product ("pabrik"), as opposed to the supplier who sold it
+  // to the shop. Resolve to a name via ResolveManufacturers — never rendered
+  // as a raw id. Empty = not recorded, which is every product until someone
+  // sets it.
+  string manufacturer_id = 30;
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -292,6 +297,7 @@ message CreateProductRequest {
   int64 unit_price = 5;       // base unit sell price
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // optional; if empty, a base unit is created from unit/unit_price
+  string manufacturer_id = 8;           // optional; "" = none
 }
 message CreateProductResponse { Product product = 1; }
 
@@ -328,6 +334,7 @@ message UpdateProductRequest {
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // upsert the full unit set (exactly one is_base, base factor 1)
   string sku = 8;                        // editable business code; unique (excludes self on update)
+  string manufacturer_id = 9;            // optional; "" clears it
 }
 message UpdateProductResponse { Product product = 1; }
 

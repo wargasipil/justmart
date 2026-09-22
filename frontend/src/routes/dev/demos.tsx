@@ -42,11 +42,14 @@ import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
 import StockUnitPopover from "../../components/StockUnitPopover";
 import SummaryTile from "../../components/SummaryTile";
+import ManufacturerSelect from "../../components/ManufacturerSelect";
 import SupplierSelect from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import TrendChart from "../../components/TrendChart";
 import UserAvatar from "../../components/UserAvatar";
 import ProductImage from "../../components/ProductImage";
+import ProductItem from "../../components/products/ProductItem";
+import ProductItemMobile from "../../components/products/ProductItemMobile";
 import ProductPickerDialog from "../../components/ProductPickerDialog";
 import WarehouseSelect from "../../components/WarehouseSelect";
 import {
@@ -440,6 +443,18 @@ export function SupplierSelectDemo() {
   );
 }
 
+// Like SupplierSelectDemo, this one IS a server search — it needs the dev
+// backend to return rows. Listed as needs-backend in the registry.
+export function ManufacturerSelectDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <Stack gap={2} maxW="280px">
+      <ManufacturerSelect value={value} onChange={setValue} />
+      <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
 const FAKE_WAREHOUSES = [
   new Warehouse({ id: "w1", code: "MAIN", name: "Gudang Utama" }),
   new Warehouse({ id: "w2", code: "CAB-01", name: "Cabang Kemang" }),
@@ -755,6 +770,35 @@ export function ProductImageDemo() {
       <ProductImage productId="demo-3" name="Vitamin C" version={0} size={56} />
       <ProductImage productId="demo-4" name="Antasida" version={0} size={96} />
     </HStack>
+  );
+}
+
+// Sample products — imageUpdatedAt 0 = no picture, so no fetch.
+const DEMO_ITEMS = [
+  { id: "demo-p1", name: "Indomie Goreng 85 g", sku: "8998866200011", imageUpdatedAt: 0n, unit: "pcs", unitPrice: 3_500n, readyStock: 320n, active: true },
+  { id: "demo-p2", name: "Minyak Goreng Bimoli Spesial 2 L Pouch Isi Ulang", sku: "8992628020015", imageUpdatedAt: 0n, unit: "pouch", unitPrice: 38_900n, readyStock: 0n, active: true },
+];
+
+export function ProductItemDemo() {
+  return (
+    <Stack gap={4}>
+      <ProductItem product={DEMO_ITEMS[0]} />
+      <ProductItem product={DEMO_ITEMS[1]} size={28} meta=" · pouch" />
+    </Stack>
+  );
+}
+
+export function ProductItemMobileDemo() {
+  const [last, setLast] = useState("");
+  return (
+    <Stack gap={0} maxW="390px" borderWidth="1px" borderRadius="md">
+      {DEMO_ITEMS.map((p) => (
+        <ProductItemMobile key={p.id} product={p} onClick={() => setLast(p.sku)} />
+      ))}
+      <Text fontSize="xs" color="fg.muted" px={3} py={2}>
+        {last || "—"}
+      </Text>
+    </Stack>
   );
 }
 

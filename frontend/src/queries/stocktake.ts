@@ -13,7 +13,7 @@ import type {
   VoidStocktakeRequest,
 } from "../gen/stocktake_iface/v1/stocktake_pb";
 
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 // The date range the list and the stat row share. dateField "" = Any date (the
 // picker's own off state), in which case no bounds are sent at all.
@@ -61,6 +61,7 @@ export function useStocktakesQuery(opts: StocktakesQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: stocktakeKeys.list({ status, page, pageSize, fromUnix, toUnix, dateField }),
+    placeholderData: keepPageData(stocktakeKeys.list({ status, page, pageSize, fromUnix, toUnix, dateField })),
     queryFn: async () => {
       const res = await stocktakeClient.listStocktakes({
         status,

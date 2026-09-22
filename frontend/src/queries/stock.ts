@@ -9,7 +9,7 @@ import {
 } from "../gen/inventory_iface/v1/stock_pb";
 import { batchKeys } from "./batches";
 
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type MovementsQueryOpts = {
   batchId?: string;
@@ -51,6 +51,7 @@ export function useMovementsQuery(opts: MovementsQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: stockKeys.movements({ batchId, productId, type, query, fromUnix, toUnix, page, pageSize }),
+    placeholderData: keepPageData(stockKeys.movements({ batchId, productId, type, query, fromUnix, toUnix, page, pageSize })),
     queryFn: async () => {
       const res = await stockClient.listMovements({
         batchId,

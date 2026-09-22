@@ -7,11 +7,10 @@ import {
   SimpleGrid,
   Spinner,
   Stack,
-  Table,
   Tabs,
   Text,
 } from "@chakra-ui/react";
-import { Plus, Search, Upload } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -22,7 +21,6 @@ import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
 import StockUnitPopover from "../../components/StockUnitPopover";
 import SummaryTile from "../../components/SummaryTile";
-import TableScroll from "../../components/TableScroll";
 import { formatCount, formatMoney } from "../../lib/format";
 import { ALL_LIMIT, usePageState } from "../../lib/pagination";
 import { canSeeCost } from "../../lib/roles";
@@ -41,6 +39,8 @@ import {
 } from "../../stores/preferences";
 import { CreateProductDialog } from "./productDrawers";
 import ImportProductsDialog from "./ImportProductsDialog";
+import ProductFilterSheet from "./ProductFilterSheet";
+import ProductResults from "./ProductResults";
 import {
   buildProductColumns,
   exportProductsCsv,
@@ -58,6 +58,7 @@ export default function Products() {
   const catalogLabel = isPharmacy ? t("nav.medicines") : t("nav.products");
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [opnameBefore, setOpnameBefore] = useState("");
@@ -107,6 +108,10 @@ export default function Products() {
     () => unitGroupsFromCatalog(unitsQ.rows, productsQ.rows),
     [unitsQ.rows, productsQ.rows],
   );
+  // The phone Filter button's badge: everything its sheet can change.
+  const activeFilterCount =
+    (opnameBefore ? 1 : 0) +
+    stockUnitGroups.filter((g) => stockUnitsByBase[g.baseName]).length;
 
   // Resolve the "last supplier that restocked" names for the page's rows. Empty
   // for the till: the ids are redacted server-side and ResolveSuppliers is
@@ -143,6 +148,23 @@ export default function Products() {
       <PageHeader
         title={catalogLabel}
         description={t("inventory.products.description")}
+        actions={
+          // Phone: Add sits top-right in the header, where the toolbar below
+          // would otherwise bury it under the filters. md+ keeps it at the end
+          // of the toolbar. Manager-only, like the toolbar copy.
+          showCost && (
+            <Box hideFrom="md">
+              <Button
+                size="sm"
+                colorPalette="blue"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus size={16} />
+                {t("inventory.products.addTitle")}
+              </Button>
+            </Box>
+          )
+        }
       />
       <Stack gap={4}>
         {/* Stock at a glance, above the tabs: it summarizes the whole catalog,
@@ -156,8 +178,10 @@ export default function Products() {
         {/* Half of these tiles are valuations at cost, and the RPC behind all
             four is manager-only — so the row is dropped whole for the till
             rather than shown with two empty cells. */}
+        {/* Phone: dropped — four stacked tiles pushed the first product a
+            full screen down, and the list is what a phone visit is for. */}
         {showCost && (
-          <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
+          <SimpleGrid hideBelow="md" columns={{ base: 1, sm: 2, lg: 4 }} gap={3}>
             <SummaryTile
               label={t("inventory.products.summary.ready")}
               value={formatCount(summary?.readyStock ?? 0n)}
@@ -193,26 +217,52 @@ export default function Products() {
         </Tabs.Root>
 
         <HStack justify="space-between" wrap="wrap" gap={2}>
-          <Box position="relative">
+          <HStack gap={2} width={{ base: "full", sm: "auto" }}>
             <Box
-              position="absolute"
-              left={2}
-              top="50%"
-              transform="translateY(-50%)"
-              color="fg.muted"
+              position="relative"
+              flex={{ base: "1", sm: "none" }}
+              width={{ base: "auto", sm: "280px" }}
             >
-              <Search size={14} />
+              <Box
+                position="absolute"
+                left={2}
+                top="50%"
+                transform="translateY(-50%)"
+                color="fg.muted"
+              >
+                <Search size={14} />
+              </Box>
+              <Input
+                size="sm"
+                pl={7}
+                width="full"
+                placeholder={t("inventory.products.searchPlaceholder")}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
             </Box>
-            <Input
+            {/* Phone: the filters live in a bottom sheet; search stays out
+                here because it's used on every visit. */}
+            <Button
               size="sm"
-              pl={7}
-              width="280px"
-              placeholder={t("inventory.products.searchPlaceholder")}
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
-          </Box>
-          <HStack gap={2}>
+              variant="outline"
+              hideFrom="md"
+              onClick={() => setFilterOpen(true)}
+            >
+              <SlidersHorizontal size={14} />
+              {t("filters.button")}
+              {activeFilterCount > 0 && (
+                <Text as="span" color="fg.muted" fontSize="xs" ms={1}>
+                  · {activeFilterCount}
+                </Text>
+              )}
+            </Button>
+          </HStack>
+          {/* md+ only. On a phone the filters (opname, units) move to the
+              Filter sheet, Add moves up into the PageHeader, and Columns /
+              Export / Import are dropped — Columns shapes only the md+ table,
+              and a CSV round-trip is desk work. */}
+          <HStack gap={2} wrap="wrap" hideBelow="md">
             <Text fontSize="sm" color="fg.muted">
               {t("inventory.products.opnameBefore")}
             </Text>
@@ -265,56 +315,18 @@ export default function Products() {
             <Spinner />
           </Box>
         ) : (
-          <TableScroll>
-            <Table.Root size="sm" stickyHeader>
-              <Table.Header bg="bg.muted">
-                <Table.Row>
-                  {cols.map((c) => (
-                    <Table.ColumnHeader
-                      key={c.id}
-                      textAlign={c.alignEnd ? "end" : undefined}
-                    >
-                      {c.header}
-                    </Table.ColumnHeader>
-                  ))}
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {productsQ.rows.map((m) => (
-                  <Table.Row
-                    key={m.id}
-                    cursor="pointer"
-                    _hover={{ bg: "bg.muted" }}
-                    onClick={() => navigate(`/products/${m.id}`)}
-                  >
-                    {cols.map((c) => (
-                      <Table.Cell
-                        key={c.id}
-                        textAlign={c.alignEnd ? "end" : undefined}
-                      >
-                        {c.render(m)}
-                      </Table.Cell>
-                    ))}
-                  </Table.Row>
-                ))}
-                {productsQ.rows.length === 0 && (
-                  <Table.Row>
-                    <Table.Cell colSpan={cols.length}>
-                      <Text color="fg.muted" textAlign="center" py={4}>
-                        {t("common.noResults")}
-                      </Text>
-                    </Table.Cell>
-                  </Table.Row>
-                )}
-              </Table.Body>
-            </Table.Root>
-          </TableScroll>
+          <ProductResults
+            rows={productsQ.rows}
+            cols={cols}
+            stockUnitsByBase={stockUnitsByBase}
+            onOpen={(id) => navigate(`/products/${id}`)}
+          />
         )}
 
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={productsQ.total}
+          total={productsQ.total} loading={productsQ.isPlaceholderData}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />
@@ -322,6 +334,15 @@ export default function Products() {
         <CreateProductDialog
           open={createOpen}
           onClose={() => setCreateOpen(false)}
+        />
+        <ProductFilterSheet
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          opnameBefore={opnameBefore}
+          onOpnameBeforeChange={setOpnameBefore}
+          stockUnitsByBase={stockUnitsByBase}
+          onChangeStockUnit={setStockUnitByBase}
+          stockUnitGroups={stockUnitGroups}
         />
         <ImportProductsDialog
           open={importOpen}

@@ -15,7 +15,7 @@ const DATA = [
 ];
 
 const meta = {
-  title: "Data display/TrendChart",
+  title: "components/data/TrendChart",
   component: TrendChart,
   parameters: storyDocs("trend-chart"),
   tags: ["autodocs"],

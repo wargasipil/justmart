@@ -99,7 +99,7 @@ export default function Product() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={q.data?.total ?? 0}
+        total={q.data?.total ?? 0} loading={q.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

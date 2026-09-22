@@ -116,7 +116,7 @@ function UnitPriceHistory({ productId }: { productId: string }) {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={q.total}
+        total={q.total} loading={q.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />
@@ -187,7 +187,7 @@ function TierPriceHistory({ productId }: { productId: string }) {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={q.total}
+        total={q.total} loading={q.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

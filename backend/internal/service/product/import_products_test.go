@@ -105,7 +105,7 @@ func TestImportProducts_PartialSuccess(t *testing.T) {
 	resp, err := svc.ImportProducts(ctx, connect.NewRequest(&inventoryifacev1.ImportProductsRequest{
 		Products: []*inventoryifacev1.CreateProductRequest{
 			importRow("OK-1", "Valid", "tablet", 500),
-			importRow("BAD-1", "  ", "tablet", 100),  // blank name
+			importRow("BAD-1", "  ", "tablet", 100),       // blank name
 			importRow("BAD-2", "Neg price", "tablet", -5), // negative price
 		},
 	}))

@@ -182,7 +182,7 @@ export default function Transfers() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={transfersQ.total}
+        total={transfersQ.total} loading={transfersQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

@@ -197,7 +197,7 @@ export default function Batches() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={batchesQ.total}
+        total={batchesQ.total} loading={batchesQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

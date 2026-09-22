@@ -212,7 +212,7 @@ export default function SettingsUnits() {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={basesQ.total}
+        total={basesQ.total} loading={basesQ.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

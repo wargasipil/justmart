@@ -47,7 +47,7 @@ export default function Users() {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={usersQ.total}
+        total={usersQ.total} loading={usersQ.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

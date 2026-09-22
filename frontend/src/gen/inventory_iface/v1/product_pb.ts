@@ -275,6 +275,16 @@ export class Product extends Message<Product> {
    */
   imageUpdatedAt = protoInt64.zero;
 
+  /**
+   * Who MADE this product ("pabrik"), as opposed to the supplier who sold it
+   * to the shop. Resolve to a name via ResolveManufacturers — never rendered
+   * as a raw id. Empty = not recorded, which is every product until someone
+   * sets it.
+   *
+   * @generated from field: string manufacturer_id = 30;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -311,6 +321,7 @@ export class Product extends Message<Product> {
     { no: 27, name: "price_tiers", kind: "message", T: ProductPriceTier, repeated: true },
     { no: 28, name: "on_order_valuation", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 29, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 30, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {
@@ -1237,6 +1248,13 @@ export class CreateProductRequest extends Message<CreateProductRequest> {
    */
   units: ProductUnitInput[] = [];
 
+  /**
+   * optional; "" = none
+   *
+   * @generated from field: string manufacturer_id = 8;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<CreateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1251,6 +1269,7 @@ export class CreateProductRequest extends Message<CreateProductRequest> {
     { no: 5, name: "unit_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
+    { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateProductRequest {
@@ -1513,6 +1532,13 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
    */
   sku = "";
 
+  /**
+   * optional; "" clears it
+   *
+   * @generated from field: string manufacturer_id = 9;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<UpdateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1528,6 +1554,7 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
     { no: 6, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
     { no: 8, name: "sku", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateProductRequest {

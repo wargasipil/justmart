@@ -31,7 +31,7 @@ const STOCK = new MetricStock({
 const LABELS = new Map(DAYS.map((d) => [d, d]));
 
 const meta = {
-  title: "Data display/MetricTable",
+  title: "components/data/MetricTable",
   component: MetricTable,
   parameters: storyDocs("metric-table"),
   tags: ["autodocs"],

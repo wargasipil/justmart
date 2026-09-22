@@ -76,7 +76,7 @@ function DemoForm({ prefill }: { prefill?: Partial<Values> }) {
 }
 
 const meta = {
-  title: "Forms & inputs/FormField",
+  title: "components/forms/FormField",
   parameters: storyDocs("form-field"),
   tags: ["autodocs"],
 } satisfies Meta;

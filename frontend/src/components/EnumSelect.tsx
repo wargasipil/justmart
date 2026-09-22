@@ -18,6 +18,15 @@ export type EnumSelectProps<T> = {
   disabled?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
   width?: string | number;
+  /**
+   * Accessible name for the trigger, for a select that stands ALONE — one
+   * inside a `<Field.Root>` is already named by its `Field.Label` and should
+   * not pass this. Ark always writes an `aria-labelledby` pointing at a
+   * `Select.Label` this wrapper does not render, so a standalone select
+   * otherwise resolves to NO name at all and a screen reader announces a bare
+   * "combobox". Pass a translated string.
+   */
+  ariaLabel?: string;
 };
 
 type Entry = { label: string; value: string };
@@ -32,6 +41,7 @@ export default function EnumSelect<T>({
   disabled,
   size = "md",
   width,
+  ariaLabel,
 }: EnumSelectProps<T>) {
   // Memoize the collection so identity stays stable across renders — Chakra's
   // select machine spins if the collection swaps every paint.
@@ -62,7 +72,11 @@ export default function EnumSelect<T>({
     >
       <Select.HiddenSelect />
       <Select.Control>
-        <Select.Trigger>
+        {/* Ark's own aria-labelledby stays; it points at a Select.Label this
+            wrapper never renders, so it resolves to the empty string and the
+            accname algorithm falls through to aria-label. Verified in Chromium
+            via Playwright's accessible-name computation. */}
+        <Select.Trigger aria-label={ariaLabel}>
           <Select.ValueText placeholder={placeholder} />
         </Select.Trigger>
         <Select.IndicatorGroup>

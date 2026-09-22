@@ -8,7 +8,7 @@ import type {
   UpdateBatchRequest,
 } from "../gen/inventory_iface/v1/batch_pb";
 
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type BatchesQueryOpts = {
   productId?: string;
@@ -44,6 +44,7 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: batchKeys.list({ productId, supplierId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize }),
+    placeholderData: keepPageData(batchKeys.list({ productId, supplierId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize })),
     queryFn: async () => {
       const res = await batchClient.listBatches({
         productId,

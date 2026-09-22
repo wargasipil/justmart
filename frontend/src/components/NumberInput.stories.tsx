@@ -18,7 +18,7 @@ function Controlled({ value, ...rest }: React.ComponentProps<typeof NumberInput>
 }
 
 const meta = {
-  title: "Forms & inputs/NumberInput",
+  title: "components/forms/NumberInput",
   component: NumberInput,
   parameters: storyDocs("number-input"),
   tags: ["autodocs"],

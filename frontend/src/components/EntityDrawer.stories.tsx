@@ -51,7 +51,7 @@ function Demo({
 }
 
 const meta = {
-  title: "Overlays/EntityDrawer",
+  title: "components/overlays/EntityDrawer",
   component: EntityDrawer,
   parameters: storyDocs("entity-drawer"),
   tags: ["autodocs"],

@@ -47,8 +47,10 @@ export default function AvatarPicker({ userId, name, version }: Props) {
     <Stack gap={2} align="center">
       <UserAvatar userId={userId} name={name} version={version} size="2xl" />
       <HStack gap={1}>
+        {/* xs is a 24px target — fine for a mouse, small for a thumb, so the
+            actions grow on a phone. */}
         <Button
-          size="xs"
+          size={{ base: "sm", md: "xs" }}
           variant="outline"
           onClick={() => inputRef.current?.click()}
           loading={upload.isPending}
@@ -58,7 +60,7 @@ export default function AvatarPicker({ userId, name, version }: Props) {
         </Button>
         {version > 0 && (
           <IconButton
-            size="xs"
+            size={{ base: "sm", md: "xs" }}
             variant="ghost"
             aria-label={t("profile.avatarRemove")}
             onClick={() => setConfirmRemove(true)}

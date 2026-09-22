@@ -87,7 +87,7 @@ export default function ProductMovementsTab({
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={q.total}
+        total={q.total} loading={q.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

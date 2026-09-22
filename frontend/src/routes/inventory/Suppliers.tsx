@@ -131,7 +131,7 @@ export default function Suppliers() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={suppliersQ.total}
+        total={suppliersQ.total} loading={suppliersQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
