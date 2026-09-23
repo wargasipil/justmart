@@ -9,7 +9,7 @@ import { MINIMAL_VIEWPORTS } from "storybook/viewport";
 import { z } from "zod";
 
 import i18n from "../src/lib/i18n";
-import { hashWithBigInt } from "../src/lib/queryClient";
+import { hashWithBigInt, newMutationCache, newQueryCache } from "../src/lib/queryClient";
 import { zodErrorMap } from "../src/lib/zodErrorMap";
 import { AppToaster } from "../src/lib/toaster";
 import { VIEWPORTS } from "../src/screens/viewports";
@@ -48,6 +48,13 @@ function StoryProviders({
   const client = useMemo(
     () =>
       new QueryClient({
+        // The app's own error->toast caches (lib/queryClient.ts). Without
+        // them the bench swallows every failure, so a story staging a refused
+        // save or a dead list shows no toast at all — the opposite of the app,
+        // and precisely what those stories exist to show. Fresh per story,
+        // since a cache is stateful.
+        queryCache: newQueryCache(),
+        mutationCache: newMutationCache(),
         defaultOptions: {
           queries: {
             retry: false,
@@ -157,6 +164,14 @@ const preview: Preview = {
     controls: {
       matchers: { color: /(background|color)$/i, date: /Date$/i },
     },
+    // How the a11y addon behaves under `vitest --project=storybook`: "todo"
+    // reports violations in the test UI without failing, "error" fails the
+    // run, "off" skips the check. Deliberately NOT "error" yet — the a11y
+    // addon has always been advisory here, and the Selects HARD RULE already
+    // documents a known gap (standalone <EnumSelect> call sites carrying a
+    // dangling aria-labelledby). Flipping this before those are fixed would
+    // turn the first test run red on pre-existing debt.
+    a11y: { test: "todo" },
   },
 };
 

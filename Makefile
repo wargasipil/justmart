@@ -1,6 +1,6 @@
 .PHONY: up down reset-devel-data generate tidy wire run dev test-unit test-unit-postgres test-unit-all test-e2e test-e2e-sqlite test-browser test-all \
         migrate-up migrate-down migrate-status migrate-create \
-        web-install web storybook storybook-build \
+        web-install web storybook storybook-build test-stories \
         embed-web build dist-windows dist-windows-licensed dist-connector-windows docker-build docker-up docker-down installer \
         portable-windows portable-windows-licensed test-license backup faq-video \
         release-demo release-seed release-video release-encode release-all \
@@ -81,8 +81,12 @@ dev: | frontend/node_modules
 	@echo "frontend -> http://localhost:5175   <- open this one"
 	@"$(MAKE)" -j2 --no-print-directory run web
 
+# `cd` rather than `npm --prefix frontend install`: npm 10 resolves the manifest
+# for `install` from the CWD, not from --prefix, so the repo-root form dies with
+# ENOENT on a package.json that does not exist here. `ci` and `run` do honour
+# --prefix and are left alone. `&&` parses under sh and cmd.exe alike.
 frontend/node_modules:
-	npm --prefix frontend install
+	cd frontend && npm install
 
 # --- Knowledge graph (graphify) ----------------------------------------------
 # Builds graphify-out/ (graph.json + GRAPH_REPORT.md + graph.html), which the
@@ -353,7 +357,7 @@ discount-to-grosir-apply:
 
 # --- Frontend (React + Vite) -------------------------------------------------
 web-install:
-	npm --prefix frontend install
+	cd frontend && npm install
 
 web:
 	npm --prefix frontend run dev
@@ -374,6 +378,17 @@ storybook: | frontend/node_modules
 # way to prove every story still compiles.
 storybook-build: | frontend/node_modules
 	npm --prefix frontend run build-storybook
+
+# Runs every story as a test in a real headless Chromium (Storybook's Vitest
+# addon): a story that throws on mount fails here, as does its `play` function
+# once stories start having one. Needs no backend and no `make web` -- the
+# stories that DO hit the server are the three `needs-backend` component ones,
+# which simply render empty here.
+#
+# Deliberately NOT in test-all yet: it wants `npx playwright install chromium`
+# on a fresh checkout, which test-all's other suites don't.
+test-stories: | frontend/node_modules
+	cd frontend && npx vitest --project=storybook --run
 
 # Browser E2E tests (Playwright). Assumes `make run` and `make web` are
 # already running in separate terminals; tests hit http://localhost:5173 and
