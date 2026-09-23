@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -15,6 +16,16 @@ import (
 	prescriptionsvc "github.com/justmart/backend/internal/service/prescription"
 	"github.com/justmart/backend/internal/service/servicetest"
 )
+
+// Rx dates are RELATIVE TO NOW, never literals.
+//
+// computeRxStatus compares expires_at against TODAY, so a hardcoded issued date
+// is a time bomb: these tests pinned 2026-06-01 (+90d default = 2026-08-30) and
+// every ACTIVE assertion in the package silently turned EXPIRED on 2026-08-31,
+// then stayed red. Same rule the frontend fixtures follow with dateIn/daysAgo,
+// and the same reason -- a fixture that encodes "now" must be computed from it.
+func daysAgo(n int) string { return time.Now().AddDate(0, 0, -n).Format("2006-01-02") }
+func dateIn(n int) string  { return time.Now().AddDate(0, 0, n).Format("2006-01-02") }
 
 // uniq yields a process-wide unique suffix so seeded SKUs/customers never
 // collide, even across parallel tests or repeated createRx calls in one test.
@@ -77,7 +88,7 @@ func createRx(t *testing.T, env rxEnv, qty int32) *prescriptionifacev1.Prescript
 	resp, err := env.svc.CreatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		CustomerId: custID,
 		IssuerName: "dr. Sutomo",
-		IssuedAt:   "2026-06-01",
+		IssuedAt:   daysAgo(0),
 		Items: []*prescriptionifacev1.PrescriptionItemInput{
 			{ProductId: prodID, PrescribedQty: qty, DosageInstructions: "3x1"},
 		},
