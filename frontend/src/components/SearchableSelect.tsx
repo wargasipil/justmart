@@ -77,6 +77,14 @@ export type SearchableSelectProps<T> = {
   /** Trigger display when `value` is set but the matching item isn't (yet)
    * in the collection — typical for edit drawers in async mode. */
   selectedLabel?: string;
+  /**
+   * Accessible name for a picker that stands ALONE (not inside a Field.Root,
+   * which already names it via its Field.Label). Without one the control
+   * announces as a bare "combobox" — and its only text is Ark's built-in
+   * "Toggle suggestions", which is chrome, not a name. Same rule and same
+   * reason as <EnumSelect>'s ariaLabel.
+   */
+  ariaLabel?: string;
 
   /**
    * Leading adornment rendered inside the control, left of the text — a domain
@@ -110,6 +118,7 @@ export default function SearchableSelect<T>({
   itemToValue,
   renderItem,
   selectedLabel,
+  ariaLabel,
   startElement,
   placeholder,
   emptyText,
@@ -220,6 +229,19 @@ export default function SearchableSelect<T>({
     return [{ label, value }, ...base];
   }, [isAsync, asyncEntries, syncEntries, value, selectedLabel]);
 
+  // The text the input SHOULD show for the current selection.
+  //
+  // Ark computes the input's text from the collection ONCE, when the value is
+  // set. Every resolve-by-IDs picker mounts with a value whose label arrives a
+  // beat later (the batched Resolve<Domain> call), so the stub entry below
+  // starts out labelled with the raw UUID -- and updating the collection then
+  // changes the DROPDOWN row but never the input, leaving the trigger sitting
+  // on the id permanently. Callers worked around it one at a time by passing
+  // selectedLabel; this makes the component itself correct, so an on-demand
+  // picker (a restock line, an edit drawer) no longer needs the caller to have
+  // resolved the name first.
+  const selectedText = value ? (labelCacheRef.current.get(value) ?? selectedLabel ?? "") : "";
+
   const filterFn = useCallback(
     (itemText: string, filterText: string) => {
       // In async mode the backend already filtered; never re-filter client-side.
@@ -240,12 +262,22 @@ export default function SearchableSelect<T>({
     set(effectiveEntries);
   }, [effectiveEntries, set]);
 
+  // While the popover is OPEN the user is typing and their text wins; while it
+  // is closed the input mirrors the selection. This also gives the standard
+  // combobox behaviour of reverting abandoned search text on close.
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (open) return;
+    setInputValue(selectedText);
+  }, [open, selectedText]);
+
   const valueArr = value ? [value] : [];
 
   // Initial fetch when async-mode popover opens for the first time.
   const hasFetchedRef = useRef(false);
   const handleOpenChange = useCallback(
     (d: { open: boolean }) => {
+      setOpen(d.open);
       if (!isAsync || !d.open) return;
       if (!hasFetchedRef.current) {
         hasFetchedRef.current = true;
@@ -267,6 +299,7 @@ export default function SearchableSelect<T>({
         onChange(next);
         if (onSelectItem) onSelectItem(itemsByValueRef.current.get(next));
       }}
+      inputValue={inputValue}
       onInputValueChange={(d) => {
         setInputValue(d.inputValue);
         if (!isAsync) filter(d.inputValue);
@@ -296,7 +329,11 @@ export default function SearchableSelect<T>({
             {startElement}
           </Box>
         )}
-        <Combobox.Input placeholder={placeholder} ps={startElement ? 8 : undefined} />
+        <Combobox.Input
+          placeholder={placeholder}
+          aria-label={ariaLabel}
+          ps={startElement ? 8 : undefined}
+        />
         <Combobox.IndicatorGroup>
           <Combobox.ClearTrigger />
           <Combobox.Trigger />

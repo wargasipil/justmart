@@ -304,6 +304,7 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "items", type: "readonly T[]", desc: "Sync mode: ≤20 static options only." },
           { name: "itemToString / itemToValue", type: "(item: T) => string", required: true, desc: "Label + value projections." },
           { name: "selectedLabel", type: "string", desc: "Trigger label before the first search resolves (edit drawers)." },
+          { name: "ariaLabel", type: "string", desc: "Accessible name when the picker stands alone (not inside a Field.Root)." },
           { name: "onSelectItem", type: "(item: T | undefined) => void", desc: "Hands back the full picked object alongside onChange." },
           { name: "renderItem", type: "(item: T) => ReactElement", desc: "Custom dropdown-row content when one line of text can't tell options apart — e.g. CashierFilterSelect renders the Users-table identity cell (avatar + name over a muted line) with the role on that line. Must return ONE element — mounted via <Combobox.ItemText asChild>. Affects the open list only; itemToString still drives the trigger." },
           { name: "emptyText / loadingText", type: "string", desc: "Override the (already translated) common.noResults / common.loading defaults." },
@@ -340,6 +341,7 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "onChange", type: "(id: string) => void", desc: "Omit for a read-only display (pair with disabled)." },
           { name: "onSelectItem", type: "(s: Supplier | undefined) => void", desc: "Hands back the full picked supplier." },
           { name: "selectedLabel", type: "string", desc: "Escape hatch — skips the internal resolve when the caller already has the supplier loaded." },
+          { name: "ariaLabel", type: "string", desc: "Accessible name when the picker stands alone (not inside a Field.Root)." },
           { name: "placeholder / disabled / size / width", type: "—", desc: "Passed through. Placeholder defaults to common.selectSupplier." },
         ],
         usage: `<SupplierSelect size="sm" value={supplierId} onChange={setSupplierId} />
@@ -710,6 +712,20 @@ const q = useProductsQuery({ page, pageSize });
         notes:
           "For 390px, where the Products table's columns don't fit. Sell-side data only (price, stock) — never cost — so the same row is safe for the till. Long names clamp to two lines; zero stock renders red; an archived product carries a badge. `ProductItemMobileSkeleton` (same file; `chevron` prop to match tappable rows) is the loading placeholder in the same shape.",
         Demo: demo.ProductItemMobileDemo,
+      },
+      {
+        id: "manufacturer-list-item-mobile",
+        name: "ManufacturerListItemMobile",
+        file: "src/components/manufacturer/ManufacturerListItemMobile.tsx",
+        summary: "A pabrik as one phone-width row: name + code + one contact line, tappable.",
+        props: [
+          { name: "manufacturer", type: "Pick<Manufacturer, id|code|name|phone|contactEmail|address|active>", required: true, desc: "Any Manufacturer satisfies it." },
+          { name: "onClick", type: "() => void", desc: "Makes the row a button with a chevron. Omit for a read-only row." },
+        ],
+        usage: `<ManufacturerListItemMobile manufacturer={m} onClick={() => navigate(\`/inventory/manufacturers/\${m.id}\`)} />`,
+        notes:
+          "For 390px, where the Pabrik table's eight columns don't fit. Edit/Archive are deliberately absent — a thumb-sized row carrying destructive buttons is how a pabrik gets archived by accident; tapping opens the detail page, which has both. The contact line falls back phone → email → address, one line only (a second wrap pushes the code off its row), and an archived pabrik dims and carries a badge. Same Factory mark and muted square as <ManufacturerSelect>'s dropdown rows, at 40px rather than the product row's 48px photo slot — a mark scaled to photo size reads as a missing image. `ManufacturerListItemMobileSkeleton` (same file; `chevron` to match tappable rows) is the loading placeholder in the same shape.",
+        Demo: demo.ManufacturerListItemMobileDemo,
       },
     ],
   },

@@ -20,6 +20,12 @@ export default function BackButton({ to, label }: Props) {
       variant="ghost"
       size="sm"
       alignSelf="flex-start"
+      // Pull the ghost button's own horizontal padding back out, so the arrow
+      // sits on the page's left rule with the title and section headings under
+      // it instead of hanging ~15px inside them. It is the first thing on a
+      // detail page, so that indent reads as a misalignment rather than as
+      // breathing room.
+      ml={-3}
       onClick={() => (to ? navigate(to) : navigate(-1))}
     >
       <ArrowLeft size={16} />

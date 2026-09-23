@@ -24,7 +24,10 @@ export function manufacturerLabel(m: ManufacturerLike | undefined): string | und
 // led, so echoing that order is what makes the selection feel like the thing
 // that was picked. It must be used for BOTH `itemToString` and the resolved
 // `selectedLabel`, or the trigger would flip format when the list rotates.
-function pickerLabel(m: ManufacturerLike | undefined): string | undefined {
+// Exported for the one caller that resolves its own rows in a batch and hands
+// the label in (the restock lines table) -- it must not hand over the
+// table-cell format above, which is the same two parts the other way round.
+export function manufacturerPickerLabel(m: ManufacturerLike | undefined): string | undefined {
   return m ? `${m.name} · ${m.code}` : undefined;
 }
 
@@ -40,6 +43,8 @@ type Props = {
    * the point of this wrapper.
    */
   selectedLabel?: string;
+  /** Accessible name when the picker stands alone — see SearchableSelect. */
+  ariaLabel?: string;
   placeholder?: string;
   disabled?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
@@ -64,6 +69,7 @@ export default function ManufacturerSelect({
   onChange,
   onSelectItem,
   selectedLabel,
+  ariaLabel,
   placeholder,
   disabled,
   size,
@@ -76,16 +82,17 @@ export default function ManufacturerSelect({
   const refs = useManufacturerRefs(
     useMemo(() => (value && !selectedLabel ? [value] : []), [value, selectedLabel]),
   );
-  const label = selectedLabel ?? pickerLabel(refs.get(value));
+  const label = selectedLabel ?? manufacturerPickerLabel(refs.get(value));
 
   return (
     <SearchableSelect
+      ariaLabel={ariaLabel}
       value={value}
       onChange={onChange ?? (() => {})}
       onSelectItem={onSelectItem}
       loadOptions={searchManufacturers}
       // Trigger stays one line — the two-line layout below is the open list only.
-      itemToString={(m) => pickerLabel(m)!}
+      itemToString={(m) => manufacturerPickerLabel(m)!}
       itemToValue={(m) => m.id}
       renderItem={(m) => <ManufacturerOption manufacturer={m} />}
       selectedLabel={label}
