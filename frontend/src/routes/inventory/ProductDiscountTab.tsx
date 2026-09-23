@@ -125,10 +125,16 @@ export default function DiscountTab({ productId }: { productId: string }) {
                     )}
                   </Table.Cell>
                   <Table.Cell>
+                    {/* Icon-only, so each needs its own accessible name — and
+                        it names the RULE, not the action: a column of buttons
+                        all announcing "Hapus" is no more useful than none,
+                        since the whole question is which rule you are about to
+                        remove. modeLabel is what the row's first cell shows. */}
                     <HStack gap={1}>
                       <Button
                         size="xs"
                         variant="ghost"
+                        aria-label={t("productDiscounts.editAction", { mode: modeLabel(d) })}
                         onClick={() => {
                           setEditing(d);
                           setDrawerOpen(true);
@@ -140,6 +146,7 @@ export default function DiscountTab({ productId }: { productId: string }) {
                         size="xs"
                         variant="ghost"
                         colorPalette="red"
+                        aria-label={t("productDiscounts.deleteAction", { mode: modeLabel(d) })}
                         onClick={() => setPendingDelete(d)}
                       >
                         <Trash2 size={14} />

@@ -2,14 +2,19 @@ import { useMemo } from "react";
 import { Table, Text } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 
+import { manufacturerLabel } from "../../components/ManufacturerSelect";
 import Pagination from "../../components/Pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { formatDiscount, formatMoney, formatUnix } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { useProductRestockLogsQuery } from "../../queries/products";
-import { useSupplierRefs } from "../../queries/refs";
+import { useManufacturerRefs, useSupplierRefs } from "../../queries/refs";
 
-// Restock (purchase) history from the append-only log: what we paid, to whom.
+// Restock (purchase) history from the append-only log: what we paid, to whom —
+// and, since the maker became a recorded fact, WHOSE goods arrived on each buy.
+// Pemasok and Pabrik answer different questions (who sold it vs who made it),
+// and a shop that buys one generic from three factories needs both columns to
+// read its own price history.
 // Manager-only — ListProductRestockLogs and ResolveSuppliers are both
 // OWNER+PHARMACIST, so this tab is only mounted when the caller may see cost.
 export default function ProductRestockTab({
@@ -33,6 +38,17 @@ export default function ProductRestockTab({
       [q.rows],
     ),
   );
+  // Resolve-by-IDs, batched over the page. Rows that predate the column carry
+  // no id at all, so they cost nothing here and render as a dash below.
+  const manufacturerRefs = useManufacturerRefs(
+    useMemo(
+      () =>
+        Array.from(
+          new Set((q.rows ?? []).map((r) => r.manufacturerId).filter(Boolean)),
+        ),
+      [q.rows],
+    ),
+  );
 
   return (
     <>
@@ -47,6 +63,9 @@ export default function ProductRestockTab({
               <Table.Row>
                 <Table.ColumnHeader>
                   {t("inventory.products.restockSupplier")}
+                </Table.ColumnHeader>
+                <Table.ColumnHeader>
+                  {t("inventory.products.manufacturer")}
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
                   {t("inventory.products.restockPrice")}
@@ -70,6 +89,10 @@ export default function ProductRestockTab({
                 <Table.Row key={r.id}>
                   <Table.Cell>
                     {supplierRefs.get(r.supplierId)?.name ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {manufacturerLabel(manufacturerRefs.get(r.manufacturerId)) ??
+                      "—"}
                   </Table.Cell>
                   <Table.Cell textAlign="end">
                     {formatMoney(r.price)}

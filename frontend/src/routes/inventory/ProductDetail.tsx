@@ -42,6 +42,7 @@ import { Card, Field, Tile, UnitsCard } from "./productDetailCards";
 import ProductBatchesTab from "./ProductBatchesTab";
 import DiscountTab from "./ProductDiscountTab";
 import GrosirPanel from "./ProductGrosirPanel";
+import ProductManufacturersPanel from "./ProductManufacturersPanel";
 import ProductMovementsTab from "./ProductMovementsTab";
 import ProductPriceHistoryTab from "./ProductPriceHistoryTab";
 import ProductRestockTab from "./ProductRestockTab";
@@ -295,6 +296,15 @@ export default function ProductDetail() {
               directly under the unit list it keys off. */}
           <Stack gap={6}>
             <UnitsCard product={med} showCost={showCost} />
+            {/* Approved sources. Manager-only like the cards around it: who a
+                shop may buy from is purchasing policy, and every RPC behind it
+                is OWNER+PHARMACIST. The till still SEES a pabrik name on the
+                Info block above, which is why that one is not gated. */}
+            {showCost && (
+              <Card title={t("inventory.products.manufacturers")}>
+                <ProductManufacturersPanel product={med} />
+              </Card>
+            )}
             {/* Grosir is a manager surface: it prices against cost (margin per
                 rung) and its list/create/delete RPCs are manager-only. The till
                 sees the ladder where it matters — POS, at the moment of sale. */}

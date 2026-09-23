@@ -7,6 +7,7 @@ import {
   SimpleGrid,
   Spinner,
   Stack,
+  StackSeparator,
   Switch,
   Table,
   Text,
@@ -16,6 +17,9 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import ConfirmDialog from "../../components/ConfirmDialog";
+import ManufacturerListItemMobile, {
+  ManufacturerListItemMobileSkeleton,
+} from "../../components/manufacturer/ManufacturerListItemMobile";
 import Pagination from "../../components/Pagination";
 import SummaryTile from "../../components/SummaryTile";
 import TableScroll from "../../components/TableScroll";
@@ -32,10 +36,11 @@ import { CreateManufacturerDrawer, EditManufacturerDrawer } from "./manufacturer
 
 // Pabrik — who MADE the goods, as opposed to the pemasok who sold them here.
 // A flat admin list: search + archived toggle + create/edit/archive. There is
-// no detail page: a manufacturer has no history of its own (no restocks, no
-// ledger), so everything it carries fits in the edit drawer.
+// a detail page behind every row (what this pabrik makes), which is also where
+// Edit and Archive live once the screen is too narrow for an actions column.
 export default function Manufacturers() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [includeInactive, setIncludeInactive] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Manufacturer | null>(null);
@@ -110,42 +115,76 @@ export default function Manufacturers() {
       </HStack>
 
       {listQ.isLoading ? (
-        <Box p={8} textAlign="center">
-          <Spinner />
-        </Box>
+        <>
+          {/* A phone gets the shape of the rows it is about to show rather than
+              a spinner alone in the middle of the screen. */}
+          <Box hideBelow="md" p={8} textAlign="center">
+            <Spinner />
+          </Box>
+          <Stack hideFrom="md" gap={0} separator={<StackSeparator />}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <ManufacturerListItemMobileSkeleton key={i} chevron />
+            ))}
+          </Stack>
+        </>
       ) : (
-        <TableScroll>
-          <Table.Root size="sm" stickyHeader>
-            <Table.Header bg="bg.muted">
-              <Table.Row>
-                <Table.ColumnHeader>{t("inventory.manufacturers.code")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.manufacturers.name")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.manufacturers.phone")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.manufacturers.email")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.manufacturers.address")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("inventory.manufacturers.note")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
-                <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {listQ.rows.map((m) => (
-                <Row key={m.id} manufacturer={m} onEdit={setEditing} onToggleArchive={setPending} />
-              ))}
-              {listQ.rows.length === 0 && (
-                <Table.Row>
-                  <Table.Cell colSpan={8}>
-                    <Text color="fg.muted" textAlign="center" py={4}>
-                      {query || includeInactive
-                        ? t("common.noResults")
-                        : t("inventory.manufacturers.empty")}
-                    </Text>
-                  </Table.Cell>
-                </Table.Row>
-              )}
-            </Table.Body>
-          </Table.Root>
-        </TableScroll>
+        <>
+          {/* Two layouts, switched purely by CSS breakpoint like AppShell: md+
+              gets the column table, a phone gets one tappable row per pabrik
+              (eight columns don't fit at 390px). The rows come AFTER the table
+              in the DOM so a desktop `getByText(...).first()` still lands on
+              the visible table. */}
+          <Box hideBelow="md">
+            <TableScroll>
+              <Table.Root size="sm" stickyHeader>
+                <Table.Header bg="bg.muted">
+                  <Table.Row>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.code")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.name")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.phone")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.email")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.address")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.note")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("common.actions")}</Table.ColumnHeader>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                  {listQ.rows.map((m) => (
+                    <Row key={m.id} manufacturer={m} onEdit={setEditing} onToggleArchive={setPending} />
+                  ))}
+                  {listQ.rows.length === 0 && (
+                    <Table.Row>
+                      <Table.Cell colSpan={8}>
+                        <Text color="fg.muted" textAlign="center" py={4}>
+                          {query || includeInactive
+                            ? t("common.noResults")
+                            : t("inventory.manufacturers.empty")}
+                        </Text>
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Root>
+            </TableScroll>
+          </Box>
+          <Stack hideFrom="md" gap={0} separator={<StackSeparator />}>
+            {listQ.rows.map((m) => (
+              <ManufacturerListItemMobile
+                key={m.id}
+                manufacturer={m}
+                onClick={() => navigate(`/inventory/manufacturers/${m.id}`)}
+              />
+            ))}
+            {listQ.rows.length === 0 && (
+              <Text color="fg.muted" textAlign="center" py={4}>
+                {query || includeInactive
+                  ? t("common.noResults")
+                  : t("inventory.manufacturers.empty")}
+              </Text>
+            )}
+          </Stack>
+        </>
       )}
 
       <Pagination

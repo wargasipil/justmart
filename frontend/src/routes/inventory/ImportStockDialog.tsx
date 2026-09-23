@@ -18,6 +18,10 @@ const ALIASES: Record<string, string[]> = {
   cost: ["cost", "cost_price", "harga", "harga_modal", "modal"],
   batchNumber: ["batch_number", "batch", "no_batch", "batchno"],
   expiryDate: ["expiry_date", "expiry", "kedaluwarsa", "exp"],
+  // The pabrik CODE, not its name: code is globally unique, a name is only
+  // unique among ACTIVE rows, so a name column would go ambiguous the moment
+  // a factory was archived and its name reused.
+  manufacturerCode: ["manufacturer_code", "manufacturer", "pabrik", "kode_pabrik"],
 };
 const REQUIRED_FIELDS = ["sku", "quantity"] as const;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -33,6 +37,7 @@ type ParsedRow = {
   cost: number; // per BASE unit, minor units (whole rupiah)
   batchNumber: string;
   expiryDate: string; // YYYY-MM-DD or "" (non-expiring)
+  manufacturerCode: string; // pabrik code, or "" (not recorded); resolved server-side
   valid: boolean;
   error?: string;
 };
@@ -113,6 +118,7 @@ export default function ImportStockDialog({
           const costRaw = (map.cost && r[map.cost]) || "";
           const batchNumber = (map.batchNumber && r[map.batchNumber]) || "";
           const expiryDate = ((map.expiryDate && r[map.expiryDate]) || "").trim();
+          const manufacturerCode = ((map.manufacturerCode && r[map.manufacturerCode]) || "").trim();
           const qtyDigits = toDigits(qtyRaw);
           const costDigits = toDigits(costRaw);
           let error = "";
@@ -131,6 +137,7 @@ export default function ImportStockDialog({
             cost: costDigits === "" ? 0 : Number(costDigits),
             batchNumber: batchNumber.trim(),
             expiryDate,
+            manufacturerCode,
             valid: error === "",
             error: error || undefined,
           };
@@ -151,11 +158,13 @@ export default function ImportStockDialog({
       "opening-stock-template.csv",
       [
         // Base-unit quantity with an explicit lot + expiry.
-        { sku: "PARA500", quantity: 200, unit: "", cost: 400, batch_number: "B-2026-01", expiry_date: "2027-12-31" },
+        { sku: "PARA500", quantity: 200, unit: "", cost: 400, batch_number: "B-2026-01", expiry_date: "2027-12-31", manufacturer_code: "MFR-0001" },
         // Entered in a larger pack: 5 box × the product's box factor = base units.
-        { sku: "AMOX500", quantity: 5, unit: "box", cost: 1200, batch_number: "", expiry_date: "2027-06-30" },
+        { sku: "AMOX500", quantity: 5, unit: "box", cost: 1200, batch_number: "", expiry_date: "2027-06-30", manufacturer_code: "MFR-0002" },
         // Non-expiring goods: leave expiry_date blank.
-        { sku: "SALT", quantity: 50, unit: "", cost: 100, batch_number: "", expiry_date: "" },
+        // Maker unknown: leave manufacturer_code blank rather than guessing —
+        // a lot names none, which reads as not-recorded.
+        { sku: "SALT", quantity: 50, unit: "", cost: 100, batch_number: "", expiry_date: "" , manufacturer_code: "" },
       ],
       [
         { key: "sku", header: "sku", text: true },
@@ -164,6 +173,7 @@ export default function ImportStockDialog({
         { key: "cost", header: "cost" },
         { key: "batch_number", header: "batch_number", text: true },
         { key: "expiry_date", header: "expiry_date" },
+        { key: "manufacturer_code", header: "manufacturer_code", text: true },
       ],
     );
   };
@@ -180,6 +190,7 @@ export default function ImportStockDialog({
           costPrice: BigInt(r.cost),
           batchNumber: r.batchNumber,
           expiryDate: r.expiryDate,
+          manufacturerCode: r.manufacturerCode,
         })),
       });
       const errors = res.results

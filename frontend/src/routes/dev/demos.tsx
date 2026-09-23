@@ -49,6 +49,7 @@ import TrendChart from "../../components/TrendChart";
 import UserAvatar from "../../components/UserAvatar";
 import ProductImage from "../../components/ProductImage";
 import ProductItem from "../../components/products/ProductItem";
+import ManufacturerListItemMobile from "../../components/manufacturer/ManufacturerListItemMobile";
 import ProductItemMobile from "../../components/products/ProductItemMobile";
 import ProductPickerDialog from "../../components/ProductPickerDialog";
 import WarehouseSelect from "../../components/WarehouseSelect";
@@ -794,6 +795,27 @@ export function ProductItemMobileDemo() {
     <Stack gap={0} maxW="390px" borderWidth="1px" borderRadius="md">
       {DEMO_ITEMS.map((p) => (
         <ProductItemMobile key={p.id} product={p} onClick={() => setLast(p.sku)} />
+      ))}
+      <Text fontSize="xs" color="fg.muted" px={3} py={2}>
+        {last || "—"}
+      </Text>
+    </Stack>
+  );
+}
+
+// Sample pabrik: one with a phone, one reachable only by email, one archived.
+const DEMO_MANUFACTURERS = [
+  { id: "demo-m1", code: "MFR-0001", name: "PT Kalbe Farma Tbk", phone: "021-4287-3888", contactEmail: "care@kalbe.co.id", address: "Jl. Letjen Suprapto Kav. 4, Jakarta Pusat", active: true },
+  { id: "demo-m2", code: "MFR-0010", name: "PT Novell Pharmaceutical Laboratories", phone: "", contactEmail: "info@novellpharm.com", address: "Jl. Pos Pengumben, Jakarta Barat", active: true },
+  { id: "demo-m3", code: "MFR-0029", name: "CV Aneka Pangan Lestari", phone: "", contactEmail: "", address: "Cikarang, Bekasi", active: false },
+];
+
+export function ManufacturerListItemMobileDemo() {
+  const [last, setLast] = useState("");
+  return (
+    <Stack gap={0} maxW="390px" borderWidth="1px" borderRadius="md">
+      {DEMO_MANUFACTURERS.map((m) => (
+        <ManufacturerListItemMobile key={m.id} manufacturer={m} onClick={() => setLast(m.code)} />
       ))}
       <Text fontSize="xs" color="fg.muted" px={3} py={2}>
         {last || "—"}

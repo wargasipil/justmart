@@ -24,6 +24,7 @@ import ImportStockDialog from "./ImportStockDialog";
 import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
 import SearchableSelect from "../../components/SearchableSelect";
+import ManufacturerSelect, { manufacturerLabel } from "../../components/ManufacturerSelect";
 import SupplierSelect, { supplierLabel } from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import { searchProducts } from "../../queries/products";
@@ -32,11 +33,12 @@ import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
 import { toast } from "../../lib/toaster";
 import { useBatchesQuery, useCreateBatchMutation } from "../../queries/batches";
-import { useProductRefs, useSupplierRefs } from "../../queries/refs";
+import { useManufacturerRefs, useProductRefs, useSupplierRefs } from "../../queries/refs";
 
 const Schema = z.object({
   productId: z.string().min(1),
   supplierId: z.string(),
+  manufacturerId: z.string(),
   batchNumber: z.string(),
   expiryDate: z.string().min(1),
   costPrice: z.coerce.bigint().min(0n),
@@ -65,8 +67,9 @@ export default function Batches() {
   const fromUnix = dateField ? range.fromUnix : 0;
   const toUnix = dateField ? range.toUnix : 0;
   const [supplierId, setSupplierId] = useState("");
+  const [manufacturerId, setManufacturerId] = useState("");
   const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${query}|${dateField}|${fromUnix}|${toUnix}|${supplierId}`,
+    `${query}|${dateField}|${fromUnix}|${toUnix}|${supplierId}|${manufacturerId}`,
   );
   const batchesQ = useBatchesQuery({
     // Scope rows to the active warehouse: only lots with stock here (backend
@@ -74,6 +77,7 @@ export default function Batches() {
     onlyInStock: true,
     query,
     supplierId,
+    manufacturerId,
     dateField,
     fromUnix,
     toUnix,
@@ -85,7 +89,10 @@ export default function Batches() {
   const medRefs = useProductRefs(
     useMemo(() => batchesQ.rows.map((b) => b.productId), [batchesQ.rows]),
   );
-  // Table cells only — <SupplierSelect> resolves its own trigger label.
+  // Table cells only — the selects resolve their own trigger labels.
+  const manufacturerRefs = useManufacturerRefs(
+    useMemo(() => batchesQ.rows.map((b) => b.manufacturerId).filter(Boolean), [batchesQ.rows]),
+  );
   const supplierRefs = useSupplierRefs(
     useMemo(() => batchesQ.rows.map((b) => b.supplierId).filter(Boolean), [batchesQ.rows]),
   );
@@ -122,6 +129,20 @@ export default function Batches() {
               placeholder={t("inventory.batches.supplier")}
             />
           </Box>
+          {/*
+            Who MADE the stock, beside who sold it. The lot is the only row
+            that records a maker, so this is the filter a recall actually
+            needs: pabrik X recalls their batch, and this is where you find
+            every lot of theirs still on the shelf.
+          */}
+          <Box width="200px">
+            <ManufacturerSelect
+              size="sm"
+              value={manufacturerId}
+              onChange={setManufacturerId}
+              placeholder={t("inventory.products.manufacturer")}
+            />
+          </Box>
         </HStack>
         <HStack gap={2}>
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
@@ -147,6 +168,7 @@ export default function Batches() {
                 <Table.ColumnHeader>{t("inventory.batches.product")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.batchNumber")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.supplier")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.products.manufacturer")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.expiry")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.cost")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.qty")}</Table.ColumnHeader>
@@ -159,6 +181,15 @@ export default function Batches() {
                   <Table.Cell>{medRefs.get(b.productId)?.name ?? "—"}</Table.Cell>
                   <Table.Cell>{b.batchNumber || "—"}</Table.Cell>
                   <Table.Cell>{supplierLabel(supplierRefs.get(b.supplierId)) ?? "—"}</Table.Cell>
+                  {/*
+                    Who MADE the lot. Blank on everything received before the
+                    column existed and on the manual CreateBatch path -- the
+                    dash is honest there, the alternative would be the
+                    product's current maker invented as this lot's history.
+                  */}
+                  <Table.Cell>
+                    {manufacturerLabel(manufacturerRefs.get(b.manufacturerId)) ?? "—"}
+                  </Table.Cell>
                   <Table.Cell>
                     <HStack gap={2}>
                       <Text>{b.expiryDate}</Text>
@@ -216,6 +247,7 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
     defaultValues: {
       productId: "",
       supplierId: "",
+      manufacturerId: "",
       batchNumber: "",
       expiryDate: "",
       costPrice: 0n,
@@ -274,6 +306,19 @@ function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void })
               value={form.watch("supplierId")}
               onChange={(v) => form.setValue("supplierId", v)}
               placeholder={t("inventory.batches.supplierNone")}
+            />
+          </Stack>
+          {/* Who MADE the lot. This drawer is the one place a person is holding
+              the box, so it is the one manual path that can record the fact a
+              recall reads — a lot entered without it is blank forever. */}
+          <Stack gap={1}>
+            <Text fontSize="sm" fontWeight="medium" color="fg.muted">
+              {t("inventory.products.manufacturer")}
+            </Text>
+            <ManufacturerSelect
+              value={form.watch("manufacturerId")}
+              onChange={(v) => form.setValue("manufacturerId", v)}
+              placeholder={t("inventory.batches.manufacturerNone")}
             />
           </Stack>
           <FormField

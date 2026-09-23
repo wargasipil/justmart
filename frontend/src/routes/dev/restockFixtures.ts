@@ -1,3 +1,4 @@
+import { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import type { ListPurchaseOrdersRequest } from "../../gen/purchasing_iface/v1/order_pb";
 import { POStatus, PurchaseOrder, PurchaseOrderItem } from "../../gen/purchasing_iface/v1/order_pb";
@@ -28,6 +29,8 @@ type POLine = {
   /** Minor units when FIXED; basis points (2.5% = 250) when PERCENT. */
   discountValue?: bigint;
   discountPerItem?: boolean;
+  /** Which pabrik this line was bought from; defaults to the product's usual. */
+  manufacturerId?: string;
 };
 
 type POSeed = {
@@ -59,21 +62,45 @@ function purchaseUnitOf(p: Product): ProductUnit {
   return p.units.find((u) => u.purchasable && u.active) ?? p.units[0];
 }
 
-/** `lineNetSubtotal` in TypeScript: the line total net of its own discount. */
-function lineNet(gross: bigint, packs: number, l: POLine): bigint {
-  const value = l.discountValue ?? 0n;
+/** The discount fields a line carries, on a seed or on a create request. */
+type LineDiscount = {
+  discountType?: string;
+  discountValue?: bigint;
+  discountPerItem?: boolean;
+};
+
+/**
+ * `lineNetSubtotal` in TypeScript: the line total net of its own discount.
+ *
+ * Exported because restockShop.ts prices a BRAND-NEW order's lines with it
+ * when the create-order form submits. Two copies of this arithmetic would let
+ * a story create an order whose total disagreed with every seeded one beside
+ * it in the same list.
+ */
+export function lineNetSubtotal(gross: bigint, packs: number, d: LineDiscount): bigint {
+  const value = d.discountValue ?? 0n;
   if (value <= 0n) return gross;
-  const percent = l.discountType === "PERCENT";
+  const percent = d.discountType === "PERCENT";
   let disc: bigint;
-  if (l.discountPerItem && packs > 0) {
+  if (d.discountPerItem && packs > 0) {
     const perPack = gross / BigInt(packs);
-    let d = percent ? (perPack * value + 5_000n) / 10_000n : value;
-    if (d > perPack) d = perPack;
-    disc = d * BigInt(packs);
+    let each = percent ? (perPack * value + 5_000n) / 10_000n : value;
+    if (each > perPack) each = perPack;
+    disc = each * BigInt(packs);
   } else {
     disc = percent ? (gross * value + 5_000n) / 10_000n : value;
   }
   return disc > gross ? 0n : gross - disc;
+}
+
+/**
+ * `computePOTotals`: subtotal, less the order-level discount, plus PPN on what
+ * remains. `ppnRate` is a whole percent; 0 means the order carries no PPN.
+ */
+export function computePOTotals(subtotal: bigint, cartDiscount: bigint, ppnRate: number) {
+  const dpp = subtotal - cartDiscount;
+  const ppnAmount = ppnRate > 0 ? (dpp * BigInt(ppnRate) + 50n) / 100n : 0n;
+  return { dpp, ppnAmount, orderedTotal: dpp + ppnAmount };
 }
 
 function makePurchaseOrder(seed: POSeed): PurchaseOrder {
@@ -95,21 +122,24 @@ function makePurchaseOrder(seed: POSeed): PurchaseOrder {
       orderedQty: l.packs * factor,
       receivedQty: receivedPacks * factor,
       unitCostPrice: l.product.referenceCost,
-      subtotal: lineNet(gross, l.packs, l),
+      subtotal: lineNetSubtotal(gross, l.packs, l),
       productUnitId: unit.id,
       unitName: unit.name,
       unitFactor: unit.factor,
       discountType: l.discountType ?? "",
       discountValue: l.discountValue ?? 0n,
       discountPerItem: l.discountPerItem ?? false,
+      // Sourced from the product's USUAL maker unless the seed names another.
+      // A seeded order records who it was bought from, the same way a real one
+      // does -- otherwise the restock list's Pabrik filter would match nothing
+      // and the story would show an empty table as if the filter were broken.
+      manufacturerId: l.manufacturerId ?? l.product.manufacturerId,
     });
   });
 
   const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0n);
   const cartDiscount = seed.cartDiscount ?? 0n;
-  const dpp = subtotal - cartDiscount;
-  const ppnAmount = seed.ppn ? (dpp * 11n + 50n) / 100n : 0n;
-  const orderedTotal = dpp + ppnAmount;
+  const { ppnAmount, orderedTotal } = computePOTotals(subtotal, cartDiscount, seed.ppn ? 11 : 0);
   const paid = seed.paid ?? 0n;
   const returned = seed.returned ?? 0n;
 
@@ -309,7 +339,14 @@ export function filterPurchaseOrders(
   rows: PurchaseOrder[],
   req: Pick<
     ListPurchaseOrdersRequest,
-    "status" | "supplierId" | "onlyOutstanding" | "query" | "fromUnix" | "toUnix" | "dateField"
+    | "status"
+    | "supplierId"
+    | "manufacturerId"
+    | "onlyOutstanding"
+    | "query"
+    | "fromUnix"
+    | "toUnix"
+    | "dateField"
   >,
 ): PurchaseOrder[] {
   const q = req.query.trim().toLowerCase();
@@ -317,6 +354,15 @@ export function filterPurchaseOrders(
     .filter((po) => {
       if (req.status !== POStatus.PO_STATUS_UNSPECIFIED && po.status !== req.status) return false;
       if (req.supplierId && po.supplierId !== req.supplierId) return false;
+      // Pabrik is LINE-level, unlike pemasok above: an order matches when ANY
+      // of its lines is sourced from that maker. Mirrors the id-IN-subquery
+      // the server runs, so the story's filter and the real one agree.
+      if (
+        req.manufacturerId &&
+        !po.items.some((it) => it.manufacturerId === req.manufacturerId)
+      ) {
+        return false;
+      }
       if (req.onlyOutstanding) {
         if (po.status === POStatus.PO_STATUS_VOIDED || po.status === POStatus.PO_STATUS_DRAFT) {
           return false;
@@ -577,4 +623,52 @@ export function filterSuppliers(query: string) {
   return SUPPLIERS.filter(
     (s) => !q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
   );
+}
+
+// --- price agreements (harga kesepakatan) -----------------------------------
+// What a distributor committed to charge for one product in one purchasable
+// unit. The create-order form reads the chosen supplier's agreements and WARNS
+// (it never blocks) when a line's entered cost per pack sits above one.
+//
+// Derived like everything else in this file: the agreed price is the product's
+// own reference cost at pack size, shaded by AGREEMENT_SHADING. A hardcoded
+// rupiah figure would drift away from the catalog the first time a cost moved,
+// and the warning would then fire (or not) for reasons no one could see.
+//
+// Shading BELOW list is what makes the feature demonstrable: a buyer who types
+// the straightforward pack cost lands just above the agreement and sees the
+// warning the field exists for.
+const AGREEMENT_SHADING = 97n; // percent of list the distributor committed to
+
+// Only these two distributors have negotiated prices. A shop does not have an
+// agreement with everyone it buys from, and a fixture where every supplier had
+// one would make the no-agreement line (the common case) unreachable.
+const AGREEMENT_SUPPLIERS = [SUPPLIERS[0].id, SUPPLIERS[2].id];
+
+function makeAgreement(p: Product): PriceAgreement {
+  const unit = purchaseUnitOf(p);
+  const packCost = p.referenceCost * unit.factor;
+  return new PriceAgreement({
+    id: `agr-${p.id}`,
+    supplierId: p.lastRestockSupplierId,
+    productId: p.id,
+    productUnitId: unit.id,
+    unitName: unit.name,
+    unitFactor: unit.factor,
+    price: (packCost * AGREEMENT_SHADING) / 100n,
+    validFrom: dateIn(-120),
+    validUntil: dateIn(240),
+    active: true,
+    createdAt: daysAgo(120),
+  });
+}
+
+/** Every agreement this shop holds, across its two contracted distributors. */
+export const PRICE_AGREEMENTS: PriceAgreement[] = RETAIL_CATALOG.filter(
+  (p) => p.active && AGREEMENT_SUPPLIERS.includes(p.lastRestockSupplierId),
+).map(makeAgreement);
+
+/** `ListPriceAgreements(supplier_id)` — the active agreements for one supplier. */
+export function agreementsForSupplier(supplierId: string): PriceAgreement[] {
+  return PRICE_AGREEMENTS.filter((a) => a.supplierId === supplierId);
 }

@@ -6,7 +6,9 @@ import { ProductImageVariant } from "../gen/inventory_iface/v1/product_pb";
 import type {
   ArchiveProductRequest,
   CreateProductRequest,
+  AddProductManufacturerRequest,
   ImportProductsRequest,
+  SetProductManufacturersRequest,
   UnarchiveProductRequest,
   UpdateProductRequest,
 } from "../gen/inventory_iface/v1/product_pb";
@@ -303,6 +305,43 @@ export function useArchiveProductMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<ArchiveProductRequest>) =>
       productClient.archiveProduct(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+/**
+ * Approve one more pabrik for a product, idempotently.
+ *
+ * The RESTOCK FORM's writer: a buyer who sources a line from a maker the
+ * catalog does not list yet records it as they go, rather than being sent to
+ * an admin screen mid-order. Errors stay Tier-1 -- there is no field to hang
+ * them on, and the write is a side effect of a form about something else.
+ *
+ * NOT a call to UpdateProduct: that RPC is a full replace of name / sku /
+ * unit set / price, so a form holding one line's worth of product data would
+ * overwrite the rest of the catalog row to change this.
+ */
+export function useAddProductManufacturerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<AddProductManufacturerRequest>) =>
+      productClient.addProductManufacturer(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+/**
+ * Replace a product's whole approved-source list and name the primary.
+ *
+ * The product detail page's admin card. Full-set shape, like the unit editor:
+ * a removal is expressed by absence. Tier-1 errors: the card is chips and
+ * buttons rather than a form, so there is no field to attach a refusal to.
+ */
+export function useSetProductManufacturersMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<SetProductManufacturersRequest>) =>
+      productClient.setProductManufacturers(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }

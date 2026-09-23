@@ -9,6 +9,7 @@ import {
   SimpleGrid,
   Spinner,
   Stack,
+  StackSeparator,
   Switch,
   Table,
   Text,
@@ -20,6 +21,7 @@ import { useParams } from "react-router-dom";
 import BackButton from "../../components/BackButton";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
+import ProductItemMobile from "../../components/products/ProductItemMobile";
 import Pagination from "../../components/Pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { useCrumbLabel } from "../../lib/breadcrumbs";
@@ -187,46 +189,86 @@ export default function ManufacturerDetail() {
             </HStack>
           </HStack>
 
-          <TableScroll maxH={TABLE_MAX_H_NESTED}>
-            <Table.Root size="sm" stickyHeader>
-              <Table.Header bg="bg.muted">
-                <Table.Row>
-                  <Table.ColumnHeader>{t("inventory.manufacturers.productName")}</Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("inventory.products.sku")}</Table.ColumnHeader>
-                  <Table.ColumnHeader textAlign="end">
-                    {t("inventory.manufacturers.productPrice")}
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader textAlign="end">
-                    {t("inventory.manufacturers.productReady")}
-                  </Table.ColumnHeader>
-                  <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
-                </Table.Row>
-              </Table.Header>
-              <Table.Body>
-                {productsQ.rows.map((p) => (
-                  <Table.Row key={p.productId} opacity={p.active ? 1 : 0.6}>
-                    <Table.Cell>{p.name}</Table.Cell>
-                    <Table.Cell fontFamily="mono">{p.sku}</Table.Cell>
-                    <Table.Cell textAlign="end">{formatMoney(p.unitPrice)}</Table.Cell>
-                    <Table.Cell textAlign="end">
-                      {formatCount(p.readyStock)}
-                      {p.baseUnit ? ` ${p.baseUnit}` : ""}
-                    </Table.Cell>
-                    <Table.Cell>{p.active ? t("common.yes") : t("common.no")}</Table.Cell>
-                  </Table.Row>
-                ))}
-                {productsQ.rows.length === 0 && (
+          {/* Two layouts, switched purely by CSS breakpoint like the list page.
+              A phone does NOT get this table: five columns don't fit at 390px,
+              and inside `maxH` it became a two-axis scroll pane nested in the
+              page's own scroll — a swipe over it moved the table, not the page,
+              and the two columns worth reading (price, ready stock) were the
+              ones pushed off screen. */}
+          <Box hideBelow="md">
+            <TableScroll maxH={TABLE_MAX_H_NESTED}>
+              <Table.Root size="sm" stickyHeader>
+                <Table.Header bg="bg.muted">
                   <Table.Row>
-                    <Table.Cell colSpan={5}>
-                      <Text color="fg.muted" textAlign="center" py={4}>
-                        {query ? t("common.noResults") : t("inventory.manufacturers.productsEmpty")}
-                      </Text>
-                    </Table.Cell>
+                    <Table.ColumnHeader>{t("inventory.manufacturers.productName")}</Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("inventory.products.sku")}</Table.ColumnHeader>
+                    <Table.ColumnHeader textAlign="end">
+                      {t("inventory.manufacturers.productPrice")}
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader textAlign="end">
+                      {t("inventory.manufacturers.productReady")}
+                    </Table.ColumnHeader>
+                    <Table.ColumnHeader>{t("common.active")}</Table.ColumnHeader>
                   </Table.Row>
-                )}
-              </Table.Body>
-            </Table.Root>
-          </TableScroll>
+                </Table.Header>
+                <Table.Body>
+                  {productsQ.rows.map((p) => (
+                    <Table.Row key={p.productId} opacity={p.active ? 1 : 0.6}>
+                      <Table.Cell>{p.name}</Table.Cell>
+                      <Table.Cell fontFamily="mono">{p.sku}</Table.Cell>
+                      <Table.Cell textAlign="end">{formatMoney(p.unitPrice)}</Table.Cell>
+                      <Table.Cell textAlign="end">
+                        {formatCount(p.readyStock)}
+                        {p.baseUnit ? ` ${p.baseUnit}` : ""}
+                      </Table.Cell>
+                      <Table.Cell>{p.active ? t("common.yes") : t("common.no")}</Table.Cell>
+                    </Table.Row>
+                  ))}
+                  {productsQ.rows.length === 0 && (
+                    <Table.Row>
+                      <Table.Cell colSpan={5}>
+                        <Text color="fg.muted" textAlign="center" py={4}>
+                          {query ? t("common.noResults") : t("inventory.manufacturers.productsEmpty")}
+                        </Text>
+                      </Table.Cell>
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Root>
+            </TableScroll>
+          </Box>
+          {/* The same row the Produk list uses on a phone. ManufacturerProduct
+              carries exactly what it shows and nothing it doesn't — name, SKU,
+              sell price per base unit, ready stock — so no cost leaks into a
+              row a till could reach. Rows are read-only here, like the table
+              above them. */}
+          <Stack hideFrom="md" gap={0} separator={<StackSeparator />}>
+            {productsQ.rows.map((p) => (
+              <ProductItemMobile
+                key={p.productId}
+                product={{
+                  id: p.productId,
+                  name: p.name,
+                  sku: p.sku,
+                  // This RPC is a display-only denormalized row and carries no
+                  // image version; 0 renders the placeholder and fetches nothing.
+                  imageUpdatedAt: 0n,
+                  unit: p.baseUnit,
+                  unitPrice: p.unitPrice,
+                  readyStock: p.readyStock,
+                  active: p.active,
+                }}
+                // Grouped, so the phone row and the table cell above it read
+                // the same number ("1.500 pcs", not "1500 pcs").
+                stockLabel={`${formatCount(p.readyStock)}${p.baseUnit ? ` ${p.baseUnit}` : ""}`}
+              />
+            ))}
+            {productsQ.rows.length === 0 && (
+              <Text color="fg.muted" textAlign="center" py={4}>
+                {query ? t("common.noResults") : t("inventory.manufacturers.productsEmpty")}
+              </Text>
+            )}
+          </Stack>
 
           <Pagination
             page={page}

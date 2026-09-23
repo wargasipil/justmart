@@ -121,14 +121,38 @@ function makerOf(i: number): string {
 }
 
 /**
- * Stamp each catalog product with its maker, from the SAME `makerOf` that
- * `manufacturerProductsFor` reads. One assignment, so a product's Pabrik field
- * on the detail page and the manufacturer's own product list can never disagree
- * — which is exactly the kind of drift a second hand-written mapping invites.
+ * Every pabrik the product at catalog index `i` may be sourced from, usual
+ * one first.
+ *
+ * MOST products have exactly one maker, because most shelf items are a brand
+ * and a brand has a factory. Every fourth is multi-source, which is the state
+ * the single-column model could not represent at all: one catalog row, several
+ * factories, and only the lot knowing which one any given box came from. A
+ * fixture where every product had one maker would let a story claim the
+ * feature works while never exercising it.
+ */
+function makersOf(i: number): string[] {
+  const usual = makerOf(i);
+  if (i % 4 !== 0) return [usual];
+  const alternates = ["mfr-2", "mfr-4", "mfr-5"].filter((m) => m !== usual);
+  return [usual, ...alternates.slice(0, 1 + (i % 2))];
+}
+
+/**
+ * Stamp each catalog product with its approved sources, from the SAME
+ * `makersOf` that `manufacturerProductsFor` reads. One assignment, so a
+ * product's Pabrik card, the restock line's picker and the manufacturer's own
+ * product list can never disagree — exactly the drift a second hand-written
+ * mapping invites.
+ *
+ * `manufacturerId` is the USUAL maker and is always the first of the list,
+ * mirroring the invariant the server maintains.
  */
 function attachMakers(catalog: Product[]): Product[] {
   catalog.forEach((p, i) => {
-    p.manufacturerId = makerOf(i);
+    const makers = makersOf(i);
+    p.manufacturerIds = makers;
+    p.manufacturerId = makers[0] ?? "";
   });
   return catalog;
 }
@@ -143,8 +167,10 @@ export function manufacturerProductsFor(
   catalog: Product[],
 ): ManufacturerProduct[] {
   return catalog
-    .map((p, i) => ({ p, owner: makerOf(i) }))
-    .filter(({ owner }) => owner === manufacturerId)
+    // Approved-source semantics: a pabrik's page lists everything it MAY make,
+    // not only the items it is the usual maker for.
+    .map((p, i) => ({ p, owners: makersOf(i) }))
+    .filter(({ owners }) => owners.includes(manufacturerId))
     .map(
       ({ p }) =>
         new ManufacturerProduct({
@@ -350,6 +376,16 @@ attachMakers(PHARMACY_CATALOG);
  * substring, "last opname before X OR never counted"), ordered by name like
  * the server, then paged.
  */
+/**
+ * Every product either catalog holds, by id — what a handler needs when a
+ * request names a product but carries nothing else about it (the create-order
+ * form sends ids, and the order it builds has to print names and convert packs
+ * to base units).
+ */
+export const CATALOG_BY_ID = new Map(
+  [...RETAIL_CATALOG, ...PHARMACY_CATALOG].map((p) => [p.id, p] as const),
+);
+
 export function filterProducts(
   catalog: Product[],
   req: Pick<ListProductsRequest, "onlyArchived" | "includeInactive" | "query" | "opnameBefore">,
@@ -425,6 +461,13 @@ const RESTOCK_DISCOUNTS: Array<Pick<ProductRestockLog, "discountType" | "discoun
  * cost) and each step back in time is ~1.5% cheaper, with the second supplier
  * pricing a little under the first. Enough texture that "is this supplier
  * getting dearer / who is cheaper" is a real question to ask of the table.
+ *
+ * Each row also names the PABRIK that made that delivery, rotating through the
+ * product's own approved sources -- so a multi-source product's history shows
+ * the thing a single column on the product could never say: same item, same
+ * distributor, different factory. The two OLDEST rows deliberately name none,
+ * because that is what every arrival predating the column looks like, and the
+ * blank has to read as not-recorded rather than as a hole in the fixture.
  */
 export function restockLogsFor(p: Product, count: number, suppliers = SUPPLIERS.slice(0, 3)): ProductRestockLog[] {
   return Array.from({ length: count }, (_, i) => {
@@ -433,9 +476,12 @@ export function restockLogsFor(p: Product, count: number, suppliers = SUPPLIERS.
     const supplierSpread = BigInt(i % suppliers.length) * 10n; // later suppliers a touch cheaper
     const price = (p.referenceCost * (drift - supplierSpread)) / 1000n;
     const arrived = i * 12 + 2;
+    const makers = p.manufacturerIds.length ? p.manufacturerIds : [p.manufacturerId];
+    const recorded = i < Math.max(count - 2, 0);
     return new ProductRestockLog({
       id: `${p.id}-rl${i + 1}`,
       supplierId: sup.id,
+      manufacturerId: recorded ? (makers[i % makers.length] ?? "") : "",
       price: price > 0n ? price : 1n,
       qty: BigInt(((i * 7) % 5) + 2) * 100n,
       ...RESTOCK_DISCOUNTS[i % RESTOCK_DISCOUNTS.length],

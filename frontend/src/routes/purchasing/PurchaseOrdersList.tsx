@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import ExportButton from "../../components/ExportButton";
 import Pagination from "../../components/Pagination";
+import ManufacturerSelect from "../../components/ManufacturerSelect";
 import SupplierSelect, { supplierLabel } from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import {
@@ -54,7 +55,9 @@ export default function PurchaseOrdersList() {
     searchInput,
     setSearchInput,
     supplierId,
+    manufacturerId,
     setSupplierId,
+    setManufacturerId,
     onlyOutstanding,
     setOnlyOutstanding,
     dateField,
@@ -142,6 +145,20 @@ export default function PurchaseOrdersList() {
             value={supplierId}
             onChange={setSupplierId}
             placeholder={t("purchasing.supplier")}
+          />
+          {/*
+            Pabrik is a LINE-level filter here, unlike pemasok above: an order
+            matches when ANY of its lines is sourced from this maker. That is
+            the question a recall asks -- which orders brought in goods from
+            this factory -- and the stat row honours it too, because both
+            handlers share applyPOFilters.
+          */}
+          <ManufacturerSelect
+            size="sm"
+            width="220px"
+            value={manufacturerId}
+            onChange={setManufacturerId}
+            placeholder={t("inventory.products.manufacturer")}
           />
           <DateRangeFilter
             value={range}

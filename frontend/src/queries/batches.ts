@@ -13,6 +13,8 @@ import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 export type BatchesQueryOpts = {
   productId?: string;
   supplierId?: string;
+  /** The lot's own maker (batches.manufacturer_id), not the product's list. */
+  manufacturerId?: string;
   onlyInStock?: boolean;
   query?: string;
   fromUnix?: number;
@@ -34,6 +36,7 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
   const {
     productId = "",
     supplierId = "",
+    manufacturerId = "",
     onlyInStock = false,
     query = "",
     fromUnix = 0,
@@ -43,12 +46,13 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
     pageSize = DEFAULT_PAGE_SIZE,
   } = opts;
   const q = useQuery({
-    queryKey: batchKeys.list({ productId, supplierId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize }),
-    placeholderData: keepPageData(batchKeys.list({ productId, supplierId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize })),
+    queryKey: batchKeys.list({ productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize }),
+    placeholderData: keepPageData(batchKeys.list({ productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize })),
     queryFn: async () => {
       const res = await batchClient.listBatches({
         productId,
         supplierId,
+        manufacturerId,
         onlyInStock,
         query,
         fromUnix: BigInt(fromUnix),
