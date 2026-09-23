@@ -1,19 +1,28 @@
 import type { HttpHandler } from "msw";
 
+import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
-import { POStatus, type PurchaseOrder } from "../../gen/purchasing_iface/v1/order_pb";
+import { POStatus, PurchaseOrder, PurchaseOrderItem } from "../../gen/purchasing_iface/v1/order_pb";
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
 import { PurchasePaymentService } from "../../gen/purchasing_iface/v1/payment_connect";
 import { PurchaseReceipt, PurchaseReceiptItem } from "../../gen/purchasing_iface/v1/receipt_pb";
 import { PurchaseReceiptService } from "../../gen/purchasing_iface/v1/receipt_connect";
 import { PurchaseReturn, PurchaseReturnItem } from "../../gen/purchasing_iface/v1/return_pb";
 import { PurchaseReturnService } from "../../gen/purchasing_iface/v1/return_connect";
-import { SUPPLIERS, WAREHOUSES, dateIn } from "../../routes/dev/fixtures";
+import {
+  CATALOG_BY_ID,
+  MANUFACTURERS,
+  SUPPLIERS,
+  WAREHOUSES,
+  dateIn,
+} from "../../routes/dev/fixtures";
 import {
   PURCHASE_ORDERS,
   PURCHASE_RECEIPTS,
   PURCHASE_RETURNS,
+  computePOTotals,
+  lineNetSubtotal,
 } from "../../routes/dev/restockFixtures";
 import { mockRpc } from "../../routes/dev/storyMocks";
 
@@ -47,6 +56,7 @@ type Shop = {
   returns: PurchaseReturn[];
   nextReceiptNo: number;
   nextReturnNo: number;
+  nextOrderNo: number;
 };
 
 /** A fresh, independently mutable copy of the ledger. */
@@ -57,6 +67,7 @@ export function newShop(): Shop {
     returns: PURCHASE_RETURNS.map((r) => r.clone()),
     nextReceiptNo: 89,
     nextReturnNo: 4,
+    nextOrderNo: 149,
   };
 }
 
@@ -110,6 +121,88 @@ function orderHandlers(shop: Shop): HttpHandler[] {
       return { purchaseOrderId: po.id, paidAmount: po.paidAmount, outstanding: po.outstanding };
     }),
   ];
+}
+
+/**
+ * CreatePurchaseOrder: the create form's submit, writing a real order into the
+ * ledger the list and the detail page read.
+ *
+ * It writes rather than echoing a canned order because the form NAVIGATES to
+ * /purchasing/<new id> on success. A canned response would land the story on a
+ * detail page for an order that does not exist — the one screen the whole form
+ * exists to produce would be the one it cannot show.
+ *
+ * The request speaks the wire's units, and both conversions matter: ordered_qty
+ * arrives in the CHOSEN pack unit and is stored in BASE units, while
+ * unit_cost_price is already gross per BASE unit. Getting either backwards
+ * yields an order whose total is off by the pack factor.
+ */
+function createOrderHandler(shop: Shop): HttpHandler {
+  return mockRpc(PurchaseOrderService, "createPurchaseOrder", (req) => {
+    const no = shop.nextOrderNo++;
+    const id = `po-new-${no}`;
+    const items = req.items.map((line, i) => {
+      const product = CATALOG_BY_ID.get(line.productId);
+      const unit = product?.units.find((u) => u.id === line.productUnitId) ?? product?.units[0];
+      const factor = unit?.factor ?? 1n;
+      const baseQty = line.orderedQty * Number(factor);
+      const gross = BigInt(baseQty) * line.unitCostPrice;
+      return new PurchaseOrderItem({
+        id: `${id}-i${i + 1}`,
+        purchaseOrderId: id,
+        productId: line.productId,
+        productName: product?.name ?? "",
+        productSku: product?.sku ?? "",
+        orderedQty: baseQty,
+        receivedQty: 0,
+        unitCostPrice: line.unitCostPrice,
+        subtotal: lineNetSubtotal(gross, line.orderedQty, line),
+        // The pabrik the buyer sourced this line from, carried through exactly
+        // as the server does. Dropping it here would make the form look like it
+        // discards the field: the line shows a maker, the order it produces
+        // shows none, and the lot it becomes at receive would show none either.
+        manufacturerId: line.manufacturerId,
+        productUnitId: unit?.id ?? "",
+        unitName: unit?.name ?? "",
+        unitFactor: factor,
+        discountType: line.discountType,
+        discountValue: line.discountValue,
+        discountPerItem: line.discountPerItem,
+      });
+    });
+
+    const subtotal = items.reduce((sum, it) => sum + it.subtotal, 0n);
+    const rate = req.ppnEnabled ? req.ppnRate : 0;
+    const { ppnAmount, orderedTotal } = computePOTotals(subtotal, req.cartDiscount, rate);
+
+    const order = new PurchaseOrder({
+      id,
+      poNo: `PO-2026-${String(no).padStart(4, "0")}`,
+      supplierId: req.supplierId,
+      // A new order always starts as a DRAFT — Send is a separate action on
+      // the detail page the form hands off to.
+      status: POStatus.PO_STATUS_DRAFT,
+      items,
+      subtotal,
+      cartDiscount: req.cartDiscount,
+      ppnEnabled: req.ppnEnabled,
+      ppnRate: rate,
+      ppnAmount,
+      orderedTotal,
+      outstanding: orderedTotal,
+      invoiceNo: req.invoiceNo,
+      invoiceDate: req.invoiceDate,
+      dueAt: req.dueAt,
+      note: req.note,
+      createdAt: BigInt(Math.floor(Date.now() / 1000)),
+      warehouseId: WAREHOUSES[0].id,
+      warehouseName: WAREHOUSES[0].name,
+      createdBy: "user-owner",
+    });
+    // Newest first, which is the order ListPurchaseOrders returns.
+    shop.orders.unshift(order);
+    return { order };
+  });
 }
 
 function receiptHandlers(shop: Shop): HttpHandler[] {
@@ -243,7 +336,7 @@ function returnHandlers(shop: Shop): HttpHandler[] {
   ];
 }
 
-/** The names the page resolves by id: this order's supplier and its products. */
+/** The names the page resolves by id: this order's supplier, products and pabrik. */
 function refHandlers(shop: Shop): HttpHandler[] {
   return [
     mockRpc(SupplierService, "resolveSuppliers", (req) => ({
@@ -260,6 +353,12 @@ function refHandlers(shop: Shop): HttpHandler[] {
       }
       return { products: Array.from(seen.values()) };
     }),
+    // The Pabrik column on the ordered lines. Resolve INCLUDES archived rows,
+    // like the server: an order placed from a factory the shop has since
+    // retired must still print a name rather than blanking its own history.
+    mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
+      manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
+    })),
   ];
 }
 
@@ -267,6 +366,7 @@ function refHandlers(shop: Shop): HttpHandler[] {
 export function shopHandlers(shop = newShop()): HttpHandler[] {
   return [
     ...orderHandlers(shop),
+    createOrderHandler(shop),
     ...receiptHandlers(shop),
     ...returnHandlers(shop),
     ...refHandlers(shop),

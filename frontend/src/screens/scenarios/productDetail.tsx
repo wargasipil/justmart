@@ -1,19 +1,33 @@
 import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
 import { Route } from "react-router-dom";
+import { userEvent, within } from "storybook/test";
 
-import { Batch } from "../../gen/inventory_iface/v1/batch_pb";
 import { BatchService } from "../../gen/inventory_iface/v1/batch_connect";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import type { Product } from "../../gen/inventory_iface/v1/product_pb";
-import { ProductPriceTier } from "../../gen/inventory_iface/v1/product_price_tier_pb";
 import { ProductDiscountService } from "../../gen/inventory_iface/v1/product_discount_connect";
 import { ProductPriceTierService } from "../../gen/inventory_iface/v1/product_price_tier_connect";
-import { MovementType } from "../../gen/inventory_iface/v1/stock_pb";
 import { StockMovementService } from "../../gen/inventory_iface/v1/stock_connect";
 import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
-import { MANUFACTURERS, PHARMACY_CATALOG, SUPPLIERS, dateIn, daysAgo, redactProductForTill, restockLogsFor } from "../../routes/dev/fixtures";
+import {
+  MANUFACTURERS,
+  PHARMACY_CATALOG,
+  SUPPLIERS,
+  filterManufacturers,
+  redactProductForTill,
+} from "../../routes/dev/fixtures";
+import {
+  batchesFor,
+  discountsFor,
+  movementsFor,
+  redactBatchesForTill,
+  restocksFor,
+  tierPricesFor,
+  tiersFor,
+  unitPricesFor,
+} from "../../routes/dev/productDetailFixtures";
 import { withPageContext } from "../../routes/dev/storyDecorators";
 import { mockApi, mockRpc, mockRpcError } from "../../routes/dev/storyMocks";
 import ProductDetail from "../../routes/inventory/ProductDetail";
@@ -26,23 +40,11 @@ import ProductDetail from "../../routes/inventory/ProductDetail";
 //
 // Rendered by screens/{desktop,mobile}/pages/products/ProductDetail.stories.tsx.
 
-// Fixtures come from routes/dev/fixtures.ts — the same catalog the Products
-// list story pages through, so a row there and this page describe one product.
+// Fixtures come from routes/dev/ — the catalog (fixtures.ts) the Products list
+// story pages through, so a row there and this page describe one product, and
+// the tab data (productDetailFixtures.ts), which the per-tab component stories
+// in routes/inventory read too.
 const [PARACETAMOL, AMOXICILLIN] = PHARMACY_CATALOG;
-const [SUPPLIER, SUPPLIER_2] = SUPPLIERS;
-
-// Unit ids are `${productId}-u1|u2|u3` (base · strip · box) — see unitsFor.
-const tiers = (p: Product) => [
-  { id: "tier-1", productId: p.id, productUnitId: `${p.id}-u2`, unitName: "strip", unitFactor: 10n, minQty: 5, price: (p.units[1].sellPrice * 95n) / 100n, createdAt: daysAgo(40) },
-  { id: "tier-2", productId: p.id, productUnitId: `${p.id}-u2`, unitName: "strip", unitFactor: 10n, minQty: 20, price: (p.units[1].sellPrice * 90n) / 100n, createdAt: daysAgo(40) },
-  { id: "tier-3", productId: p.id, productUnitId: `${p.id}-u3`, unitName: "box", unitFactor: 100n, minQty: 3, price: (p.units[2].sellPrice * 94n) / 100n, createdAt: daysAgo(20) },
-];
-
-const batches = (p: Product) => [
-  new Batch({ id: "b-1", productId: p.id, supplierId: SUPPLIER_2.id, batchNumber: `${p.sku.slice(0, 3)}2409A`, expiryDate: dateIn(21), costPrice: p.referenceCost - 20n, receivedAt: dateIn(-150), currentQuantity: 140n, productName: p.name }),
-  new Batch({ id: "b-2", productId: p.id, supplierId: SUPPLIER.id, batchNumber: `${p.sku.slice(0, 3)}2503C`, expiryDate: dateIn(240), costPrice: p.referenceCost - 10n, receivedAt: dateIn(-60), currentQuantity: 600n, productName: p.name }),
-  new Batch({ id: "b-3", productId: p.id, supplierId: SUPPLIER.id, batchNumber: `${p.sku.slice(0, 3)}2508B`, expiryDate: dateIn(640), costPrice: p.referenceCost, receivedAt: dateIn(-12), currentQuantity: 500n, productName: p.name }),
-];
 
 // --- handlers ---------------------------------------------------------------
 
@@ -51,11 +53,7 @@ function tillHandlers(p: Product) {
   return [
     mockRpc(ProductService, "getProduct", { product: p }),
     mockRpc(BatchService, "listBatches", () => {
-      const rows = batches(p).map((b) => {
-        b.supplierId = "";
-        b.costPrice = 0n;
-        return b;
-      });
+      const rows = redactBatchesForTill(batchesFor(p));
       return { batches: rows, total: rows.length };
     }),
     // The Pabrik field resolves one id. Mocked for the TILL too, on purpose:
@@ -69,15 +67,15 @@ function tillHandlers(p: Product) {
 
 /** The manager view adds the grosir card and the four cost-bearing tabs. */
 function managerHandlers(p: Product) {
-  const ladder = tiers(p);
+  const ladder = tiersFor(p);
   return [
     mockRpc(ProductService, "getProduct", () => {
       const withLadder = p.clone();
-      withLadder.priceTiers = ladder.map((t) => new ProductPriceTier(t));
+      withLadder.priceTiers = ladder;
       return { product: withLadder };
     }),
     mockRpc(BatchService, "listBatches", () => {
-      const rows = batches(p);
+      const rows = batchesFor(p);
       return { batches: rows, total: rows.length };
     }),
     mockRpc(SupplierService, "resolveSuppliers", (req) => ({ suppliers: SUPPLIERS.filter((s) => req.ids.includes(s.id)) })),
@@ -87,45 +85,47 @@ function managerHandlers(p: Product) {
     mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
       manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
     })),
-    mockRpc(ProductPriceTierService, "listProductPriceTiers", { tiers: ladder, total: ladder.length }),
-    mockRpc(ProductService, "listProductUnitPrices", {
-      prices: [
-        { id: "up-1", productUnitId: `${p.id}-u3`, unitName: "box", unitSellPrice: p.units[2].sellPrice, effectiveFrom: daysAgo(35) },
-        { id: "up-2", productUnitId: `${p.id}-u3`, unitName: "box", unitSellPrice: (p.units[2].sellPrice * 95n) / 100n, effectiveFrom: daysAgo(200), effectiveTo: daysAgo(35) },
-        { id: "up-3", productUnitId: `${p.id}-u2`, unitName: "strip", unitSellPrice: p.units[1].sellPrice, effectiveFrom: daysAgo(200) },
-        { id: "up-4", productUnitId: `${p.id}-u1`, unitName: p.unit, unitSellPrice: p.unitPrice, effectiveFrom: daysAgo(200) },
-      ],
-      total: 4,
+    // The approved-sources card adds a picker, which searches on mount, and an
+    // editor. It WRITES into this story's copy of the product for the same
+    // reason the settings panels do: the mutation invalidates the product key,
+    // the refetch serves the fixture back, and a canned reply would make every
+    // add and remove visibly snap back as though the card were broken.
+    mockRpc(ManufacturerService, "searchManufacturers", (req) => ({
+      manufacturers: filterManufacturers(MANUFACTURERS, {
+        query: req.query,
+        includeInactive: false,
+      }).slice(0, req.limit || 20),
+    })),
+    mockRpc(ProductService, "setProductManufacturers", (req) => {
+      p.manufacturerIds = req.manufacturerIds;
+      // Mirrors the server's invariant rather than trusting the request: the
+      // primary is always a member of its own list, and clearing the list
+      // clears the pointer instead of dangling it.
+      p.manufacturerId = req.manufacturerIds.includes(req.primaryManufacturerId)
+        ? req.primaryManufacturerId
+        : (req.manufacturerIds[0] ?? "");
+      return { product: p };
     }),
-    mockRpc(ProductPriceTierService, "listProductTierPrices", {
-      // Newest first, like the server. The ≥5 strip rung was re-priced once.
-      prices: [
-        { id: "tp-1", productId: p.id, productUnitId: `${p.id}-u3`, unitName: "box", minQty: 3, price: ladder[2].price, effectiveFrom: daysAgo(20) },
-        { id: "tp-2", productId: p.id, productUnitId: `${p.id}-u2`, unitName: "strip", minQty: 20, price: ladder[1].price, effectiveFrom: daysAgo(40) },
-        { id: "tp-3", productId: p.id, productUnitId: `${p.id}-u2`, unitName: "strip", minQty: 5, price: ladder[0].price, effectiveFrom: daysAgo(15) },
-        { id: "tp-4", productId: p.id, productUnitId: `${p.id}-u2`, unitName: "strip", minQty: 5, price: (ladder[0].price * 102n) / 100n, effectiveFrom: daysAgo(40), effectiveTo: daysAgo(15) },
-      ],
-      total: 4,
+    mockRpc(ProductPriceTierService, "listProductPriceTiers", { tiers: ladder, total: ladder.length }),
+    mockRpc(ProductService, "listProductUnitPrices", () => {
+      const prices = unitPricesFor(p);
+      return { prices, total: prices.length };
+    }),
+    mockRpc(ProductPriceTierService, "listProductTierPrices", () => {
+      const prices = tierPricesFor(p);
+      return { prices, total: prices.length };
     }),
     mockRpc(ProductService, "listProductRestockLogs", () => {
-      const logs = restockLogsFor(p, 6);
+      const logs = restocksFor(p);
       return { logs, total: logs.length };
     }),
-    mockRpc(StockMovementService, "listMovements", {
-      movements: [
-        { id: "m-1", batchId: "b-2", qty: -20, type: MovementType.SALE, reason: "INV-2026-0412", createdAt: daysAgo(0) },
-        { id: "m-2", batchId: "b-3", qty: 500, type: MovementType.PURCHASE, reason: "RCV-2026-0088", createdAt: daysAgo(12) },
-        { id: "m-3", batchId: "b-1", qty: -4, type: MovementType.ADJUSTMENT, reason: "Stocktake: Opname Agustus — selisih", createdAt: daysAgo(30) },
-        { id: "m-4", batchId: "b-1", qty: -6, type: MovementType.WRITE_OFF, reason: "Kemasan rusak", createdAt: daysAgo(44) },
-      ],
-      total: 4,
+    mockRpc(StockMovementService, "listMovements", () => {
+      const movements = movementsFor(p);
+      return { movements, total: movements.length };
     }),
-    mockRpc(ProductDiscountService, "listProductDiscounts", {
-      discounts: [
-        { id: "d-1", productId: p.id, discountType: "PERCENT", perItem: true, value: 1_000n, minQty: 0, expiresAt: dateIn(10), createdAt: daysAgo(5) },
-        { id: "d-2", productId: p.id, discountType: "FIXED", perItem: false, value: 2_000n, minQty: 100, minQtyUnitName: p.unit, minQtyUnitFactor: 1n, expiresAt: dateIn(-3), createdAt: daysAgo(60) },
-      ],
-      total: 2,
+    mockRpc(ProductDiscountService, "listProductDiscounts", () => {
+      const discounts = discountsFor(p);
+      return { discounts, total: discounts.length };
     }),
   ];
 }
@@ -148,6 +148,27 @@ const story = (description: string, s: StoryObj = {}): StoryObj => ({
   ...s,
   parameters: { ...s.parameters, docs: { description: { story: description } } },
 });
+
+/**
+ * A story that opens on one of the five tabs.
+ *
+ * The tab is local state with no URL and no prop — `Tabs.Root defaultValue`
+ * decides it — so a click is the only seam there is, and every story without
+ * one lands on Batches. `name` matches both locales because the toolbar's
+ * locale global is a real switch and these stories should survive it.
+ *
+ * Each tab also has its OWN story beside its component (components/products/*),
+ * where its states — empty, loading, refused — are staged. These exist for the
+ * thing a component story structurally cannot show: the tab in the page, under
+ * the real strip, at the width the shell leaves it.
+ */
+const onTab = (name: RegExp, description: string): StoryObj =>
+  story(description, {
+    play: async ({ canvasElement }) => {
+      const canvas = within(canvasElement);
+      await userEvent.click(await canvas.findByRole("tab", { name }));
+    },
+  });
 
 export const stories = {
   Owner: story(
@@ -192,5 +213,39 @@ export const stories = {
         msw: mockApi(mockRpcError(ProductService, "getProduct", Code.NotFound, "product not found")),
       },
     },
+  ),
+
+  // --- the five tabs, opened in place ---------------------------------------
+
+  TabBatches: onTab(
+    /^(batch|batches)$/i,
+    "The tab every story lands on, stated explicitly so the set reads as five. In-stock lots " +
+      "in the ACTIVE warehouse, soonest expiry first, with the manager's supplier and cost " +
+      "columns — compare the Cashier story, where the same table is three columns wide.",
+  ),
+  TabPriceHistory: onTab(
+    /riwayat harga jual|sold price history/i,
+    "Sell-price history, in two flavours behind one segmented control: the per-unit catalog " +
+      "price and the grosir ladder. They are separate tables keyed differently — a rung is " +
+      "(unit, min_qty) — so each owns its own pager rather than sharing one.",
+  ),
+  TabRestockLog: onTab(
+    /riwayat harga restok|restock price history/i,
+    "What the shop PAID, to whom, per arrival — the append-only restock log. The price drifts " +
+      "across the six rows and the two suppliers price differently, so \"is this one getting " +
+      "dearer\" is a question the table can actually answer.",
+  ),
+  TabMovements: onTab(
+    /mutasi|recent movements/i,
+    "The stock ledger for this product in the active warehouse, one row per movement type the " +
+      "column labels (sale · purchase · adjustment · write-off). Quantities are signed and the " +
+      "reason column carries the document that caused it.",
+  ),
+  TabDiscounts: onTab(
+    /^(diskon|discounts)$/i,
+    "The one tab that WRITES: discount rules with Add / edit / delete. One rule is live and one " +
+      "lapsed three days ago — the red Kedaluwarsa badge is the point, since an expired rule " +
+      "stays listed rather than vanishing. The mutations are not mocked here; the tab's own " +
+      "story (components/products/ProductDiscountTab) stages those over a shop that answers.",
   ),
 };

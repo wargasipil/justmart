@@ -29,6 +29,7 @@ export const Partial = withShell(scenario.stories.Partial);
 export const Received = withShell(scenario.stories.Received);
 export const Closed = withShell(scenario.stories.Closed);
 export const SupplierCredit = withShell(scenario.stories.SupplierCredit);
+export const UnrecordedMaker = withShell(scenario.stories.UnrecordedMaker);
 export const Voided = withShell(scenario.stories.Voided);
 export const Loading = withShell(scenario.stories.Loading);
 export const NotFound = withShell(scenario.stories.NotFound);

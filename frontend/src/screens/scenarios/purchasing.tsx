@@ -2,12 +2,17 @@ import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
 import { Navigate, Route } from "react-router-dom";
 
+import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
 import type { PurchaseOrder } from "../../gen/purchasing_iface/v1/order_pb";
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
 import { PurchasePaymentService } from "../../gen/purchasing_iface/v1/payment_connect";
-import { SUPPLIERS } from "../../routes/dev/fixtures";
+import {
+  MANUFACTURERS,
+  SUPPLIERS,
+  filterManufacturers,
+} from "../../routes/dev/fixtures";
 import {
   PURCHASE_ORDERS,
   filterPurchaseOrders,
@@ -60,6 +65,19 @@ export function listHandlers(rows: PurchaseOrder[]) {
     })),
     mockRpc(SupplierService, "searchSuppliers", (req) => ({
       suppliers: filterSuppliers(req.query).slice(0, req.limit || 20),
+    })),
+    // The Pabrik filter beside the pemasok one. Same two RPCs, the same
+    // asymmetry the server has: search is active-only (you cannot filter by a
+    // factory the shop retired), resolve includes archived rows so an order
+    // that already names one still renders its name.
+    mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
+      manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
+    })),
+    mockRpc(ManufacturerService, "searchManufacturers", (req) => ({
+      manufacturers: filterManufacturers(MANUFACTURERS, {
+        query: req.query,
+        includeInactive: false,
+      }).slice(0, req.limit || 20),
     })),
     // The Pemasok tab.
     mockRpc(PurchasePaymentService, "getSupplierBalances", (req) => ({
@@ -139,6 +157,20 @@ export const stories = {
       "burned from the counter, so hiding the row would leave an unexplained gap — and it is " +
       "excluded from the outstanding filter and from every supplier balance.",
     { parameters: { router: { initialEntries: ["/purchasing/voided"] } } },
+  ),
+  ByManufacturer: story(
+    "The Pabrik filter, live. Pick a factory in the toolbar and the table narrows to orders " +
+      "containing at least one line from it — a LINE-level match, unlike Pemasok beside it, " +
+      "which is a property of the order as a whole. That is the question a recall asks: not " +
+      "who sold us this, but which orders brought in goods this factory made. The four " +
+      "tiles re-count with it, because the stat row sends the same filter object the list " +
+      "does and the server runs both through one shared predicate; the fixture mirrors that " +
+      "predicate rather than hard-coding a result, so the filter genuinely works here. Where " +
+      "it LANDS is the batches page: an order records the pabrik a line was bought from, and " +
+      "receiving stamps it onto the lot, which is the only row that records who made " +
+      "physical stock. Try PT Kimia Farma or PT SOHO rather than PT Kalbe Farma: this shop, " +
+      "like most, has one dominant maker whose goods are in nearly every order, so picking " +
+      "the big one narrows almost nothing and reads as a filter that does not work.",
   ),
   SuppliersLedger: story(
     "The Pemasok tab: what the shop owes each distributor, aggregated server-side over all " +

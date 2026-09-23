@@ -7,7 +7,7 @@ import { withPageContext } from "../../routes/dev/storyDecorators";
 import { mockApi, mockRpc, mockRpcError } from "../../routes/dev/storyMocks";
 import PurchaseOrderDetail from "../../routes/purchasing/PurchaseOrderDetail";
 import Purchasing from "../../routes/purchasing/Purchasing";
-import { shopHandlers } from "./restockShop";
+import { newShop, shopHandlers } from "./restockShop";
 
 // One restock order's detail page — the biggest page in the app that had no
 // story, and the one whose interesting states are all refusals. Rendered by
@@ -71,6 +71,18 @@ const withOwnShop = (extra: Record<string, unknown>): StoryObj["parameters"] => 
   msw: mockApi(...detailHandlers()),
 });
 
+/**
+ * A ledger whose orders never recorded a pabrik -- every line's Pabrik cell a
+ * dash. This is what every order placed before the field existed looks like,
+ * and it is permanent: the maker is read off the distributor's invoice at
+ * order time, so there is nowhere to recover it from afterwards.
+ */
+const withoutMakers = (extra: Record<string, unknown>): StoryObj["parameters"] => {
+  const shop = newShop();
+  shop.orders.forEach((po) => po.items.forEach((it) => (it.manufacturerId = "")));
+  return { ...extra, msw: mockApi(...shopHandlers(shop)) };
+};
+
 export const stories = {
   Draft: story(
     "A restock order still being written: no PO has gone to the supplier yet, so the only " +
@@ -125,6 +137,16 @@ export const stories = {
       "the shop, not the other way round. Worth pinning: a naive \"amount due\" would render " +
       "this as a debt.",
     { parameters: withOwnShop(at("po-credit")) },
+  ),
+  UnrecordedMaker: story(
+    "The same order with no pabrik on any line — a dash in every Pabrik cell. Orders placed " +
+      "before the field existed all read this way, and they stay that way: the maker is copied " +
+      "off the distributor's invoice when the order is written, so there is nothing to recover " +
+      "it from later. It matters here more than anywhere else, because this column is what " +
+      "CreateReceipt stamps onto the lot — a line with no pabrik produces a batch with no " +
+      "pabrik, and that lot then answers no recall. The dash has to read as not-recorded, not " +
+      "as a column that failed to load.",
+    { parameters: withoutMakers(at("po-partial")) },
   ),
   Voided: story(
     "A cancelled order. Every action is gone and the lines are read-only, but the PO number and " +

@@ -1,7 +1,7 @@
 import type { StoryObj } from "@storybook/react";
 import { Box, Stack, Text } from "@chakra-ui/react";
 import { Route } from "react-router-dom";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import AppShell from "../../components/AppShell";
 import PageHeader from "../../components/PageHeader";
@@ -97,7 +97,10 @@ export const stories = {
         const menu = await within(canvasElement).findByRole("button", { name: "Menu" });
         await userEvent.click(menu);
         // The drawer portals out of the canvas, so query the whole document.
-        await expect(await within(document.body).findByRole("dialog")).toBeVisible();
+        // findByRole resolves as soon as the drawer EXISTS -- which is mid
+        // enter-animation, at opacity 0. Retry until Ark finishes the enter.
+        const drawer = await within(document.body).findByRole("dialog");
+        await waitFor(() => expect(drawer).toBeVisible());
       },
     },
   ),

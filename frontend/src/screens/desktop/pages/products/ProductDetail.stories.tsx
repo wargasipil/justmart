@@ -26,3 +26,14 @@ export const Cashier = withShell(scenario.stories.Cashier);
 export const Pharmacy = withShell(scenario.stories.Pharmacy);
 export const Loading = withShell(scenario.stories.Loading);
 export const NotFound = withShell(scenario.stories.NotFound);
+
+// The five tabs, each opened by its story's play(). Desktop only: what they are
+// here for is the tab IN the page — the strip above it, the width the rail
+// leaves the table — and a phone shows the same five panels one breakpoint
+// narrower. Each tab's own states (empty, loading, refused) live beside its
+// component under components/products/.
+export const TabBatches = withShell(scenario.stories.TabBatches);
+export const TabPriceHistory = withShell(scenario.stories.TabPriceHistory);
+export const TabRestockLog = withShell(scenario.stories.TabRestockLog);
+export const TabMovements = withShell(scenario.stories.TabMovements);
+export const TabDiscounts = withShell(scenario.stories.TabDiscounts);

@@ -26,6 +26,7 @@ export const Owner = withShell(scenario.stories.Owner);
 export const Admin = withShell(scenario.stories.Admin);
 export const Sent = withShell(scenario.stories.Sent);
 export const Voided = withShell(scenario.stories.Voided);
+export const ByManufacturer = withShell(scenario.stories.ByManufacturer);
 export const SuppliersLedger = withShell(scenario.stories.SuppliersLedger);
 export const Empty = withShell(scenario.stories.Empty);
 export const Loading = withShell(scenario.stories.Loading);

@@ -3,7 +3,7 @@ import { Box, Text } from "@chakra-ui/react";
 import type { Decorator, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { Route } from "react-router-dom";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 
 import { BussinessType } from "../../gen/settings_iface/v1/settings_pb";
 import { SettingsService } from "../../gen/settings_iface/v1/settings_connect";
@@ -136,7 +136,11 @@ export const stories = {
       },
       play: async ({ canvasElement }) => {
         await signIn(canvasElement, "owner@toko.test", "salah");
-        await expect(await within(document.body).findByRole("status")).toBeVisible();
+        // findByRole resolves as soon as the toast EXISTS -- which is mid
+        // enter-animation, at opacity 0. Retry the visibility assertion until
+        // Chakra finishes the transition instead of racing it.
+        const toast = await within(document.body).findByRole("status");
+        await waitFor(() => expect(toast).toBeVisible());
       },
     },
   ),
