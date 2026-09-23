@@ -134,6 +134,18 @@ export class Batch extends Message<Batch> {
    */
   productImageUpdatedAt = protoInt64.zero;
 
+  /**
+   * Who MADE this lot, as recorded on the purchase-order line it arrived on.
+   * Empty on every batch created before the column existed and on the manual
+   * CreateBatch path -- the fact was never captured, and filling it in from
+   * the product's current maker would invent provenance. This is the ONLY
+   * place the maker of physical stock is recorded: the product's own list
+   * says who MAY make it, this says who DID.
+   *
+   * @generated from field: string manufacturer_id = 15;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<Batch>) {
     super();
     proto3.util.initPartial(data, this);
@@ -156,6 +168,7 @@ export class Batch extends Message<Batch> {
     { no: 12, name: "product_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 13, name: "units", kind: "message", T: ProductUnit, repeated: true },
     { no: 14, name: "product_image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 15, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Batch {
@@ -234,6 +247,13 @@ export class ListBatchesRequest extends Message<ListBatchesRequest> {
    */
   supplierId = "";
 
+  /**
+   * optional pabrik filter (the lot's own maker)
+   *
+   * @generated from field: string manufacturer_id = 10;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<ListBatchesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -251,6 +271,7 @@ export class ListBatchesRequest extends Message<ListBatchesRequest> {
     { no: 7, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "date_field", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBatchesRequest {
@@ -426,6 +447,15 @@ export class CreateBatchRequest extends Message<CreateBatchRequest> {
    */
   initialQuantity = protoInt64.zero;
 
+  /**
+   * Who MADE this lot. Optional, and ARCHIVED makers are accepted here unlike
+   * on a product's approved-source list: this records what happened, and old
+   * stock entered by hand may well come from a factory since retired.
+   *
+   * @generated from field: string manufacturer_id = 8;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<CreateBatchRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -441,6 +471,7 @@ export class CreateBatchRequest extends Message<CreateBatchRequest> {
     { no: 5, name: "cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "received_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "initial_quantity", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateBatchRequest {
@@ -543,6 +574,15 @@ export class ImportStockRow extends Message<ImportStockRow> {
    */
   expiryDate = "";
 
+  /**
+   * Who MADE the lot, by the pabrik CODE -- a CSV is hand-authored, so it is
+   * keyed by business codes like `sku` and `unit`, never by a UUID. Optional;
+   * an archived pabrik is accepted, since opening stock is history.
+   *
+   * @generated from field: string manufacturer_code = 7;
+   */
+  manufacturerCode = "";
+
   constructor(data?: PartialMessage<ImportStockRow>) {
     super();
     proto3.util.initPartial(data, this);
@@ -557,6 +597,7 @@ export class ImportStockRow extends Message<ImportStockRow> {
     { no: 4, name: "cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 5, name: "batch_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "manufacturer_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportStockRow {

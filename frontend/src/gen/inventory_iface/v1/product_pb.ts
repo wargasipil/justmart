@@ -285,6 +285,18 @@ export class Product extends Message<Product> {
    */
   manufacturerId = "";
 
+  /**
+   * Every pabrik this product may be sourced from -- the approved-source
+   * list, of which manufacturer_id above is the PRIMARY and always a member.
+   * Embedded rather than paginated for the same reason price_tiers is: the
+   * restock form needs the whole set to offer the buyer a constrained picker,
+   * and a partial list would silently hide a legitimate source. Bounded by
+   * how many factories make one item, which is a handful.
+   *
+   * @generated from field: repeated string manufacturer_ids = 31;
+   */
+  manufacturerIds: string[] = [];
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -322,6 +334,7 @@ export class Product extends Message<Product> {
     { no: 28, name: "on_order_valuation", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 29, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 30, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 31, name: "manufacturer_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {
@@ -740,6 +753,14 @@ export class ProductRestockLog extends Message<ProductRestockLog> {
    */
   discountPerItem = false;
 
+  /**
+   * Who MADE this delivery, snapshotted from the purchase-order line. Empty on
+   * anything received before the maker was recorded -- not-recorded, not "any".
+   *
+   * @generated from field: string manufacturer_id = 10;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<ProductRestockLog>) {
     super();
     proto3.util.initPartial(data, this);
@@ -757,6 +778,7 @@ export class ProductRestockLog extends Message<ProductRestockLog> {
     { no: 7, name: "restock_created_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "restock_arrived_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 9, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 10, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProductRestockLog {
@@ -1608,6 +1630,193 @@ export class UpdateProductResponse extends Message<UpdateProductResponse> {
 
   static equals(a: UpdateProductResponse | PlainMessage<UpdateProductResponse> | undefined, b: UpdateProductResponse | PlainMessage<UpdateProductResponse> | undefined): boolean {
     return proto3.util.equals(UpdateProductResponse, a, b);
+  }
+}
+
+/**
+ * AddProductManufacturer approves one more pabrik for a product, idempotently.
+ * It is what the RESTOCK FORM calls: a buyer holding the invoice has just
+ * learned of a source the catalog does not list yet, and blocking them behind
+ * an admin screen they cannot reach from there would mean the order simply
+ * records no maker at all. When the product has no primary yet the addition
+ * becomes it -- a first source is the usual one until someone says otherwise.
+ * 
+ * Narrow ON PURPOSE, like the set-replace below: UpdateProduct is a full
+ * replace of name/sku/units/price, so a form holding one line's worth of
+ * product data would overwrite the rest of the catalog row to change this.
+ *
+ * @generated from message inventory_iface.v1.AddProductManufacturerRequest
+ */
+export class AddProductManufacturerRequest extends Message<AddProductManufacturerRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * @generated from field: string manufacturer_id = 2;
+   */
+  manufacturerId = "";
+
+  constructor(data?: PartialMessage<AddProductManufacturerRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.AddProductManufacturerRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddProductManufacturerRequest {
+    return new AddProductManufacturerRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddProductManufacturerRequest {
+    return new AddProductManufacturerRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddProductManufacturerRequest {
+    return new AddProductManufacturerRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AddProductManufacturerRequest | PlainMessage<AddProductManufacturerRequest> | undefined, b: AddProductManufacturerRequest | PlainMessage<AddProductManufacturerRequest> | undefined): boolean {
+    return proto3.util.equals(AddProductManufacturerRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.AddProductManufacturerResponse
+ */
+export class AddProductManufacturerResponse extends Message<AddProductManufacturerResponse> {
+  /**
+   * @generated from field: inventory_iface.v1.Product product = 1;
+   */
+  product?: Product;
+
+  constructor(data?: PartialMessage<AddProductManufacturerResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.AddProductManufacturerResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product", kind: "message", T: Product },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): AddProductManufacturerResponse {
+    return new AddProductManufacturerResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): AddProductManufacturerResponse {
+    return new AddProductManufacturerResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): AddProductManufacturerResponse {
+    return new AddProductManufacturerResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: AddProductManufacturerResponse | PlainMessage<AddProductManufacturerResponse> | undefined, b: AddProductManufacturerResponse | PlainMessage<AddProductManufacturerResponse> | undefined): boolean {
+    return proto3.util.equals(AddProductManufacturerResponse, a, b);
+  }
+}
+
+/**
+ * SetProductManufacturers replaces the whole approved-source list and names
+ * which of them is primary. The admin card on the product detail page; the
+ * full-set shape mirrors how units are edited (one upsert of the complete
+ * set), so a removal is expressed by absence rather than by a second RPC.
+ *
+ * @generated from message inventory_iface.v1.SetProductManufacturersRequest
+ */
+export class SetProductManufacturersRequest extends Message<SetProductManufacturersRequest> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * empty clears the list AND the primary
+   *
+   * @generated from field: repeated string manufacturer_ids = 2;
+   */
+  manufacturerIds: string[] = [];
+
+  /**
+   * Must be one of manufacturer_ids, or empty to let the server keep the
+   * current primary when it survives the edit and pick the first otherwise.
+   *
+   * @generated from field: string primary_manufacturer_id = 3;
+   */
+  primaryManufacturerId = "";
+
+  constructor(data?: PartialMessage<SetProductManufacturersRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.SetProductManufacturersRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "manufacturer_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 3, name: "primary_manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetProductManufacturersRequest {
+    return new SetProductManufacturersRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetProductManufacturersRequest {
+    return new SetProductManufacturersRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetProductManufacturersRequest {
+    return new SetProductManufacturersRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetProductManufacturersRequest | PlainMessage<SetProductManufacturersRequest> | undefined, b: SetProductManufacturersRequest | PlainMessage<SetProductManufacturersRequest> | undefined): boolean {
+    return proto3.util.equals(SetProductManufacturersRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.SetProductManufacturersResponse
+ */
+export class SetProductManufacturersResponse extends Message<SetProductManufacturersResponse> {
+  /**
+   * @generated from field: inventory_iface.v1.Product product = 1;
+   */
+  product?: Product;
+
+  constructor(data?: PartialMessage<SetProductManufacturersResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.SetProductManufacturersResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product", kind: "message", T: Product },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetProductManufacturersResponse {
+    return new SetProductManufacturersResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetProductManufacturersResponse {
+    return new SetProductManufacturersResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetProductManufacturersResponse {
+    return new SetProductManufacturersResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetProductManufacturersResponse | PlainMessage<SetProductManufacturersResponse> | undefined, b: SetProductManufacturersResponse | PlainMessage<SetProductManufacturersResponse> | undefined): boolean {
+    return proto3.util.equals(SetProductManufacturersResponse, a, b);
   }
 }
 

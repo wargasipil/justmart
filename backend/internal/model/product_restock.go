@@ -37,6 +37,11 @@ type ProductRestockLog struct {
 	DiscountType     string    `gorm:"not null;default:'FIXED';column:discount_type"`
 	DiscountValue    int64     `gorm:"not null;default:0;column:discount_value"`
 	DiscountPerItem  bool      `gorm:"not null;default:false;column:discount_per_item"`
+	// Who MADE the goods, snapshotted from the purchase-order line -- the same
+	// value CreateReceipt stamps onto the lot. Nullable and normally NULL on
+	// anything received before 00061; a *string so "" becomes NULL rather than
+	// violating the FK.
+	ManufacturerID   *string   `gorm:"type:uuid;column:manufacturer_id"`
 	RestockCreatedAt time.Time `gorm:"not null;column:restock_created_at"` // PO created
 	RestockArrivedAt time.Time `gorm:"not null;column:restock_arrived_at"` // receipt received_at
 	ReceiptID        *string   `gorm:"type:uuid;column:receipt_id"`

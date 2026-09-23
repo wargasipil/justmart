@@ -102,8 +102,15 @@ type Batch struct {
 	// fills product_name, so a picker row can render <ProductImage> without a
 	// second round trip. 0 makes the client skip the image fetch entirely.
 	ProductImageUpdatedAt int64 `protobuf:"varint,14,opt,name=product_image_updated_at,json=productImageUpdatedAt,proto3" json:"product_image_updated_at,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Who MADE this lot, as recorded on the purchase-order line it arrived on.
+	// Empty on every batch created before the column existed and on the manual
+	// CreateBatch path -- the fact was never captured, and filling it in from
+	// the product's current maker would invent provenance. This is the ONLY
+	// place the maker of physical stock is recorded: the product's own list
+	// says who MAY make it, this says who DID.
+	ManufacturerId string `protobuf:"bytes,15,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Batch) Reset() {
@@ -234,19 +241,27 @@ func (x *Batch) GetProductImageUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Batch) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
 type ListBatchesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	OnlyInStock   bool                   `protobuf:"varint,2,opt,name=only_in_stock,json=onlyInStock,proto3" json:"only_in_stock,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
-	Query         string                 `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`                             // ILIKE batch_number / product name / sku
-	FromUnix      int64                  `protobuf:"varint,6,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`      // date-range lower bound (0 = unbounded)
-	ToUnix        int64                  `protobuf:"varint,7,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`            // date-range upper bound (exclusive; 0 = unbounded)
-	DateField     string                 `protobuf:"bytes,8,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"`    // which date the range filters: "received" | "expiry"
-	SupplierId    string                 `protobuf:"bytes,9,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"` // optional supplier ID filter
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ProductId      string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	OnlyInStock    bool                   `protobuf:"varint,2,opt,name=only_in_stock,json=onlyInStock,proto3" json:"only_in_stock,omitempty"`
+	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset         int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	Query          string                 `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`                                          // ILIKE batch_number / product name / sku
+	FromUnix       int64                  `protobuf:"varint,6,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`                   // date-range lower bound (0 = unbounded)
+	ToUnix         int64                  `protobuf:"varint,7,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`                         // date-range upper bound (exclusive; 0 = unbounded)
+	DateField      string                 `protobuf:"bytes,8,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"`                 // which date the range filters: "received" | "expiry"
+	SupplierId     string                 `protobuf:"bytes,9,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"`              // optional supplier ID filter
+	ManufacturerId string                 `protobuf:"bytes,10,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"` // optional pabrik filter (the lot's own maker)
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListBatchesRequest) Reset() {
@@ -338,6 +353,13 @@ func (x *ListBatchesRequest) GetDateField() string {
 func (x *ListBatchesRequest) GetSupplierId() string {
 	if x != nil {
 		return x.SupplierId
+	}
+	return ""
+}
+
+func (x *ListBatchesRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
 	}
 	return ""
 }
@@ -491,8 +513,12 @@ type CreateBatchRequest struct {
 	CostPrice       int64                  `protobuf:"varint,5,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`
 	ReceivedAt      string                 `protobuf:"bytes,6,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
 	InitialQuantity int64                  `protobuf:"varint,7,opt,name=initial_quantity,json=initialQuantity,proto3" json:"initial_quantity,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Who MADE this lot. Optional, and ARCHIVED makers are accepted here unlike
+	// on a product's approved-source list: this records what happened, and old
+	// stock entered by hand may well come from a factory since retired.
+	ManufacturerId string `protobuf:"bytes,8,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CreateBatchRequest) Reset() {
@@ -574,6 +600,13 @@ func (x *CreateBatchRequest) GetInitialQuantity() int64 {
 	return 0
 }
 
+func (x *CreateBatchRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
 type CreateBatchResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Batch         *Batch                 `protobuf:"bytes,1,opt,name=batch,proto3" json:"batch,omitempty"`
@@ -620,15 +653,19 @@ func (x *CreateBatchResponse) GetBatch() *Batch {
 
 // One opening-stock row (CSV), keyed by SKU. The server resolves the product.
 type ImportStockRow struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Sku           string                 `protobuf:"bytes,1,opt,name=sku,proto3" json:"sku,omitempty"`
-	Quantity      int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`                         // in `unit` if set, else base units; must be > 0
-	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`                                  // optional pack name (resolved to a product unit → ×factor)
-	CostPrice     int64                  `protobuf:"varint,4,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`      // per BASE unit, minor units; optional (default 0)
-	BatchNumber   string                 `protobuf:"bytes,5,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"` // optional
-	ExpiryDate    string                 `protobuf:"bytes,6,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`    // optional YYYY-MM-DD; blank => far-future (non-expiring)
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Sku         string                 `protobuf:"bytes,1,opt,name=sku,proto3" json:"sku,omitempty"`
+	Quantity    int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`                         // in `unit` if set, else base units; must be > 0
+	Unit        string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`                                  // optional pack name (resolved to a product unit → ×factor)
+	CostPrice   int64                  `protobuf:"varint,4,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`      // per BASE unit, minor units; optional (default 0)
+	BatchNumber string                 `protobuf:"bytes,5,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"` // optional
+	ExpiryDate  string                 `protobuf:"bytes,6,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`    // optional YYYY-MM-DD; blank => far-future (non-expiring)
+	// Who MADE the lot, by the pabrik CODE -- a CSV is hand-authored, so it is
+	// keyed by business codes like `sku` and `unit`, never by a UUID. Optional;
+	// an archived pabrik is accepted, since opening stock is history.
+	ManufacturerCode string `protobuf:"bytes,7,opt,name=manufacturer_code,json=manufacturerCode,proto3" json:"manufacturer_code,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ImportStockRow) Reset() {
@@ -699,6 +736,13 @@ func (x *ImportStockRow) GetBatchNumber() string {
 func (x *ImportStockRow) GetExpiryDate() string {
 	if x != nil {
 		return x.ExpiryDate
+	}
+	return ""
+}
+
+func (x *ImportStockRow) GetManufacturerCode() string {
+	if x != nil {
+		return x.ManufacturerCode
 	}
 	return ""
 }
@@ -1300,7 +1344,7 @@ var File_inventory_iface_v1_batch_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\n" +
-	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xf9\x03\n" +
+	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xa2\x04\n" +
 	"\x05Batch\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1322,7 +1366,8 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x05po_no\x18\v \x01(\tR\x04poNo\x12!\n" +
 	"\fproduct_name\x18\f \x01(\tR\vproductName\x125\n" +
 	"\x05units\x18\r \x03(\v2\x1f.inventory_iface.v1.ProductUnitR\x05units\x127\n" +
-	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\"\x91\x02\n" +
+	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\x12'\n" +
+	"\x0fmanufacturer_id\x18\x0f \x01(\tR\x0emanufacturerId\"\xba\x02\n" +
 	"\x12ListBatchesRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\"\n" +
@@ -1335,14 +1380,16 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\n" +
 	"date_field\x18\b \x01(\tR\tdateField\x12\x1f\n" +
 	"\vsupplier_id\x18\t \x01(\tR\n" +
-	"supplierId\"`\n" +
+	"supplierId\x12'\n" +
+	"\x0fmanufacturer_id\x18\n" +
+	" \x01(\tR\x0emanufacturerId\"`\n" +
 	"\x13ListBatchesResponse\x123\n" +
 	"\abatches\x18\x01 \x03(\v2\x19.inventory_iface.v1.BatchR\abatches\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"!\n" +
 	"\x0fGetBatchRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"C\n" +
 	"\x10GetBatchResponse\x12/\n" +
-	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\x83\x02\n" +
+	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xac\x02\n" +
 	"\x12CreateBatchRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1f\n" +
@@ -1355,9 +1402,10 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"cost_price\x18\x05 \x01(\x03R\tcostPrice\x12\x1f\n" +
 	"\vreceived_at\x18\x06 \x01(\tR\n" +
 	"receivedAt\x12)\n" +
-	"\x10initial_quantity\x18\a \x01(\x03R\x0finitialQuantity\"F\n" +
+	"\x10initial_quantity\x18\a \x01(\x03R\x0finitialQuantity\x12'\n" +
+	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerId\"F\n" +
 	"\x13CreateBatchResponse\x12/\n" +
-	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xb5\x01\n" +
+	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xe2\x01\n" +
 	"\x0eImportStockRow\x12\x10\n" +
 	"\x03sku\x18\x01 \x01(\tR\x03sku\x12\x1a\n" +
 	"\bquantity\x18\x02 \x01(\x03R\bquantity\x12\x12\n" +
@@ -1366,7 +1414,8 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"cost_price\x18\x04 \x01(\x03R\tcostPrice\x12!\n" +
 	"\fbatch_number\x18\x05 \x01(\tR\vbatchNumber\x12\x1f\n" +
 	"\vexpiry_date\x18\x06 \x01(\tR\n" +
-	"expiryDate\"\xab\x01\n" +
+	"expiryDate\x12+\n" +
+	"\x11manufacturer_code\x18\a \x01(\tR\x10manufacturerCode\"\xab\x01\n" +
 	"\x11ImportStockResult\x12\x10\n" +
 	"\x03row\x18\x01 \x01(\x05R\x03row\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12=\n" +

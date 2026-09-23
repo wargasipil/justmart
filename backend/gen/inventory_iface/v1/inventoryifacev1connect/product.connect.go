@@ -51,6 +51,12 @@ const (
 	// ProductServiceUpdateProductProcedure is the fully-qualified name of the ProductService's
 	// UpdateProduct RPC.
 	ProductServiceUpdateProductProcedure = "/inventory_iface.v1.ProductService/UpdateProduct"
+	// ProductServiceAddProductManufacturerProcedure is the fully-qualified name of the ProductService's
+	// AddProductManufacturer RPC.
+	ProductServiceAddProductManufacturerProcedure = "/inventory_iface.v1.ProductService/AddProductManufacturer"
+	// ProductServiceSetProductManufacturersProcedure is the fully-qualified name of the
+	// ProductService's SetProductManufacturers RPC.
+	ProductServiceSetProductManufacturersProcedure = "/inventory_iface.v1.ProductService/SetProductManufacturers"
 	// ProductServiceArchiveProductProcedure is the fully-qualified name of the ProductService's
 	// ArchiveProduct RPC.
 	ProductServiceArchiveProductProcedure = "/inventory_iface.v1.ProductService/ArchiveProduct"
@@ -107,6 +113,11 @@ type ProductServiceClient interface {
 	// invalid rows reported, valid rows created — one bad row never blocks the rest.
 	ImportProducts(context.Context, *connect.Request[v1.ImportProductsRequest]) (*connect.Response[v1.ImportProductsResponse], error)
 	UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error)
+	// Manager-only like UpdateProduct: both write the catalog. Add is reachable
+	// from the restock form, which is where a buyer actually learns who made the
+	// goods; Set is the product detail page's admin card.
+	AddProductManufacturer(context.Context, *connect.Request[v1.AddProductManufacturerRequest]) (*connect.Response[v1.AddProductManufacturerResponse], error)
+	SetProductManufacturers(context.Context, *connect.Request[v1.SetProductManufacturersRequest]) (*connect.Response[v1.SetProductManufacturersResponse], error)
 	ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error)
 	// UnarchiveProduct restores a soft-deleted product (active=false -> true).
 	UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error)
@@ -187,6 +198,18 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(productServiceMethods.ByName("UpdateProduct")),
 			connect.WithClientOptions(opts...),
 		),
+		addProductManufacturer: connect.NewClient[v1.AddProductManufacturerRequest, v1.AddProductManufacturerResponse](
+			httpClient,
+			baseURL+ProductServiceAddProductManufacturerProcedure,
+			connect.WithSchema(productServiceMethods.ByName("AddProductManufacturer")),
+			connect.WithClientOptions(opts...),
+		),
+		setProductManufacturers: connect.NewClient[v1.SetProductManufacturersRequest, v1.SetProductManufacturersResponse](
+			httpClient,
+			baseURL+ProductServiceSetProductManufacturersProcedure,
+			connect.WithSchema(productServiceMethods.ByName("SetProductManufacturers")),
+			connect.WithClientOptions(opts...),
+		),
 		archiveProduct: connect.NewClient[v1.ArchiveProductRequest, v1.ArchiveProductResponse](
 			httpClient,
 			baseURL+ProductServiceArchiveProductProcedure,
@@ -264,24 +287,26 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // productServiceClient implements ProductServiceClient.
 type productServiceClient struct {
-	listProducts           *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
-	getProductsSummary     *connect.Client[v1.GetProductsSummaryRequest, v1.GetProductsSummaryResponse]
-	getProduct             *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
-	createProduct          *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
-	importProducts         *connect.Client[v1.ImportProductsRequest, v1.ImportProductsResponse]
-	updateProduct          *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
-	archiveProduct         *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
-	unarchiveProduct       *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
-	listProductPrices      *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
-	listProductUnitPrices  *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
-	listProductRestockLogs *connect.Client[v1.ListProductRestockLogsRequest, v1.ListProductRestockLogsResponse]
-	searchProducts         *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
-	resolveProducts        *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
-	listLowStock           *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
-	uploadProductImage     *connect.Client[v1.UploadProductImageRequest, v1.UploadProductImageResponse]
-	getProductImage        *connect.Client[v1.GetProductImageRequest, v1.GetProductImageResponse]
-	deleteProductImage     *connect.Client[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse]
-	printProductLabel      *connect.Client[v1.PrintProductLabelRequest, v1.PrintProductLabelResponse]
+	listProducts            *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
+	getProductsSummary      *connect.Client[v1.GetProductsSummaryRequest, v1.GetProductsSummaryResponse]
+	getProduct              *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
+	createProduct           *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
+	importProducts          *connect.Client[v1.ImportProductsRequest, v1.ImportProductsResponse]
+	updateProduct           *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
+	addProductManufacturer  *connect.Client[v1.AddProductManufacturerRequest, v1.AddProductManufacturerResponse]
+	setProductManufacturers *connect.Client[v1.SetProductManufacturersRequest, v1.SetProductManufacturersResponse]
+	archiveProduct          *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
+	unarchiveProduct        *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
+	listProductPrices       *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
+	listProductUnitPrices   *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
+	listProductRestockLogs  *connect.Client[v1.ListProductRestockLogsRequest, v1.ListProductRestockLogsResponse]
+	searchProducts          *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
+	resolveProducts         *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
+	listLowStock            *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
+	uploadProductImage      *connect.Client[v1.UploadProductImageRequest, v1.UploadProductImageResponse]
+	getProductImage         *connect.Client[v1.GetProductImageRequest, v1.GetProductImageResponse]
+	deleteProductImage      *connect.Client[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse]
+	printProductLabel       *connect.Client[v1.PrintProductLabelRequest, v1.PrintProductLabelResponse]
 }
 
 // ListProducts calls inventory_iface.v1.ProductService.ListProducts.
@@ -312,6 +337,16 @@ func (c *productServiceClient) ImportProducts(ctx context.Context, req *connect.
 // UpdateProduct calls inventory_iface.v1.ProductService.UpdateProduct.
 func (c *productServiceClient) UpdateProduct(ctx context.Context, req *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error) {
 	return c.updateProduct.CallUnary(ctx, req)
+}
+
+// AddProductManufacturer calls inventory_iface.v1.ProductService.AddProductManufacturer.
+func (c *productServiceClient) AddProductManufacturer(ctx context.Context, req *connect.Request[v1.AddProductManufacturerRequest]) (*connect.Response[v1.AddProductManufacturerResponse], error) {
+	return c.addProductManufacturer.CallUnary(ctx, req)
+}
+
+// SetProductManufacturers calls inventory_iface.v1.ProductService.SetProductManufacturers.
+func (c *productServiceClient) SetProductManufacturers(ctx context.Context, req *connect.Request[v1.SetProductManufacturersRequest]) (*connect.Response[v1.SetProductManufacturersResponse], error) {
+	return c.setProductManufacturers.CallUnary(ctx, req)
 }
 
 // ArchiveProduct calls inventory_iface.v1.ProductService.ArchiveProduct.
@@ -392,6 +427,11 @@ type ProductServiceHandler interface {
 	// invalid rows reported, valid rows created — one bad row never blocks the rest.
 	ImportProducts(context.Context, *connect.Request[v1.ImportProductsRequest]) (*connect.Response[v1.ImportProductsResponse], error)
 	UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error)
+	// Manager-only like UpdateProduct: both write the catalog. Add is reachable
+	// from the restock form, which is where a buyer actually learns who made the
+	// goods; Set is the product detail page's admin card.
+	AddProductManufacturer(context.Context, *connect.Request[v1.AddProductManufacturerRequest]) (*connect.Response[v1.AddProductManufacturerResponse], error)
+	SetProductManufacturers(context.Context, *connect.Request[v1.SetProductManufacturersRequest]) (*connect.Response[v1.SetProductManufacturersResponse], error)
 	ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error)
 	// UnarchiveProduct restores a soft-deleted product (active=false -> true).
 	UnarchiveProduct(context.Context, *connect.Request[v1.UnarchiveProductRequest]) (*connect.Response[v1.UnarchiveProductResponse], error)
@@ -466,6 +506,18 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		ProductServiceUpdateProductProcedure,
 		svc.UpdateProduct,
 		connect.WithSchema(productServiceMethods.ByName("UpdateProduct")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productServiceAddProductManufacturerHandler := connect.NewUnaryHandler(
+		ProductServiceAddProductManufacturerProcedure,
+		svc.AddProductManufacturer,
+		connect.WithSchema(productServiceMethods.ByName("AddProductManufacturer")),
+		connect.WithHandlerOptions(opts...),
+	)
+	productServiceSetProductManufacturersHandler := connect.NewUnaryHandler(
+		ProductServiceSetProductManufacturersProcedure,
+		svc.SetProductManufacturers,
+		connect.WithSchema(productServiceMethods.ByName("SetProductManufacturers")),
 		connect.WithHandlerOptions(opts...),
 	)
 	productServiceArchiveProductHandler := connect.NewUnaryHandler(
@@ -554,6 +606,10 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceImportProductsHandler.ServeHTTP(w, r)
 		case ProductServiceUpdateProductProcedure:
 			productServiceUpdateProductHandler.ServeHTTP(w, r)
+		case ProductServiceAddProductManufacturerProcedure:
+			productServiceAddProductManufacturerHandler.ServeHTTP(w, r)
+		case ProductServiceSetProductManufacturersProcedure:
+			productServiceSetProductManufacturersHandler.ServeHTTP(w, r)
 		case ProductServiceArchiveProductProcedure:
 			productServiceArchiveProductHandler.ServeHTTP(w, r)
 		case ProductServiceUnarchiveProductProcedure:
@@ -609,6 +665,14 @@ func (UnimplementedProductServiceHandler) ImportProducts(context.Context, *conne
 
 func (UnimplementedProductServiceHandler) UpdateProduct(context.Context, *connect.Request[v1.UpdateProductRequest]) (*connect.Response[v1.UpdateProductResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.UpdateProduct is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) AddProductManufacturer(context.Context, *connect.Request[v1.AddProductManufacturerRequest]) (*connect.Response[v1.AddProductManufacturerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.AddProductManufacturer is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) SetProductManufacturers(context.Context, *connect.Request[v1.SetProductManufacturersRequest]) (*connect.Response[v1.SetProductManufacturersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.SetProductManufacturers is not implemented"))
 }
 
 func (UnimplementedProductServiceHandler) ArchiveProduct(context.Context, *connect.Request[v1.ArchiveProductRequest]) (*connect.Response[v1.ArchiveProductResponse], error) {

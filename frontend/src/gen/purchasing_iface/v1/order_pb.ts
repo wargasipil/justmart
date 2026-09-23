@@ -366,6 +366,16 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
    */
   discountPerItem = false;
 
+  /**
+   * Which pabrik this line is being bought from, when the buyer knows. It is
+   * NOT derived from the product: a product may have several approved makers,
+   * and which one a given delivery is has to be read off the invoice. Flows
+   * to batches.manufacturer_id at receive, which is the whole point of it.
+   *
+   * @generated from field: string manufacturer_id = 16;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<PurchaseOrderItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -389,6 +399,7 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
     { no: 13, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 14, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 15, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 16, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItem {
@@ -459,6 +470,13 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
    */
   discountPerItem = false;
 
+  /**
+   * optional; the pabrik this line is sourced from
+   *
+   * @generated from field: string manufacturer_id = 8;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<PurchaseOrderItemInput>) {
     super();
     proto3.util.initPartial(data, this);
@@ -474,6 +492,7 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
     { no: 5, name: "discount_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItemInput {
@@ -552,6 +571,13 @@ export class ListPurchaseOrdersRequest extends Message<ListPurchaseOrdersRequest
    */
   offset = 0;
 
+  /**
+   * Orders containing at least one line from this pabrik.
+   *
+   * @generated from field: string manufacturer_id = 10;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<ListPurchaseOrdersRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -569,6 +595,7 @@ export class ListPurchaseOrdersRequest extends Message<ListPurchaseOrdersRequest
     { no: 7, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "date_field", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 10, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListPurchaseOrdersRequest {
@@ -677,6 +704,11 @@ export class GetPurchaseOrdersSummaryRequest extends Message<GetPurchaseOrdersSu
    */
   dateField = "";
 
+  /**
+   * @generated from field: string manufacturer_id = 8;
+   */
+  manufacturerId = "";
+
   constructor(data?: PartialMessage<GetPurchaseOrdersSummaryRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -692,6 +724,7 @@ export class GetPurchaseOrdersSummaryRequest extends Message<GetPurchaseOrdersSu
     { no: 5, name: "from_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "date_field", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetPurchaseOrdersSummaryRequest {

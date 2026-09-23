@@ -56,6 +56,13 @@ message Product {
   // as a raw id. Empty = not recorded, which is every product until someone
   // sets it.
   string manufacturer_id = 30;
+  // Every pabrik this product may be sourced from -- the approved-source
+  // list, of which manufacturer_id above is the PRIMARY and always a member.
+  // Embedded rather than paginated for the same reason price_tiers is: the
+  // restock form needs the whole set to offer the buyer a constrained picker,
+  // and a partial list would silently hide a legitimate source. Bounded by
+  // how many factories make one item, which is a handful.
+  repeated string manufacturer_ids = 31;
 }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
@@ -117,6 +124,9 @@ message ProductRestockLog {
   int64 restock_created_at = 7; // unix; PO (restock order) created
   int64 restock_arrived_at = 8; // unix; receipt received_at
   bool discount_per_item = 9;   // when true, discount was applied per item (× qty)
+  // Who MADE this delivery, snapshotted from the purchase-order line. Empty on
+  // anything received before the maker was recorded -- not-recorded, not "any".
+  string manufacturer_id = 10;
 }
 
 service ProductService {
@@ -155,6 +165,17 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // Manager-only like UpdateProduct: both write the catalog. Add is reachable
+  // from the restock form, which is where a buyer actually learns who made the
+  // goods; Set is the product detail page's admin card.
+  rpc AddProductManufacturer(AddProductManufacturerRequest) returns (AddProductManufacturerResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SetProductManufacturers(SetProductManufacturersRequest) returns (SetProductManufacturersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
@@ -337,6 +358,35 @@ message UpdateProductRequest {
   string manufacturer_id = 9;            // optional; "" clears it
 }
 message UpdateProductResponse { Product product = 1; }
+
+// AddProductManufacturer approves one more pabrik for a product, idempotently.
+// It is what the RESTOCK FORM calls: a buyer holding the invoice has just
+// learned of a source the catalog does not list yet, and blocking them behind
+// an admin screen they cannot reach from there would mean the order simply
+// records no maker at all. When the product has no primary yet the addition
+// becomes it -- a first source is the usual one until someone says otherwise.
+//
+// Narrow ON PURPOSE, like the set-replace below: UpdateProduct is a full
+// replace of name/sku/units/price, so a form holding one line's worth of
+// product data would overwrite the rest of the catalog row to change this.
+message AddProductManufacturerRequest {
+  string product_id = 1;
+  string manufacturer_id = 2;
+}
+message AddProductManufacturerResponse { Product product = 1; }
+
+// SetProductManufacturers replaces the whole approved-source list and names
+// which of them is primary. The admin card on the product detail page; the
+// full-set shape mirrors how units are edited (one upsert of the complete
+// set), so a removal is expressed by absence rather than by a second RPC.
+message SetProductManufacturersRequest {
+  string product_id = 1;
+  repeated string manufacturer_ids = 2;  // empty clears the list AND the primary
+  // Must be one of manufacturer_ids, or empty to let the server keep the
+  // current primary when it survives the edit and pick the first otherwise.
+  string primary_manufacturer_id = 3;
+}
+message SetProductManufacturersResponse { Product product = 1; }
 
 message ArchiveProductRequest { string id = 1; }
 message ArchiveProductResponse { Product product = 1; }

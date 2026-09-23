@@ -53,6 +53,10 @@ type PurchaseOrderItem struct {
 	// DiscountPerItem: when true the discount applies to each item's cost (× qty)
 	// instead of the whole line. Combines with DiscountType for 4 effective modes.
 	DiscountPerItem bool `gorm:"not null;default:false;column:discount_per_item"`
+	// Which pabrik this line is sourced from. NOT derived from the product: a
+	// product may have several approved makers and which one a delivery is has
+	// to be read off the invoice. Flows to Batch.ManufacturerID at receive.
+	ManufacturerID *string `gorm:"type:uuid;column:manufacturer_id"`
 }
 
 func (PurchaseOrderItem) TableName() string { return "purchase_order_items" }

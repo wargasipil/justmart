@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, PrintProductLabelRequest, PrintProductLabelResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
+import { AddProductManufacturerRequest, AddProductManufacturerResponse, ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, PrintProductLabelRequest, PrintProductLabelResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, SetProductManufacturersRequest, SetProductManufacturersResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -25,7 +25,7 @@ export const ProductService = {
      * GetProductsSummary aggregates ready + on-order stock (count and valuation at
      * cost) over ALL products matching the same filters as ListProducts — not the
      * current page. Drives the catalog stat row above the list.
-     *
+     * 
      * Narrower roles than ListProducts on purpose: the valuations are cost data,
      * and cost never goes to a cashier (same posture as GetMyPerformance omitting
      * COGS). POS reads the catalog through ListProducts and needs none of this.
@@ -76,6 +76,28 @@ export const ProductService = {
       name: "UpdateProduct",
       I: UpdateProductRequest,
       O: UpdateProductResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Manager-only like UpdateProduct: both write the catalog. Add is reachable
+     * from the restock form, which is where a buyer actually learns who made the
+     * goods; Set is the product detail page's admin card.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.AddProductManufacturer
+     */
+    addProductManufacturer: {
+      name: "AddProductManufacturer",
+      I: AddProductManufacturerRequest,
+      O: AddProductManufacturerResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc inventory_iface.v1.ProductService.SetProductManufacturers
+     */
+    setProductManufacturers: {
+      name: "SetProductManufacturers",
+      I: SetProductManufacturersRequest,
+      O: SetProductManufacturersResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -199,7 +221,7 @@ export const ProductService = {
      * PrintProductLabel renders a shelf/product barcode label (name + CODE128 of
      * the SKU + the chosen unit's sell price) and sends it to the shop's thermal
      * printer over the same connector/usb/tcp dispatch PrintReceipt uses.
-     *
+     * 
      * Open to every catalog reader, like PrintReceipt: the label carries only
      * sell-side data (name, SKU, unit price), never cost — so it stays inside the
      * cost-visibility policy while letting whoever restocks a shelf label it.

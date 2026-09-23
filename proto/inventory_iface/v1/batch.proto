@@ -33,6 +33,13 @@ message Batch {
   // fills product_name, so a picker row can render <ProductImage> without a
   // second round trip. 0 makes the client skip the image fetch entirely.
   int64 product_image_updated_at = 14;
+  // Who MADE this lot, as recorded on the purchase-order line it arrived on.
+  // Empty on every batch created before the column existed and on the manual
+  // CreateBatch path -- the fact was never captured, and filling it in from
+  // the product's current maker would invent provenance. This is the ONLY
+  // place the maker of physical stock is recorded: the product's own list
+  // says who MAY make it, this says who DID.
+  string manufacturer_id = 15;
 }
 
 service BatchService {
@@ -89,6 +96,7 @@ message ListBatchesRequest {
   int64 to_unix = 7;       // date-range upper bound (exclusive; 0 = unbounded)
   string date_field = 8;   // which date the range filters: "received" | "expiry"
   string supplier_id = 9;  // optional supplier ID filter
+  string manufacturer_id = 10; // optional pabrik filter (the lot's own maker)
 }
 message ListBatchesResponse {
   repeated Batch batches = 1;
@@ -106,6 +114,10 @@ message CreateBatchRequest {
   int64 cost_price = 5;
   string received_at = 6;
   int64 initial_quantity = 7;
+  // Who MADE this lot. Optional, and ARCHIVED makers are accepted here unlike
+  // on a product's approved-source list: this records what happened, and old
+  // stock entered by hand may well come from a factory since retired.
+  string manufacturer_id = 8;
 }
 message CreateBatchResponse { Batch batch = 1; }
 
@@ -117,6 +129,10 @@ message ImportStockRow {
   int64 cost_price = 4;     // per BASE unit, minor units; optional (default 0)
   string batch_number = 5;  // optional
   string expiry_date = 6;   // optional YYYY-MM-DD; blank => far-future (non-expiring)
+  // Who MADE the lot, by the pabrik CODE -- a CSV is hand-authored, so it is
+  // keyed by business codes like `sku` and `unit`, never by a UUID. Optional;
+  // an archived pabrik is accepted, since opening stock is history.
+  string manufacturer_code = 7;
 }
 // Per-row outcome of a stock import.
 enum ImportStockStatus {
