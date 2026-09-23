@@ -40,7 +40,28 @@ func (s *ManufacturerService) ListManufacturerProducts(
 	includeArchived := req.Msg.IncludeArchived
 
 	applyFilters := func(q *gorm.DB) *gorm.DB {
-		q = q.Where("manufacturer_id = ?", m.ID)
+		// Everything this pabrik MAY make, not only what it is the USUAL maker
+		// for. The approved-source list is the question a pabrik's page asks —
+		// a generic sourced from three factories belongs on all three pages,
+		// and products.manufacturer_id can only ever name one of them.
+		//
+		// Written as a subquery rather than a join so the two chains below stay
+		// one row per product: a product approved for this maker joins exactly
+		// once today, but a join would start double-counting the moment the
+		// pair index stopped being unique.
+		//
+		// The trailing OR on the primary pointer is a safety net, not a second
+		// rule: the invariant makes it redundant in healthy data (00060
+		// backfilled it, every writer maintains it), and keeping it means this
+		// read is a strict SUPERSET of what it returned before — a product
+		// cannot drop off a pabrik's page because some future writer forgot
+		// the list.
+		q = q.Where("id IN (?) OR manufacturer_id = ?",
+			q.Session(&gorm.Session{NewDB: true}).
+				Model(&model.ProductManufacturer{}).
+				Select("product_id").
+				Where("manufacturer_id = ?", m.ID),
+			m.ID)
 		if !includeArchived {
 			q = q.Where("active = ?", true)
 		}

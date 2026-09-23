@@ -92,5 +92,10 @@ func batchToProto(b *model.Batch, qty int64) *inventoryifacev1.Batch {
 	if b.SupplierID != nil {
 		out.SupplierId = *b.SupplierID
 	}
+	// Who MADE the lot, as opposed to who sold it. Empty on everything that
+	// predates the column and on the manual CreateBatch path.
+	if b.ManufacturerID != nil {
+		out.ManufacturerId = *b.ManufacturerID
+	}
 	return out
 }

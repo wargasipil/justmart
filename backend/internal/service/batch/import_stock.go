@@ -125,12 +125,33 @@ func (s *BatchService) ImportStock(
 				}
 			}
 
+			// Who MADE the lot, resolved by CODE like the product is by SKU and
+			// the pack by unit name — a hand-authored CSV cannot carry UUIDs.
+			//
+			// ARCHIVED is accepted, the same asymmetry CreateBatch follows: an
+			// approved-source list is intent and refuses a retired factory,
+			// while a lot records what happened — and opening stock is by
+			// definition goods that arrived before today.
+			var makerID *string
+			if code := strings.TrimSpace(row.ManufacturerCode); code != "" {
+				var maker model.Manufacturer
+				mErr := tx.Where("code = ?", code).First(&maker).Error
+				if errors.Is(mErr, gorm.ErrRecordNotFound) {
+					return fmt.Errorf("manufacturer code %q not found", code)
+				}
+				if mErr != nil {
+					return mErr
+				}
+				makerID = &maker.ID
+			}
+
 			b := model.Batch{
-				ProductID:   product.ID,
-				BatchNumber: batchNo,
-				ExpiryDate:  expiry,
-				CostPrice:   row.CostPrice,
-				ReceivedAt:  time.Now(),
+				ProductID:      product.ID,
+				BatchNumber:    batchNo,
+				ExpiryDate:     expiry,
+				CostPrice:      row.CostPrice,
+				ReceivedAt:     time.Now(),
+				ManufacturerID: makerID,
 			}
 			if err := tx.Create(&b).Error; err != nil {
 				return fmt.Errorf("create batch: %w", err)

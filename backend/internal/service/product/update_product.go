@@ -50,6 +50,10 @@ func (s *ProductService) UpdateProduct(
 			Where("id = ?", med.ID).First(&model.Product{}).Error; err != nil {
 			return err
 		}
+		// Captured BEFORE the write: GORM's Updates() copies the map back into
+		// `med`, so a comparison made afterwards always sees the new value and
+		// the change below would never fire.
+		prevMaker := derefString(med.ManufacturerID)
 		updates := map[string]any{
 			"name":                  name,
 			"unit":                  unit,
@@ -76,6 +80,20 @@ func (s *ProductService) UpdateProduct(
 		}
 		if err := tx.Model(med).Updates(updates).Error; err != nil {
 			return err
+		}
+		// Naming a NEW usual maker also approves it. Only a change is checked:
+		// a product already pointing at a factory that has since been archived
+		// must stay editable in every other field, so a re-save of the same id
+		// is left alone (the same rule SetProductManufacturers follows).
+		if newMaker := strings.TrimSpace(req.Msg.ManufacturerId); newMaker != prevMaker {
+			if newMaker != "" {
+				if err := assertAssignable(tx, newMaker); err != nil {
+					return err
+				}
+			}
+			if err := listPrimary(tx, med.ID, newMaker); err != nil {
+				return err
+			}
 		}
 
 		if priceChanged {

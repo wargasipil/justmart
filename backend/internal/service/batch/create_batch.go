@@ -2,6 +2,7 @@ package batch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -55,6 +56,24 @@ func (s *BatchService) CreateBatch(
 	if req.Msg.SupplierId != "" {
 		sid := req.Msg.SupplierId
 		batch.SupplierID = &sid
+	}
+	// Who MADE the lot. The manual path is the one place a person is holding
+	// the box and can read the factory off it, so refusing to record it would
+	// mint a lot that answers no recall while the answer was in front of them.
+	//
+	// Existence is checked but NOT activity: unlike a product's approved-source
+	// list (which refuses an archived pabrik, since you cannot start sourcing
+	// from a retired factory), a lot records what happened -- and hand-entered
+	// stock may genuinely come from one. Same posture as CreateReceipt.
+	if mid := strings.TrimSpace(req.Msg.ManufacturerId); mid != "" {
+		var maker model.Manufacturer
+		if e := s.db.WithContext(ctx).Where("id = ?", mid).First(&maker).Error; e != nil {
+			if errors.Is(e, gorm.ErrRecordNotFound) {
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("manufacturer %s not found", mid))
+			}
+			return nil, connect.NewError(connect.CodeInternal, e)
+		}
+		batch.ManufacturerID = &mid
 	}
 
 	warehouseID, err := common.ResolveWarehouse(ctx, s.db, caller)

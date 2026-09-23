@@ -155,15 +155,26 @@ func (p *PurchaseReceipts) CreateReceipt(
 					poItem.Subtotal, int64(poItem.OrderedQty), poItem.UnitCostPrice, ppnRate)
 			}
 
-			// Create the batch row carrying supplier + cost + expiry.
+			// Create the batch row carrying supplier + maker + cost + expiry.
+			//
+			// The MAKER comes from the purchase-order line, not from the product:
+			// a product may have several approved pabrik and only the line records
+			// which one this delivery is. This is the single point where that
+			// answer becomes a permanent fact about physical stock -- every recall,
+			// every "whose paracetamol is this" and every Pabrik filter on the
+			// batches page reads the column written here. A line that names no
+			// pabrik yields a lot that names none either, rather than one guessed
+			// from the catalog: an unverified name on a lot is worse than a blank,
+			// because only the blank is recognisable as not-recorded.
 			supplierID := po.SupplierID
 			batch := model.Batch{
-				ProductID:   poItem.ProductID,
-				SupplierID:  &supplierID,
-				BatchNumber: strings.TrimSpace(line.BatchNumber),
-				ExpiryDate:  expiry,
-				CostPrice:   unitCost,
-				ReceivedAt:  receivedAt,
+				ProductID:      poItem.ProductID,
+				SupplierID:     &supplierID,
+				ManufacturerID: poItem.ManufacturerID,
+				BatchNumber:    strings.TrimSpace(line.BatchNumber),
+				ExpiryDate:     expiry,
+				CostPrice:      unitCost,
+				ReceivedAt:     receivedAt,
 			}
 			if err := tx.Create(&batch).Error; err != nil {
 				return connect.NewError(connect.CodeInternal,
@@ -215,6 +226,9 @@ func (p *PurchaseReceipts) CreateReceipt(
 				DiscountType:    poItem.DiscountType,
 				DiscountValue:   poItem.DiscountValue,
 				DiscountPerItem: poItem.DiscountPerItem,
+				// Same source as the lot's maker a few lines up: the order line,
+				// not the catalog. A line naming none yields a log row naming none.
+				ManufacturerID:  poItem.ManufacturerID,
 				CreatedAt:       po.CreatedAt, // PO (restock order) created
 				ArrivedAt:       receivedAt,   // receipt received_at
 				ReceiptID:       receipt.ID,

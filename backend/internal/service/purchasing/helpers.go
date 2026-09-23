@@ -26,6 +26,10 @@ type restockEntry struct {
 	DiscountType    string
 	DiscountValue   int64
 	DiscountPerItem bool
+	// ManufacturerID is the maker named on the PO line -- the same value, and
+	// the same nullable form, this receipt stamps onto the lot. nil when the
+	// line named none.
+	ManufacturerID  *string
 	CreatedAt       time.Time // PO (restock order) created
 	ArrivedAt     time.Time // receipt received_at
 	ReceiptID     string
@@ -71,6 +75,7 @@ func recordRestock(tx *gorm.DB, e restockEntry) error {
 		DiscountType:     discType,
 		DiscountValue:    e.DiscountValue,
 		DiscountPerItem:  e.DiscountPerItem,
+		ManufacturerID:   e.ManufacturerID,
 		RestockCreatedAt: e.CreatedAt,
 		RestockArrivedAt: e.ArrivedAt,
 	}
@@ -481,6 +486,17 @@ func (p *PurchaseOrders) enrichList(ctx context.Context, orders []*purchasingifa
 // GetPurchaseOrdersSummary can narrow by exactly the same predicates: the stat
 // row sits above the list and must always describe the same set of orders.
 // Mirrors applySaleFilters shared by ListSales / GetSalesSummary on /orders.
+// manufacturerRef turns a possibly-empty id into the nullable column value:
+// "" means no pabrik was recorded, which is NULL, not an empty string the FK
+// would reject.
+func manufacturerRef(id string) *string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil
+	}
+	return &id
+}
+
 type poFilterArgs struct {
 	WarehouseID     string
 	Status          purchasingifacev1.POStatus
@@ -490,6 +506,7 @@ type poFilterArgs struct {
 	FromUnix        int64
 	ToUnix          int64
 	DateField       string // "created" | "received"
+	ManufacturerID  string // orders with at least one line from this pabrik
 }
 
 // applyPOFilters narrows a purchase_orders query by f. Column names are left
@@ -502,6 +519,16 @@ func (p *PurchaseOrders) applyPOFilters(q *gorm.DB, f poFilterArgs) *gorm.DB {
 	}
 	if f.SupplierID != "" {
 		q = q.Where("supplier_id = ?", f.SupplierID)
+	}
+	// Pabrik is a LINE-level fact, so an order matches when any of its lines
+	// does -- the same id-IN-subquery shape the text search uses. Shared by
+	// ListPurchaseOrders and GetPurchaseOrdersSummary through this closure, so
+	// the stat row can never describe a different set than the table under it.
+	if f.ManufacturerID != "" {
+		sub := p.db.Table("purchase_order_items").
+			Select("purchase_order_id").
+			Where("manufacturer_id = ?", f.ManufacturerID)
+		q = q.Where("id IN (?)", sub)
 	}
 	if f.OnlyOutstanding {
 		q = q.Where("status NOT IN ?", []string{poStatusVoided, poStatusDraft}).

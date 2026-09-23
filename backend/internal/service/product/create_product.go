@@ -88,6 +88,12 @@ func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, us
 	if err := tx.Create(med).Error; err != nil {
 		return nil, fmt.Errorf("create product: %w", err)
 	}
+	// A product created WITH a pabrik is approved for it — otherwise it would
+	// point at a maker its own approved-source list does not contain, and the
+	// pabrik's product page (which lists by that table) would never show it.
+	if err := listPrimary(tx, med.ID, derefString(med.ManufacturerID)); err != nil {
+		return nil, fmt.Errorf("approve product manufacturer: %w", err)
+	}
 	price := model.ProductPrice{
 		ProductID:     med.ID,
 		UnitPrice:     med.UnitPrice,

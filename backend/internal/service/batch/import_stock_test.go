@@ -261,3 +261,111 @@ func TestImportStock_Unauthenticated(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
+
+// Opening stock is the second hand-entered path that mints lots, so it can
+// record the maker too -- by CODE, since a CSV is authored by a person and
+// cannot carry UUIDs (the same reason the product is keyed by SKU).
+func TestImportStock_RecordsTheMakerByCode(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	seedProduct(t, gormDB, "IS-MFR-1", "Paracetamol 500")
+	kalbe := model.Manufacturer{Code: "IS-MFR-CODE-1", Name: "Kalbe Farma"}
+	require.NoError(t, gormDB.Create(&kalbe).Error)
+
+	r := stockRow("IS-MFR-1", 10)
+	r.ManufacturerCode = kalbe.Code
+
+	resp, err := svc.ImportStock(ctx, connect.NewRequest(&inventoryifacev1.ImportStockRequest{
+		Rows: []*inventoryifacev1.ImportStockRow{r},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Created)
+
+	var lot model.Batch
+	require.NoError(t, gormDB.Where("id = ?", resp.Msg.Results[0].BatchId).First(&lot).Error)
+	require.NotNil(t, lot.ManufacturerID)
+	require.Equal(t, kalbe.ID, *lot.ManufacturerID, "the code resolved to the right pabrik")
+}
+
+// Blank stays blank: a row that names no pabrik yields a lot that names none,
+// which is what not-recorded has to look like.
+func TestImportStock_MakerOptional(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	seedProduct(t, gormDB, "IS-MFR-2", "Amoxsan")
+	resp, err := svc.ImportStock(ctx, connect.NewRequest(&inventoryifacev1.ImportStockRequest{
+		Rows: []*inventoryifacev1.ImportStockRow{stockRow("IS-MFR-2", 4)},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Created)
+
+	var lot model.Batch
+	require.NoError(t, gormDB.Where("id = ?", resp.Msg.Results[0].BatchId).First(&lot).Error)
+	require.Nil(t, lot.ManufacturerID, "empty must be NULL, never an empty-string FK")
+}
+
+// A code that names nothing fails THAT ROW only, like an unknown unit does --
+// one typo in a 400-line CSV must not reject the other 399.
+func TestImportStock_UnknownMakerCodeFailsOnlyThatRow(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	seedProduct(t, gormDB, "IS-MFR-3", "Promag")
+	seedProduct(t, gormDB, "IS-MFR-4", "Bodrex")
+
+	bad := stockRow("IS-MFR-3", 5)
+	bad.ManufacturerCode = "NO-SUCH-CODE"
+
+	resp, err := svc.ImportStock(ctx, connect.NewRequest(&inventoryifacev1.ImportStockRequest{
+		Rows: []*inventoryifacev1.ImportStockRow{bad, stockRow("IS-MFR-4", 6)},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Errored)
+	require.Equal(t, int32(1), resp.Msg.Created)
+	require.Equal(t, inventoryifacev1.ImportStockStatus_IMPORT_STOCK_STATUS_ERROR, resp.Msg.Results[0].Status)
+	require.NotEmpty(t, resp.Msg.Results[0].Message)
+	require.Equal(t, inventoryifacev1.ImportStockStatus_IMPORT_STOCK_STATUS_CREATED, resp.Msg.Results[1].Status)
+
+	// The refused row wrote nothing at all -- its whole tx rolled back.
+	var lots int64
+	require.NoError(t, gormDB.Model(&model.Batch{}).
+		Joins("JOIN products p ON p.id = batches.product_id").
+		Where("p.sku = ?", "IS-MFR-3").Count(&lots).Error)
+	require.Zero(t, lots)
+}
+
+// An ARCHIVED pabrik is accepted here for the same reason CreateBatch accepts
+// one: opening stock is by definition goods that arrived before today, and some
+// of it was made by factories the shop has since stopped buying from.
+func TestImportStock_AcceptsAnArchivedMaker(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	seedProduct(t, gormDB, "IS-MFR-5", "Tolak Angin")
+	retired := model.Manufacturer{Code: "IS-MFR-CODE-5", Name: "Retired Pharma"}
+	require.NoError(t, gormDB.Create(&retired).Error)
+	require.NoError(t, gormDB.Model(&model.Manufacturer{}).
+		Where("id = ?", retired.ID).Update("active", false).Error)
+
+	r := stockRow("IS-MFR-5", 7)
+	r.ManufacturerCode = retired.Code
+	resp, err := svc.ImportStock(ctx, connect.NewRequest(&inventoryifacev1.ImportStockRequest{
+		Rows: []*inventoryifacev1.ImportStockRow{r},
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.Msg.Created)
+}

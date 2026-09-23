@@ -225,7 +225,57 @@ func (s *ProductService) attachUnits(ctx context.Context, meds []*inventoryiface
 	// at their own call sites. Coupling them here is deliberate: POS reads the
 	// catalog through ListProducts, and a tier set that hydrated only on
 	// GetProduct would leave every POS wholesale hint silently blank.
-	return s.attachPriceTiers(ctx, meds)
+	if err := s.attachPriceTiers(ctx, meds); err != nil {
+		return err
+	}
+	// Approved sources ride along for the same reason: the restock form reads
+	// the catalog through ListProducts and needs each product's whole list to
+	// offer a constrained pabrik picker. Hydrating only on GetProduct would
+	// leave every line's picker unconstrained without anything looking broken.
+	return s.attachManufacturers(ctx, meds)
+}
+
+// attachManufacturers batch-loads each product's approved-source list.
+//
+// Ordered oldest first, with the PRIMARY hoisted to the front: the list is
+// rendered as chips and read as "who makes this", so the usual maker leading
+// is what makes a five-source generic scannable. The primary is guaranteed to
+// be a member (the writers in manufacturers.go maintain that), so hoisting
+// never introduces an id the set does not already hold.
+func (s *ProductService) attachManufacturers(ctx context.Context, meds []*inventoryifacev1.Product) error {
+	if len(meds) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(meds))
+	for _, md := range meds {
+		ids = append(ids, md.Id)
+	}
+	var rows []model.ProductManufacturer
+	if err := s.db.WithContext(ctx).
+		Where("product_id IN ?", ids).
+		Order("created_at ASC, id ASC").
+		Find(&rows).Error; err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	byProduct := make(map[string][]string, len(meds))
+	for i := range rows {
+		byProduct[rows[i].ProductID] = append(byProduct[rows[i].ProductID], rows[i].ManufacturerID)
+	}
+	for _, md := range meds {
+		list := byProduct[md.Id]
+		if md.ManufacturerId != "" {
+			hoisted := make([]string, 0, len(list))
+			hoisted = append(hoisted, md.ManufacturerId)
+			for _, id := range list {
+				if id != md.ManufacturerId {
+					hoisted = append(hoisted, id)
+				}
+			}
+			list = hoisted
+		}
+		md.ManufacturerIds = list
+	}
+	return nil
 }
 
 // attachPriceTiers batch-loads each product's grosir (wholesale) quantity price

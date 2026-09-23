@@ -82,6 +82,9 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 					ProductUnitID:   &unit.ID,
 					UnitName:        unit.Name,
 					UnitFactor:      unit.Factor,
+					// Same rule as CreatePurchaseOrder: the pabrik is what the buyer
+					// read off the invoice, never a guess from the product's list.
+					ManufacturerID:  manufacturerRef(in.ManufacturerId),
 				}
 				items = append(items, it)
 			}
