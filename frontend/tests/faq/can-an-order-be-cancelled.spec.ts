@@ -20,7 +20,7 @@ import {
 //
 // "Pesanan yang sudah selesai, bisa dibatalkan?"
 //
-// Yes — Refund, within a day, Owner/Admin only, once. Three things the take has
+// Yes — Refund, within 7 days, Owner/Admin only, once. Three things the take has
 // to show rather than claim:
 //
 //   1. the order is NOT deleted — it stays in the history marked Dikembalikan,
@@ -31,7 +31,7 @@ import {
 //   3. the restock switch is a real choice — a second order is refunded with it
 //      OFF, and the app itself says "Tidak dikembalikan".
 //
-// The 1-day window and the role limit are stated, not filmed: both are an
+// The 7-day window and the role limit are stated, not filmed: both are an
 // ABSENT button, which on screen is indistinguishable from any other reason to
 // be absent. They live in question.md's blocked-reason table instead.
 //
@@ -136,7 +136,7 @@ test("record: bisakah pesanan yang sudah selesai dibatalkan", async ({ browser }
     await card(
       page,
       "Pesanan yang sudah selesai, bisa dibatalkan?",
-      "Bisa — lewat Refund, maksimal 1 hari setelah transaksi.",
+      "Bisa — lewat Refund, maksimal 7 hari setelah transaksi.",
       BEAT.card,
     );
     const readyTile = app.getByText("Siap", { exact: true }).first().locator("..");
@@ -177,7 +177,7 @@ test("record: bisakah pesanan yang sudah selesai dibatalkan", async ({ browser }
 
     await say(
       page,
-      "Tombol <b>Refund</b> inilah cara membatalkannya — hanya untuk <b>Owner</b> dan <b>Admin</b>, dan hanya sampai <b>1 hari</b> setelah transaksi.",
+      "Tombol <b>Refund</b> inilah cara membatalkannya — hanya untuk <b>Owner</b> dan <b>Admin</b>, dan hanya sampai <b>7 hari</b> setelah transaksi.",
       BEAT.dwell,
     );
     await spotlight(page, refundBtn, 6);
@@ -316,7 +316,7 @@ test("record: bisakah pesanan yang sudah selesai dibatalkan", async ({ browser }
     await card(
       page,
       "Refund = batalkan pesanan yang sudah selesai.",
-      "Maksimal 1 hari, hanya Owner dan Admin, dan hanya sekali per pesanan.",
+      "Maksimal 7 hari, hanya Owner dan Admin, dan hanya sekali per pesanan.",
       BEAT.card + 800,
     );
 

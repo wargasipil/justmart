@@ -17,6 +17,8 @@ import { toast } from "../lib/toaster";
 import { useCustomerRefs, useProductRefs, useUserRefs } from "../queries/refs";
 import { usePrintReceiptMutation, useRefundSaleMutation, useSaleQuery } from "../queries/sales";
 
+const REFUND_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+
 const PAYMENT_KEY: Record<number, string> = {
   0: "unspecified",
   1: "cash",
@@ -97,9 +99,11 @@ export default function OrderDetail() {
   const paymentLabel = t(`orders.payments.${PAYMENT_KEY[sale.paymentSource] ?? "unspecified"}`);
   const change = Number(sale.paidAmount) - Number(sale.total);
 
-  // Refunds are time-boxed to 1 day after completion (mirrors the backend guard).
+  // Refunds are time-boxed to 7 days after completion — mirrors refundWindow in
+  // backend/internal/service/sale/refund_sale.go; change both together.
   const withinRefundWindow =
-    sale.completedAt > 0n && Date.now() / 1000 - Number(sale.completedAt) <= 86400;
+    sale.completedAt > 0n &&
+    Date.now() / 1000 - Number(sale.completedAt) <= REFUND_WINDOW_SECONDS;
   const canRefund =
     sale.status === SaleStatus.COMPLETED &&
     withinRefundWindow &&
