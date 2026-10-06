@@ -28,12 +28,19 @@ func (s *BatchService) CreateBatch(
 	if req.Msg.ProductId == "" {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.product_required")
 	}
-	expiry, err := time.Parse(common.DateLayout, req.Msg.ExpiryDate)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("expiry_date must be YYYY-MM-DD: %w", err))
+	expirySource := common.ExpirySourceFromWire(int32(req.Msg.ExpirySource))
+	expiry, ok := common.LotExpiry(req.Msg.ExpiryDate, expirySource)
+	if !ok {
+		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.expiry_invalid")
+	}
+	if expirySource == common.ExpirySourceNone {
+		if err := s.assertMayHaveNoExpiry(ctx, s.db, req.Msg.ProductId); err != nil {
+			return nil, err
+		}
 	}
 	received := time.Now()
 	if req.Msg.ReceivedAt != "" {
+		var err error
 		received, err = time.Parse(common.DateLayout, req.Msg.ReceivedAt)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("received_at must be YYYY-MM-DD: %w", err))
@@ -47,11 +54,12 @@ func (s *BatchService) CreateBatch(
 	}
 
 	batch := model.Batch{
-		ProductID:   req.Msg.ProductId,
-		BatchNumber: strings.TrimSpace(req.Msg.BatchNumber),
-		ExpiryDate:  expiry,
-		CostPrice:   req.Msg.CostPrice,
-		ReceivedAt:  received,
+		ProductID:    req.Msg.ProductId,
+		BatchNumber:  strings.TrimSpace(req.Msg.BatchNumber),
+		ExpiryDate:   expiry,
+		ExpirySource: expirySource,
+		CostPrice:    req.Msg.CostPrice,
+		ReceivedAt:   received,
 	}
 	if req.Msg.SupplierId != "" {
 		sid := req.Msg.SupplierId

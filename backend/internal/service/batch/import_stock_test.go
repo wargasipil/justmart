@@ -117,6 +117,30 @@ func TestImportStock_BlankExpiryUsesFarFuture(t *testing.T) {
 	var b model.Batch
 	require.NoError(t, gormDB.First(&b, "id = ?", resp.Msg.Results[0].BatchId).Error)
 	require.Equal(t, 2099, b.ExpiryDate.Year()) // far-future sentinel
+	// Recorded as "does not expire", so the lot reads that way instead of as a
+	// real date in 2099.
+	require.Equal(t, "NONE", b.ExpirySource)
+}
+
+// A row WITH an expiry is a date somebody typed into the file.
+func TestImportStock_ExpiryCellIsEntered(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	seedProduct(t, gormDB, "IS-EXP", "Syrup")
+	row := stockRow("IS-EXP", 10)
+	row.ExpiryDate = "2030-03-31"
+
+	resp, err := svc.ImportStock(ctx, connect.NewRequest(&inventoryifacev1.ImportStockRequest{
+		Rows: []*inventoryifacev1.ImportStockRow{row},
+	}))
+	require.NoError(t, err)
+	var b model.Batch
+	require.NoError(t, gormDB.First(&b, "id = ?", resp.Msg.Results[0].BatchId).Error)
+	require.Equal(t, "ENTERED", b.ExpirySource)
 }
 
 func TestImportStock_SkipsExistingBatchNumber(t *testing.T) {

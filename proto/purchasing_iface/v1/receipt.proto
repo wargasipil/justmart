@@ -3,6 +3,7 @@ syntax = "proto3";
 package purchasing_iface.v1;
 
 import "auth_iface/v1/policy.proto";
+import "inventory_iface/v1/batch.proto";
 
 option go_package = "github.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1";
 
@@ -47,6 +48,11 @@ message PurchaseReceiptItem {
   // Current on-hand of this line's batch in the PO warehouse (BASE units) — the
   // max returnable for this receipt line. Only populated on the PO-detail load.
   int64 returnable_qty = 13;
+  // Where this line's lot's expiry came from, read through batch_id from the
+  // lot itself (so a later correction shows here too). NONE means expiry_date is
+  // the no-expiry placeholder, not a date to print. UNSPECIFIED once the lot is
+  // gone (a cancelled receipt).
+  inventory_iface.v1.ExpirySource expiry_source = 14;
 }
 
 message ReceiveLineInput {
@@ -54,8 +60,12 @@ message ReceiveLineInput {
   int32 qty = 2;                   // qty in the chosen purchasable unit
   int64 unit_cost_price = 3;       // per BASE unit; overrideable
   string batch_number = 4;
-  string expiry_date = 5;          // YYYY-MM-DD (required)
+  string expiry_date = 5;          // YYYY-MM-DD (required unless expiry_source = NONE)
   string product_unit_id = 6;     // purchasable unit; empty => PO line's unit
+  // Where expiry_date came from (UNSPECIFIED = ENTERED). The frontend seeds the
+  // product's default and is the only side that knows whether it was typed
+  // over, so it reports it. NONE stores the no-expiry placeholder.
+  inventory_iface.v1.ExpirySource expiry_source = 7;
 }
 
 service PurchaseReceiptService {

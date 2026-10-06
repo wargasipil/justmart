@@ -16,5 +16,9 @@ func (p *PurchaseReceipts) GetReceipt(
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&purchasingifacev1.GetReceiptResponse{Receipt: receiptToProto(r)}), nil
+	out := receiptToProto(r)
+	if err := attachExpirySources(ctx, p.db, out); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&purchasingifacev1.GetReceiptResponse{Receipt: out}), nil
 }

@@ -25,6 +25,7 @@ export default meta;
 
 export const Draft = withShell(scenario.stories.Draft);
 export const Sent = withShell(scenario.stories.Sent);
+export const ReceiveExpiryDefaults = withShell(scenario.stories.ReceiveExpiryDefaults);
 export const Partial = withShell(scenario.stories.Partial);
 export const Received = withShell(scenario.stories.Received);
 export const Closed = withShell(scenario.stories.Closed);

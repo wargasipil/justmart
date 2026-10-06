@@ -23,6 +23,7 @@ import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
 import ProductImage from "../../components/ProductImage";
 import { manufacturerLabel } from "../../components/ManufacturerSelect";
+import { expiryDefaultSummary } from "./ProductExpiryDefaultField";
 import ProductImagePicker from "./ProductImagePicker";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
@@ -234,6 +235,12 @@ export default function ProductDetail() {
                   />
                   {showCost && (
                     <>
+                      {/* How this product's lots get their expiry on the
+                          Receive screen — a receiving concern, so managers. */}
+                      <Field
+                        label={t("inventory.products.expiryDefault")}
+                        value={expiryDefaultSummary(t, med)}
+                      />
                       <Field
                         label={t("inventory.products.lastCost")}
                         value={
@@ -356,7 +363,7 @@ export default function ProductDetail() {
             </Tabs.List>
 
             <Tabs.Content value="batches" p={4}>
-              <ProductBatchesTab productId={id} showCost={showCost} />
+              <ProductBatchesTab productId={id} productName={med.name} showCost={showCost} />
             </Tabs.Content>
 
             {/* Rendered, not just untriggered: Chakra keeps inactive panels

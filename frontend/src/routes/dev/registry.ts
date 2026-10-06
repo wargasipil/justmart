@@ -196,6 +196,7 @@ const orientation = useTabsOrientation();
           { name: "type", type: 'HTML input type', desc: '"date" swaps in the shared DatePicker (not native chrome).' },
           { name: "money", type: "boolean", desc: "Renders MoneyInput (emits a raw digit string)." },
           { name: "number", type: "boolean", desc: "Renders NumberInput (digits only)." },
+          { name: "expiry", type: "boolean | { isDefault?, blockExpired? }", desc: "Renders ExpiryInput (pack-style expiry; emits YYYY-MM-DD or \"\")." },
           { name: "passwordToggle", type: "boolean", desc: "Eye show/hide, with type=\"password\"." },
           { name: "disabled", type: "boolean", desc: "Read-only immutable field (still in the schema)." },
           { name: "helperText", type: "string", desc: "Shown until an error replaces it." },
@@ -249,6 +250,24 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
         usage: `<DatePickerField value={expiry} onChange={setExpiry} min={today} />`,
         notes: "Popover is portalled, so it works inside EntityDrawer / Dialog. Derives the ISO date from the DateValue, not the locale-formatted string.",
         Demo: demo.DatePickerDemo,
+      },
+      {
+        id: "expiry-input",
+        name: "ExpiryInput",
+        file: "src/components/ExpiryInput.tsx",
+        summary: "Expiry typed as the pack prints it: 0327 = end of Mar 2027, 050327 = 5 Mar 2027. Says what it will save.",
+        props: [
+          { name: "value", type: "string", required: true, desc: 'YYYY-MM-DD, or "" for empty.' },
+          { name: "onChange", type: "(value: string) => void", required: true, desc: 'YYYY-MM-DD once the text reads as a date; "" while empty or incomplete.' },
+          { name: "isDefault", type: "boolean", desc: "The value is the product's pre-filled default — the readout says so." },
+          { name: "blockExpired", type: "boolean", desc: "A past date is an error (pharmacy), not just a warning." },
+          { name: "onEnter", type: "() => void", desc: "Enter pressed — e.g. jump to the next line's expiry." },
+          { name: "inputRef / size / width / disabled / aria-label", type: "—", desc: "Passed through to the input." },
+        ],
+        usage: `<ExpiryInput value={expiry} onChange={setExpiry} isDefault={!touched} blockExpired={isPharmacy} />`,
+        notes:
+          "Day-first in every language: it follows the Indonesian pack, not the screen. Month-only means the LAST day of that month. Rules live in lib/expiry.ts (parseExpiryInput, defaultExpiry) — reuse those, never re-parse. In a form, pass `expiry` to FormField. Use DatePicker for any other date.",
+        Demo: demo.ExpiryInputDemo,
       },
       {
         id: "discount-field",

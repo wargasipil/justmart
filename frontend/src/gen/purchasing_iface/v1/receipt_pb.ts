@@ -5,6 +5,7 @@
 
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
+import { ExpirySource } from "../../inventory_iface/v1/batch_pb.js";
 
 /**
  * @generated from message purchasing_iface.v1.PurchaseReceipt
@@ -212,6 +213,16 @@ export class PurchaseReceiptItem extends Message<PurchaseReceiptItem> {
    */
   returnableQty = protoInt64.zero;
 
+  /**
+   * Where this line's lot's expiry came from, read through batch_id from the
+   * lot itself (so a later correction shows here too). NONE means expiry_date is
+   * the no-expiry placeholder, not a date to print. UNSPECIFIED once the lot is
+   * gone (a cancelled receipt).
+   *
+   * @generated from field: inventory_iface.v1.ExpirySource expiry_source = 14;
+   */
+  expirySource = ExpirySource.UNSPECIFIED;
+
   constructor(data?: PartialMessage<PurchaseReceiptItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -233,6 +244,7 @@ export class PurchaseReceiptItem extends Message<PurchaseReceiptItem> {
     { no: 11, name: "unit_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 12, name: "unit_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 13, name: "returnable_qty", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 14, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseReceiptItem {
@@ -281,7 +293,7 @@ export class ReceiveLineInput extends Message<ReceiveLineInput> {
   batchNumber = "";
 
   /**
-   * YYYY-MM-DD (required)
+   * YYYY-MM-DD (required unless expiry_source = NONE)
    *
    * @generated from field: string expiry_date = 5;
    */
@@ -293,6 +305,15 @@ export class ReceiveLineInput extends Message<ReceiveLineInput> {
    * @generated from field: string product_unit_id = 6;
    */
   productUnitId = "";
+
+  /**
+   * Where expiry_date came from (UNSPECIFIED = ENTERED). The frontend seeds the
+   * product's default and is the only side that knows whether it was typed
+   * over, so it reports it. NONE stores the no-expiry placeholder.
+   *
+   * @generated from field: inventory_iface.v1.ExpirySource expiry_source = 7;
+   */
+  expirySource = ExpirySource.UNSPECIFIED;
 
   constructor(data?: PartialMessage<ReceiveLineInput>) {
     super();
@@ -308,6 +329,7 @@ export class ReceiveLineInput extends Message<ReceiveLineInput> {
     { no: 4, name: "batch_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 5, name: "expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "product_unit_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReceiveLineInput {

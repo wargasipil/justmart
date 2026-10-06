@@ -20,9 +20,15 @@ import type { PurchaseReceipt } from "../../gen/purchasing_iface/v1/receipt_pb";
 import { toast } from "../../lib/toaster";
 import { useCancelReceiptMutation } from "../../queries/purchasing";
 
+// Cancel an accepted restock entered in error ("batal terima"). A text reason is
+// required, so this is a real Dialog with a Field rather than <ConfirmDialog> —
+// the app has no native prompt().
+//
 // Page-local, like the other purchase-order dialogs. Stays MOUNTED and is driven
 // purely by its `open` prop — never `{open && <Dialog…>}` or an early
-// `return null`, which would strand Ark's body lock and freeze the page.
+// `return null`, which would strand Ark's body lock and freeze the page. The
+// receipt is passed in and may be null while the dialog animates closed, so the
+// CONTENT is guarded on the data instead.
 
 export function CancelReceiptDialog({
   open,

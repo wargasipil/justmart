@@ -7,6 +7,17 @@ import "inventory_iface/v1/product.proto";
 
 option go_package = "github.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1";
 
+// Where a lot's expiry date came from. The date alone cannot say whether
+// anybody read it off the pack, and that is exactly what a shelf check needs to
+// know: a DEFAULT date is the product's estimate, carried over because nobody
+// typed over it.
+enum ExpirySource {
+  EXPIRY_SOURCE_UNSPECIFIED = 0; // treated as ENTERED (every lot before 00062)
+  EXPIRY_SOURCE_ENTERED = 1;     // typed by a person, or confirmed later
+  EXPIRY_SOURCE_DEFAULT = 2;     // the product's default, accepted unchanged at receive
+  EXPIRY_SOURCE_NONE = 3;        // the goods do not expire; the stored date is a placeholder
+}
+
 message Batch {
   string id = 1;
   string product_id = 2;
@@ -40,6 +51,9 @@ message Batch {
   // place the maker of physical stock is recorded: the product's own list
   // says who MAY make it, this says who DID.
   string manufacturer_id = 15;
+  // Where expiry_date came from. NONE means the date is the no-expiry
+  // placeholder and should be shown as "does not expire", not as a date.
+  ExpirySource expiry_source = 16;
 }
 
 service BatchService {
@@ -84,6 +98,17 @@ service BatchService {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
+  // SetBatchExpiry corrects or confirms a received lot's expiry, with a
+  // required reason; ListBatchExpiryChanges is that lot's history of them.
+  // Manager-only, same as creating a lot.
+  rpc SetBatchExpiry(SetBatchExpiryRequest) returns (SetBatchExpiryResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc ListBatchExpiryChanges(ListBatchExpiryChangesRequest) returns (ListBatchExpiryChangesResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 message ListBatchesRequest {
@@ -97,6 +122,9 @@ message ListBatchesRequest {
   string date_field = 8;   // which date the range filters: "received" | "expiry"
   string supplier_id = 9;  // optional supplier ID filter
   string manufacturer_id = 10; // optional pabrik filter (the lot's own maker)
+  // Optional: only lots whose expiry came from this source. DEFAULT is the
+  // shelf-check worklist -- dates nobody has read off the pack yet.
+  ExpirySource expiry_source = 11;
 }
 message ListBatchesResponse {
   repeated Batch batches = 1;
@@ -118,6 +146,9 @@ message CreateBatchRequest {
   // on a product's approved-source list: this records what happened, and old
   // stock entered by hand may well come from a factory since retired.
   string manufacturer_id = 8;
+  // Where expiry_date came from (UNSPECIFIED = ENTERED). NONE stores the
+  // no-expiry placeholder and ignores expiry_date.
+  ExpirySource expiry_source = 9;
 }
 message CreateBatchResponse { Batch batch = 1; }
 
@@ -186,3 +217,37 @@ message BatchRef {
 }
 message ResolveBatchesRequest { repeated string ids = 1; }
 message ResolveBatchesResponse { repeated BatchRef batches = 1; }
+
+// Correct (or confirm) a lot's expiry after it was received. Changes ONLY the
+// expiry -- UpdateBatch rewrites every field, so a caller holding just a date
+// would zero the lot's cost. Every change is kept in batch_expiry_changes.
+message SetBatchExpiryRequest {
+  string batch_id = 1;
+  string expiry_date = 2;          // YYYY-MM-DD; ignored when expiry_source = NONE
+  // ENTERED (or UNSPECIFIED) for a date read off the pack, NONE for goods that
+  // do not expire. DEFAULT is refused: an edit is always a person's decision.
+  ExpirySource expiry_source = 3;
+  string reason = 4;               // required
+}
+message SetBatchExpiryResponse { Batch batch = 1; }
+
+message BatchExpiryChange {
+  string id = 1;
+  string batch_id = 2;
+  string old_expiry_date = 3;      // YYYY-MM-DD
+  ExpirySource old_expiry_source = 4;
+  string new_expiry_date = 5;      // YYYY-MM-DD
+  ExpirySource new_expiry_source = 6;
+  string reason = 7;
+  string changed_by = 8;           // user id; resolve via ResolveUsers
+  int64 changed_at = 9;            // unix
+}
+message ListBatchExpiryChangesRequest {
+  string batch_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+message ListBatchExpiryChangesResponse {
+  repeated BatchExpiryChange changes = 1;
+  int32 total = 2;
+}

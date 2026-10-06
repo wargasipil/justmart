@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import Pagination from "../../components/Pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
+import { ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import type { ProductRef } from "../../gen/inventory_iface/v1/product_pb";
 import type { PurchaseReceipt } from "../../gen/purchasing_iface/v1/receipt_pb";
 import { formatDate } from "../../lib/format";
@@ -138,7 +139,14 @@ export default function PurchaseOrderReceipts({
                           <Table.Cell>{productRefs.get(it.productId)?.name ?? "—"}</Table.Cell>
                           <Table.Cell>{fmtUnitQty(it.qty, it.unitName, it.unitFactor)}</Table.Cell>
                           <Table.Cell>{it.batchNumber || "—"}</Table.Cell>
-                          <Table.Cell>{formatDate(it.expiryDate)}</Table.Cell>
+                          {/* The lot's source, not the date, says whether this
+                              is a real expiry: a "does not expire" lot stores a
+                              2099 placeholder that must never be printed. */}
+                          <Table.Cell>
+                            {it.expirySource === ExpirySource.NONE
+                              ? t("inventory.batches.noExpiry")
+                              : formatDate(it.expiryDate)}
+                          </Table.Cell>
                         </Table.Row>
                       ))}
                     </Table.Body>

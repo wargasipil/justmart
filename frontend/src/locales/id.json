@@ -344,6 +344,8 @@
     "batchNumber": "No. batch",
     "expiryDate": "Kedaluwarsa",
     "receiveTitle": "Catat pengiriman",
+    "receiveHint": "Isi jumlah 0 untuk barang yang tidak datang. Sisanya tetap tercatat di order.",
+    "notInDelivery": "Tidak ikut dikirim",
     "noReceipts": "Belum ada tanda terima",
     "cancel": {
       "action": "Batalkan",
@@ -783,6 +785,15 @@
       "baseUnit": "Satuan dasar",
       "basePrice": "Harga dasar (per satuan dasar)",
       "prescriptionRequired": "Perlu resep",
+      "expiryDefault": "Kedaluwarsa saat terima barang",
+      "expiryDefaultManual": "Ketik dari kemasan",
+      "expiryDefaultMonths": "Isi otomatis: bulan setelah diterima",
+      "expiryDefaultNone": "Tidak kedaluwarsa",
+      "expiryDefaultMonthsLabel": "Bulan",
+      "expiryDefaultHelp": "Mengisi tanggal kedaluwarsa otomatis di layar terima barang; yang menerima tetap bisa mengetik ulang. Pakai sisa umur terpendek yang biasa datang dari pemasok, bukan masa simpan pabrik — tanggal yang kelamaan membuat stok lama terlihat masih baru.",
+      "expiryDefaultRxNote": "Di mode apotek, $t(glossary.product) resep selalu diketik dari kemasan.",
+      "expiryDefaultMonthsValue_one": "{{count}} bulan setelah diterima",
+      "expiryDefaultMonthsValue_other": "{{count}} bulan setelah diterima",
       "unitsSection": "Satuan",
       "unitsBaseNote": "Satuan dasar: {{unit}}. Tambah kemasan lebih besar (box, strip…) di bawah; faktor = jumlah satuan dasar per kemasan.",
       "unitName": "Satuan",
@@ -946,6 +957,29 @@
       "supplier": "Pemasok",
       "supplierNone": "Tidak ada",
       "manufacturerNone": "Tanpa pabrik",
+      "noExpiry": "Tidak kedaluwarsa",
+      "defaultTag": "default",
+      "defaultTagHint": "Tanggal default $t(glossary.product) — belum dicek di kemasan",
+      "expirySourceFilter": "Asal tanggal kedaluwarsa",
+      "expirySourceAll": "Semua kedaluwarsa",
+      "expirySourceDefault": "Default $t(glossary.product) (belum dicek)",
+      "expirySourceEntered": "Diketik dari kemasan",
+      "expirySourceNone": "Tidak kedaluwarsa",
+      "editExpiry": "Ubah kedaluwarsa",
+      "expiryDialog": {
+        "title": "Ubah kedaluwarsa",
+        "current": "Saat ini",
+        "newDate": "Kedaluwarsa baru",
+        "noExpiry": "Tidak kedaluwarsa",
+        "reason": "Alasan",
+        "reasonPlaceholder": "mis. salah ketik saat terima, sudah cek kemasan",
+        "confirmHint": "Tanggal ini default dari $t(glossary.product). Cek kemasannya: menyimpan tanpa diubah berarti mengonfirmasi.",
+        "save": "Simpan kedaluwarsa",
+        "saved": "Kedaluwarsa diperbarui",
+        "history": "Riwayat perubahan",
+        "historyEmpty": "Belum ada perubahan",
+        "historyChange": "{{from}} → {{to}}"
+      },
       "batchNumber": "No. batch",
       "expiry": "Tanggal kedaluwarsa",
       "received": "Diterima pada",
@@ -1095,7 +1129,20 @@
     "inWeeks_other": "{{count}} minggu lagi",
     "inMonths_one": "{{count}} bulan lagi",
     "inMonths_other": "{{count}} bulan lagi",
-    "inOverYear": "lebih dari setahun"
+    "inOverYear": "lebih dari setahun",
+    "noExpiry": "tidak kedaluwarsa"
+  },
+  "expiryInput": {
+    "placeholder": "BB/TT atau HH/BB/TT",
+    "hint": "Ketik seperti di kemasan, mis. 0327 atau 05/03/27",
+    "invalid": "Tanggal tidak valid — coba 0327 atau 05/03/27",
+    "endOfMonth": "akhir bulan",
+    "productDefault": "default $t(glossary.product)",
+    "expired": "sudah kedaluwarsa",
+    "expiresToday": "kedaluwarsa hari ini",
+    "expiresInDays_one": "kedaluwarsa {{count}} hari lagi",
+    "expiresInDays_other": "kedaluwarsa {{count}} hari lagi",
+    "pickMonth": "Pilih bulan"
   },
   "productPicker": {
     "title": "Pilih $t(glossary.products)",
@@ -1217,7 +1264,16 @@
       "skuTaken": "SKU ini sudah dipakai",
       "skuNotPrintable": "SKU ini memuat karakter yang tidak bisa dibawa barcode",
       "skuTooWideForPaper": "SKU ini terlalu panjang untuk mencetak barcode yang bisa dipindai pada lebar kertas saat ini. Gunakan kertas 80mm, SKU yang lebih pendek, atau cetak lembar label.",
-      "unitArchived": "Satuan itu sudah diarsipkan — pilih yang lain"
+      "unitArchived": "Satuan itu sudah diarsipkan — pilih yang lain",
+      "expiryMonthsInvalid": "Isi antara 1 sampai 120 bulan",
+      "expiryDefaultInvalid": "Pilih cara mengisi kedaluwarsa"
+    },
+    "batch": {
+      "expiryInvalid": "Isi tanggal kedaluwarsa yang valid",
+      "expiryRequired": "$t(glossary.productCap) resep selalu kedaluwarsa — isi tanggal dari kemasan",
+      "reasonRequired": "Alasan wajib diisi",
+      "expiryUnchanged": "Itu sudah tanggal kedaluwarsanya — ubah tanggalnya, atau tutup",
+      "expirySourceInvalid": "Pilih tanggal atau \"tidak kedaluwarsa\""
     },
     "manufacturer": {
       "codeTaken": "Kode pabrik ini sudah dipakai",
@@ -1273,7 +1329,14 @@
       "receiptLotConsumed": "Stok ini sudah terpakai, jadi penerimaan tidak bisa dibatalkan lagi. Buat retur pembelian saja.",
       "receiptLotInStocktake": "Stok ini sedang dipakai di stok opname yang masih terbuka. Hapus dulu dari opname.",
       "receiptCancelPoClosed": "Order restock ini sudah lunas. Buat retur pembelian saja.",
-      "receiptAlreadyVoided": "Penerimaan ini sudah dibatalkan"
+      "receiptAlreadyVoided": "Penerimaan ini sudah dibatalkan",
+      "poNotReceivable": "Hanya order restock yang sudah dikirim atau diterima sebagian yang bisa menerima barang",
+      "receiveExceedsRemaining": "Tidak bisa menerima melebihi sisa yang belum diterima pada order ini",
+      "poItemNotFound": "Baris itu tidak ada di order restock ini",
+      "expiryInvalid": "Isi tanggal kedaluwarsa yang valid",
+      "receivedAtInvalid": "Isi tanggal terima yang valid",
+      "expiryPast": "Lot itu sudah kedaluwarsa — apotek tidak boleh menerima stok kedaluwarsa",
+      "expiryRequired": "$t(glossary.productCap) resep selalu kedaluwarsa — isi tanggal dari kemasan"
     },
     "transfer": {
       "sameWarehouse": "Gudang asal dan tujuan harus berbeda"

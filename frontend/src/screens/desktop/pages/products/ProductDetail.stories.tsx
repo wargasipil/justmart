@@ -22,6 +22,7 @@ const meta = {
 export default meta;
 
 export const Owner = withShell(scenario.stories.Owner);
+export const EditExpirySetting = withShell(scenario.stories.EditExpirySetting);
 export const Cashier = withShell(scenario.stories.Cashier);
 export const Pharmacy = withShell(scenario.stories.Pharmacy);
 export const Loading = withShell(scenario.stories.Loading);

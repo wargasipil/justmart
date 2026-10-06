@@ -178,6 +178,7 @@ const [MINYAK, TEH_BOTOL, KOPI_ABC] = [RETAIL_CATALOG[6], RETAIL_CATALOG[7], RET
 const [PEPSODENT, LIFEBUOY, SUNSILK] = [RETAIL_CATALOG[10], RETAIL_CATALOG[11], RETAIL_CATALOG[12]];
 const [RINSO, SUNLIGHT, ULTRA_MILK] = [RETAIL_CATALOG[13], RETAIL_CATALOG[14], RETAIL_CATALOG[15]];
 const [KECAP, MAMYPOKO, PASEO] = [RETAIL_CATALOG[21], RETAIL_CATALOG[24], RETAIL_CATALOG[25]];
+const BATERAI = RETAIL_CATALOG[26];
 
 // The seven orders the detail stories are written against — one per status of
 // the state machine, plus the supplier-credit case. Newest first, which is also
@@ -204,6 +205,9 @@ const PO_SEEDS: POSeed[] = [
       { product: MIE_GORENG, packs: 10 },
       { product: MIE_SOTO, packs: 6 },
       { product: AQUA_600, packs: 8 },
+      // Does not expire — so receiving this order shows all three expiry
+      // pre-fills at once: by months (noodles, water), typed (Soto), none.
+      { product: BATERAI, packs: 2 },
     ],
     createdDaysAgo: 3,
     dueInDays: 27,

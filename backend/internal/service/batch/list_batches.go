@@ -47,6 +47,11 @@ func (s *BatchService) ListBatches(
 		if sid := strings.TrimSpace(req.Msg.SupplierId); sid != "" {
 			q = q.Where("b.supplier_id = ?", sid)
 		}
+		// Where the expiry came from. DEFAULT is the shelf-check worklist: dates
+		// that are the product's estimate because nobody typed over them.
+		if req.Msg.ExpirySource != inventoryifacev1.ExpirySource_EXPIRY_SOURCE_UNSPECIFIED {
+			q = q.Where("b.expiry_source = ?", common.ExpirySourceFromWire(int32(req.Msg.ExpirySource)))
+		}
 		if req.Msg.OnlyInStock {
 			q = q.Having("COALESCE(SUM(sm.qty), 0) > 0")
 		}

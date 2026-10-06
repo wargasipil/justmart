@@ -3,12 +3,17 @@ package purchasing_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 
+	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	purchasingifacev1 "github.com/justmart/backend/gen/purchasing_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	batchsvc "github.com/justmart/backend/internal/service/batch"
+	"github.com/justmart/backend/internal/service/common"
+	purchasing "github.com/justmart/backend/internal/service/purchasing"
 )
 
 func TestCreateReceipt_HappyPath(t *testing.T) {
@@ -337,8 +342,7 @@ func TestCreateReceipt_OverReceiveRejected(t *testing.T) {
 			{PurchaseOrderItemId: po.Items[0].Id, Qty: 6, ExpiryDate: "2099-12-31", BatchNumber: "CR2-B1"},
 		},
 	}))
-	require.Error(t, err)
-	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	requireReceiptToken(t, err, connect.CodeFailedPrecondition, "purchasing.receive_exceeds_remaining")
 }
 
 func TestCreateReceipt_DraftPORejected(t *testing.T) {
@@ -354,8 +358,260 @@ func TestCreateReceipt_DraftPORejected(t *testing.T) {
 			{PurchaseOrderItemId: po.Items[0].Id, Qty: 1, ExpiryDate: "2099-12-31", BatchNumber: "CR3-B1"},
 		},
 	}))
+	requireReceiptToken(t, err, connect.CodeFailedPrecondition, "purchasing.po_not_receivable")
+}
+
+// A supplier that ships part of an order may leave whole products out. The
+// Receive dialog sends only the lines that arrived, so the handler must accept
+// a receipt naming a subset of the PO's lines and leave the rest outstanding.
+func TestCreateReceipt_DeliveryMayOmitALine(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR4", "Receipt supplier 4")
+	missingID := e.seedProduct(t, "cr4-a", "Did not arrive", 1000)
+	arrivedID := e.seedProduct(t, "cr4-b", "Arrived", 1000)
+	resp, err := e.pos.CreatePurchaseOrder(e.ctx, connect.NewRequest(&purchasingifacev1.CreatePurchaseOrderRequest{
+		SupplierId: supID,
+		Items: []*purchasingifacev1.PurchaseOrderItemInput{
+			{ProductId: missingID, OrderedQty: 5, UnitCostPrice: 800},
+			{ProductId: arrivedID, OrderedQty: 3, UnitCostPrice: 800},
+		},
+	}))
+	require.NoError(t, err)
+	po := resp.Msg.Order
+	e.sendPO(t, po.Id)
+
+	var arrivedItem string
+	for _, it := range po.Items {
+		if it.ProductId == arrivedID {
+			arrivedItem = it.Id
+		}
+	}
+	require.NotEmpty(t, arrivedItem)
+
+	_, err = e.receipts.CreateReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.CreateReceiptRequest{
+		PurchaseOrderId: po.Id,
+		Lines: []*purchasingifacev1.ReceiveLineInput{
+			{PurchaseOrderItemId: arrivedItem, Qty: 3, ExpiryDate: "2099-12-31", BatchNumber: "CR4-B1"},
+		},
+	}))
+	require.NoError(t, err)
+
+	got := e.getPO(t, po.Id)
+	require.Equal(t, purchasingifacev1.POStatus_PO_STATUS_PARTIALLY_RECEIVED, got.Status)
+	for _, it := range got.Items {
+		if it.ProductId == arrivedID {
+			require.Equal(t, int32(3), it.ReceivedQty)
+		} else {
+			require.Equal(t, int32(0), it.ReceivedQty, "the omitted line stays outstanding")
+		}
+	}
+}
+
+// A receipt must not land on an order that was voided while it was in flight.
+// The void below runs inside a transaction this test holds open, so its row
+// lock on the PO is still held when CreateReceipt starts. With the PO locked
+// at the top of CreateReceipt the receipt waits, then sees VOIDED and refuses.
+// Without that lock it read SENT, landed the stock, and recomputePOStatus
+// flipped the voided order back to PARTIALLY_RECEIVED. (Postgres is where this
+// bites; SQLite's single-writer pool serializes the two either way.)
+func TestCreateReceipt_WaitsForAConcurrentVoid(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR5", "Receipt supplier 5")
+	prodID := e.seedProduct(t, "cr5-sku", "CR5 product", 1000)
+	po := e.createPO(t, supID, prodID, 10, 800)
+	e.sendPO(t, po.Id)
+
+	tx := e.db.Begin()
+	require.NoError(t, tx.Error)
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+	_, err := purchasing.NewPurchaseOrderService(tx).VoidPurchaseOrder(e.ctx,
+		connect.NewRequest(&purchasingifacev1.VoidPurchaseOrderRequest{Id: po.Id}))
+	require.NoError(t, err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := e.receipts.CreateReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.CreateReceiptRequest{
+			PurchaseOrderId: po.Id,
+			Lines: []*purchasingifacev1.ReceiveLineInput{
+				{PurchaseOrderItemId: po.Items[0].Id, Qty: 4, ExpiryDate: "2099-12-31", BatchNumber: "CR5-B1"},
+			},
+		}))
+		done <- err
+	}()
+
+	// Let the receipt reach the lock before the void commits. A shorter wait
+	// can only make this test weaker (the receipt starts after the commit and
+	// sees VOIDED regardless), never make it fail spuriously.
+	time.Sleep(300 * time.Millisecond)
+	require.NoError(t, tx.Commit().Error)
+	committed = true
+
+	select {
+	case err := <-done:
+		requireReceiptToken(t, err, connect.CodeFailedPrecondition, "purchasing.po_not_receivable")
+	case <-time.After(10 * time.Second):
+		t.Fatal("CreateReceipt did not return after the void committed")
+	}
+	require.Equal(t, purchasingifacev1.POStatus_PO_STATUS_VOIDED, e.getPO(t, po.Id).Status)
+}
+
+// Malformed input that the dialog cannot produce but the API can still answers
+// with stable tokens, so a caller sees a translated message rather than prose.
+func TestCreateReceipt_InputErrorsAreTokens(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR6", "Receipt supplier 6")
+	prodID := e.seedProduct(t, "cr6-sku", "CR6 product", 1000)
+	po := e.createPO(t, supID, prodID, 5, 800)
+	e.sendPO(t, po.Id)
+
+	cases := []struct {
+		name       string
+		receivedAt string
+		itemID     string
+		expiry     string
+		token      string
+	}{
+		{"received_at", "31/12/2026", po.Items[0].Id, "2099-12-31", "purchasing.received_at_invalid"},
+		{"expiry", "", po.Items[0].Id, "someday", "purchasing.expiry_invalid"},
+		{"po item", "", "00000000-0000-0000-0000-000000000000", "2099-12-31", "purchasing.po_item_not_found"},
+	}
+	for _, c := range cases {
+		_, err := e.receipts.CreateReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.CreateReceiptRequest{
+			PurchaseOrderId: po.Id,
+			ReceivedAt:      c.receivedAt,
+			Lines: []*purchasingifacev1.ReceiveLineInput{
+				{PurchaseOrderItemId: c.itemID, Qty: 1, ExpiryDate: c.expiry},
+			},
+		}))
+		requireReceiptToken(t, err, connect.CodeInvalidArgument, c.token)
+	}
+	// None of the refused receipts moved the order.
+	require.Equal(t, purchasingifacev1.POStatus_PO_STATUS_SENT, e.getPO(t, po.Id).Status)
+}
+
+// receiveOne receives qty of a single-line PO's only line with the given expiry
+// and source, returning the receipt (or the error).
+func (e *poEnv) receiveOne(poID, itemID, expiry string, src inventoryifacev1.ExpirySource) (*purchasingifacev1.PurchaseReceipt, error) {
+	resp, err := e.receipts.CreateReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.CreateReceiptRequest{
+		PurchaseOrderId: poID,
+		Lines: []*purchasingifacev1.ReceiveLineInput{
+			{PurchaseOrderItemId: itemID, Qty: 1, ExpiryDate: expiry, ExpirySource: src},
+		},
+	}))
+	if err != nil {
+		return nil, err
+	}
+	return resp.Msg.Receipt, nil
+}
+
+// The dialog reports where each line's date came from. A pre-filled default
+// survives onto the lot as DEFAULT -- that is what puts it on the shelf-check
+// worklist -- and NONE stores the placeholder whatever date was sent.
+func TestCreateReceipt_RecordsExpirySource(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR7", "Receipt supplier 7")
+	prodID := e.seedProduct(t, "cr7-sku", "CR7 product", 1000)
+	po := e.createPO(t, supID, prodID, 5, 800)
+	e.sendPO(t, po.Id)
+
+	def, err := e.receiveOne(po.Id, po.Items[0].Id, "2028-10-31", inventoryifacev1.ExpirySource_EXPIRY_SOURCE_DEFAULT)
+	require.NoError(t, err)
+	none, err := e.receiveOne(po.Id, po.Items[0].Id, "", inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE)
+	require.NoError(t, err)
+	// The delivery line reports its lot's source, so the restock order can say
+	// "does not expire" instead of printing the 2099 placeholder as a date.
+	require.Equal(t, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_DEFAULT, def.Items[0].ExpirySource)
+	require.Equal(t, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE, none.Items[0].ExpirySource)
+	listed, err := e.receipts.ListReceipts(e.ctx, connect.NewRequest(&purchasingifacev1.ListReceiptsRequest{
+		PurchaseOrderId: po.Id,
+	}))
+	require.NoError(t, err)
+	for _, r := range listed.Msg.Receipts {
+		require.NotEqual(t, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_UNSPECIFIED, r.Items[0].ExpirySource,
+			"the list carries the source too")
+	}
+
+	var lot model.Batch
+	require.NoError(t, e.db.First(&lot, "id = ?", def.Items[0].BatchId).Error)
+	require.Equal(t, "DEFAULT", lot.ExpirySource)
+	require.Equal(t, "2028-10-31", lot.ExpiryDate.Format("2006-01-02"))
+
+	// A fresh struct: GORM's First on one that already holds a primary key adds
+	// that key to the WHERE, and would look for the first lot again.
+	var noExpiryLot model.Batch
+	require.NoError(t, e.db.First(&noExpiryLot, "id = ?", none.Items[0].BatchId).Error)
+	require.Equal(t, "NONE", noExpiryLot.ExpirySource)
+	require.Equal(t, 2099, noExpiryLot.ExpiryDate.Year())
+}
+
+// Retail only warns about a past expiry (in the dialog); pharmacy refuses it,
+// and refuses a prescription medicine recorded as never expiring.
+func TestCreateReceipt_PharmacyExpiryRules(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR8", "Receipt supplier 8")
+	prodID := e.seedProduct(t, "cr8-sku", "CR8 medicine", 1000)
+	require.NoError(t, e.db.Model(&model.Product{}).Where("id = ?", prodID).
+		Update("prescription_required", true).Error)
+	po := e.createPO(t, supID, prodID, 10, 800)
+	e.sendPO(t, po.Id)
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	item := po.Items[0].Id
+
+	_, err := e.receiveOne(po.Id, item, yesterday, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_ENTERED)
+	require.NoError(t, err, "retail: an expired date is the dialog's warning, not a refusal")
+	_, err = e.receiveOne(po.Id, item, "", inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE)
+	require.NoError(t, err, "retail: no pharmacy rule")
+
+	require.NoError(t, common.SetBussinessType(e.ctx, e.db, common.BussinessTypePharmacyShop))
+	_, err = e.receiveOne(po.Id, item, yesterday, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_ENTERED)
+	requireReceiptToken(t, err, connect.CodeFailedPrecondition, "purchasing.expiry_past")
+	_, err = e.receiveOne(po.Id, item, "", inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE)
+	requireReceiptToken(t, err, connect.CodeFailedPrecondition, "purchasing.expiry_required")
+
+	today := time.Now().Format("2006-01-02")
+	_, err = e.receiveOne(po.Id, item, today, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_ENTERED)
+	require.NoError(t, err, "expiring today has not passed yet")
+}
+
+// Correcting a lot's expiry later also corrects the receipt line's copy, so the
+// restock order and the batches page never disagree about the same lot.
+func TestSetBatchExpiry_UpdatesReceiptCopy(t *testing.T) {
+	t.Parallel()
+	e := newPOEnv(t)
+	supID := e.seedSupplier(t, "SUP-CR9", "Receipt supplier 9")
+	prodID := e.seedProduct(t, "cr9-sku", "CR9 product", 1000)
+	po := e.createPO(t, supID, prodID, 5, 800)
+	e.sendPO(t, po.Id)
+	rcpt, err := e.receiveOne(po.Id, po.Items[0].Id, "2025-03-31", inventoryifacev1.ExpirySource_EXPIRY_SOURCE_ENTERED)
+	require.NoError(t, err)
+
+	_, err = batchsvc.NewBatchService(e.db).SetBatchExpiry(e.ctx, connect.NewRequest(&inventoryifacev1.SetBatchExpiryRequest{
+		BatchId: rcpt.Items[0].BatchId, ExpiryDate: "2027-03-31", Reason: "typo",
+	}))
+	require.NoError(t, err)
+
+	got, err := e.receipts.GetReceipt(e.ctx, connect.NewRequest(&purchasingifacev1.GetReceiptRequest{Id: rcpt.Id}))
+	require.NoError(t, err)
+	require.Equal(t, "2027-03-31", got.Msg.Receipt.Items[0].ExpiryDate)
+}
+
+func requireReceiptToken(t *testing.T, err error, code connect.Code, token string) {
+	t.Helper()
 	require.Error(t, err)
-	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, code, ce.Code())
+	require.Equal(t, token, ce.Message())
 }
 
 func TestCreateReceipt_Unauthenticated(t *testing.T) {

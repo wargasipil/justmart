@@ -344,6 +344,8 @@
     "batchNumber": "Batch #",
     "expiryDate": "Expiry",
     "receiveTitle": "Record delivery",
+    "receiveHint": "Set the quantity to 0 for anything that didn't arrive. It stays outstanding on the order.",
+    "notInDelivery": "Not in this delivery",
     "noReceipts": "No receipts yet",
     "cancel": {
       "action": "Cancel receipt",
@@ -783,6 +785,15 @@
       "baseUnit": "Base unit",
       "basePrice": "Base price (per base unit)",
       "prescriptionRequired": "Requires prescription (resep)",
+      "expiryDefault": "Expiry when receiving",
+      "expiryDefaultManual": "Type it in from the pack",
+      "expiryDefaultMonths": "Pre-fill: months after receiving",
+      "expiryDefaultNone": "Does not expire",
+      "expiryDefaultMonthsLabel": "Months",
+      "expiryDefaultHelp": "Pre-fills the expiry on the receive screen; the person receiving can always type over it. Use the shortest life your deliveries usually arrive with, not the factory shelf life — a date that runs late keeps old stock looking fresh.",
+      "expiryDefaultRxNote": "In pharmacy mode, prescription $t(glossary.products) are always typed in from the pack.",
+      "expiryDefaultMonthsValue_one": "{{count}} month after receiving",
+      "expiryDefaultMonthsValue_other": "{{count}} months after receiving",
       "unitsSection": "Units",
       "unitsBaseNote": "Base unit: {{unit}}. Add larger packs (box, strip…) below; factor = base units per pack.",
       "unitName": "Unit",
@@ -946,6 +957,29 @@
       "supplier": "Supplier",
       "supplierNone": "None",
       "manufacturerNone": "No manufacturer",
+      "noExpiry": "Does not expire",
+      "defaultTag": "default",
+      "defaultTagHint": "The $t(glossary.product)'s default date — nobody has checked the pack yet",
+      "expirySourceFilter": "Expiry date source",
+      "expirySourceAll": "Any expiry",
+      "expirySourceDefault": "$t(glossary.productCap) default (unchecked)",
+      "expirySourceEntered": "Typed from the pack",
+      "expirySourceNone": "Does not expire",
+      "editExpiry": "Edit expiry",
+      "expiryDialog": {
+        "title": "Edit expiry",
+        "current": "Current",
+        "newDate": "New expiry",
+        "noExpiry": "Does not expire",
+        "reason": "Reason",
+        "reasonPlaceholder": "e.g. typo when received, checked the pack",
+        "confirmHint": "This date is the $t(glossary.product)'s default. Check the pack: saving it unchanged confirms it.",
+        "save": "Save expiry",
+        "saved": "Expiry updated",
+        "history": "Changes",
+        "historyEmpty": "No changes yet",
+        "historyChange": "{{from}} → {{to}}"
+      },
       "batchNumber": "Batch #",
       "expiry": "Expiry date",
       "received": "Received at",
@@ -1095,7 +1129,20 @@
     "inWeeks_other": "in {{count}} weeks",
     "inMonths_one": "in {{count}} month",
     "inMonths_other": "in {{count}} months",
-    "inOverYear": "in over a year"
+    "inOverYear": "in over a year",
+    "noExpiry": "does not expire"
+  },
+  "expiryInput": {
+    "placeholder": "MM/YY or DD/MM/YY",
+    "hint": "Type it as printed on the pack, e.g. 0327 or 05/03/27",
+    "invalid": "Not a valid date — try 0327 or 05/03/27",
+    "endOfMonth": "end of month",
+    "productDefault": "$t(glossary.product) default",
+    "expired": "already expired",
+    "expiresToday": "expires today",
+    "expiresInDays_one": "expires in {{count}} day",
+    "expiresInDays_other": "expires in {{count}} days",
+    "pickMonth": "Pick a month"
   },
   "productPicker": {
     "title": "Select $t(glossary.products)",
@@ -1217,7 +1264,16 @@
       "skuTaken": "This SKU is already in use",
       "skuNotPrintable": "This SKU contains characters a barcode cannot carry",
       "skuTooWideForPaper": "This SKU is too long to print a scannable barcode on the current paper width. Use 80mm paper, a shorter SKU, or print a label sheet instead.",
-      "unitArchived": "That unit has been archived — pick another"
+      "unitArchived": "That unit has been archived — pick another",
+      "expiryMonthsInvalid": "Enter between 1 and 120 months",
+      "expiryDefaultInvalid": "Pick how the expiry is filled in"
+    },
+    "batch": {
+      "expiryInvalid": "Enter a valid expiry date",
+      "expiryRequired": "A prescription $t(glossary.product) always expires — enter the date from the pack",
+      "reasonRequired": "A reason is required",
+      "expiryUnchanged": "That is already the expiry — change the date, or close",
+      "expirySourceInvalid": "Pick a date or \"does not expire\""
     },
     "manufacturer": {
       "codeTaken": "This manufacturer code is already in use",
@@ -1273,7 +1329,14 @@
       "receiptLotConsumed": "This stock has already been used, so the receipt can no longer be cancelled. Record a purchase return instead.",
       "receiptLotInStocktake": "This stock is part of an open stocktake. Remove it from the count first.",
       "receiptCancelPoClosed": "This restock order is already settled. Record a purchase return instead.",
-      "receiptAlreadyVoided": "This receipt has already been cancelled"
+      "receiptAlreadyVoided": "This receipt has already been cancelled",
+      "poNotReceivable": "Only a sent or partially received restock order can receive goods",
+      "receiveExceedsRemaining": "Cannot receive more than is still outstanding on this order",
+      "poItemNotFound": "That line was not found on this restock order",
+      "expiryInvalid": "Enter a valid expiry date",
+      "receivedAtInvalid": "Enter a valid received date",
+      "expiryPast": "That lot has already expired — a pharmacy can't receive expired stock",
+      "expiryRequired": "A prescription $t(glossary.product) always expires — enter the date from the pack"
     },
     "transfer": {
       "sameWarehouse": "Source and destination warehouses must differ"

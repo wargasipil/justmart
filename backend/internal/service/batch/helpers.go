@@ -78,6 +78,23 @@ func productUnitToProto(u *model.ProductUnit) *inventoryifacev1.ProductUnit {
 	}
 }
 
+// assertMayHaveNoExpiry refuses a "does not expire" lot for a product that must
+// carry a real date (common.NoExpiryAllowed: a prescription medicine in
+// pharmacy mode). Shared by CreateBatch and SetBatchExpiry.
+func (s *BatchService) assertMayHaveNoExpiry(ctx context.Context, db *gorm.DB, productID string) error {
+	ok, err := common.NoExpiryAllowed(ctx, db, productID)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return common.TokenError(connect.CodeInvalidArgument, "batch.product_required")
+	}
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if !ok {
+		return common.TokenError(connect.CodeFailedPrecondition, "batch.expiry_required")
+	}
+	return nil
+}
+
 func batchToProto(b *model.Batch, qty int64) *inventoryifacev1.Batch {
 	out := &inventoryifacev1.Batch{
 		Id:              b.ID,
@@ -88,6 +105,7 @@ func batchToProto(b *model.Batch, qty int64) *inventoryifacev1.Batch {
 		ReceivedAt:      b.ReceivedAt.Format(common.DateLayout),
 		CurrentQuantity: qty,
 		CreatedAt:       b.CreatedAt.Unix(),
+		ExpirySource:    inventoryifacev1.ExpirySource(common.ExpirySourceToWire(b.ExpirySource)),
 	}
 	if b.SupplierID != nil {
 		out.SupplierId = *b.SupplierID

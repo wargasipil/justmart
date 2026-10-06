@@ -19,8 +19,13 @@ type Product struct {
 	// Denormalized "has a picture, and how fresh" marker. NULL = none. The bytes
 	// live in ProductImage; this is what every product read carries instead.
 	ImageUpdatedAt *time.Time `gorm:"column:image_updated_at"`
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	// How the Receive dialog pre-fills a new lot's expiry: MANUAL | MONTHS |
+	// NONE (common.ExpiryDefault*). Stored only — the frontend computes the
+	// date. ExpiryDefaultMonths is > 0 only for MONTHS.
+	ExpiryDefault       string `gorm:"not null;default:MANUAL;column:expiry_default"`
+	ExpiryDefaultMonths int32  `gorm:"not null;default:0;column:expiry_default_months"`
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 func (Product) TableName() string { return "products" }

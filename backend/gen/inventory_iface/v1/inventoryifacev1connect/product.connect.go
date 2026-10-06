@@ -78,6 +78,9 @@ const (
 	// ProductServiceResolveProductsProcedure is the fully-qualified name of the ProductService's
 	// ResolveProducts RPC.
 	ProductServiceResolveProductsProcedure = "/inventory_iface.v1.ProductService/ResolveProducts"
+	// ProductServiceGetProductExpiryDefaultsProcedure is the fully-qualified name of the
+	// ProductService's GetProductExpiryDefaults RPC.
+	ProductServiceGetProductExpiryDefaultsProcedure = "/inventory_iface.v1.ProductService/GetProductExpiryDefaults"
 	// ProductServiceListLowStockProcedure is the fully-qualified name of the ProductService's
 	// ListLowStock RPC.
 	ProductServiceListLowStockProcedure = "/inventory_iface.v1.ProductService/ListLowStock"
@@ -130,6 +133,10 @@ type ProductServiceClient interface {
 	// ResolveProducts returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
 	ResolveProducts(context.Context, *connect.Request[v1.ResolveProductsRequest]) (*connect.Response[v1.ResolveProductsResponse], error)
+	// GetProductExpiryDefaults returns the expiry setting of the given products
+	// (max 500 ids) in one light read, for the Receive dialog to seed its lines.
+	// Same roles as receiving.
+	GetProductExpiryDefaults(context.Context, *connect.Request[v1.GetProductExpiryDefaultsRequest]) (*connect.Response[v1.GetProductExpiryDefaultsResponse], error)
 	// ListLowStock returns active products whose ready_stock in the caller's
 	// active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
 	// Drives the TopBar bell.
@@ -252,6 +259,12 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(productServiceMethods.ByName("ResolveProducts")),
 			connect.WithClientOptions(opts...),
 		),
+		getProductExpiryDefaults: connect.NewClient[v1.GetProductExpiryDefaultsRequest, v1.GetProductExpiryDefaultsResponse](
+			httpClient,
+			baseURL+ProductServiceGetProductExpiryDefaultsProcedure,
+			connect.WithSchema(productServiceMethods.ByName("GetProductExpiryDefaults")),
+			connect.WithClientOptions(opts...),
+		),
 		listLowStock: connect.NewClient[v1.ListLowStockRequest, v1.ListLowStockResponse](
 			httpClient,
 			baseURL+ProductServiceListLowStockProcedure,
@@ -287,26 +300,27 @@ func NewProductServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // productServiceClient implements ProductServiceClient.
 type productServiceClient struct {
-	listProducts            *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
-	getProductsSummary      *connect.Client[v1.GetProductsSummaryRequest, v1.GetProductsSummaryResponse]
-	getProduct              *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
-	createProduct           *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
-	importProducts          *connect.Client[v1.ImportProductsRequest, v1.ImportProductsResponse]
-	updateProduct           *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
-	addProductManufacturer  *connect.Client[v1.AddProductManufacturerRequest, v1.AddProductManufacturerResponse]
-	setProductManufacturers *connect.Client[v1.SetProductManufacturersRequest, v1.SetProductManufacturersResponse]
-	archiveProduct          *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
-	unarchiveProduct        *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
-	listProductPrices       *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
-	listProductUnitPrices   *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
-	listProductRestockLogs  *connect.Client[v1.ListProductRestockLogsRequest, v1.ListProductRestockLogsResponse]
-	searchProducts          *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
-	resolveProducts         *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
-	listLowStock            *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
-	uploadProductImage      *connect.Client[v1.UploadProductImageRequest, v1.UploadProductImageResponse]
-	getProductImage         *connect.Client[v1.GetProductImageRequest, v1.GetProductImageResponse]
-	deleteProductImage      *connect.Client[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse]
-	printProductLabel       *connect.Client[v1.PrintProductLabelRequest, v1.PrintProductLabelResponse]
+	listProducts             *connect.Client[v1.ListProductsRequest, v1.ListProductsResponse]
+	getProductsSummary       *connect.Client[v1.GetProductsSummaryRequest, v1.GetProductsSummaryResponse]
+	getProduct               *connect.Client[v1.GetProductRequest, v1.GetProductResponse]
+	createProduct            *connect.Client[v1.CreateProductRequest, v1.CreateProductResponse]
+	importProducts           *connect.Client[v1.ImportProductsRequest, v1.ImportProductsResponse]
+	updateProduct            *connect.Client[v1.UpdateProductRequest, v1.UpdateProductResponse]
+	addProductManufacturer   *connect.Client[v1.AddProductManufacturerRequest, v1.AddProductManufacturerResponse]
+	setProductManufacturers  *connect.Client[v1.SetProductManufacturersRequest, v1.SetProductManufacturersResponse]
+	archiveProduct           *connect.Client[v1.ArchiveProductRequest, v1.ArchiveProductResponse]
+	unarchiveProduct         *connect.Client[v1.UnarchiveProductRequest, v1.UnarchiveProductResponse]
+	listProductPrices        *connect.Client[v1.ListProductPricesRequest, v1.ListProductPricesResponse]
+	listProductUnitPrices    *connect.Client[v1.ListProductUnitPricesRequest, v1.ListProductUnitPricesResponse]
+	listProductRestockLogs   *connect.Client[v1.ListProductRestockLogsRequest, v1.ListProductRestockLogsResponse]
+	searchProducts           *connect.Client[v1.SearchProductsRequest, v1.SearchProductsResponse]
+	resolveProducts          *connect.Client[v1.ResolveProductsRequest, v1.ResolveProductsResponse]
+	getProductExpiryDefaults *connect.Client[v1.GetProductExpiryDefaultsRequest, v1.GetProductExpiryDefaultsResponse]
+	listLowStock             *connect.Client[v1.ListLowStockRequest, v1.ListLowStockResponse]
+	uploadProductImage       *connect.Client[v1.UploadProductImageRequest, v1.UploadProductImageResponse]
+	getProductImage          *connect.Client[v1.GetProductImageRequest, v1.GetProductImageResponse]
+	deleteProductImage       *connect.Client[v1.DeleteProductImageRequest, v1.DeleteProductImageResponse]
+	printProductLabel        *connect.Client[v1.PrintProductLabelRequest, v1.PrintProductLabelResponse]
 }
 
 // ListProducts calls inventory_iface.v1.ProductService.ListProducts.
@@ -384,6 +398,11 @@ func (c *productServiceClient) ResolveProducts(ctx context.Context, req *connect
 	return c.resolveProducts.CallUnary(ctx, req)
 }
 
+// GetProductExpiryDefaults calls inventory_iface.v1.ProductService.GetProductExpiryDefaults.
+func (c *productServiceClient) GetProductExpiryDefaults(ctx context.Context, req *connect.Request[v1.GetProductExpiryDefaultsRequest]) (*connect.Response[v1.GetProductExpiryDefaultsResponse], error) {
+	return c.getProductExpiryDefaults.CallUnary(ctx, req)
+}
+
 // ListLowStock calls inventory_iface.v1.ProductService.ListLowStock.
 func (c *productServiceClient) ListLowStock(ctx context.Context, req *connect.Request[v1.ListLowStockRequest]) (*connect.Response[v1.ListLowStockResponse], error) {
 	return c.listLowStock.CallUnary(ctx, req)
@@ -444,6 +463,10 @@ type ProductServiceHandler interface {
 	// ResolveProducts returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
 	ResolveProducts(context.Context, *connect.Request[v1.ResolveProductsRequest]) (*connect.Response[v1.ResolveProductsResponse], error)
+	// GetProductExpiryDefaults returns the expiry setting of the given products
+	// (max 500 ids) in one light read, for the Receive dialog to seed its lines.
+	// Same roles as receiving.
+	GetProductExpiryDefaults(context.Context, *connect.Request[v1.GetProductExpiryDefaultsRequest]) (*connect.Response[v1.GetProductExpiryDefaultsResponse], error)
 	// ListLowStock returns active products whose ready_stock in the caller's
 	// active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
 	// Drives the TopBar bell.
@@ -562,6 +585,12 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 		connect.WithSchema(productServiceMethods.ByName("ResolveProducts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	productServiceGetProductExpiryDefaultsHandler := connect.NewUnaryHandler(
+		ProductServiceGetProductExpiryDefaultsProcedure,
+		svc.GetProductExpiryDefaults,
+		connect.WithSchema(productServiceMethods.ByName("GetProductExpiryDefaults")),
+		connect.WithHandlerOptions(opts...),
+	)
 	productServiceListLowStockHandler := connect.NewUnaryHandler(
 		ProductServiceListLowStockProcedure,
 		svc.ListLowStock,
@@ -624,6 +653,8 @@ func NewProductServiceHandler(svc ProductServiceHandler, opts ...connect.Handler
 			productServiceSearchProductsHandler.ServeHTTP(w, r)
 		case ProductServiceResolveProductsProcedure:
 			productServiceResolveProductsHandler.ServeHTTP(w, r)
+		case ProductServiceGetProductExpiryDefaultsProcedure:
+			productServiceGetProductExpiryDefaultsHandler.ServeHTTP(w, r)
 		case ProductServiceListLowStockProcedure:
 			productServiceListLowStockHandler.ServeHTTP(w, r)
 		case ProductServiceUploadProductImageProcedure:
@@ -701,6 +732,10 @@ func (UnimplementedProductServiceHandler) SearchProducts(context.Context, *conne
 
 func (UnimplementedProductServiceHandler) ResolveProducts(context.Context, *connect.Request[v1.ResolveProductsRequest]) (*connect.Response[v1.ResolveProductsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.ResolveProducts is not implemented"))
+}
+
+func (UnimplementedProductServiceHandler) GetProductExpiryDefaults(context.Context, *connect.Request[v1.GetProductExpiryDefaultsRequest]) (*connect.Response[v1.GetProductExpiryDefaultsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.ProductService.GetProductExpiryDefaults is not implemented"))
 }
 
 func (UnimplementedProductServiceHandler) ListLowStock(context.Context, *connect.Request[v1.ListLowStockRequest]) (*connect.Response[v1.ListLowStockResponse], error) {

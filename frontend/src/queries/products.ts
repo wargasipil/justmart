@@ -42,6 +42,7 @@ export const productKeys = {
   restockLogs: (productId: string, page: number, pageSize: number) =>
     [...productKeys.all, "restockLogs", productId, page, pageSize] as const,
   search: (query: string) => [...productKeys.all, "search", query] as const,
+  expiryDefaults: (ids: string[]) => [...productKeys.all, "expiryDefaults", ids] as const,
   // Paging is deliberately absent: the summary covers every matching product,
   // so paging through the table must not refetch it.
   summary: (opts: ProductsSummaryOpts) => [...productKeys.all, "summary", opts] as const,
@@ -437,4 +438,21 @@ export function usePrintProductLabelMutation() {
       printerName?: string;
     }) => productClient.printProductLabel(req),
   });
+}
+
+// The expiry setting of a set of products, as a Map by product id — what the
+// Receive dialog seeds its lines from. One light read instead of a full
+// GetProduct per line. Ids are deduped + sorted so the key is stable however
+// the caller orders them; an empty set never fetches.
+export function useProductExpiryDefaultsQuery(productIds: string[], { enabled = true }: { enabled?: boolean } = {}) {
+  const ids = [...new Set(productIds.filter(Boolean))].sort();
+  const q = useQuery({
+    queryKey: productKeys.expiryDefaults(ids),
+    enabled: enabled && ids.length > 0,
+    queryFn: async () => {
+      const res = await productClient.getProductExpiryDefaults({ productIds: ids });
+      return new Map(res.defaults.map((d) => [d.productId, d]));
+    },
+  });
+  return { ...q, byId: q.data ?? new Map() };
 }

@@ -21,6 +21,11 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "product.sku_not_printable": { i18nKey: "serverErrors.product.skuNotPrintable" },
   "product.sku_too_wide_for_paper": { i18nKey: "serverErrors.product.skuTooWideForPaper" },
   "product.unit_archived": { i18nKey: "serverErrors.product.unitArchived" },
+  "product.expiry_months_invalid": {
+    field: "expiryDefaultMonths",
+    i18nKey: "serverErrors.product.expiryMonthsInvalid",
+  },
+  "product.expiry_default_invalid": { i18nKey: "serverErrors.product.expiryDefaultInvalid" },
   // supplier
   "supplier.required": { i18nKey: "validation.required" },
   "supplier.code_taken": { field: "code", i18nKey: "serverErrors.supplier.codeTaken" },
@@ -117,6 +122,14 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "purchasing.receipt_item_not_found": { i18nKey: "serverErrors.purchasing.receiptItemNotFound" },
   "purchasing.duplicate_line": { i18nKey: "serverErrors.purchasing.duplicateLine" },
   "purchasing.no_batch": { i18nKey: "serverErrors.purchasing.noBatch" },
+  // Receiving a delivery (CreateReceipt).
+  "purchasing.po_not_receivable": { i18nKey: "serverErrors.purchasing.poNotReceivable" },
+  "purchasing.receive_exceeds_remaining": { i18nKey: "serverErrors.purchasing.receiveExceedsRemaining" },
+  "purchasing.po_item_not_found": { i18nKey: "serverErrors.purchasing.poItemNotFound" },
+  "purchasing.expiry_invalid": { i18nKey: "serverErrors.purchasing.expiryInvalid" },
+  "purchasing.received_at_invalid": { i18nKey: "serverErrors.purchasing.receivedAtInvalid" },
+  "purchasing.expiry_past": { i18nKey: "serverErrors.purchasing.expiryPast" },
+  "purchasing.expiry_required": { i18nKey: "serverErrors.purchasing.expiryRequired" },
   // Cancel-an-accepted-restock guards. Also precomputed onto
   // PurchaseReceipt.cancel_blocked_reason so the UI can disable the action with
   // the same wording it would otherwise have failed with.
@@ -132,6 +145,12 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "transfer.qty_invalid": { i18nKey: "serverErrors.common.qtyInvalid" },
   // batch
   "batch.product_required": { i18nKey: "validation.required" },
+  "batch.batch_required": { i18nKey: "validation.required" },
+  "batch.expiry_invalid": { field: "expiryDate", i18nKey: "serverErrors.batch.expiryInvalid" },
+  "batch.expiry_required": { field: "expiryDate", i18nKey: "serverErrors.batch.expiryRequired" },
+  "batch.reason_required": { field: "reason", i18nKey: "serverErrors.batch.reasonRequired" },
+  "batch.expiry_unchanged": { field: "expiryDate", i18nKey: "serverErrors.batch.expiryUnchanged" },
+  "batch.expiry_source_invalid": { i18nKey: "serverErrors.batch.expirySourceInvalid" },
   "batch.qty_negative": { i18nKey: "serverErrors.common.amountNegative" },
   "batch.cost_negative": { i18nKey: "serverErrors.common.amountNegative" },
   // stocktake

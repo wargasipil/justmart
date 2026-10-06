@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { batchClient } from "../lib/clients";
-import type {
-  CreateBatchRequest,
-  ImportStockRequest,
-  UpdateBatchRequest,
+import {
+  ExpirySource,
+  type CreateBatchRequest,
+  type ImportStockRequest,
+  type SetBatchExpiryRequest,
+  type UpdateBatchRequest,
 } from "../gen/inventory_iface/v1/batch_pb";
 
 import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
@@ -20,6 +22,8 @@ export type BatchesQueryOpts = {
   fromUnix?: number;
   toUnix?: number;
   dateField?: string; // "received" | "expiry"
+  /** Only lots whose expiry came from this source; UNSPECIFIED = any. DEFAULT is the shelf-check worklist. */
+  expirySource?: ExpirySource;
   page?: number;
   pageSize?: number;
 };
@@ -28,6 +32,8 @@ export const batchKeys = {
   all: ["batches"] as const,
   list: (opts: Required<BatchesQueryOpts>) =>
     [...batchKeys.all, "list", opts] as const,
+  expiryChanges: (batchId: string, page: number, pageSize: number) =>
+    [...batchKeys.all, "expiryChanges", batchId, page, pageSize] as const,
 };
 
 // Server-paginated. Returns { rows, total }. For page-level maps pass
@@ -42,12 +48,16 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
     fromUnix = 0,
     toUnix = 0,
     dateField = "",
+    expirySource = ExpirySource.UNSPECIFIED,
     page = 0,
     pageSize = DEFAULT_PAGE_SIZE,
   } = opts;
+  const key = batchKeys.list({
+    productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, expirySource, page, pageSize,
+  });
   const q = useQuery({
-    queryKey: batchKeys.list({ productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize }),
-    placeholderData: keepPageData(batchKeys.list({ productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, page, pageSize })),
+    queryKey: key,
+    placeholderData: keepPageData(key),
     queryFn: async () => {
       const res = await batchClient.listBatches({
         productId,
@@ -58,6 +68,7 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
         fromUnix: BigInt(fromUnix),
         toUnix: BigInt(toUnix),
         dateField,
+        expirySource,
         limit: pageSize,
         offset: page * pageSize,
       });
@@ -141,4 +152,38 @@ export function useImportStockMutation() {
       qc.invalidateQueries({ queryKey: ["stock"] });
     },
   });
+}
+
+// Correct (or confirm) a lot's expiry. Invalidates every batch read (the list,
+// the product's Batches tab, this lot's history) and the purchasing reads,
+// since the receipt line's copy of the expiry moves with the lot.
+export function useSetBatchExpiryMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<SetBatchExpiryRequest>) => batchClient.setBatchExpiry(req),
+    meta: { silentError: true }, // the dialog routes tokens onto its fields
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: batchKeys.all });
+      void qc.invalidateQueries({ queryKey: ["purchasing"] });
+    },
+  });
+}
+
+// One lot's expiry corrections, newest first. Paginated like every List*;
+// `enabled` lets a closed dialog skip the fetch.
+export function useBatchExpiryChangesQuery(
+  batchId: string,
+  { page = 0, pageSize = 5, enabled = true }: { page?: number; pageSize?: number; enabled?: boolean } = {},
+) {
+  const key = batchKeys.expiryChanges(batchId, page, pageSize);
+  const q = useQuery({
+    queryKey: key,
+    placeholderData: keepPageData(key),
+    enabled: enabled && batchId !== "",
+    queryFn: async () => {
+      const res = await batchClient.listBatchExpiryChanges({ batchId, limit: pageSize, offset: page * pageSize });
+      return { rows: res.changes, total: res.total };
+    },
+  });
+  return { ...q, rows: q.data?.rows ?? [], total: q.data?.total ?? 0 };
 }

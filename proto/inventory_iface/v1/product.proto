@@ -63,7 +63,34 @@ message Product {
   // and a partial list would silently hide a legitimate source. Bounded by
   // how many factories make one item, which is a handful.
   repeated string manufacturer_ids = 31;
+  // How the Receive dialog pre-fills a new lot's expiry for this product. The
+  // server only STORES the setting; the frontend computes the date and seeds
+  // the field, and the person receiving can always type over it.
+  ExpiryDefault expiry_default = 32;
+  int32 expiry_default_months = 33; // > 0 only when expiry_default = MONTHS
 }
+
+// How a product's new lots get their expiry pre-filled at receive.
+enum ExpiryDefault {
+  EXPIRY_DEFAULT_UNSPECIFIED = 0; // treated as MANUAL
+  EXPIRY_DEFAULT_MANUAL = 1;      // field starts empty: type it from the pack
+  EXPIRY_DEFAULT_MONTHS = 2;      // received date + expiry_default_months, end of that month
+  EXPIRY_DEFAULT_NONE = 3;        // the goods do not expire; no field at all
+}
+
+// A product's expiry setting, as GetProductExpiryDefaults returns it -- just
+// enough for the Receive dialog to seed its lines without fetching each
+// product in full.
+message ProductExpiryDefault {
+  string product_id = 1;
+  ExpiryDefault expiry_default = 2;
+  int32 expiry_default_months = 3;
+  // Carried so the dialog can apply the pharmacy rule (no estimated expiry on
+  // a prescription medicine) without a second lookup.
+  bool prescription_required = 4;
+}
+message GetProductExpiryDefaultsRequest { repeated string product_ids = 1; }
+message GetProductExpiryDefaultsResponse { repeated ProductExpiryDefault defaults = 1; }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
 // larger units convert via `factor` (base units per 1 of this unit).
@@ -216,6 +243,13 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
+  // GetProductExpiryDefaults returns the expiry setting of the given products
+  // (max 500 ids) in one light read, for the Receive dialog to seed its lines.
+  // Same roles as receiving.
+  rpc GetProductExpiryDefaults(GetProductExpiryDefaultsRequest) returns (GetProductExpiryDefaultsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
   // ListLowStock returns active products whose ready_stock in the caller's
   // active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
   // Drives the TopBar bell.
@@ -319,6 +353,8 @@ message CreateProductRequest {
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // optional; if empty, a base unit is created from unit/unit_price
   string manufacturer_id = 8;           // optional; "" = none
+  ExpiryDefault expiry_default = 9;     // UNSPECIFIED = MANUAL
+  int32 expiry_default_months = 10;     // required (1..120) when expiry_default = MONTHS
 }
 message CreateProductResponse { Product product = 1; }
 
@@ -356,6 +392,9 @@ message UpdateProductRequest {
   repeated ProductUnitInput units = 7;  // upsert the full unit set (exactly one is_base, base factor 1)
   string sku = 8;                        // editable business code; unique (excludes self on update)
   string manufacturer_id = 9;            // optional; "" clears it
+  // Always written, like the rest of this full replace: UNSPECIFIED = MANUAL.
+  ExpiryDefault expiry_default = 10;
+  int32 expiry_default_months = 11;      // required (1..120) when expiry_default = MONTHS
 }
 message UpdateProductResponse { Product product = 1; }
 

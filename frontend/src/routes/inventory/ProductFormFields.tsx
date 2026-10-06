@@ -9,10 +9,11 @@ import FormField from "../../components/FormField";
 import ManufacturerSelect from "../../components/ManufacturerSelect";
 import MoneyInput from "../../components/MoneyInput";
 import NumberInput from "../../components/NumberInput";
-import type { Product, ProductUnitInput } from "../../gen/inventory_iface/v1/product_pb";
+import { ExpiryDefault, type Product, type ProductUnitInput } from "../../gen/inventory_iface/v1/product_pb";
 import { formatMoney } from "../../lib/format";
 import { marginPct, priceFromMarkup } from "../../lib/pricing";
 import { useBusinessMode } from "../../queries/settings";
+import ProductExpiryDefaultField from "./ProductExpiryDefaultField";
 
 // The product form's SCHEMA + FIELD STACK, shared by the create and edit
 // dialogs in productDrawers.tsx. Split out per the repo's
@@ -21,14 +22,28 @@ import { useBusinessMode } from "../../queries/settings";
 // is behaviour-preserving — the dialogs own the mutations and lifecycle, this
 // file owns what the form LOOKS like and what it validates.
 
-export const Schema = z.object({
-  sku: z.string().min(1),
-  name: z.string().min(1),
-  unit: z.string().min(1),
-  unitPrice: z.coerce.bigint().min(0n),
-  prescriptionRequired: z.boolean(),
-  manufacturerId: z.string(),
-});
+export const Schema = z
+  .object({
+    sku: z.string().min(1),
+    name: z.string().min(1),
+    unit: z.string().min(1),
+    unitPrice: z.coerce.bigint().min(0n),
+    prescriptionRequired: z.boolean(),
+    manufacturerId: z.string(),
+    expiryDefault: z.nativeEnum(ExpiryDefault),
+    expiryDefaultMonths: z.coerce.number().int(),
+  })
+  // Months matter only when pre-filling by months; the same 1–120 bound the
+  // server enforces (product.expiry_months_invalid), checked before the trip.
+  .superRefine((v, ctx) => {
+    if (v.expiryDefault === ExpiryDefault.MONTHS && (v.expiryDefaultMonths < 1 || v.expiryDefaultMonths > 120)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expiryDefaultMonths"],
+        params: { i18n: "serverErrors.product.expiryMonthsInvalid" },
+      });
+    }
+  });
 export type FormValues = z.infer<typeof Schema>;
 
 // Larger (non-base) units edited as draft rows; the base unit is the form's
@@ -189,6 +204,13 @@ export default function ProductForm({
           )}
         />
       )}
+
+      <ProductExpiryDefaultField
+        control={form.control}
+        mode={form.watch("expiryDefault")}
+        isPharmacy={isPharmacy}
+        prescriptionRequired={form.watch("prescriptionRequired")}
+      />
 
       {/* Larger units (box / strip …) — converted to the base unit by factor. */}
       <Stack gap={2} borderTopWidth="1px" pt={3}>

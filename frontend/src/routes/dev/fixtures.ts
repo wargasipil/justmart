@@ -1,7 +1,7 @@
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import type { ListProductsRequest } from "../../gen/inventory_iface/v1/product_pb";
-import { Product, ProductRestockLog, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
+import { ExpiryDefault, Product, ProductRestockLog, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import { Manufacturer, ManufacturerProduct } from "../../gen/inventory_iface/v1/manufacturer_pb";
 import { UnitBase } from "../../gen/unit_iface/v1/unit_pb";
 import { Warehouse } from "../../gen/warehouse_iface/v1/warehouse_pb";
@@ -251,6 +251,12 @@ export function makeProduct(
     /** Days since the last completed opname; undefined = never counted. */
     countedDaysAgo?: number;
     prescriptionRequired?: boolean;
+    /**
+     * How the Receive dialog pre-fills this product's expiry: a number of
+     * months after receiving, or "none" for goods that do not expire.
+     * Omitted = type it from the pack (MANUAL), every product's default.
+     */
+    expiry?: number | "none";
   },
   overrides: PartialMessage<Product> = {},
 ): Product {
@@ -284,6 +290,13 @@ export function makeProduct(
     lastStocktakeVariance: seed.countedDaysAgo !== undefined ? -BigInt(seed.countedDaysAgo % 5) : 0n,
     units: unitsFor(seed.id, seed.unit, seed.price, seed.packs ?? []),
     imageUpdatedAt: 0n, // "no picture" — ProductImage skips the fetch entirely
+    expiryDefault:
+      seed.expiry === "none"
+        ? ExpiryDefault.NONE
+        : seed.expiry !== undefined
+          ? ExpiryDefault.MONTHS
+          : ExpiryDefault.MANUAL,
+    expiryDefaultMonths: typeof seed.expiry === "number" ? seed.expiry : 0,
     ...overrides,
   });
 }
@@ -311,10 +324,10 @@ export function redactProductForTill(p: Product): Product {
 // few low-stock lines, a couple never counted, and mixed unit ladders.
 const [S1, S2, S3, S4] = SUPPLIERS;
 export const RETAIL_CATALOG: Product[] = [
-  makeProduct({ id: "r01", sku: "8998866200011", name: "Indomie Goreng 85 g", unit: "pcs", price: 3_500n, cost: 2_900n, packs: [["dus", 40n, 132_000n]], ready: 320n, onOrder: 400n, supplier: S3, restockedDaysAgo: 6, countedDaysAgo: 20 }),
+  makeProduct({ id: "r01", sku: "8998866200011", name: "Indomie Goreng 85 g", unit: "pcs", price: 3_500n, cost: 2_900n, packs: [["dus", 40n, 132_000n]], ready: 320n, onOrder: 400n, supplier: S3, restockedDaysAgo: 6, countedDaysAgo: 20, expiry: 8 }),
   makeProduct({ id: "r02", sku: "8998866200028", name: "Indomie Soto 70 g", unit: "pcs", price: 3_300n, cost: 2_750n, packs: [["dus", 40n, 125_000n]], ready: 145n, supplier: S3, restockedDaysAgo: 18, countedDaysAgo: 20 }),
-  makeProduct({ id: "r03", sku: "8886008101053", name: "Aqua 600 ml", unit: "botol", price: 4_000n, cost: 3_100n, packs: [["karton", 24n, 84_000n]], ready: 212n, onOrder: 240n, supplier: S3, restockedDaysAgo: 4, countedDaysAgo: 20 }),
-  makeProduct({ id: "r04", sku: "8886008101060", name: "Aqua 1500 ml", unit: "botol", price: 7_000n, cost: 5_600n, packs: [["karton", 12n, 78_000n]], ready: 58n, supplier: S3, restockedDaysAgo: 11, countedDaysAgo: 20 }),
+  makeProduct({ id: "r03", sku: "8886008101053", name: "Aqua 600 ml", unit: "botol", price: 4_000n, cost: 3_100n, packs: [["karton", 24n, 84_000n]], ready: 212n, onOrder: 240n, supplier: S3, restockedDaysAgo: 4, countedDaysAgo: 20, expiry: 18 }),
+  makeProduct({ id: "r04", sku: "8886008101060", name: "Aqua 1500 ml", unit: "botol", price: 7_000n, cost: 5_600n, packs: [["karton", 12n, 78_000n]], ready: 58n, supplier: S3, restockedDaysAgo: 11, countedDaysAgo: 20, expiry: 18 }),
   makeProduct({ id: "r05", sku: "BRS-PW-05", name: "Beras Pandan Wangi 5 kg", unit: "karung", price: 78_000n, cost: 69_500n, ready: 24n, onOrder: 20n, supplier: S4, restockedDaysAgo: 9, countedDaysAgo: 48 }),
   makeProduct({ id: "r06", sku: "GLP-1KG", name: "Gulaku Premium 1 kg", unit: "pcs", price: 18_500n, cost: 16_200n, packs: [["bal", 20n, 355_000n]], ready: 64n, supplier: S4, restockedDaysAgo: 14, countedDaysAgo: 48 }),
   makeProduct({ id: "r07", sku: "BML-2L", name: "Bimoli Minyak Goreng 2 L", unit: "pouch", price: 38_000n, cost: 34_100n, packs: [["dus", 6n, 222_000n]], ready: 7n, onOrder: 36n, supplier: S4, restockedDaysAgo: 30, countedDaysAgo: 48 }),
@@ -337,20 +350,20 @@ export const RETAIL_CATALOG: Product[] = [
   makeProduct({ id: "r24", sku: "MSK-RYC-230", name: "Royco Kaldu Ayam 230 g", unit: "pcs", price: 10_500n, cost: 8_800n, packs: [["dus", 24n, 240_000n]], ready: 33n, supplier: S4, restockedDaysAgo: 19, countedDaysAgo: 48 }),
   makeProduct({ id: "r25", sku: "PMP-MMY-S", name: "MamyPoko Pants S 34", unit: "pack", price: 72_000n, cost: 63_500n, ready: 9n, supplier: S1, restockedDaysAgo: 33, countedDaysAgo: 48 }),
   makeProduct({ id: "r26", sku: "TSU-PSO-250", name: "Paseo Tisu Wajah 250 s", unit: "pack", price: 14_000n, cost: 11_300n, packs: [["dus", 24n, 324_000n]], ready: 27n, supplier: S1, restockedDaysAgo: 27, countedDaysAgo: 48 }),
-  makeProduct({ id: "r27", sku: "BTR-ABC-AA", name: "Baterai ABC AA (isi 2)", unit: "pack", price: 8_000n, cost: 6_000n, packs: [["box", 12n, 90_000n]], ready: 60n, supplier: S4, restockedDaysAgo: 70 }),
-  makeProduct({ id: "r28", sku: "GAS-35", name: "Gas LPG 3 kg (isi ulang)", unit: "tabung", price: 22_000n, cost: 19_000n, ready: 14n, onOrder: 20n, supplier: S4, restockedDaysAgo: 3, countedDaysAgo: 3 }),
+  makeProduct({ id: "r27", sku: "BTR-ABC-AA", name: "Baterai ABC AA (isi 2)", unit: "pack", price: 8_000n, cost: 6_000n, packs: [["box", 12n, 90_000n]], ready: 60n, supplier: S4, restockedDaysAgo: 70, expiry: "none" }),
+  makeProduct({ id: "r28", sku: "GAS-35", name: "Gas LPG 3 kg (isi ulang)", unit: "tabung", price: 22_000n, cost: 19_000n, ready: 14n, onOrder: 20n, supplier: S4, restockedDaysAgo: 3, countedDaysAgo: 3, expiry: "none" }),
   makeProduct({ id: "r29", sku: "ES-BTU-KRS", name: "Es Batu Kristal", unit: "bungkus", price: 6_000n, cost: 3_500n, ready: 30n, supplier: S4, restockedDaysAgo: 1 }),
   makeProduct({ id: "r30", sku: "RKK-GDG-12", name: "Gudang Garam Filter 12", unit: "bungkus", price: 27_500n, cost: 25_200n, packs: [["slop", 10n, 270_000n]], ready: 80n, supplier: S3, restockedDaysAgo: 4, countedDaysAgo: 3 }),
   // Archived: discontinued lines, kept because sales history still points at them.
   makeProduct({ id: "r31", sku: "MIE-SDP-OLD", name: "Mie Sedaap Kari Spesial (lama)", unit: "pcs", price: 3_000n, cost: 2_500n, active: false, supplier: S3, restockedDaysAgo: 210 }),
   makeProduct({ id: "r32", sku: "SPR-KLG-330", name: "Sprite Kaleng 330 ml", unit: "kaleng", price: 7_000n, cost: 5_400n, active: false, supplier: S3, restockedDaysAgo: 150 }),
-  makeProduct({ id: "r33", sku: "PLS-HRG-12", name: "Plastik HD Kresek 24x40", unit: "pack", price: 9_000n, cost: 6_500n, active: false, supplier: S4 }),
+  makeProduct({ id: "r33", sku: "PLS-HRG-12", name: "Plastik HD Kresek 24x40", unit: "pack", price: 9_000n, cost: 6_500n, active: false, supplier: S4, expiry: "none" }),
 ];
 
 // An apotek shelf for pharmacy-mode stories — the same shape, medicine names,
 // strip/box ladders, and a few Rx-only lines.
 export const PHARMACY_CATALOG: Product[] = [
-  makeProduct({ id: "prod-paracetamol", sku: "PCT-500", name: "Paracetamol 500 mg", unit: "tablet", price: 1_000n, cost: 700n, packs: [["strip", 10n, 9_500n], ["box", 100n, 90_000n]], ready: 1_240n, onOrder: 500n, supplier: S1, restockedDaysAgo: 12, countedDaysAgo: 30 }),
+  makeProduct({ id: "prod-paracetamol", sku: "PCT-500", name: "Paracetamol 500 mg", unit: "tablet", price: 1_000n, cost: 700n, packs: [["strip", 10n, 9_500n], ["box", 100n, 90_000n]], ready: 1_240n, onOrder: 500n, supplier: S1, restockedDaysAgo: 12, countedDaysAgo: 30, expiry: 24 }),
   makeProduct({ id: "p02", sku: "AMX-500", name: "Amoxicillin 500 mg", unit: "kapsul", price: 1_500n, cost: 950n, packs: [["strip", 10n, 14_000n], ["box", 100n, 135_000n]], ready: 620n, supplier: S1, restockedDaysAgo: 20, countedDaysAgo: 30, prescriptionRequired: true }),
   makeProduct({ id: "p03", sku: "CTM-4", name: "CTM 4 mg", unit: "tablet", price: 300n, cost: 150n, packs: [["strip", 10n, 2_800n]], ready: 900n, supplier: S2, restockedDaysAgo: 45, countedDaysAgo: 30 }),
   makeProduct({ id: "p04", sku: "OBH-100", name: "OBH Combi Batuk Berdahak 100 ml", unit: "botol", price: 21_000n, cost: 16_800n, ready: 18n, supplier: S2, restockedDaysAgo: 15, countedDaysAgo: 30 }),

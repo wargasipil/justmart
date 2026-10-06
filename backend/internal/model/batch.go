@@ -15,8 +15,27 @@ type Batch struct {
 	// never captured then, and deriving it from the product's current maker
 	// would invent provenance for stock that predates the question.
 	ManufacturerID *string `gorm:"type:uuid;column:manufacturer_id"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	// Where ExpiryDate came from: ENTERED | DEFAULT | NONE (common.ExpirySource*).
+	// NONE means ExpiryDate is common.NoExpiryDate, not a real date.
+	ExpirySource string `gorm:"not null;default:ENTERED;column:expiry_source"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 func (Batch) TableName() string { return "batches" }
+
+// BatchExpiryChange is one correction or confirmation of a lot's expiry
+// (SetBatchExpiry). Insert-only; the lot's history of them.
+type BatchExpiryChange struct {
+	ID              string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	BatchID         string    `gorm:"not null;type:uuid;column:batch_id"`
+	OldExpiryDate   time.Time `gorm:"not null;type:date;column:old_expiry_date"`
+	OldExpirySource string    `gorm:"not null;column:old_expiry_source"`
+	NewExpiryDate   time.Time `gorm:"not null;type:date;column:new_expiry_date"`
+	NewExpirySource string    `gorm:"not null;column:new_expiry_source"`
+	Reason          string    `gorm:"not null;column:reason"`
+	ChangedBy       string    `gorm:"not null;type:uuid;column:changed_by"`
+	ChangedAt       time.Time `gorm:"not null;column:changed_at"`
+}
+
+func (BatchExpiryChange) TableName() string { return "batch_expiry_changes" }

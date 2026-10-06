@@ -69,6 +69,9 @@ func validateCreate(msg *inventoryifacev1.CreateProductRequest) error {
 	if msg.UnitPrice < 0 {
 		return common.TokenError(connect.CodeInvalidArgument, "product.unit_price_negative")
 	}
+	if _, _, err := expiryDefaultFromProto(msg.ExpiryDefault, msg.ExpiryDefaultMonths); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -76,6 +79,11 @@ func validateCreate(msg *inventoryifacev1.CreateProductRequest) error {
 // tx. Assumes validateCreate already passed. Returns the created product. Shared
 // by CreateProduct (one tx) and ImportProducts (one tx per row).
 func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, userID string) (*model.Product, error) {
+	// Already validated by validateCreate; re-derived here for the stored form.
+	expiryDefault, expiryMonths, err := expiryDefaultFromProto(msg.ExpiryDefault, msg.ExpiryDefaultMonths)
+	if err != nil {
+		return nil, err
+	}
 	med := &model.Product{
 		SKU:                  strings.TrimSpace(msg.Sku),
 		Name:                 strings.TrimSpace(msg.Name),
@@ -83,6 +91,8 @@ func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, us
 		UnitPrice:            msg.UnitPrice,
 		PrescriptionRequired: msg.PrescriptionRequired,
 		ManufacturerID:       manufacturerRef(msg.ManufacturerId),
+		ExpiryDefault:        expiryDefault,
+		ExpiryDefaultMonths:  expiryMonths,
 		Active:               true,
 	}
 	if err := tx.Create(med).Error; err != nil {

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 
 import EntityDialog from "../../components/EntityDialog";
-import type { Product } from "../../gen/inventory_iface/v1/product_pb";
+import { ExpiryDefault, type Product } from "../../gen/inventory_iface/v1/product_pb";
 import { useServerFormErrors } from "../../lib/formErrors";
 import { toast } from "../../lib/toaster";
 import { useCreateProductMutation, useUpdateProductMutation } from "../../queries/products";
@@ -33,6 +33,8 @@ export function CreateProductDialog({ open, onClose }: { open: boolean; onClose:
       unitPrice: 0n,
       prescriptionRequired: false,
       manufacturerId: "",
+      expiryDefault: ExpiryDefault.MANUAL,
+      expiryDefaultMonths: 0,
     },
   });
   const onServerError = useServerFormErrors(form);
@@ -97,6 +99,8 @@ export function EditProductDialog({
           unitPrice: product.unitPrice,
           prescriptionRequired: product.prescriptionRequired,
           manufacturerId: product.manufacturerId,
+          expiryDefault: product.expiryDefault,
+          expiryDefaultMonths: product.expiryDefaultMonths,
         }
       : undefined,
   });
@@ -113,6 +117,10 @@ export function EditProductDialog({
         unitPrice: values.unitPrice,
         prescriptionRequired: values.prescriptionRequired,
         manufacturerId: values.manufacturerId,
+        // UpdateProduct is a full replace: omitting these would reset the
+        // product to "type it in".
+        expiryDefault: values.expiryDefault,
+        expiryDefaultMonths: values.expiryDefaultMonths,
         units: toUnitInputs(units),
       });
       toast.success(t("common.save") + " ✓");

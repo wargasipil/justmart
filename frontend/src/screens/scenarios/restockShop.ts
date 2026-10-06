@@ -1,5 +1,6 @@
 import type { HttpHandler } from "msw";
 
+import { ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
@@ -242,7 +243,10 @@ function receiptHandlers(shop: Shop): HttpHandler[] {
             qty,
             unitCostPrice: l.unitCostPrice || item.unitCostPrice,
             batchNumber: l.batchNumber,
-            expiryDate: l.expiryDate,
+            // Like the server: a "does not expire" line stores the placeholder.
+            expiryDate: l.expirySource === ExpirySource.NONE ? "2099-12-31" : l.expiryDate,
+            // Read back from the lot, like the server: UNSPECIFIED was typed.
+            expirySource: l.expirySource || ExpirySource.ENTERED,
             batchId: `rcv-new-${no}-b${i + 1}`,
             productUnitId: item.productUnitId,
             unitName: item.unitName,
@@ -358,6 +362,20 @@ function refHandlers(shop: Shop): HttpHandler[] {
     // retired must still print a name rather than blanking its own history.
     mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
       manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
+    })),
+    // The Receive dialog's pre-fill: each product's expiry setting, read off
+    // the same catalog every other story renders, so a product's default is
+    // the one its own product page shows.
+    mockRpc(ProductService, "getProductExpiryDefaults", (req) => ({
+      defaults: req.productIds
+        .map((id) => CATALOG_BY_ID.get(id))
+        .filter((p) => p !== undefined)
+        .map((p) => ({
+          productId: p.id,
+          expiryDefault: p.expiryDefault,
+          expiryDefaultMonths: p.expiryDefaultMonths,
+          prescriptionRequired: p.prescriptionRequired,
+        })),
     })),
   ];
 }

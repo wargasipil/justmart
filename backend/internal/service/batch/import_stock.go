@@ -21,9 +21,6 @@ import (
 // under this; the client can chunk if it ever needs more).
 const maxImportStockRows = 5000
 
-// farFutureExpiry is the sentinel expiry for non-expiring goods (blank CSV cell).
-var farFutureExpiry = time.Date(2099, 12, 31, 0, 0, 0, 0, time.UTC)
-
 // errBatchExists marks a row whose (product, batch_number) already exists —
 // reported as SKIPPED (so re-importing a file with batch numbers is safe).
 var errBatchExists = errors.New("a batch with this number already exists for the product")
@@ -68,9 +65,12 @@ func (s *BatchService) ImportStock(
 			continue
 		}
 
-		// Expiry: blank => non-expiring sentinel.
-		expiry := farFutureExpiry
+		// Expiry: blank => the goods do not expire. Recorded as source NONE so the
+		// lot reads "does not expire" rather than as a real 2099 date.
+		expiry := common.NoExpiryDate
+		expirySource := common.ExpirySourceNone
 		if ed := strings.TrimSpace(row.ExpiryDate); ed != "" {
+			expirySource = common.ExpirySourceEntered
 			expiry, err = time.Parse(common.DateLayout, ed)
 			if err != nil {
 				res.Status = inventoryifacev1.ImportStockStatus_IMPORT_STOCK_STATUS_ERROR
@@ -149,6 +149,7 @@ func (s *BatchService) ImportStock(
 				ProductID:      product.ID,
 				BatchNumber:    batchNo,
 				ExpiryDate:     expiry,
+				ExpirySource:   expirySource,
 				CostPrice:      row.CostPrice,
 				ReceivedAt:     time.Now(),
 				ManufacturerID: makerID,

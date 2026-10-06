@@ -11,6 +11,7 @@ import (
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	"github.com/justmart/backend/internal/model"
 	batchsvc "github.com/justmart/backend/internal/service/batch"
+	"github.com/justmart/backend/internal/service/common"
 	"github.com/justmart/backend/internal/service/servicetest"
 )
 
@@ -96,8 +97,76 @@ func TestCreateBatch_BadExpiryDate(t *testing.T) {
 		ProductId:  prodID,
 		ExpiryDate: "30-06-2030", // not YYYY-MM-DD
 	}))
+	requireBatchToken(t, err, connect.CodeInvalidArgument, "batch.expiry_invalid")
+}
+
+// The drawer reports where the date came from; DEFAULT survives onto the lot,
+// and NONE stores the no-expiry placeholder whatever date was sent.
+func TestCreateBatch_RecordsExpirySource(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+	prodID := seedProduct(t, gormDB, "CB-SRC", "Source Med")
+
+	def, err := svc.CreateBatch(ctx, connect.NewRequest(&inventoryifacev1.CreateBatchRequest{
+		ProductId:    prodID,
+		ExpiryDate:   "2030-06-30",
+		ExpirySource: inventoryifacev1.ExpirySource_EXPIRY_SOURCE_DEFAULT,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_DEFAULT, def.Msg.Batch.ExpirySource)
+	require.Equal(t, "2030-06-30", def.Msg.Batch.ExpiryDate)
+
+	none, err := svc.CreateBatch(ctx, connect.NewRequest(&inventoryifacev1.CreateBatchRequest{
+		ProductId:    prodID,
+		ExpirySource: inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE, // no date at all
+	}))
+	require.NoError(t, err)
+	require.Equal(t, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE, none.Msg.Batch.ExpirySource)
+	require.Equal(t, "2099-12-31", none.Msg.Batch.ExpiryDate)
+
+	// A caller that predates the field sent a typed date: ENTERED.
+	plain, err := svc.CreateBatch(ctx, connect.NewRequest(&inventoryifacev1.CreateBatchRequest{
+		ProductId:  prodID,
+		ExpiryDate: "2031-01-31",
+	}))
+	require.NoError(t, err)
+	require.Equal(t, inventoryifacev1.ExpirySource_EXPIRY_SOURCE_ENTERED, plain.Msg.Batch.ExpirySource)
+}
+
+// In pharmacy mode a prescription medicine cannot be recorded as never
+// expiring; the same product in retail mode can.
+func TestCreateBatch_PharmacyRxMustExpire(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := batchsvc.NewBatchService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+	prodID := seedProduct(t, gormDB, "CB-RX", "Rx Med")
+	require.NoError(t, gormDB.Model(&model.Product{}).Where("id = ?", prodID).
+		Update("prescription_required", true).Error)
+	noExpiry := &inventoryifacev1.CreateBatchRequest{
+		ProductId:    prodID,
+		ExpirySource: inventoryifacev1.ExpirySource_EXPIRY_SOURCE_NONE,
+	}
+
+	_, err := svc.CreateBatch(ctx, connect.NewRequest(noExpiry))
+	require.NoError(t, err, "retail mode: the pharmacy rule does not apply")
+
+	require.NoError(t, common.SetBussinessType(ctx, gormDB, common.BussinessTypePharmacyShop))
+	_, err = svc.CreateBatch(ctx, connect.NewRequest(noExpiry))
+	requireBatchToken(t, err, connect.CodeFailedPrecondition, "batch.expiry_required")
+}
+
+func requireBatchToken(t *testing.T, err error, code connect.Code, token string) {
+	t.Helper()
 	require.Error(t, err)
-	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	var ce *connect.Error
+	require.ErrorAs(t, err, &ce)
+	require.Equal(t, code, ce.Code())
+	require.Equal(t, token, ce.Message())
 }
 
 func TestCreateBatch_Unauthenticated(t *testing.T) {

@@ -4,13 +4,15 @@ import { Route } from "react-router-dom";
 import { userEvent, within } from "storybook/test";
 
 import { BatchService } from "../../gen/inventory_iface/v1/batch_connect";
+import { BatchExpiryChange, ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
-import type { Product } from "../../gen/inventory_iface/v1/product_pb";
+import { ExpiryDefault, type Product } from "../../gen/inventory_iface/v1/product_pb";
 import { ProductDiscountService } from "../../gen/inventory_iface/v1/product_discount_connect";
 import { ProductPriceTierService } from "../../gen/inventory_iface/v1/product_price_tier_connect";
 import { StockMovementService } from "../../gen/inventory_iface/v1/stock_connect";
 import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
+import { UserService } from "../../gen/user_iface/v1/users_connect";
 import {
   MANUFACTURERS,
   PHARMACY_CATALOG,
@@ -28,8 +30,8 @@ import {
   tiersFor,
   unitPricesFor,
 } from "../../routes/dev/productDetailFixtures";
-import { withPageContext } from "../../routes/dev/storyDecorators";
-import { mockApi, mockRpc, mockRpcError } from "../../routes/dev/storyMocks";
+import { STORY_USERS, withPageContext } from "../../routes/dev/storyDecorators";
+import { mockApi, mockRpc, mockRpcError, rpcError } from "../../routes/dev/storyMocks";
 import ProductDetail from "../../routes/inventory/ProductDetail";
 
 // One product's detail page. Unlike a component story, a page is the real
@@ -66,18 +68,56 @@ function tillHandlers(p: Product) {
 }
 
 /** The manager view adds the grosir card and the four cost-bearing tabs. */
-function managerHandlers(p: Product) {
+function managerHandlers(seed: Product) {
+  // The handlers below WRITE (approved sources, the edit form, lot expiry), so
+  // they work on a copy: writing into the shared catalog fixture would change
+  // the same product in every other scenario that renders it.
+  const p = seed.clone();
   const ladder = tiersFor(p);
+  // This story's own lots and their expiry corrections: the pencil on the
+  // Batches tab WRITES here, so a corrected date survives the refetch instead
+  // of snapping back to the fixture.
+  const lots = batchesFor(p);
+  const changes: BatchExpiryChange[] = [];
   return [
     mockRpc(ProductService, "getProduct", () => {
       const withLadder = p.clone();
       withLadder.priceTiers = ladder;
       return { product: withLadder };
     }),
-    mockRpc(BatchService, "listBatches", () => {
-      const rows = batchesFor(p);
-      return { batches: rows, total: rows.length };
+    mockRpc(BatchService, "listBatches", () => ({ batches: lots, total: lots.length })),
+    mockRpc(BatchService, "setBatchExpiry", (req) => {
+      const b = lots.find((l) => l.id === req.batchId);
+      if (!b) return rpcError(Code.NotFound, "batch not found");
+      if (!req.reason.trim()) return rpcError(Code.InvalidArgument, "batch.reason_required");
+      const none = req.expirySource === ExpirySource.NONE;
+      const date = none ? "2099-12-31" : req.expiryDate;
+      changes.unshift(
+        new BatchExpiryChange({
+          id: "chg-" + (changes.length + 1),
+          batchId: b.id,
+          oldExpiryDate: b.expiryDate,
+          oldExpirySource: b.expirySource || ExpirySource.ENTERED,
+          newExpiryDate: date,
+          newExpirySource: none ? ExpirySource.NONE : ExpirySource.ENTERED,
+          reason: req.reason.trim(),
+          changedBy: STORY_USERS.owner.id,
+          changedAt: BigInt(Math.floor(Date.now() / 1000)),
+        }),
+      );
+      b.expiryDate = date;
+      b.expirySource = none ? ExpirySource.NONE : ExpirySource.ENTERED;
+      return { batch: b };
     }),
+    mockRpc(BatchService, "listBatchExpiryChanges", (req) => {
+      const mine = changes.filter((c) => c.batchId === req.batchId);
+      return { changes: mine.slice(req.offset, req.offset + (req.limit || 5)), total: mine.length };
+    }),
+    mockRpc(UserService, "resolveUsers", (req) => ({
+      users: Object.values(STORY_USERS)
+        .filter((u) => req.ids.includes(u.id))
+        .map((u) => ({ id: u.id, name: u.name, email: u.email })),
+    })),
     mockRpc(SupplierService, "resolveSuppliers", (req) => ({ suppliers: SUPPLIERS.filter((s) => req.ids.includes(s.id)) })),
     // The Pabrik field resolves one id. Mocked for the TILL too, on purpose:
     // ResolveManufacturers is open to all four roles (a maker's name is not
@@ -96,6 +136,28 @@ function managerHandlers(p: Product) {
         includeInactive: false,
       }).slice(0, req.limit || 20),
     })),
+    // The edit form's Save. Applies what the form sends -- including the expiry
+    // setting -- so the info section shows the change after the refetch rather
+    // than snapping back. Units are left as they are (the unit editor is not
+    // what these stories are about). Mirrors the server's month bound.
+    mockRpc(ProductService, "updateProduct", (req) => {
+      if (
+        req.expiryDefault === ExpiryDefault.MONTHS &&
+        (req.expiryDefaultMonths < 1 || req.expiryDefaultMonths > 120)
+      ) {
+        return rpcError(Code.InvalidArgument, "product.expiry_months_invalid");
+      }
+      if (req.sku) p.sku = req.sku;
+      p.name = req.name;
+      p.unit = req.unit;
+      p.unitPrice = req.unitPrice;
+      p.prescriptionRequired = req.prescriptionRequired;
+      p.manufacturerId = req.manufacturerId;
+      p.expiryDefault =
+        req.expiryDefault === ExpiryDefault.UNSPECIFIED ? ExpiryDefault.MANUAL : req.expiryDefault;
+      p.expiryDefaultMonths = req.expiryDefault === ExpiryDefault.MONTHS ? req.expiryDefaultMonths : 0;
+      return { product: p };
+    }),
     mockRpc(ProductService, "setProductManufacturers", (req) => {
       p.manufacturerIds = req.manufacturerIds;
       // Mirrors the server's invariant rather than trusting the request: the
@@ -211,6 +273,22 @@ export const stories = {
     {
       parameters: {
         msw: mockApi(mockRpcError(ProductService, "getProduct", Code.NotFound, "product not found")),
+      },
+    },
+  ),
+
+  EditExpirySetting: story(
+    "The edit form, opened, to show the expiry setting: how this product's lots get their expiry " +
+      "on the Receive screen. Paracetamol pre-fills 24 months after the received date (end of that " +
+      "month); switch it to \"Type it in from the pack\" or \"Does not expire\" to see the " +
+      "months field come and go. The help text says the uncomfortable part: use the shortest life " +
+      "deliveries usually arrive with, not the factory shelf life, because a default that runs late " +
+      "keeps old stock looking fresh. Tick \"Requires prescription\" in pharmacy mode and the form " +
+      "warns that such a product is always typed in, whatever is chosen here.",
+    {
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await userEvent.click(await canvas.findByRole("button", { name: /^(edit|ubah)$/i }));
       },
     },
   ),

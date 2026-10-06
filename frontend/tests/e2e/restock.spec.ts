@@ -198,9 +198,10 @@ test.describe("restock (purchase order) end-to-end", () => {
       // kept Receive disabled.
       const receiveCells = dialog.getByRole("table").getByRole("row").nth(1).getByRole("cell");
       await receiveCells.nth(2).getByRole("textbox").fill(`RS-B1-${m}`);
-      // DatePicker.Input under en locale takes MM/DD/YYYY.
+      // <ExpiryInput> reads the pack, day first in every locale: "31/12/2099"
+      // (a month-only "1299" would mean the same day — end of that month).
       const expiry = receiveCells.nth(3).getByRole("textbox");
-      await expiry.fill("12/31/2099");
+      await expiry.fill("31/12/2099");
       await expiry.blur();
 
       // Submit (dialog footer's Receive button).

@@ -25,6 +25,7 @@ import ColumnsPopover from "../../components/ColumnsPopover";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import DashboardTile from "../../components/DashboardTile";
 import DatePickerField from "../../components/DatePicker";
+import ExpiryInput from "../../components/ExpiryInput";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import DiscountField, { type DiscountType } from "../../components/DiscountField";
 import EntityDialog from "../../components/EntityDialog";
@@ -277,6 +278,18 @@ export function DatePickerDemo() {
   return (
     <Stack gap={2} maxW="260px">
       <DatePickerField value={value} onChange={setValue} min={isoInDays(-30)} max={isoInDays(365)} />
+      <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
+// Starts empty: type 0327 (end of Mar 2027) or 05/03/27 (that exact day) and
+// watch the readout and the emitted date agree.
+export function ExpiryInputDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <Stack gap={2} maxW="280px">
+      <ExpiryInput value={value} onChange={setValue} aria-label="Expiry" />
       <Emitted>{value}</Emitted>
     </Stack>
   );

@@ -1,7 +1,6 @@
-import { useMemo } from "react";
-import { HStack, Table, Text } from "@chakra-ui/react";
+import { useMemo, useState } from "react";
+import { Table, Text } from "@chakra-ui/react";
 
-import ExpiryBadge from "../../components/ExpiryBadge";
 import Pagination from "../../components/Pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { formatMoney } from "../../lib/format";
@@ -10,18 +9,27 @@ import { useBatchesQuery } from "../../queries/batches";
 import { useSupplierRefs } from "../../queries/refs";
 import { useTranslation } from "react-i18next";
 
+import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
+import BatchExpiryCell from "./BatchExpiryCell";
+import BatchExpiryDialog from "./BatchExpiryDialog";
+
 // In-stock lots for this product in the ACTIVE warehouse. The one detail tab the
 // till also sees — it answers "what's actually on the shelf and when does it
 // expire" — so the supplier and cost columns are dropped when showCost is off
-// (the backend redacts both fields for those roles anyway).
+// (the backend redacts both fields for those roles anyway). The same manager gate
+// offers the expiry correction: SetBatchExpiry is OWNER + PHARMACIST, the roles
+// showCost already means.
 export default function ProductBatchesTab({
   productId,
+  productName,
   showCost,
 }: {
   productId: string;
+  productName?: string;
   showCost: boolean;
 }) {
   const { t } = useTranslation();
+  const [editing, setEditing] = useState<Batch | null>(null);
   // Keyed by product id so navigating to a different product resets the pager
   // rather than landing on page 3 of a shorter list.
   const page = usePageState(`batches:${productId}`);
@@ -92,10 +100,7 @@ export default function ProductBatchesTab({
                   </Table.Cell>
                 )}
                 <Table.Cell>
-                  <HStack gap={2}>
-                    <Text>{b.expiryDate}</Text>
-                    <ExpiryBadge expiry={b.expiryDate} />
-                  </HStack>
+                  <BatchExpiryCell batch={b} onEdit={showCost ? () => setEditing(b) : undefined} />
                 </Table.Cell>
                 {showCost && (
                   <Table.Cell>{formatMoney(b.costPrice)}</Table.Cell>
@@ -124,6 +129,7 @@ export default function ProductBatchesTab({
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />
+      <BatchExpiryDialog batch={editing} productName={productName} onClose={() => setEditing(null)} />
     </>
   );
 }

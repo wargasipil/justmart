@@ -26,4 +26,7 @@ export default meta;
 export const Owner = withShell(scenario.stories.Owner);
 export const ByManufacturer = withShell(scenario.stories.ByManufacturer);
 export const UnknownMakers = withShell(scenario.stories.UnknownMakers);
+export const ExpiryWorklist = withShell(scenario.stories.ExpiryWorklist);
+export const ConfirmDefault = withShell(scenario.stories.ConfirmDefault);
+export const ExpiryHistory = withShell(scenario.stories.ExpiryHistory);
 export const Empty = withShell(scenario.stories.Empty);

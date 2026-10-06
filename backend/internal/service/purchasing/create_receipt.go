@@ -40,8 +40,7 @@ func (p *PurchaseReceipts) CreateReceipt(
 	if req.Msg.ReceivedAt != "" {
 		t, err := time.Parse("2006-01-02", req.Msg.ReceivedAt)
 		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("received_at must be YYYY-MM-DD: %w", err))
+			return nil, common.TokenError(connect.CodeInvalidArgument, "purchasing.received_at_invalid")
 		}
 		receivedAt = t
 	}
@@ -49,20 +48,23 @@ func (p *PurchaseReceipts) CreateReceipt(
 	var receipt model.PurchaseReceipt
 
 	err = p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Lock the PO; reject if not in a receivable state.
-		var po model.PurchaseOrder
-		if err := tx.Where("id = ?", req.Msg.PurchaseOrderId).First(&po).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return connect.NewError(connect.CodeNotFound, errors.New("purchase order not found"))
-			}
-			return connect.NewError(connect.CodeInternal, err)
+		// Lock the PO for the whole receipt, as every other handler that moves its
+		// status or received_qty does. The status check below is only worth
+		// anything if the status can't change under it: unlocked, a void that
+		// committed mid-receipt went unseen, the stock landed anyway, and
+		// recomputePOStatus flipped the VOIDED order back to PARTIALLY_RECEIVED
+		// (Postgres READ COMMITTED; SQLite's single-writer pool serializes it).
+		// Two receipts racing each other were already serialized by the receipt
+		// counter's row lock, but only by accident of statement order.
+		po, err := (&PurchaseOrders{db: tx}).lockByID(tx, req.Msg.PurchaseOrderId)
+		if err != nil {
+			return err
 		}
 		switch po.Status {
 		case poStatusSent, poStatusPartiallyReceived:
 			// receivable — proceed
 		default:
-			return connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("cannot receive a PO in status %s; send it first", po.Status))
+			return common.TokenError(connect.CodeFailedPrecondition, "purchasing.po_not_receivable")
 		}
 		// Pin stock destination to the PO's warehouse.
 		warehouseID = po.WarehouseID
@@ -92,26 +94,52 @@ func (p *PurchaseReceipts) CreateReceipt(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 
+		// Pharmacy rules on expiry are read once per receipt, not per line.
+		pharmacy, err := common.IsPharmacyMode(ctx, tx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, err)
+		}
+
 		// Process each line: load PO item, validate qty, create batch + stock_movement.
 		for _, line := range req.Msg.Lines {
 			if line.Qty <= 0 {
 				return common.TokenError(connect.CodeInvalidArgument, "purchasing.qty_invalid")
 			}
-			expiry, err := time.Parse("2006-01-02", line.ExpiryDate)
-			if err != nil {
-				return connect.NewError(connect.CodeInvalidArgument,
-					fmt.Errorf("expiry_date must be YYYY-MM-DD: %w", err))
+			// The frontend seeds the product's default and reports whether it was
+			// typed over; NONE (goods that do not expire) stores the placeholder.
+			expirySource := common.ExpirySourceFromWire(int32(line.ExpirySource))
+			expiry, ok := common.LotExpiry(line.ExpiryDate, expirySource)
+			if !ok {
+				return common.TokenError(connect.CodeInvalidArgument, "purchasing.expiry_invalid")
 			}
 
 			var poItem model.PurchaseOrderItem
 			err = tx.Where("id = ? AND purchase_order_id = ?",
 				line.PurchaseOrderItemId, po.ID).First(&poItem).Error
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return connect.NewError(connect.CodeInvalidArgument,
-					errors.New("purchase_order_item not found on this PO"))
+				return common.TokenError(connect.CodeInvalidArgument, "purchasing.po_item_not_found")
 			}
 			if err != nil {
 				return connect.NewError(connect.CodeInternal, err)
+			}
+
+			// In pharmacy mode an apotek must not take expired medicine onto the
+			// shelf, nor record a prescription medicine as never expiring (FEFO
+			// would sell it last and it would never show as expiring). Retail
+			// only warns, in the dialog. Enforced here too because a rule the
+			// client alone enforces is a rule that decays.
+			if pharmacy {
+				if expirySource == common.ExpirySourceNone {
+					allowed, e := common.NoExpiryAllowed(ctx, tx, poItem.ProductID)
+					if e != nil {
+						return connect.NewError(connect.CodeInternal, e)
+					}
+					if !allowed {
+						return common.TokenError(connect.CodeFailedPrecondition, "purchasing.expiry_required")
+					}
+				} else if common.ExpiryPassed(expiry, time.Now()) {
+					return common.TokenError(connect.CodeFailedPrecondition, "purchasing.expiry_past")
+				}
 			}
 
 			// Resolve the purchasable unit (default to the PO line's unit) and
@@ -128,9 +156,7 @@ func (p *PurchaseReceipts) CreateReceipt(
 
 			remaining := poItem.OrderedQty - poItem.ReceivedQty
 			if baseQty > remaining {
-				return connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("line qty %d %s (%d base) exceeds remaining %d base for product %s",
-						line.Qty, unit.Name, baseQty, remaining, poItem.ProductID))
+				return common.TokenError(connect.CodeFailedPrecondition, "purchasing.receive_exceeds_remaining")
 			}
 
 			// Cost the batch carries, via the one shared derivation (see
@@ -173,6 +199,7 @@ func (p *PurchaseReceipts) CreateReceipt(
 				ManufacturerID: poItem.ManufacturerID,
 				BatchNumber:    strings.TrimSpace(line.BatchNumber),
 				ExpiryDate:     expiry,
+				ExpirySource:   expirySource,
 				CostPrice:      unitCost,
 				ReceivedAt:     receivedAt,
 			}
@@ -245,7 +272,7 @@ func (p *PurchaseReceipts) CreateReceipt(
 		}
 
 		// Recompute PO status now that received_qty has changed.
-		if err := recomputePOStatus(tx, &po); err != nil {
+		if err := recomputePOStatus(tx, po); err != nil {
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		return nil
@@ -258,5 +285,9 @@ func (p *PurchaseReceipts) CreateReceipt(
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&purchasingifacev1.CreateReceiptResponse{Receipt: receiptToProto(full)}), nil
+	out := receiptToProto(full)
+	if err := attachExpirySources(ctx, p.db, out); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&purchasingifacev1.CreateReceiptResponse{Receipt: out}), nil
 }

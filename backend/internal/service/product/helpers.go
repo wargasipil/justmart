@@ -135,6 +135,8 @@ func productToProto(m *model.Product) *inventoryifacev1.Product {
 		CreatedAt:            m.CreatedAt.Unix(),
 		ImageUpdatedAt:       imageAt,
 		ManufacturerId:       derefString(m.ManufacturerID),
+		ExpiryDefault:        expiryDefaultToProto(m.ExpiryDefault),
+		ExpiryDefaultMonths:  m.ExpiryDefaultMonths,
 	}
 }
 

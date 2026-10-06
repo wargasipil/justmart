@@ -53,6 +53,12 @@ const (
 	// BatchServiceResolveBatchesProcedure is the fully-qualified name of the BatchService's
 	// ResolveBatches RPC.
 	BatchServiceResolveBatchesProcedure = "/inventory_iface.v1.BatchService/ResolveBatches"
+	// BatchServiceSetBatchExpiryProcedure is the fully-qualified name of the BatchService's
+	// SetBatchExpiry RPC.
+	BatchServiceSetBatchExpiryProcedure = "/inventory_iface.v1.BatchService/SetBatchExpiry"
+	// BatchServiceListBatchExpiryChangesProcedure is the fully-qualified name of the BatchService's
+	// ListBatchExpiryChanges RPC.
+	BatchServiceListBatchExpiryChangesProcedure = "/inventory_iface.v1.BatchService/ListBatchExpiryChanges"
 )
 
 // BatchServiceClient is a client for the inventory_iface.v1.BatchService service.
@@ -69,6 +75,11 @@ type BatchServiceClient interface {
 	// ResolveBatches returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
 	ResolveBatches(context.Context, *connect.Request[v1.ResolveBatchesRequest]) (*connect.Response[v1.ResolveBatchesResponse], error)
+	// SetBatchExpiry corrects or confirms a received lot's expiry, with a
+	// required reason; ListBatchExpiryChanges is that lot's history of them.
+	// Manager-only, same as creating a lot.
+	SetBatchExpiry(context.Context, *connect.Request[v1.SetBatchExpiryRequest]) (*connect.Response[v1.SetBatchExpiryResponse], error)
+	ListBatchExpiryChanges(context.Context, *connect.Request[v1.ListBatchExpiryChangesRequest]) (*connect.Response[v1.ListBatchExpiryChangesResponse], error)
 }
 
 // NewBatchServiceClient constructs a client for the inventory_iface.v1.BatchService service. By
@@ -124,18 +135,32 @@ func NewBatchServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(batchServiceMethods.ByName("ResolveBatches")),
 			connect.WithClientOptions(opts...),
 		),
+		setBatchExpiry: connect.NewClient[v1.SetBatchExpiryRequest, v1.SetBatchExpiryResponse](
+			httpClient,
+			baseURL+BatchServiceSetBatchExpiryProcedure,
+			connect.WithSchema(batchServiceMethods.ByName("SetBatchExpiry")),
+			connect.WithClientOptions(opts...),
+		),
+		listBatchExpiryChanges: connect.NewClient[v1.ListBatchExpiryChangesRequest, v1.ListBatchExpiryChangesResponse](
+			httpClient,
+			baseURL+BatchServiceListBatchExpiryChangesProcedure,
+			connect.WithSchema(batchServiceMethods.ByName("ListBatchExpiryChanges")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // batchServiceClient implements BatchServiceClient.
 type batchServiceClient struct {
-	listBatches    *connect.Client[v1.ListBatchesRequest, v1.ListBatchesResponse]
-	getBatch       *connect.Client[v1.GetBatchRequest, v1.GetBatchResponse]
-	createBatch    *connect.Client[v1.CreateBatchRequest, v1.CreateBatchResponse]
-	importStock    *connect.Client[v1.ImportStockRequest, v1.ImportStockResponse]
-	updateBatch    *connect.Client[v1.UpdateBatchRequest, v1.UpdateBatchResponse]
-	searchBatches  *connect.Client[v1.SearchBatchesRequest, v1.SearchBatchesResponse]
-	resolveBatches *connect.Client[v1.ResolveBatchesRequest, v1.ResolveBatchesResponse]
+	listBatches            *connect.Client[v1.ListBatchesRequest, v1.ListBatchesResponse]
+	getBatch               *connect.Client[v1.GetBatchRequest, v1.GetBatchResponse]
+	createBatch            *connect.Client[v1.CreateBatchRequest, v1.CreateBatchResponse]
+	importStock            *connect.Client[v1.ImportStockRequest, v1.ImportStockResponse]
+	updateBatch            *connect.Client[v1.UpdateBatchRequest, v1.UpdateBatchResponse]
+	searchBatches          *connect.Client[v1.SearchBatchesRequest, v1.SearchBatchesResponse]
+	resolveBatches         *connect.Client[v1.ResolveBatchesRequest, v1.ResolveBatchesResponse]
+	setBatchExpiry         *connect.Client[v1.SetBatchExpiryRequest, v1.SetBatchExpiryResponse]
+	listBatchExpiryChanges *connect.Client[v1.ListBatchExpiryChangesRequest, v1.ListBatchExpiryChangesResponse]
 }
 
 // ListBatches calls inventory_iface.v1.BatchService.ListBatches.
@@ -173,6 +198,16 @@ func (c *batchServiceClient) ResolveBatches(ctx context.Context, req *connect.Re
 	return c.resolveBatches.CallUnary(ctx, req)
 }
 
+// SetBatchExpiry calls inventory_iface.v1.BatchService.SetBatchExpiry.
+func (c *batchServiceClient) SetBatchExpiry(ctx context.Context, req *connect.Request[v1.SetBatchExpiryRequest]) (*connect.Response[v1.SetBatchExpiryResponse], error) {
+	return c.setBatchExpiry.CallUnary(ctx, req)
+}
+
+// ListBatchExpiryChanges calls inventory_iface.v1.BatchService.ListBatchExpiryChanges.
+func (c *batchServiceClient) ListBatchExpiryChanges(ctx context.Context, req *connect.Request[v1.ListBatchExpiryChangesRequest]) (*connect.Response[v1.ListBatchExpiryChangesResponse], error) {
+	return c.listBatchExpiryChanges.CallUnary(ctx, req)
+}
+
 // BatchServiceHandler is an implementation of the inventory_iface.v1.BatchService service.
 type BatchServiceHandler interface {
 	ListBatches(context.Context, *connect.Request[v1.ListBatchesRequest]) (*connect.Response[v1.ListBatchesResponse], error)
@@ -187,6 +222,11 @@ type BatchServiceHandler interface {
 	// ResolveBatches returns minimal display refs for a set of ids (batch
 	// lookup-by-IDs for name resolution; never a full-list preload).
 	ResolveBatches(context.Context, *connect.Request[v1.ResolveBatchesRequest]) (*connect.Response[v1.ResolveBatchesResponse], error)
+	// SetBatchExpiry corrects or confirms a received lot's expiry, with a
+	// required reason; ListBatchExpiryChanges is that lot's history of them.
+	// Manager-only, same as creating a lot.
+	SetBatchExpiry(context.Context, *connect.Request[v1.SetBatchExpiryRequest]) (*connect.Response[v1.SetBatchExpiryResponse], error)
+	ListBatchExpiryChanges(context.Context, *connect.Request[v1.ListBatchExpiryChangesRequest]) (*connect.Response[v1.ListBatchExpiryChangesResponse], error)
 }
 
 // NewBatchServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -238,6 +278,18 @@ func NewBatchServiceHandler(svc BatchServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(batchServiceMethods.ByName("ResolveBatches")),
 		connect.WithHandlerOptions(opts...),
 	)
+	batchServiceSetBatchExpiryHandler := connect.NewUnaryHandler(
+		BatchServiceSetBatchExpiryProcedure,
+		svc.SetBatchExpiry,
+		connect.WithSchema(batchServiceMethods.ByName("SetBatchExpiry")),
+		connect.WithHandlerOptions(opts...),
+	)
+	batchServiceListBatchExpiryChangesHandler := connect.NewUnaryHandler(
+		BatchServiceListBatchExpiryChangesProcedure,
+		svc.ListBatchExpiryChanges,
+		connect.WithSchema(batchServiceMethods.ByName("ListBatchExpiryChanges")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/inventory_iface.v1.BatchService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case BatchServiceListBatchesProcedure:
@@ -254,6 +306,10 @@ func NewBatchServiceHandler(svc BatchServiceHandler, opts ...connect.HandlerOpti
 			batchServiceSearchBatchesHandler.ServeHTTP(w, r)
 		case BatchServiceResolveBatchesProcedure:
 			batchServiceResolveBatchesHandler.ServeHTTP(w, r)
+		case BatchServiceSetBatchExpiryProcedure:
+			batchServiceSetBatchExpiryHandler.ServeHTTP(w, r)
+		case BatchServiceListBatchExpiryChangesProcedure:
+			batchServiceListBatchExpiryChangesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -289,4 +345,12 @@ func (UnimplementedBatchServiceHandler) SearchBatches(context.Context, *connect.
 
 func (UnimplementedBatchServiceHandler) ResolveBatches(context.Context, *connect.Request[v1.ResolveBatchesRequest]) (*connect.Response[v1.ResolveBatchesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.BatchService.ResolveBatches is not implemented"))
+}
+
+func (UnimplementedBatchServiceHandler) SetBatchExpiry(context.Context, *connect.Request[v1.SetBatchExpiryRequest]) (*connect.Response[v1.SetBatchExpiryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.BatchService.SetBatchExpiry is not implemented"))
+}
+
+func (UnimplementedBatchServiceHandler) ListBatchExpiryChanges(context.Context, *connect.Request[v1.ListBatchExpiryChangesRequest]) (*connect.Response[v1.ListBatchExpiryChangesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("inventory_iface.v1.BatchService.ListBatchExpiryChanges is not implemented"))
 }

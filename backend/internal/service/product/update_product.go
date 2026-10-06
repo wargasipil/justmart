@@ -39,6 +39,10 @@ func (s *ProductService) UpdateProduct(
 	if req.Msg.UnitPrice < 0 {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "product.unit_price_negative")
 	}
+	expiryDefault, expiryMonths, err := expiryDefaultFromProto(req.Msg.ExpiryDefault, req.Msg.ExpiryDefaultMonths)
+	if err != nil {
+		return nil, err
+	}
 
 	priceChanged := req.Msg.UnitPrice != med.UnitPrice
 
@@ -62,6 +66,10 @@ func (s *ProductService) UpdateProduct(
 			// being indistinguishable from "field omitted" — the form always
 			// sends the current value.
 			"manufacturer_id": manufacturerRef(req.Msg.ManufacturerId),
+			// Always written, like the rest of this full replace: an omitted
+			// setting means MANUAL, the behaviour before the setting existed.
+			"expiry_default":        expiryDefault,
+			"expiry_default_months": expiryMonths,
 		}
 		// SKU is an editable unique business code. Apply only when a (changed)
 		// value is provided — empty keeps the current SKU (partial-update safe).

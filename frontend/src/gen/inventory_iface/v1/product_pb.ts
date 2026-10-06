@@ -8,6 +8,48 @@ import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { ProductPriceTier } from "./product_price_tier_pb.js";
 
 /**
+ * How a product's new lots get their expiry pre-filled at receive.
+ *
+ * @generated from enum inventory_iface.v1.ExpiryDefault
+ */
+export enum ExpiryDefault {
+  /**
+   * treated as MANUAL
+   *
+   * @generated from enum value: EXPIRY_DEFAULT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * field starts empty: type it from the pack
+   *
+   * @generated from enum value: EXPIRY_DEFAULT_MANUAL = 1;
+   */
+  MANUAL = 1,
+
+  /**
+   * received date + expiry_default_months, end of that month
+   *
+   * @generated from enum value: EXPIRY_DEFAULT_MONTHS = 2;
+   */
+  MONTHS = 2,
+
+  /**
+   * the goods do not expire; no field at all
+   *
+   * @generated from enum value: EXPIRY_DEFAULT_NONE = 3;
+   */
+  NONE = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ExpiryDefault)
+proto3.util.setEnumType(ExpiryDefault, "inventory_iface.v1.ExpiryDefault", [
+  { no: 0, name: "EXPIRY_DEFAULT_UNSPECIFIED" },
+  { no: 1, name: "EXPIRY_DEFAULT_MANUAL" },
+  { no: 2, name: "EXPIRY_DEFAULT_MONTHS" },
+  { no: 3, name: "EXPIRY_DEFAULT_NONE" },
+]);
+
+/**
  * Per-row outcome of a CSV import.
  *
  * @generated from enum inventory_iface.v1.ImportProductStatus
@@ -297,6 +339,22 @@ export class Product extends Message<Product> {
    */
   manufacturerIds: string[] = [];
 
+  /**
+   * How the Receive dialog pre-fills a new lot's expiry for this product. The
+   * server only STORES the setting; the frontend computes the date and seeds
+   * the field, and the person receiving can always type over it.
+   *
+   * @generated from field: inventory_iface.v1.ExpiryDefault expiry_default = 32;
+   */
+  expiryDefault = ExpiryDefault.UNSPECIFIED;
+
+  /**
+   * > 0 only when expiry_default = MONTHS
+   *
+   * @generated from field: int32 expiry_default_months = 33;
+   */
+  expiryDefaultMonths = 0;
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -335,6 +393,8 @@ export class Product extends Message<Product> {
     { no: 29, name: "image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 30, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 31, name: "manufacturer_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+    { no: 32, name: "expiry_default", kind: "enum", T: proto3.getEnumType(ExpiryDefault) },
+    { no: 33, name: "expiry_default_months", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {
@@ -351,6 +411,142 @@ export class Product extends Message<Product> {
 
   static equals(a: Product | PlainMessage<Product> | undefined, b: Product | PlainMessage<Product> | undefined): boolean {
     return proto3.util.equals(Product, a, b);
+  }
+}
+
+/**
+ * A product's expiry setting, as GetProductExpiryDefaults returns it -- just
+ * enough for the Receive dialog to seed its lines without fetching each
+ * product in full.
+ *
+ * @generated from message inventory_iface.v1.ProductExpiryDefault
+ */
+export class ProductExpiryDefault extends Message<ProductExpiryDefault> {
+  /**
+   * @generated from field: string product_id = 1;
+   */
+  productId = "";
+
+  /**
+   * @generated from field: inventory_iface.v1.ExpiryDefault expiry_default = 2;
+   */
+  expiryDefault = ExpiryDefault.UNSPECIFIED;
+
+  /**
+   * @generated from field: int32 expiry_default_months = 3;
+   */
+  expiryDefaultMonths = 0;
+
+  /**
+   * Carried so the dialog can apply the pharmacy rule (no estimated expiry on
+   * a prescription medicine) without a second lookup.
+   *
+   * @generated from field: bool prescription_required = 4;
+   */
+  prescriptionRequired = false;
+
+  constructor(data?: PartialMessage<ProductExpiryDefault>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ProductExpiryDefault";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "expiry_default", kind: "enum", T: proto3.getEnumType(ExpiryDefault) },
+    { no: 3, name: "expiry_default_months", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 4, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProductExpiryDefault {
+    return new ProductExpiryDefault().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProductExpiryDefault {
+    return new ProductExpiryDefault().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProductExpiryDefault {
+    return new ProductExpiryDefault().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ProductExpiryDefault | PlainMessage<ProductExpiryDefault> | undefined, b: ProductExpiryDefault | PlainMessage<ProductExpiryDefault> | undefined): boolean {
+    return proto3.util.equals(ProductExpiryDefault, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.GetProductExpiryDefaultsRequest
+ */
+export class GetProductExpiryDefaultsRequest extends Message<GetProductExpiryDefaultsRequest> {
+  /**
+   * @generated from field: repeated string product_ids = 1;
+   */
+  productIds: string[] = [];
+
+  constructor(data?: PartialMessage<GetProductExpiryDefaultsRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetProductExpiryDefaultsRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "product_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetProductExpiryDefaultsRequest {
+    return new GetProductExpiryDefaultsRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetProductExpiryDefaultsRequest {
+    return new GetProductExpiryDefaultsRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetProductExpiryDefaultsRequest {
+    return new GetProductExpiryDefaultsRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetProductExpiryDefaultsRequest | PlainMessage<GetProductExpiryDefaultsRequest> | undefined, b: GetProductExpiryDefaultsRequest | PlainMessage<GetProductExpiryDefaultsRequest> | undefined): boolean {
+    return proto3.util.equals(GetProductExpiryDefaultsRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.GetProductExpiryDefaultsResponse
+ */
+export class GetProductExpiryDefaultsResponse extends Message<GetProductExpiryDefaultsResponse> {
+  /**
+   * @generated from field: repeated inventory_iface.v1.ProductExpiryDefault defaults = 1;
+   */
+  defaults: ProductExpiryDefault[] = [];
+
+  constructor(data?: PartialMessage<GetProductExpiryDefaultsResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.GetProductExpiryDefaultsResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "defaults", kind: "message", T: ProductExpiryDefault, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetProductExpiryDefaultsResponse {
+    return new GetProductExpiryDefaultsResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetProductExpiryDefaultsResponse {
+    return new GetProductExpiryDefaultsResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetProductExpiryDefaultsResponse {
+    return new GetProductExpiryDefaultsResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetProductExpiryDefaultsResponse | PlainMessage<GetProductExpiryDefaultsResponse> | undefined, b: GetProductExpiryDefaultsResponse | PlainMessage<GetProductExpiryDefaultsResponse> | undefined): boolean {
+    return proto3.util.equals(GetProductExpiryDefaultsResponse, a, b);
   }
 }
 
@@ -1277,6 +1473,20 @@ export class CreateProductRequest extends Message<CreateProductRequest> {
    */
   manufacturerId = "";
 
+  /**
+   * UNSPECIFIED = MANUAL
+   *
+   * @generated from field: inventory_iface.v1.ExpiryDefault expiry_default = 9;
+   */
+  expiryDefault = ExpiryDefault.UNSPECIFIED;
+
+  /**
+   * required (1..120) when expiry_default = MONTHS
+   *
+   * @generated from field: int32 expiry_default_months = 10;
+   */
+  expiryDefaultMonths = 0;
+
   constructor(data?: PartialMessage<CreateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1292,6 +1502,8 @@ export class CreateProductRequest extends Message<CreateProductRequest> {
     { no: 6, name: "prescription_required", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
     { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "expiry_default", kind: "enum", T: proto3.getEnumType(ExpiryDefault) },
+    { no: 10, name: "expiry_default_months", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateProductRequest {
@@ -1561,6 +1773,20 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
    */
   manufacturerId = "";
 
+  /**
+   * Always written, like the rest of this full replace: UNSPECIFIED = MANUAL.
+   *
+   * @generated from field: inventory_iface.v1.ExpiryDefault expiry_default = 10;
+   */
+  expiryDefault = ExpiryDefault.UNSPECIFIED;
+
+  /**
+   * required (1..120) when expiry_default = MONTHS
+   *
+   * @generated from field: int32 expiry_default_months = 11;
+   */
+  expiryDefaultMonths = 0;
+
   constructor(data?: PartialMessage<UpdateProductRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -1577,6 +1803,8 @@ export class UpdateProductRequest extends Message<UpdateProductRequest> {
     { no: 7, name: "units", kind: "message", T: ProductUnitInput, repeated: true },
     { no: 8, name: "sku", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "expiry_default", kind: "enum", T: proto3.getEnumType(ExpiryDefault) },
+    { no: 11, name: "expiry_default_months", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateProductRequest {

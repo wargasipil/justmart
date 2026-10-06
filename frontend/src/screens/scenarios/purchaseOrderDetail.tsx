@@ -1,6 +1,7 @@
 import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
 import { Route } from "react-router-dom";
+import { userEvent, within } from "storybook/test";
 
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
 import { withPageContext } from "../../routes/dev/storyDecorators";
@@ -98,6 +99,22 @@ export const stories = {
       "were ordered on one line — and watch the order land on Sebagian, which is the state the " +
       "next story starts from.",
     { parameters: withOwnShop(at("po-sent")) },
+  ),
+  ReceiveExpiryDefaults: story(
+    "The same order with Terima barang already open, to show how expiry is filled in. Each " +
+      "line starts from its product's setting: Indomie Goreng and Aqua pre-fill a date N months " +
+      "after the received date (end of that month), marked as the product default until " +
+      "somebody types over it; Indomie Soto has no default, so it is typed from the pack — `0327` " +
+      "is end of March 2027, `05/03/27` that exact day, and the line under the field says what " +
+      "will be saved; the batteries do not expire, so there is no field at all. Change the " +
+      "received date and the untouched defaults move with it. Enter jumps to the next line.",
+    {
+      parameters: withOwnShop(at("po-sent")),
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await userEvent.click(await canvas.findByRole("button", { name: /^(receive|terima)$/i }));
+      },
+    },
   ),
   Partial: story(
     "One delivery in, two lines still owed. This is the fullest ordinary state: Terima barang " +
