@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import { expect, test } from "./_helpers";
+import { OWNER, expect, test } from "./_helpers";
 
 // /warehouses/:id detail page. End-to-end: navigate from list -> detail,
 // add a user via the searchable picker, toggle "Default for this user",
@@ -90,7 +90,7 @@ test.describe("warehouse detail", () => {
       // 2. OWNER row appears (auto-grant from CreateWarehouse). Scope to the
       // table — the sidebar also shows the owner's email.
       await expect(
-        page.getByRole("cell", { name: "owner@justmart.local" }),
+        page.getByRole("cell", { name: OWNER.email }),
       ).toBeVisible();
 
       // 3. Add the seeded user via the searchable picker.
