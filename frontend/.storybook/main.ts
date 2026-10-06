@@ -31,8 +31,14 @@ export default defineMain({
   // Serves MSW's mockServiceWorker.js at the root. It lives in .storybook/public
   // rather than the app's public/ on purpose: Vite copies public/ into dist,
   // which is embedded into the production binary — a mock worker has no
-  // business shipping to a shop.
-  staticDirs: ["./public"],
+  // business shipping to a shop. The app's own public/ (the favicon) is served
+  // too, so the story iframe gets the real icon instead of a /favicon.ico 404.
+  staticDirs: ["./public", "../public"],
+
+  // The story iframe is Storybook's page, not index.html, so it needs its own
+  // icon link — without one the browser asks for /favicon.ico, which nothing
+  // serves. Relative href: a static build may be hosted under a sub-path.
+  previewHead: (head) => `${head}<link rel="icon" type="image/svg+xml" href="favicon.svg" />`,
 
   framework: { name: "@storybook/react-vite", options: {} },
 
