@@ -264,7 +264,7 @@ portable-windows-licensed:
 # guard is genuinely inert in every free flavor; `make test-license` runs the
 # same package with -tags license for the enforcing half.
 test-unit: test-migrations
-	$(GO_BACKEND) test ./internal/service/... ./internal/printer/... ./internal/licensegate/... -count=1
+	$(GO_BACKEND) test ./internal/service/... ./internal/auth/... ./internal/printer/... ./internal/licensegate/... -count=1
 
 # The licensed flavor's own tests. A separate target because -tags license
 # selects a DIFFERENT set of files (gate_enabled*.go instead of gate_disabled*.go),
