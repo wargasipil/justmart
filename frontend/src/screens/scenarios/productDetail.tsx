@@ -4,7 +4,7 @@ import { Route } from "react-router-dom";
 import { userEvent, within } from "storybook/test";
 
 import { BatchService } from "../../gen/inventory_iface/v1/batch_connect";
-import { BatchExpiryChange, ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
+import { type Batch, BatchExpiryChange, ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import { ExpiryDefault, type Product } from "../../gen/inventory_iface/v1/product_pb";
 import { ProductDiscountService } from "../../gen/inventory_iface/v1/product_discount_connect";
@@ -18,13 +18,11 @@ import {
   PHARMACY_CATALOG,
   SUPPLIERS,
   filterManufacturers,
-  redactProductForTill,
 } from "../../routes/dev/fixtures";
 import {
   batchesFor,
   discountsFor,
   movementsFor,
-  redactBatchesForTill,
   restocksFor,
   tierPricesFor,
   tiersFor,
@@ -50,35 +48,14 @@ const [PARACETAMOL, AMOXICILLIN] = PHARMACY_CATALOG;
 
 // --- handlers ---------------------------------------------------------------
 
-/** Everything the page can read for the till: the product + its batches. */
-function tillHandlers(p: Product) {
-  return [
-    mockRpc(ProductService, "getProduct", { product: p }),
-    mockRpc(BatchService, "listBatches", () => {
-      const rows = redactBatchesForTill(batchesFor(p));
-      return { batches: rows, total: rows.length };
-    }),
-    // The Pabrik field resolves one id. Mocked for the TILL too, on purpose:
-    // ResolveManufacturers is open to all four roles (a maker's name is not
-    // cost), and this story is what asserts the cashier may call it.
-    mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
-      manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
-    })),
-  ];
-}
-
-/** The manager view adds the grosir card and the four cost-bearing tabs. */
-function managerHandlers(seed: Product) {
-  // The handlers below WRITE (approved sources, the edit form, lot expiry), so
-  // they work on a copy: writing into the shared catalog fixture would change
-  // the same product in every other scenario that renders it.
-  const p = seed.clone();
+/**
+ * Every READ the page makes: the product (with its grosir ladder), its lots,
+ * the supplier + pabrik names, and the four cost-bearing tabs. The same set for
+ * every role — the catalog is fully readable by the till, cost included (see
+ * lib/roles.ts canSeeCost), so a cashier story is fed the manager's figures.
+ */
+function readHandlers(p: Product, lots: Batch[]) {
   const ladder = tiersFor(p);
-  // This story's own lots and their expiry corrections: the pencil on the
-  // Batches tab WRITES here, so a corrected date survives the refetch instead
-  // of snapping back to the fixture.
-  const lots = batchesFor(p);
-  const changes: BatchExpiryChange[] = [];
   return [
     mockRpc(ProductService, "getProduct", () => {
       const withLadder = p.clone();
@@ -86,6 +63,60 @@ function managerHandlers(seed: Product) {
       return { product: withLadder };
     }),
     mockRpc(BatchService, "listBatches", () => ({ batches: lots, total: lots.length })),
+    mockRpc(SupplierService, "resolveSuppliers", (req) => ({ suppliers: SUPPLIERS.filter((s) => req.ids.includes(s.id)) })),
+    // The Pabrik field resolves one id. ResolveManufacturers is open to all
+    // four roles (a maker's name is not cost).
+    mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
+      manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
+    })),
+    mockRpc(ProductPriceTierService, "listProductPriceTiers", { tiers: ladder, total: ladder.length }),
+    mockRpc(ProductService, "listProductUnitPrices", () => {
+      const prices = unitPricesFor(p);
+      return { prices, total: prices.length };
+    }),
+    mockRpc(ProductPriceTierService, "listProductTierPrices", () => {
+      const prices = tierPricesFor(p);
+      return { prices, total: prices.length };
+    }),
+    mockRpc(ProductService, "listProductRestockLogs", () => {
+      const logs = restocksFor(p);
+      return { logs, total: logs.length };
+    }),
+    mockRpc(StockMovementService, "listMovements", () => {
+      const movements = movementsFor(p);
+      return { movements, total: movements.length };
+    }),
+    mockRpc(ProductDiscountService, "listProductDiscounts", () => {
+      const discounts = discountsFor(p);
+      return { discounts, total: discounts.length };
+    }),
+  ];
+}
+
+/**
+ * The till: every read, and none of the writes. The catalog write RPCs (and
+ * the two manager-only reads only those controls make — the pabrik picker's
+ * search and the expiry-correction history) are left unmocked on purpose: if
+ * the page ever offers one to a cashier and it fires, it hits the catch-all
+ * and fails by name in the console.
+ */
+function tillHandlers(p: Product) {
+  return readHandlers(p, batchesFor(p));
+}
+
+/** The manager view: the same reads, plus the writes behind its controls. */
+function managerHandlers(seed: Product) {
+  // The handlers below WRITE (approved sources, the edit form, lot expiry), so
+  // they work on a copy: writing into the shared catalog fixture would change
+  // the same product in every other scenario that renders it.
+  const p = seed.clone();
+  // This story's own lots and their expiry corrections: the pencil on the
+  // Batches tab WRITES here, so a corrected date survives the refetch instead
+  // of snapping back to the fixture.
+  const lots = batchesFor(p);
+  const changes: BatchExpiryChange[] = [];
+  return [
+    ...readHandlers(p, lots),
     mockRpc(BatchService, "setBatchExpiry", (req) => {
       const b = lots.find((l) => l.id === req.batchId);
       if (!b) return rpcError(Code.NotFound, "batch not found");
@@ -117,13 +148,6 @@ function managerHandlers(seed: Product) {
       users: Object.values(STORY_USERS)
         .filter((u) => req.ids.includes(u.id))
         .map((u) => ({ id: u.id, name: u.name, email: u.email })),
-    })),
-    mockRpc(SupplierService, "resolveSuppliers", (req) => ({ suppliers: SUPPLIERS.filter((s) => req.ids.includes(s.id)) })),
-    // The Pabrik field resolves one id. Mocked for the TILL too, on purpose:
-    // ResolveManufacturers is open to all four roles (a maker's name is not
-    // cost), and this story is what asserts the cashier may call it.
-    mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
-      manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
     })),
     // The approved-sources card adds a picker, which searches on mount, and an
     // editor. It WRITES into this story's copy of the product for the same
@@ -167,27 +191,6 @@ function managerHandlers(seed: Product) {
         ? req.primaryManufacturerId
         : (req.manufacturerIds[0] ?? "");
       return { product: p };
-    }),
-    mockRpc(ProductPriceTierService, "listProductPriceTiers", { tiers: ladder, total: ladder.length }),
-    mockRpc(ProductService, "listProductUnitPrices", () => {
-      const prices = unitPricesFor(p);
-      return { prices, total: prices.length };
-    }),
-    mockRpc(ProductPriceTierService, "listProductTierPrices", () => {
-      const prices = tierPricesFor(p);
-      return { prices, total: prices.length };
-    }),
-    mockRpc(ProductService, "listProductRestockLogs", () => {
-      const logs = restocksFor(p);
-      return { logs, total: logs.length };
-    }),
-    mockRpc(StockMovementService, "listMovements", () => {
-      const movements = movementsFor(p);
-      return { movements, total: movements.length };
-    }),
-    mockRpc(ProductDiscountService, "listProductDiscounts", () => {
-      const discounts = discountsFor(p);
-      return { discounts, total: discounts.length };
     }),
   ];
 }
@@ -238,16 +241,17 @@ export const stories = {
       "all five tabs (batches · price history · restock log · movements · discounts).",
   ),
   Cashier: story(
-    "The till's read-only view — what a cashier sees when looking up a price or an expiry. No " +
-      "cost anywhere, no Edit/Archive, no grosir card, and only the Batches tab (without " +
-      "supplier or cost columns); Print barcode stays. Only the two RPCs the till may call are " +
-      "mocked: if the page ever fires a manager-only read for a cashier, it hits the catch-all " +
-      "and fails by name in the console — so this story doubles as a check on the " +
-      "cost-visibility rule.",
+    "The till's read-only view. Cost is readable by every role, so the cashier sees what the " +
+      "manager sees — cost fields, valuations, the grosir ladder and all five tabs — but none " +
+      "of the writes: no Edit/Archive, no image picker, no approved-sources card, no expiry " +
+      "pencil on the Batches tab, and no add/edit/delete inside Grosir or Diskon (all behind " +
+      "canManageProducts); Print barcode stays. Only reads are mocked: if the page ever fires " +
+      "a write for a cashier, it hits the catch-all and fails by name in the console — so this " +
+      "story doubles as a check on the write gate.",
     {
       parameters: {
         pageContext: { user: "cashier" },
-        msw: mockApi(...tillHandlers(redactProductForTill(PARACETAMOL))),
+        msw: mockApi(...tillHandlers(PARACETAMOL)),
       },
     },
   ),
@@ -298,8 +302,8 @@ export const stories = {
   TabBatches: onTab(
     /^(batch|batches)$/i,
     "The tab every story lands on, stated explicitly so the set reads as five. In-stock lots " +
-      "in the ACTIVE warehouse, soonest expiry first, with the manager's supplier and cost " +
-      "columns — compare the Cashier story, where the same table is three columns wide.",
+      "in the ACTIVE warehouse, soonest expiry first, with supplier and cost columns and the " +
+      "expiry pencil — compare the Cashier story, where the same table has no pencil.",
   ),
   TabPriceHistory: onTab(
     /riwayat harga jual|sold price history/i,

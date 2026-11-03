@@ -10,7 +10,7 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { Ban, DollarSign, PackageCheck, Send, Undo2 } from "lucide-react";
+import { Ban, DollarSign, PackageCheck, Pencil, Send, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -105,6 +105,9 @@ export default function PurchaseOrderDetail() {
   // net cost and drops the "+ PPN" from its header.
   const ppnRate = po.ppnEnabled ? po.ppnRate || 11 : 0;
 
+  // Editable only while DRAFT — UpdatePurchaseOrder refuses anything past it,
+  // because once the order is SENT the supplier is holding the document.
+  const canEdit = po.status === POStatus.PO_STATUS_DRAFT;
   const canSend = po.status === POStatus.PO_STATUS_DRAFT && po.items.length > 0;
   const canVoid = po.status === POStatus.PO_STATUS_DRAFT || po.status === POStatus.PO_STATUS_SENT;
   const canReceive =
@@ -151,6 +154,16 @@ export default function PurchaseOrderDetail() {
           </Badge>
         </HStack>
         <HStack gap={2}>
+          {canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/purchasing/${po.id}/edit`)}
+            >
+              <Pencil size={14} />
+              {t("common.edit")}
+            </Button>
+          )}
           {canSend && (
             <Button size="sm" colorPalette="blue" onClick={onSend} loading={sendMut.isPending}>
               <Send size={14} />
@@ -235,6 +248,7 @@ export default function PurchaseOrderDetail() {
         productRefs={productRefs}
       />
 
+      {/* Renders nothing when the order has no returns (the section guards itself). */}
       <PurchaseOrderReturns
         returns={returnsQ.rows}
         total={returnsQ.total}
@@ -261,9 +275,7 @@ export default function PurchaseOrderDetail() {
       />
       <PayDialog open={payOpen} onClose={() => setPayOpen(false)} poId={po.id} outstanding={Number(po.outstanding)} />
 
-      <Button variant="ghost" alignSelf="flex-start" onClick={() => navigate("/purchasing/all")}>
-        ← {t("purchasing.title")}
-      </Button>
+      <BackButton to="/purchasing/all" label={t("purchasing.title")} />
     </Stack>
   );
 }

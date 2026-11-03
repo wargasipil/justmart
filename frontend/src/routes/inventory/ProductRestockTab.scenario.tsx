@@ -23,9 +23,11 @@ import ProductRestockTab from "./ProductRestockTab";
 // captured and this log is its per-product history.
 //
 // This is the most cost-bearing surface on the page — price per base unit,
-// supplier, the discount the distributor gave — so it is manager-only twice
-// over: ListProductRestockLogs and ResolveSuppliers are both OWNER+PHARMACIST.
-// There is deliberately no till story; ProductDetail never mounts it for one.
+// supplier, the discount the distributor gave. Cost is readable by every role
+// now (ListProductRestockLogs and ResolveSuppliers are open to the till; see
+// lib/roles.ts canSeeCost), and the tab has no write controls, so the till
+// sees this exact table and there is no separate till story. It still sits
+// behind showCost on ProductDetail, so re-narrowing cost drops it whole.
 //
 // Rendered by ProductRestockTab.stories.tsx
 // ("components/products/ProductRestockTab").

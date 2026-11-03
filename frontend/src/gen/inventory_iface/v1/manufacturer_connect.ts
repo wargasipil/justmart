@@ -91,7 +91,7 @@ export const ManufacturerService = {
     /**
      * ResolveManufacturers returns minimal display refs for a set of ids (batch
      * lookup-by-IDs for name resolution; never a full-list preload).
-     *
+     * 
      * ALL FOUR ROLES, unlike every other RPC here. The product detail page shows
      * "Pabrik" and is open to the till (see "The catalog pages are open to the
      * till"), so a cashier resolving that one id must not be refused. What comes

@@ -18,8 +18,9 @@ import ProductPriceHistoryTab from "./ProductPriceHistoryTab";
 // they page independently and they empty independently, and the segment is the
 // only thing that says which one you are reading.
 //
-// Manager-only — both RPCs are OWNER+PHARMACIST — so there is no till story;
-// ProductDetail does not mount this tab for a cashier at all.
+// Read-only, and both RPCs are open to every role (the catalog is fully
+// readable by the till — see lib/roles.ts canSeeCost), so the till sees this
+// exact tab and there is no separate till story.
 //
 // Rendered by ProductPriceHistoryTab.stories.tsx
 // ("components/products/ProductPriceHistoryTab").

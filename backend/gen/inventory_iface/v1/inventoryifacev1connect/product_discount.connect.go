@@ -50,6 +50,8 @@ const (
 // ProductDiscountServiceClient is a client for the inventory_iface.v1.ProductDiscountService
 // service.
 type ProductDiscountServiceClient interface {
+	// Read is open to the till (the catalog is fully readable — see
+	// common.CanSeeCost); create/update/delete below stay OWNER+PHARMACIST.
 	ListProductDiscounts(context.Context, *connect.Request[v1.ListProductDiscountsRequest]) (*connect.Response[v1.ListProductDiscountsResponse], error)
 	CreateProductDiscount(context.Context, *connect.Request[v1.CreateProductDiscountRequest]) (*connect.Response[v1.CreateProductDiscountResponse], error)
 	UpdateProductDiscount(context.Context, *connect.Request[v1.UpdateProductDiscountRequest]) (*connect.Response[v1.UpdateProductDiscountResponse], error)
@@ -125,6 +127,8 @@ func (c *productDiscountServiceClient) DeleteProductDiscount(ctx context.Context
 // ProductDiscountServiceHandler is an implementation of the
 // inventory_iface.v1.ProductDiscountService service.
 type ProductDiscountServiceHandler interface {
+	// Read is open to the till (the catalog is fully readable — see
+	// common.CanSeeCost); create/update/delete below stay OWNER+PHARMACIST.
 	ListProductDiscounts(context.Context, *connect.Request[v1.ListProductDiscountsRequest]) (*connect.Response[v1.ListProductDiscountsResponse], error)
 	CreateProductDiscount(context.Context, *connect.Request[v1.CreateProductDiscountRequest]) (*connect.Response[v1.CreateProductDiscountResponse], error)
 	UpdateProductDiscount(context.Context, *connect.Request[v1.UpdateProductDiscountRequest]) (*connect.Response[v1.UpdateProductDiscountResponse], error)

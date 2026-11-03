@@ -13,6 +13,10 @@ export const StockMovementService = {
   typeName: "inventory_iface.v1.StockMovementService",
   methods: {
     /**
+     * Read-only ledger view: open to the till because the product detail page's
+     * Movements tab is part of the fully-readable catalog. RecordMovement (the
+     * write) stays OWNER+PHARMACIST.
+     *
      * @generated from rpc inventory_iface.v1.StockMovementService.ListMovements
      */
     listMovements: {

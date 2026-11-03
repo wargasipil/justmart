@@ -13,7 +13,9 @@ import ProductMovementsTab from "./ProductMovementsTab";
 // here is a fact that already happened — nothing on this tab can be edited, and
 // that is the point of showing it.
 //
-// Manager-only (ListMovements is OWNER+PHARMACIST), so no till story.
+// Read-only, and readable by every role (ListMovements is open to the till —
+// the catalog is fully readable, see lib/roles.ts canSeeCost). The till sees
+// this exact table, so there is no separate till story.
 //
 // Rendered by ProductMovementsTab.stories.tsx
 // ("components/products/ProductMovementsTab").

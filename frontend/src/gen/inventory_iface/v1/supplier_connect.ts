@@ -90,6 +90,11 @@ export const SupplierService = {
     /**
      * ResolveSuppliers returns minimal display refs for a set of ids (batch
      * lookup-by-IDs for name resolution; never a full-list preload).
+     * 
+     * The only supplier RPC open to the till: the product pages surface the
+     * supplier of a batch / restock, and an id with no name is unreadable. It
+     * returns code+name for ids the caller already holds — not a browsable list,
+     * which is why ListSuppliers / SearchSuppliers stay manager-only.
      *
      * @generated from rpc inventory_iface.v1.SupplierService.ResolveSuppliers
      */

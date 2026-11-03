@@ -4,16 +4,18 @@ import type { StoryObj } from "@storybook/react";
 import { BatchService } from "../../gen/inventory_iface/v1/batch_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
 import { PHARMACY_CATALOG, SUPPLIERS, dateIn } from "../dev/fixtures";
-import { batchesFor, redactBatchesForTill } from "../dev/productDetailFixtures";
+import { batchesFor } from "../dev/productDetailFixtures";
 import { mockApi, mockRpc, mockRpcError } from "../dev/storyMocks";
 import ProductBatchesTab from "./ProductBatchesTab";
 
 // The Batch tab of the product detail page, on its own: in-stock lots for this
 // product in the ACTIVE warehouse, soonest expiry first.
 //
-// It is the only one of the five tabs the TILL also sees, which is why it takes
-// a `showCost` prop and the others do not — so the pair of stories below is not
-// two skins of a table, it is the cost-visibility rule rendered twice.
+// Every role reads it — cost included, since cost visibility was widened to the
+// till (lib/roles.ts canSeeCost). What differs is the one WRITE it offers: the
+// expiry correction (SetBatchExpiry, OWNER+PHARMACIST), which hangs off the
+// `canManage` prop (canManageProducts). So the Manager/Till pair below is the
+// write gate rendered twice, not two different views of cost.
 //
 // Data comes from dev/productDetailFixtures, the same rows the whole-page
 // stories use (screens/**/ProductDetail), so this tab and the tab inside the
@@ -29,9 +31,9 @@ const listBatches = (rows = batchesFor(PRODUCT)) =>
     total: rows.length,
   }));
 
-// Manager-only, and the tab knows it: with showCost off it passes an empty id
-// list and the hook never fires, so this handler is unreachable from the till
-// story on purpose.
+// Open to every role (it resolves ids the caller already holds). With showCost
+// off — cost visibility re-narrowed — the tab passes an empty id list and the
+// hook never fires.
 const resolveSuppliers = mockRpc(SupplierService, "resolveSuppliers", (req) => ({
   suppliers: SUPPLIERS.filter((s) => req.ids.includes(s.id)),
 }));
@@ -39,7 +41,7 @@ const resolveSuppliers = mockRpc(SupplierService, "resolveSuppliers", (req) => (
 /** Everything but `title` and the device — the story file adds those. */
 export const meta = {
   component: ProductBatchesTab,
-  args: { productId: PRODUCT.id, showCost: true },
+  args: { productId: PRODUCT.id, showCost: true, canManage: true },
   parameters: { msw: mockApi(listBatches(), resolveSuppliers) },
 };
 
@@ -58,14 +60,10 @@ export const stories = {
       "newest batch IS what \"last cost\" means on the page above).",
   ),
   Till: story(
-    "The same tab for a cashier: three columns. Supplier and cost are gone, and not merely " +
-      "hidden — the server blanks both fields before answering (batch.redactCost), so these " +
-      "rows are what a till genuinely receives. ResolveSuppliers is manager-only, and the tab " +
-      "passes an empty id list rather than firing it and getting refused.",
-    {
-      args: { showCost: false },
-      parameters: { msw: mockApi(listBatches(redactBatchesForTill(batchesFor(PRODUCT)))) },
-    },
+    "The same tab for a cashier: the same five columns, supplier and cost included — the till " +
+      "receives the manager's figures (batch.redactCost lets every role through). What is gone " +
+      "is the expiry pencil: correcting a lot's expiry is SetBatchExpiry, OWNER+PHARMACIST.",
+    { args: { canManage: false } },
   ),
   Expiring: story(
     "Every lot inside the warning window, one of them already past it. Worth pinning on its " +

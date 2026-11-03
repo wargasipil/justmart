@@ -17,7 +17,6 @@ import {
   MANUFACTURERS,
   SUPPLIERS,
   filterProducts,
-  redactProductForTill,
   summarizeProducts,
   unitBasesFor,
 } from "../../routes/dev/fixtures";
@@ -42,10 +41,16 @@ import Products from "../../routes/inventory/Products";
 
 const DEFAULT_LIMIT = 25;
 
-/** Everything the list reads, for either audience. */
-export function listHandlers(catalog: Product[], { till = false } = {}) {
-  const rows = till ? catalog.map(redactProductForTill) : catalog;
-  const handlers = [
+/**
+ * Everything the list reads. The SAME set for every role: the catalog is fully
+ * readable by the till, cost included (lib/roles.ts canSeeCost), so a cashier
+ * story is fed the manager's rows. The writes (create / import / edit) are left
+ * unmocked on purpose: if the page ever offers one to a cashier and it fires,
+ * it hits mockApi's catch-all and fails by name.
+ */
+export function listHandlers(catalog: Product[]) {
+  const rows = catalog;
+  return [
     mockRpc(ProductService, "listProducts", (req) => {
       const matched = filterProducts(rows, req);
       const limit = req.limit > 0 ? req.limit : DEFAULT_LIMIT;
@@ -58,17 +63,10 @@ export function listHandlers(catalog: Product[], { till = false } = {}) {
     // Opening a row: the detail page, with the product and nothing in its tabs.
     mockRpc(ProductService, "getProduct", (req) => ({ product: rows.find((p) => p.id === req.id) })),
     mockRpc(BatchService, "listBatches", { batches: [], total: 0 }),
-    // Opening a row shows the Pabrik field, which resolves one id. All four
-    // roles may call this, so it sits before the till early-return.
+    // Opening a row shows the Pabrik field, which resolves one id.
     mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
       manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
     })),
-  ];
-  if (till) return handlers;
-  // Manager-only reads. Left unmocked for the till on purpose: if the page ever
-  // fires one for a cashier, it hits mockApi's catch-all and fails by name.
-  return [
-    ...handlers,
     mockRpc(ProductService, "getProductsSummary", (req) => summarizeProducts(filterProducts(rows, req))),
     mockRpc(SupplierService, "resolveSuppliers", (req) => ({
       suppliers: SUPPLIERS.filter((s) => req.ids.includes(s.id)),
@@ -112,13 +110,13 @@ export const stories = {
       "it on from Columns.",
   ),
   Cashier: story(
-    "The till's read-only view: no summary tiles (half are valuations at cost), no " +
-      "Export/Import/Add, and the restock column group is gone from both the table and the " +
-      "Columns popover. Fed redacted rows, like the server sends.",
+    "The till's read-only view. Cost is readable by every role, so the summary tiles, Export " +
+      "and the restock column group are all here, fed the same rows the manager gets; what is " +
+      "gone is Import and Add — catalog writes stay OWNER+PHARMACIST (canManageProducts).",
     {
       parameters: {
         pageContext: { user: "cashier" },
-        msw: mockApi(...listHandlers(RETAIL_CATALOG, { till: true })),
+        msw: mockApi(...listHandlers(RETAIL_CATALOG)),
       },
     },
   ),

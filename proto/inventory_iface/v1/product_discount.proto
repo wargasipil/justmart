@@ -28,9 +28,13 @@ message ProductDiscount {
 }
 
 service ProductDiscountService {
+  // Read is open to the till (the catalog is fully readable — see
+  // common.CanSeeCost); create/update/delete below stay OWNER+PHARMACIST.
   rpc ListProductDiscounts(ListProductDiscountsRequest) returns (ListProductDiscountsResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+    option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
+    option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
   }
   rpc CreateProductDiscount(CreateProductDiscountRequest) returns (CreateProductDiscountResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;

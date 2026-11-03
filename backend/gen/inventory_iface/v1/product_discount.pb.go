@@ -671,9 +671,9 @@ const file_inventory_iface_v1_product_discount_proto_rawDesc = "" +
 	"\bdiscount\x18\x01 \x01(\v2#.inventory_iface.v1.ProductDiscountR\bdiscount\".\n" +
 	"\x1cDeleteProductDiscountRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x1f\n" +
-	"\x1dDeleteProductDiscountResponse2\xb1\x04\n" +
-	"\x16ProductDiscountService\x12\x81\x01\n" +
-	"\x14ListProductDiscounts\x12/.inventory_iface.v1.ListProductDiscountsRequest\x1a0.inventory_iface.v1.ListProductDiscountsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
+	"\x1dDeleteProductDiscountResponse2\xb3\x04\n" +
+	"\x16ProductDiscountService\x12\x83\x01\n" +
+	"\x14ListProductDiscounts\x12/.inventory_iface.v1.ListProductDiscountsRequest\x1a0.inventory_iface.v1.ListProductDiscountsResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12\x84\x01\n" +
 	"\x15CreateProductDiscount\x120.inventory_iface.v1.CreateProductDiscountRequest\x1a1.inventory_iface.v1.CreateProductDiscountResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
 	"\x15UpdateProductDiscount\x120.inventory_iface.v1.UpdateProductDiscountRequest\x1a1.inventory_iface.v1.UpdateProductDiscountResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x84\x01\n" +
 	"\x15DeleteProductDiscount\x120.inventory_iface.v1.DeleteProductDiscountRequest\x1a1.inventory_iface.v1.DeleteProductDiscountResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"

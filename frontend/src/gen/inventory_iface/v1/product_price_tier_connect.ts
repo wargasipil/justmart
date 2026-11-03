@@ -13,6 +13,9 @@ export const ProductPriceTierService = {
   typeName: "inventory_iface.v1.ProductPriceTierService",
   methods: {
     /**
+     * Both reads are open to the till (the catalog is fully readable — see
+     * common.CanSeeCost); the write RPCs below stay OWNER+PHARMACIST.
+     *
      * @generated from rpc inventory_iface.v1.ProductPriceTierService.ListProductPriceTiers
      */
     listProductPriceTiers: {

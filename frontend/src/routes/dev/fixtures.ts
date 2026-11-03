@@ -301,25 +301,6 @@ export function makeProduct(
   });
 }
 
-/**
- * What the till receives for a product: the server blanks cost + supplier on
- * the wire (product.redactCost), so a cashier story is fed the same — a story
- * that handed the cashier view manager data would hide a UI that leaks.
- */
-export function redactProductForTill(p: Product): Product {
-  const r = p.clone();
-  r.referenceCost = 0n;
-  r.stockValuation = 0n;
-  r.onOrderValuation = 0n;
-  r.lastRestockPrice = 0n;
-  r.lastRestockQty = 0n;
-  r.lastRestockDiscountType = "";
-  r.lastRestockDiscountValue = 0n;
-  r.lastRestockSupplier = "";
-  r.lastRestockSupplierId = "";
-  return r;
-}
-
 // A minimarket shelf: enough rows (30 active + 3 archived) to page at 25, a
 // few low-stock lines, a couple never counted, and mixed unit ladders.
 const [S1, S2, S3, S4] = SUPPLIERS;

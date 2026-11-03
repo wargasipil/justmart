@@ -12,7 +12,7 @@ import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
  * through several distributors, and one distributor carries many pabrik, so
  * the two cannot share a table: a shop that buys Panadol from three PBFs still
  * has one manufacturer for it.
- *
+ * 
  * Deliberately NOT modelled here: bank / rekening details. A shop pays the
  * distributor, never the factory, so those fields belong on Supplier only.
  *

@@ -19,6 +19,7 @@ const meta = {
 export default meta;
 
 export const Manager = scenario.stories.Manager;
+export const Till = scenario.stories.Till;
 export const Adding = scenario.stories.Adding;
 export const Deleting = scenario.stories.Deleting;
 export const Empty = scenario.stories.Empty;

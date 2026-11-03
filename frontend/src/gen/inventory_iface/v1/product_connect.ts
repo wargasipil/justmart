@@ -26,9 +26,8 @@ export const ProductService = {
      * cost) over ALL products matching the same filters as ListProducts — not the
      * current page. Drives the catalog stat row above the list.
      * 
-     * Narrower roles than ListProducts on purpose: the valuations are cost data,
-     * and cost never goes to a cashier (same posture as GetMyPerformance omitting
-     * COGS). POS reads the catalog through ListProducts and needs none of this.
+     * Same roles as ListProducts: the catalog is FULLY READABLE by the till,
+     * cost included (see common.CanSeeCost). Writes stay OWNER+PHARMACIST.
      *
      * @generated from rpc inventory_iface.v1.ProductService.GetProductsSummary
      */

@@ -61,20 +61,6 @@ export function batchesFor(p: Product): Batch[] {
 }
 
 /**
- * What a batch read looks like to the TILL: the server blanks supplier and cost
- * before responding (`batch.redactCost`), so a story that hands a cashier the
- * full rows would be demonstrating a leak the backend does not have.
- */
-export function redactBatchesForTill(rows: Batch[]): Batch[] {
-  return rows.map((b) => {
-    const r = b.clone();
-    r.supplierId = "";
-    r.costPrice = 0n;
-    return r;
-  });
-}
-
-/**
  * Per-unit sell-price history, newest first. The box was re-priced once (so one
  * row is closed and one is open); strip and base have carried one price all
  * along — which is what makes "Sampai: sekarang" legible as a state rather than

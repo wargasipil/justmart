@@ -55,6 +55,10 @@ const ROUTES: RouteDef[] = [
   // register no label, so a tab switch keeps the trail at "… > Restock" — a
   // filter is not a location. Only the PO detail page fills it in.
   { path: "/purchasing/:id", dynamic: true, parent: "/purchasing" },
+  // Parented on the order, which is `dynamic` and therefore renders empty as an
+  // ancestor — the trail reads "Restock > Edit PO". Structurally honest, and it
+  // costs nothing that the middle crumb is dropped.
+  { path: "/purchasing/:id/edit", labelKey: "purchasing.editPo", parent: "/purchasing/:id" },
 
   { path: "/inventory/suppliers", labelKey: "inventory.tabs.suppliers", parent: "@inventory" },
   { path: "/inventory/suppliers/:id", dynamic: true, parent: "/inventory/suppliers" },

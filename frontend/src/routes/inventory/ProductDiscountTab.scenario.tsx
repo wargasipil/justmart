@@ -18,7 +18,10 @@ import { discountShopHandlers, newDiscountShop } from "./ProductDiscountTab.shop
 // fixed fixture every one of those would look broken, because each mutation
 // invalidates the list key and the refetch would serve the original rows back.
 //
-// Manager-only (the discount RPCs are OWNER+PHARMACIST), so no till story.
+// The READ is open to every role (the till reads the rules — they explain a
+// POS price); the create/update/delete RPCs stay OWNER+PHARMACIST, so the tab
+// takes a `canManage` prop (lib/roles.ts canManageProducts) and the Till story
+// below is the same table with no Add button and no Actions column.
 //
 // Rendered by ProductDiscountTab.stories.tsx
 // ("components/products/ProductDiscountTab").
@@ -32,7 +35,7 @@ const own = (seed = discountsFor(PRODUCT)) =>
 /** Everything but `title` and the device — the story file adds those. */
 export const meta = {
   component: DiscountTab,
-  args: { productId: PRODUCT.id },
+  args: { productId: PRODUCT.id, canManage: true },
   parameters: { msw: own() },
 };
 
@@ -49,6 +52,12 @@ const story = (description: string, s: Story = {}): Story => ({
 // position, and the query breaks loudly if that name ever goes away.
 
 export const stories = {
+  Till: story(
+    "The same rules for a cashier: readable, not writable. No Add button and no Actions " +
+      "column — the discount mutations are OWNER+PHARMACIST in the proto, so rendering them " +
+      "for the till would only produce a permission toast.",
+    { args: { canManage: false } },
+  ),
   Manager: story(
     "Two rules, which between them cover every cell the table derives: a 10% per-item cut with " +
       "no qty rule, and a flat amount on the line gated at 100 tablets that lapsed three days " +

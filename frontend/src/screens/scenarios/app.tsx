@@ -108,8 +108,9 @@ export const stories = {
     parameters: {
       pageContext: { user: "cashier" },
       router: { initialEntries: ["/"] },
-      // Redacted rows and no manager-only reads, exactly as the till gets.
-      msw: mockApi(...listHandlers(RETAIL_CATALOG, { till: true })),
+      // The same rows the manager gets: the catalog is fully readable by the
+      // till (lib/roles.ts canSeeCost); only the writes are manager-only.
+      msw: mockApi(...listHandlers(RETAIL_CATALOG)),
     },
   }),
   Pharmacy: story("Pharmacy mode: pill brand in the drawer and the Resep entry appears.", {
