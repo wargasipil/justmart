@@ -24,7 +24,7 @@ function Controlled({ value, ...rest }: React.ComponentProps<typeof DatePickerFi
 }
 
 const meta = {
-  title: "Forms & inputs/DatePicker",
+  title: "components/forms/DatePicker",
   component: DatePickerField,
   parameters: storyDocs("date-picker"),
   tags: ["autodocs"],

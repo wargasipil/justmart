@@ -54,6 +54,34 @@ func TestListProductRestockLogs_WarehouseScopedAndPaged(t *testing.T) {
 	require.Len(t, page.Msg.Logs, 2)
 }
 
+// The maker is read back per row, and a row that never recorded one comes back
+// EMPTY rather than inheriting a neighbour's -- the read side of the same rule
+// the lot follows. The UI renders that blank as a dash, so it has to be
+// distinguishable from a real id here.
+func TestListProductRestockLogs_CarriesTheMakerPerRow(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	mainWH := defaultWarehouseID(t, gormDB)
+	prodID := seedProduct(t, svc, ctx, "rl-mfr-sku", "RL maker product", 1000)
+	supID := seedSupplierRow(t, gormDB, "SUP-RL-MFR", "RL maker supplier")
+	mfr := model.Manufacturer{Code: "MFR-RL-1", Name: "Kalbe Farma", Active: true}
+	require.NoError(t, gormDB.Create(&mfr).Error)
+
+	seedRestockLog(t, gormDB, mainWH, prodID, supID, 900, 5, date(2026, 1, 3)) // no maker
+	withMaker(t, gormDB, mainWH, prodID, supID, 950, 6, date(2026, 2, 3), mfr.ID)
+
+	resp, err := svc.ListProductRestockLogs(ctx, connect.NewRequest(&inventoryifacev1.ListProductRestockLogsRequest{
+		ProductId: prodID,
+	}))
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Logs, 2)
+	require.Equal(t, mfr.ID, resp.Msg.Logs[0].ManufacturerId) // newest arrival first
+	require.Empty(t, resp.Msg.Logs[1].ManufacturerId)
+}
 func TestListProductRestockLogs_ProductIDRequired(t *testing.T) {
 	t.Parallel()
 	gormDB, cfg := servicetest.New(t)
@@ -95,6 +123,23 @@ func seedRestockLog(t *testing.T, db *gorm.DB, warehouseID, productID, supplierI
 		Price:            price,
 		Qty:              qty,
 		DiscountType:     "FIXED",
+		RestockCreatedAt: arrived.Add(-48 * time.Hour),
+		RestockArrivedAt: arrived,
+	}).Error)
+}
+
+// withMaker seeds a restock log that names the pabrik, the shape CreateReceipt
+// writes since 00061.
+func withMaker(t *testing.T, db *gorm.DB, warehouseID, productID, supplierID string, price, qty int64, arrived time.Time, manufacturerID string) {
+	t.Helper()
+	require.NoError(t, db.Create(&model.ProductRestockLog{
+		WarehouseID:      warehouseID,
+		ProductID:        productID,
+		SupplierID:       supplierID,
+		Price:            price,
+		Qty:              qty,
+		DiscountType:     "FIXED",
+		ManufacturerID:   &manufacturerID,
 		RestockCreatedAt: arrived.Add(-48 * time.Hour),
 		RestockArrivedAt: arrived,
 	}).Error)

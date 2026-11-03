@@ -11,7 +11,7 @@ function isoInDays(days: number): string {
 }
 
 const meta = {
-  title: "Data display/ExpiryBadge",
+  title: "components/data/ExpiryBadge",
   component: ExpiryBadge,
   parameters: storyDocs("expiry-badge"),
   tags: ["autodocs"],

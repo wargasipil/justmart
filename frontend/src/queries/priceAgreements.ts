@@ -9,7 +9,7 @@ import type {
   UpdatePriceAgreementRequest,
 } from "../gen/inventory_iface/v1/price_agreement_pb";
 import { PriceAgreementValidity } from "../gen/inventory_iface/v1/price_agreement_pb";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type PriceAgreementsQueryOpts = {
   supplierId?: string;
@@ -45,6 +45,7 @@ export function usePriceAgreementsQuery(opts: PriceAgreementsQueryOpts = {}) {
   const q = useQuery({
     enabled,
     queryKey: priceAgreementKeys.list({ supplierId, productId, query, includeInactive, validity, page, pageSize }),
+    placeholderData: keepPageData(priceAgreementKeys.list({ supplierId, productId, query, includeInactive, validity, page, pageSize })),
     queryFn: async () => {
       const res = await priceAgreementClient.listPriceAgreements({
         supplierId,

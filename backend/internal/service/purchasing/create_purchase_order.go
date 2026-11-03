@@ -85,6 +85,11 @@ func (p *PurchaseOrders) CreatePurchaseOrder(
 				ProductUnitID:   &unit.ID,
 				UnitName:        unit.Name,
 				UnitFactor:      unit.Factor,
+				// Which pabrik this line is sourced from, when the buyer knows.
+				// NOT defaulted from the product: a product may have several
+				// approved makers, and guessing one here would put an unverified
+				// name on the lot this line becomes at receive.
+				ManufacturerID:  manufacturerRef(in.ManufacturerId),
 			}
 			items = append(items, it)
 		}

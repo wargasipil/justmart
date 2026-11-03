@@ -8,13 +8,15 @@ import type {
   Product,
   ArchiveProductRequest,
   CreateProductRequest,
+  AddProductManufacturerRequest,
   ImportProductsRequest,
+  SetProductManufacturersRequest,
   UnarchiveProductRequest,
   UpdateProductRequest,
 } from "../gen/inventory_iface/v1/product_pb";
 
 import { dataUrlFromBytes, makeImageRenditions } from "../lib/imageRenditions";
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type ProductsQueryOpts = {
   includeInactive?: boolean;
@@ -42,6 +44,7 @@ export const productKeys = {
   restockLogs: (productId: string, page: number, pageSize: number) =>
     [...productKeys.all, "restockLogs", productId, page, pageSize] as const,
   search: (query: string) => [...productKeys.all, "search", query] as const,
+  expiryDefaults: (ids: string[]) => [...productKeys.all, "expiryDefaults", ids] as const,
   // Paging is deliberately absent: the summary covers every matching product,
   // so paging through the table must not refetch it.
   summary: (opts: ProductsSummaryOpts) => [...productKeys.all, "summary", opts] as const,
@@ -73,6 +76,7 @@ export function useLowStockQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: ["lowStock", page, pageSize],
+    placeholderData: keepPageData(["lowStock", page, pageSize]),
     queryFn: async () => {
       const res = await productClient.listLowStock({
         limit: pageSize,
@@ -156,6 +160,7 @@ export function useProductsQuery(opts: ProductsQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: productKeys.list({ includeInactive, onlyArchived, query, opnameBefore, page, pageSize }),
+    placeholderData: keepPageData(productKeys.list({ includeInactive, onlyArchived, query, opnameBefore, page, pageSize })),
     queryFn: async () => {
       const res = await productClient.listProducts({
         includeInactive,
@@ -245,6 +250,7 @@ export function useProductPricesQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productKeys.prices(productId, page, pageSize),
+    placeholderData: keepPageData(productKeys.prices(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productClient.listProductPrices({
         productId,
@@ -268,6 +274,7 @@ export function useProductUnitPricesQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productKeys.unitPrices(productId, page, pageSize),
+    placeholderData: keepPageData(productKeys.unitPrices(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productClient.listProductUnitPrices({
         productId,
@@ -291,6 +298,7 @@ export function useProductRestockLogsQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productKeys.restockLogs(productId, page, pageSize),
+    placeholderData: keepPageData(productKeys.restockLogs(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productClient.listProductRestockLogs({
         productId,
@@ -341,6 +349,43 @@ export function useArchiveProductMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<ArchiveProductRequest>) =>
       productClient.archiveProduct(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+/**
+ * Approve one more pabrik for a product, idempotently.
+ *
+ * The RESTOCK FORM's writer: a buyer who sources a line from a maker the
+ * catalog does not list yet records it as they go, rather than being sent to
+ * an admin screen mid-order. Errors stay Tier-1 -- there is no field to hang
+ * them on, and the write is a side effect of a form about something else.
+ *
+ * NOT a call to UpdateProduct: that RPC is a full replace of name / sku /
+ * unit set / price, so a form holding one line's worth of product data would
+ * overwrite the rest of the catalog row to change this.
+ */
+export function useAddProductManufacturerMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<AddProductManufacturerRequest>) =>
+      productClient.addProductManufacturer(req),
+    onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
+  });
+}
+
+/**
+ * Replace a product's whole approved-source list and name the primary.
+ *
+ * The product detail page's admin card. Full-set shape, like the unit editor:
+ * a removal is expressed by absence. Tier-1 errors: the card is chips and
+ * buttons rather than a form, so there is no field to attach a refusal to.
+ */
+export function useSetProductManufacturersMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<SetProductManufacturersRequest>) =>
+      productClient.setProductManufacturers(req),
     onSuccess: () => qc.invalidateQueries({ queryKey: productKeys.all }),
   });
 }
@@ -436,4 +481,21 @@ export function usePrintProductLabelMutation() {
       printerName?: string;
     }) => productClient.printProductLabel(req),
   });
+}
+
+// The expiry setting of a set of products, as a Map by product id — what the
+// Receive dialog seeds its lines from. One light read instead of a full
+// GetProduct per line. Ids are deduped + sorted so the key is stable however
+// the caller orders them; an empty set never fetches.
+export function useProductExpiryDefaultsQuery(productIds: string[], { enabled = true }: { enabled?: boolean } = {}) {
+  const ids = [...new Set(productIds.filter(Boolean))].sort();
+  const q = useQuery({
+    queryKey: productKeys.expiryDefaults(ids),
+    enabled: enabled && ids.length > 0,
+    queryFn: async () => {
+      const res = await productClient.getProductExpiryDefaults({ productIds: ids });
+      return new Map(res.defaults.map((d) => [d.productId, d]));
+    },
+  });
+  return { ...q, byId: q.data ?? new Map() };
 }

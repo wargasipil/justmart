@@ -43,7 +43,7 @@ function Demo({
 }
 
 const meta = {
-  title: "Overlays/EntityDialog",
+  title: "components/overlays/EntityDialog",
   component: EntityDialog,
   parameters: storyDocs("entity-dialog"),
   tags: ["autodocs"],

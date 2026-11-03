@@ -8,20 +8,22 @@ import type { PurchaseReturn } from "../../gen/purchasing_iface/v1/return_pb";
 import { formatDate, formatMoney } from "../../lib/format";
 import { fmtUnitQty } from "../../lib/purchaseLine";
 
-// The goods sent back to the supplier against a purchase order. Page-local to
-// PurchaseOrderDetail and shaped exactly like PurchaseOrderReturns' sibling
-// PurchaseOrderReceipts: the QUERY stays in the parent (it also feeds the PO's
-// returned_amount context and shares the product refs), and this section only
-// renders what it is handed.
+// The returns recorded against a purchase order — goods that physically went
+// back to the supplier, each accruing a refund.
 //
-// The parent renders nothing at all when there are no returns — an empty
-// section on a PO that was never returned reads as a missing feature — so the
-// caller keeps that guard rather than this file rendering an empty state.
+// The twin of PurchaseOrderReceipts beside it, and page-local for the same
+// reason: the returns QUERY stays in the parent because its rows feed the
+// product-ref resolution, while this section only renders what it is handed.
+//
+// It renders NOTHING when there are no returns, rather than an empty card. A
+// return is the exception, not a stage of the order, so a permanent empty
+// section would imply every order is missing one.
 export default function PurchaseOrderReturns({
   returns,
   total,
   page,
   pageSize,
+  isPlaceholderData,
   onPageChange,
   onPageSizeChange,
   productRefs,
@@ -30,11 +32,14 @@ export default function PurchaseOrderReturns({
   total: number;
   page: number;
   pageSize: number;
+  isPlaceholderData: boolean;
   onPageChange: (p: number) => void;
   onPageSizeChange: (n: number) => void;
   productRefs: Map<string, ProductRef>;
 }) {
   const { t } = useTranslation();
+  if (returns.length === 0) return null;
+
   return (
     <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
       <Heading size="sm" mb={3}>
@@ -83,6 +88,7 @@ export default function PurchaseOrderReturns({
         page={page}
         pageSize={pageSize}
         total={total}
+        loading={isPlaceholderData}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
       />

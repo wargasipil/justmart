@@ -200,7 +200,7 @@ export default function SupplierDetail() {
             <Pagination
               page={page}
               pageSize={pageSize}
-              total={restocksQ.total}
+              total={restocksQ.total} loading={restocksQ.isPlaceholderData}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
             />
@@ -319,7 +319,7 @@ function PriceAgreementsSection({ supplierId }: { supplierId: string }) {
           </Table.Body>
         </Table.Root>
       </TableScroll>
-      <Pagination page={page} pageSize={pageSize} total={q.total} onPageChange={setPage} onPageSizeChange={setPageSize} />
+      <Pagination page={page} pageSize={pageSize} total={q.total} loading={q.isPlaceholderData} onPageChange={setPage} onPageSizeChange={setPageSize} />
 
       <PriceAgreementDrawer
         open={drawerOpen}

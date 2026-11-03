@@ -41,51 +41,63 @@ export default function StockUnitPopover({ byBase, onChangeBase, groups }: Props
         <Popover.Positioner>
           <Popover.Content minW="240px">
             <Popover.Body>
-              <Stack gap={4}>
-                {groups.length === 0 && (
-                  <Text fontSize="sm" color="fg.muted">
-                    {t("inventory.products.unitsEmpty")}
-                  </Text>
-                )}
-                {groups.map((g) => (
-                  <Stack key={g.baseName} gap={1}>
-                    <Text
-                      fontSize="xs"
-                      color="fg.muted"
-                      fontWeight="medium"
-                      textTransform="uppercase"
-                      letterSpacing="wider"
-                    >
-                      {g.baseName}
-                    </Text>
-                    <RadioGroup.Root
-                      value={byBase[g.baseName] ?? ""}
-                      onValueChange={(d) => onChangeBase(g.baseName, d.value ?? "")}
-                    >
-                      <Stack gap={2} ps={1}>
-                        <RadioGroup.Item value="">
-                          <RadioGroup.ItemHiddenInput />
-                          <RadioGroup.ItemIndicator />
-                          <RadioGroup.ItemText>
-                            {t("inventory.products.unitBase")}
-                          </RadioGroup.ItemText>
-                        </RadioGroup.Item>
-                        {g.derivatives.map((d) => (
-                          <RadioGroup.Item key={d} value={d}>
-                            <RadioGroup.ItemHiddenInput />
-                            <RadioGroup.ItemIndicator />
-                            <RadioGroup.ItemText>{d}</RadioGroup.ItemText>
-                          </RadioGroup.Item>
-                        ))}
-                      </Stack>
-                    </RadioGroup.Root>
-                  </Stack>
-                ))}
-              </Stack>
+              <StockUnitOptions byBase={byBase} onChangeBase={onChangeBase} groups={groups} />
             </Popover.Body>
           </Popover.Content>
         </Popover.Positioner>
       </Portal>
     </Popover.Root>
+  );
+}
+
+/**
+ * The popover's body on its own — one radio group per base unit — for a
+ * surface that already is a container (the Products phone filter sheet), where
+ * a popover nested inside a sheet would be a popup inside a popup.
+ */
+export function StockUnitOptions({ byBase, onChangeBase, groups }: Props) {
+  const { t } = useTranslation();
+  return (
+    <Stack gap={4}>
+      {groups.length === 0 && (
+        <Text fontSize="sm" color="fg.muted">
+          {t("inventory.products.unitsEmpty")}
+        </Text>
+      )}
+      {groups.map((g) => (
+        <Stack key={g.baseName} gap={1}>
+          <Text
+            fontSize="xs"
+            color="fg.muted"
+            fontWeight="medium"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            {g.baseName}
+          </Text>
+          <RadioGroup.Root
+            value={byBase[g.baseName] ?? ""}
+            onValueChange={(d) => onChangeBase(g.baseName, d.value ?? "")}
+          >
+            <Stack gap={2} ps={1}>
+              <RadioGroup.Item value="">
+                <RadioGroup.ItemHiddenInput />
+                <RadioGroup.ItemIndicator />
+                <RadioGroup.ItemText>
+                  {t("inventory.products.unitBase")}
+                </RadioGroup.ItemText>
+              </RadioGroup.Item>
+              {g.derivatives.map((d) => (
+                <RadioGroup.Item key={d} value={d}>
+                  <RadioGroup.ItemHiddenInput />
+                  <RadioGroup.ItemIndicator />
+                  <RadioGroup.ItemText>{d}</RadioGroup.ItemText>
+                </RadioGroup.Item>
+              ))}
+            </Stack>
+          </RadioGroup.Root>
+        </Stack>
+      ))}
+    </Stack>
   );
 }

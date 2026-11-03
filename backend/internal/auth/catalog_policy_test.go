@@ -39,6 +39,9 @@ func TestCatalogPolicy_TillReadsEverythingWritesNothing(t *testing.T) {
 		"/inventory_iface.v1.BatchService/ListBatches",
 		"/inventory_iface.v1.BatchService/GetBatch",
 		"/inventory_iface.v1.SupplierService/ResolveSuppliers",
+		// The Pabrik field on the product detail page: a maker's name is not
+		// cost, and the till reads that page.
+		"/inventory_iface.v1.ManufacturerService/ResolveManufacturers",
 	}
 	for _, proc := range reads {
 		p, ok := policy[proc]
@@ -62,6 +65,16 @@ func TestCatalogPolicy_TillReadsEverythingWritesNothing(t *testing.T) {
 		"/inventory_iface.v1.ProductPriceTierService/CreateProductPriceTier",
 		"/inventory_iface.v1.ProductPriceTierService/DeleteProductPriceTier",
 		"/inventory_iface.v1.StockMovementService/RecordMovement",
+		// The pabrik + expiry writes reachable from the product detail page
+		// (the approved-sources card, the batches tab's expiry correction),
+		// plus the two manager-only reads that only those controls make (the
+		// pabrik picker's search, the correction dialog's history). This is
+		// why the frontend hangs them off canManageProducts, not canSeeCost.
+		"/inventory_iface.v1.ProductService/AddProductManufacturer",
+		"/inventory_iface.v1.ProductService/SetProductManufacturers",
+		"/inventory_iface.v1.BatchService/SetBatchExpiry",
+		"/inventory_iface.v1.BatchService/ListBatchExpiryChanges",
+		"/inventory_iface.v1.ManufacturerService/SearchManufacturers",
 		// The supplier domain stays manager-only apart from the id->name
 		// resolve above; a browsable supplier list is not part of the catalog.
 		"/inventory_iface.v1.SupplierService/ListSuppliers",

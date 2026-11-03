@@ -101,7 +101,7 @@ useCrumbLabel(productQ.data?.name)`,
         id: "route-tabs",
         name: "RouteTabs",
         file: "src/components/RouteTabs.tsx",
-        summary: "URL-driven tabs — one route per tab, as a strip above an <Outlet/> or a rail beside it.",
+        summary: "URL-driven tabs — one route per tab: a strip above an <Outlet/>, a rail beside it, or a picker on a phone.",
         props: [
           { name: "items", type: "{ value: string; label: string; to: string }[]", required: true, desc: "Tabs; active one is the longest `to` prefix of the current path." },
           { name: "orientation", type: '"horizontal" | "vertical"', desc: 'Default "horizontal" (strip). "vertical" renders a left rail — lay the <Outlet/> out beside it; resolve with useTabsOrientation().' },
@@ -118,7 +118,7 @@ const orientation = useTabsOrientation();
   <RouteTabs items={tabs} orientation={orientation} />
   <Box flex="1" minW={0}><Outlet /></Box>
 </Flex>`,
-        notes: "Tabs are buttons, not anchors (an <a href> beat NavLink's SPA handler and full-reloaded the page). For tabs that share one route, use Chakra Tabs.Root directly. Triggers never shrink — a horizontal strip scrolls rather than overlapping its labels. Never hard-code orientation=\"vertical\": `useTabsOrientation()` (lib/tabs.ts) degrades it to a strip on a viewport too narrow for a rail.",
+        notes: "Tabs are buttons, not anchors (an <a href> beat NavLink's SPA handler and full-reloaded the page). For tabs that share one route, use Chakra Tabs.Root directly. Triggers never shrink — a horizontal strip scrolls rather than overlapping its labels. Never hard-code orientation=\"vertical\": `useTabsOrientation()` (lib/tabs.ts) degrades it to a strip on a viewport too narrow for a rail. Below `md` it is neither strip nor rail but an <EnumSelect> of the same items, decided internally by `useTabsAsSelect()` — a phone fits ~3 triggers, and a scrolling strip hid the rest WITHOUT scrolling the active one into view, so /settings/backups showed no selected tab at all. Nothing to pass: the switch is the component's, so every caller (and every future tabbed route) gets it.",
         Demo: demo.RouteTabsDemo,
       },
       {
@@ -196,6 +196,7 @@ const orientation = useTabsOrientation();
           { name: "type", type: 'HTML input type', desc: '"date" swaps in the shared DatePicker (not native chrome).' },
           { name: "money", type: "boolean", desc: "Renders MoneyInput (emits a raw digit string)." },
           { name: "number", type: "boolean", desc: "Renders NumberInput (digits only)." },
+          { name: "expiry", type: "boolean | { isDefault?, blockExpired? }", desc: "Renders ExpiryInput (pack-style expiry; emits YYYY-MM-DD or \"\")." },
           { name: "passwordToggle", type: "boolean", desc: "Eye show/hide, with type=\"password\"." },
           { name: "disabled", type: "boolean", desc: "Read-only immutable field (still in the schema)." },
           { name: "helperText", type: "string", desc: "Shown until an error replaces it." },
@@ -251,6 +252,24 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
         Demo: demo.DatePickerDemo,
       },
       {
+        id: "expiry-input",
+        name: "ExpiryInput",
+        file: "src/components/ExpiryInput.tsx",
+        summary: "Expiry typed as the pack prints it: 0327 = end of Mar 2027, 050327 = 5 Mar 2027. Says what it will save.",
+        props: [
+          { name: "value", type: "string", required: true, desc: 'YYYY-MM-DD, or "" for empty.' },
+          { name: "onChange", type: "(value: string) => void", required: true, desc: 'YYYY-MM-DD once the text reads as a date; "" while empty or incomplete.' },
+          { name: "isDefault", type: "boolean", desc: "The value is the product's pre-filled default — the readout says so." },
+          { name: "blockExpired", type: "boolean", desc: "A past date is an error (pharmacy), not just a warning." },
+          { name: "onEnter", type: "() => void", desc: "Enter pressed — e.g. jump to the next line's expiry." },
+          { name: "inputRef / size / width / disabled / aria-label", type: "—", desc: "Passed through to the input." },
+        ],
+        usage: `<ExpiryInput value={expiry} onChange={setExpiry} isDefault={!touched} blockExpired={isPharmacy} />`,
+        notes:
+          "Day-first in every language: it follows the Indonesian pack, not the screen. Month-only means the LAST day of that month. Rules live in lib/expiry.ts (parseExpiryInput, defaultExpiry) — reuse those, never re-parse. In a form, pass `expiry` to FormField. Use DatePicker for any other date.",
+        Demo: demo.ExpiryInputDemo,
+      },
+      {
         id: "discount-field",
         name: "DiscountField",
         file: "src/components/DiscountField.tsx",
@@ -281,6 +300,7 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "items", type: "readonly T[]", required: true, desc: "≤ ~20 static options." },
           { name: "itemToString / itemToValue", type: "(item: T) => string", required: true, desc: "Label + value projections." },
           { name: "placeholder / disabled / size / width", type: "—", desc: "Same API as SearchableSelect." },
+          { name: "ariaLabel", type: "string", desc: "Accessible name for a select that stands ALONE. Ark always writes an aria-labelledby pointing at a Select.Label this wrapper never renders, so without it a standalone select has NO name and reads as a bare \"combobox\". Omit inside a <Field.Root> — its Field.Label already names it. Translate it." },
         ],
         usage: `<EnumSelect
   value={status}
@@ -303,6 +323,7 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "items", type: "readonly T[]", desc: "Sync mode: ≤20 static options only." },
           { name: "itemToString / itemToValue", type: "(item: T) => string", required: true, desc: "Label + value projections." },
           { name: "selectedLabel", type: "string", desc: "Trigger label before the first search resolves (edit drawers)." },
+          { name: "ariaLabel", type: "string", desc: "Accessible name when the picker stands alone (not inside a Field.Root)." },
           { name: "onSelectItem", type: "(item: T | undefined) => void", desc: "Hands back the full picked object alongside onChange." },
           { name: "renderItem", type: "(item: T) => ReactElement", desc: "Custom dropdown-row content when one line of text can't tell options apart — e.g. CashierFilterSelect renders the Users-table identity cell (avatar + name over a muted line) with the role on that line. Must return ONE element — mounted via <Combobox.ItemText asChild>. Affects the open list only; itemToString still drives the trigger." },
           { name: "emptyText / loadingText", type: "string", desc: "Override the (already translated) common.noResults / common.loading defaults." },
@@ -339,6 +360,7 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
           { name: "onChange", type: "(id: string) => void", desc: "Omit for a read-only display (pair with disabled)." },
           { name: "onSelectItem", type: "(s: Supplier | undefined) => void", desc: "Hands back the full picked supplier." },
           { name: "selectedLabel", type: "string", desc: "Escape hatch — skips the internal resolve when the caller already has the supplier loaded." },
+          { name: "ariaLabel", type: "string", desc: "Accessible name when the picker stands alone (not inside a Field.Root)." },
           { name: "placeholder / disabled / size / width", type: "—", desc: "Passed through. Placeholder defaults to common.selectSupplier." },
         ],
         usage: `<SupplierSelect size="sm" value={supplierId} onChange={setSupplierId} />
@@ -350,6 +372,25 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
 {supplierLabel(supplierRefs.get(po.supplierId)) ?? "—"}`,
         notes: "It resolves its OWN trigger label via useSupplierRefs on the single selected id, so a pre-set value (edit drawer, filter restored from a URL, ?supplier= lock) never flashes a raw UUID — every call site used to hand-roll that same IIFE. Don't re-add the filter id to a page's useSupplierRefs memo; that list is for table cells now. TWO label formats, deliberately: the picker (rows + trigger) leads with the NAME — a trigger is read on its own, right after clicking a row whose name led — while the exported supplierLabel() keeps CODE · Name for TABLE CELLS, where a column is scanned straight down and the fixed-width code is what makes that scan work. Import supplierLabel for cells; never re-inline either template. Rows are a Building2 glyph (the sidebar's own supplier icon, in a 32px slot matching UserAvatar size=\"sm\") + name over a muted code; the same glyph sits in the control via startElement, so the field reads as \"a supplier goes here\" empty and as the picked supplier once set.",
         Demo: demo.SupplierSelectDemo,
+      },
+      {
+        id: "manufacturer-select",
+        name: "ManufacturerSelect",
+        file: "src/components/ManufacturerSelect.tsx",
+        summary: "Pabrik (manufacturer) picker: SearchableSelect pre-wired to searchManufacturers, with a Factory glyph and two-line rows.",
+        props: [
+          { name: "value", type: "string", required: true, desc: "Manufacturer id (\"\" = none)." },
+          { name: "onChange", type: "(id: string) => void", desc: "Omit for a read-only display (pair with disabled)." },
+          { name: "onSelectItem", type: "(m: Manufacturer | undefined) => void", desc: "Hands back the full picked manufacturer." },
+          { name: "selectedLabel", type: "string", desc: "Escape hatch \u2014 skips the internal resolve when the caller already has it loaded." },
+          { name: "placeholder / disabled / size / width", type: "\u2014", desc: "Passed through. Placeholder defaults to common.selectManufacturer." },
+        ],
+        usage: `<ManufacturerSelect size="sm" value={manufacturerId} onChange={setManufacturerId} />
+
+// Table cell / detail row \u2014 code-first, so a Pabrik column scans down cleanly:
+{manufacturerLabel(manufacturerRefs.get(product.manufacturerId)) ?? "\u2014"}`,
+        notes: "The twin of <SupplierSelect>, and the distinction is the whole point: a PABRIK made the goods, a PEMASOK sold them to this shop \u2014 one product legitimately has both, so the two fields sit together on the product form and are told apart by their glyph (Factory vs Building2). Same two-label rule: the picker leads with the NAME, while the exported manufacturerLabel() keeps CODE \u00b7 Name for TABLE CELLS. It resolves its own trigger label via useManufacturerRefs on the single selected id, so an edit form never flashes a raw UUID; an unset field issues no request at all. NOTE: unlike SupplierSelect its Storybook stories are MSW-MOCKED rather than needs-backend — the fake mirrors the server's own predicate (active-only, name/code match), so the picker is populated whether or not a dev server is running.",
+        Demo: demo.ManufacturerSelectDemo,
       },
       {
         id: "warehouse-select",
@@ -514,19 +555,20 @@ const form = useForm<z.infer<typeof Schema>>({ resolver: zodResolver(Schema) });
         id: "pagination",
         name: "Pagination",
         file: "src/components/Pagination.tsx",
-        summary: "\"Showing X–Y of N\" + Prev/Next + page size. Render under every server-paginated table.",
+        summary: "\"Showing X–Y of N\" + Prev/Next + page size on md+; \"Load more\" on a phone. Render under every server-paginated table.",
         props: [
           { name: "page", type: "number", required: true, desc: "0-based." },
           { name: "pageSize / total", type: "number", required: true, desc: "total = unfiltered-by-page count from the List RPC." },
           { name: "onPageChange", type: "(page: number) => void", required: true, desc: "From usePageState." },
-          { name: "onPageSizeChange", type: "(size: number) => void", desc: "Omit to hide the size picker." },
+          { name: "onPageSizeChange", type: "(size: number) => void", desc: "Omit to hide the size picker. Also what phone Load more calls (it grows the size)." },
+          { name: "loading", type: "boolean", desc: "Pass the list query's isPlaceholderData — spins Load more while the bigger page arrives." },
         ],
         usage: `const { page, setPage, pageSize, setPageSize } = usePageState(filterKey);
 const q = useProductsQuery({ page, pageSize });
 …
-<Pagination page={page} pageSize={pageSize} total={q.total}
+<Pagination page={page} pageSize={pageSize} total={q.total} loading={q.isPlaceholderData}
   onPageChange={setPage} onPageSizeChange={setPageSize} />`,
-        notes: "Pair with usePageState(resetKey) so changing a filter snaps back to page 0.",
+        notes: "Pair with usePageState(resetKey) so changing a filter snaps back to page 0. Below md it renders \"Load more\" instead of Prev/Next: offset stays 0 and pageSize grows by LOAD_MORE_STEP (25, capped at ALL_LIMIT), so loaded rows stay and more append. That only works smoothly because the List hook's query sets placeholderData: keepPageData(queryKey) — without it the key change blanks the list behind the page spinner on every tap. keepPageData keeps rows ONLY when the key changed in paging alone; a new filter or parent id still starts empty. The \"Showing\" line is rendered once for both forms (a second copy would double every getByText match); only the controls switch.",
         Demo: demo.PaginationDemo,
       },
       {
@@ -659,6 +701,51 @@ const q = useProductsQuery({ page, pageSize });
           "Two-rendition HARD RULE: leave `full` off everywhere except a genuine full-size view (today only the product-detail picker). `zoomable` is the cheap way to offer the original — its lightbox fetches ORIGINAL only WHILE OPEN, so a list of 25 thumbnails never pulls the heavy bytes. The lightbox's Dialog.Root stays mounted and is driven by `open` (dialog-mount HARD RULE); only its content is lazyMount/unmountOnExit. In POS one product can occupy several search rows — one per sellable unit — and they all share one cache entry because `version` is the key. objectFit is `contain`, not `cover`: the thumb is already centre-cropped square, and cropping a product shot twice cuts the label off.",
         Demo: demo.ProductImageDemo,
       },
+      {
+        id: "product-item",
+        name: "ProductItem",
+        file: "src/components/products/ProductItem.tsx",
+        summary: "A product's identity — thumbnail + name + SKU — read as one thing.",
+        props: [
+          { name: "product", type: "Pick<Product, id|name|sku|imageUpdatedAt>", required: true, desc: "Any Product satisfies it." },
+          { name: "size", type: "number", desc: "Thumbnail edge in px. Default 56 (the Products table row)." },
+          { name: "zoomable", type: "boolean", desc: "Clicking the thumbnail opens the ORIGINAL in a lightbox (stopPropagation'd — safe in a clickable row)." },
+          { name: "meta", type: "ReactNode", desc: "Appended to the SKU line, e.g. \" · pcs\"." },
+        ],
+        usage: `<ProductItem product={m} zoomable />`,
+        notes:
+          "The always-on name cell of the Products table — not toggleable, because a row with its identity hidden is unusable. Reads the THUMB rendition (two-rendition HARD RULE); a product with imageUpdatedAt 0 costs no request.",
+        Demo: demo.ProductItemDemo,
+      },
+      {
+        id: "product-item-mobile",
+        name: "ProductItemMobile",
+        file: "src/components/products/ProductItemMobile.tsx",
+        summary: "A product as one phone-width row: identity + sell price per unit + ready stock, tappable.",
+        props: [
+          { name: "product", type: "Pick<Product, id|name|sku|imageUpdatedAt|unit|unitPrice|readyStock|active>", required: true, desc: "Any Product satisfies it." },
+          { name: "onClick", type: "() => void", desc: "Makes the row a button with a chevron. Omit for a read-only row." },
+          { name: "stockLabel", type: "string", desc: "Pre-formatted ready stock (e.g. formatStock with the Units popover choice). Default \"<readyStock> <unit>\"." },
+        ],
+        usage: `<ProductItemMobile product={m} onClick={() => navigate(\`/products/\${m.id}\`)} />`,
+        notes:
+          "For 390px, where the Products table's columns don't fit. Sell-side data only (price, stock) — never cost — so the same row is safe for the till. Long names clamp to two lines; zero stock renders red; an archived product carries a badge. `ProductItemMobileSkeleton` (same file; `chevron` prop to match tappable rows) is the loading placeholder in the same shape.",
+        Demo: demo.ProductItemMobileDemo,
+      },
+      {
+        id: "manufacturer-list-item-mobile",
+        name: "ManufacturerListItemMobile",
+        file: "src/components/manufacturer/ManufacturerListItemMobile.tsx",
+        summary: "A pabrik as one phone-width row: name + code + one contact line, tappable.",
+        props: [
+          { name: "manufacturer", type: "Pick<Manufacturer, id|code|name|phone|contactEmail|address|active>", required: true, desc: "Any Manufacturer satisfies it." },
+          { name: "onClick", type: "() => void", desc: "Makes the row a button with a chevron. Omit for a read-only row." },
+        ],
+        usage: `<ManufacturerListItemMobile manufacturer={m} onClick={() => navigate(\`/inventory/manufacturers/\${m.id}\`)} />`,
+        notes:
+          "For 390px, where the Pabrik table's eight columns don't fit. Edit/Archive are deliberately absent — a thumb-sized row carrying destructive buttons is how a pabrik gets archived by accident; tapping opens the detail page, which has both. The contact line falls back phone → email → address, one line only (a second wrap pushes the code off its row), and an archived pabrik dims and carries a badge. Same Factory mark and muted square as <ManufacturerSelect>'s dropdown rows, at 40px rather than the product row's 48px photo slot — a mark scaled to photo size reads as a missing image. `ManufacturerListItemMobileSkeleton` (same file; `chevron` to match tappable rows) is the loading placeholder in the same shape.",
+        Demo: demo.ManufacturerListItemMobileDemo,
+      },
     ],
   },
   {
@@ -722,6 +809,8 @@ const [dateField, setDateField] = useState("");   // "" = Any date
           { name: "groups", type: "StockUnitGroup[]", required: true, desc: "From unitGroupsFromCatalog(catalog, pageRows)." },
         ],
         usage: `<StockUnitPopover groups={groups} byBase={byBase} onChangeBase={setStockUnit} />`,
+        notes:
+          "Also exports StockUnitOptions — the popover body (the radio groups) on its own, for a surface that already is a container (the Products phone Filter sheet) where a nested popover would be a popup inside a popup.",
         Demo: demo.StockUnitPopoverDemo,
       },
       {

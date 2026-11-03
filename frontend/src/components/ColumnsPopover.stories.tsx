@@ -27,7 +27,7 @@ const GROUPS = [
 ];
 
 const meta = {
-  title: "Toolbar & filters/ColumnsPopover",
+  title: "components/toolbar/ColumnsPopover",
   component: ColumnsPopover,
   parameters: storyDocs("columns-popover"),
   tags: ["autodocs"],

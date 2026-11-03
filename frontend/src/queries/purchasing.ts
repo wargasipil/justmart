@@ -23,7 +23,7 @@ import type {
   PayPurchaseRequest,
 } from "../gen/purchasing_iface/v1/payment_pb";
 import type { CreatePurchaseReturnRequest } from "../gen/purchasing_iface/v1/return_pb";
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export const purchasingKeys = {
   all: ["purchasing"] as const,
@@ -44,6 +44,7 @@ export const purchasingKeys = {
 export function usePurchaseOrdersQuery(req: PartialMessage<ListPurchaseOrdersRequest> = {}) {
   const q = useQuery({
     queryKey: purchasingKeys.orders(req),
+    placeholderData: keepPageData(purchasingKeys.orders(req)),
     queryFn: async () => {
       const res = await purchaseOrderClient.listPurchaseOrders(req);
       return { rows: res.orders, total: res.total };
@@ -142,6 +143,7 @@ export function useReceiptsQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: purchasingKeys.receipts(req.purchaseOrderId ?? "", page, pageSize),
+    placeholderData: keepPageData(purchasingKeys.receipts(req.purchaseOrderId ?? "", page, pageSize)),
     queryFn: async () => {
       const res = await purchaseReceiptClient.listReceipts({
         ...req,
@@ -195,6 +197,7 @@ export function usePurchaseReturnsQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: purchasingKeys.returns(purchaseOrderId, page, pageSize),
+    placeholderData: keepPageData(purchasingKeys.returns(purchaseOrderId, page, pageSize)),
     queryFn: async () => {
       const res = await purchaseReturnClient.listPurchaseReturns({
         purchaseOrderId,

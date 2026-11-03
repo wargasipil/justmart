@@ -19,8 +19,8 @@ func TestUpdatePrescription_HappyPath(t *testing.T) {
 	resp, err := env.svc.UpdatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.UpdatePrescriptionRequest{
 		Id:         created.Id,
 		IssuerName: "dr. Wati",
-		IssuedAt:   "2026-06-02",
-		ExpiresAt:  "2026-07-02",
+		IssuedAt:   daysAgo(1),
+		ExpiresAt:  dateIn(30),
 		Note:       "updated",
 		Items: []*prescriptionifacev1.PrescriptionItemInput{
 			{ProductId: newProd, PrescribedQty: 20, DosageInstructions: "2x1"},
@@ -29,8 +29,8 @@ func TestUpdatePrescription_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	rx := resp.Msg.Prescription
 	require.Equal(t, "dr. Wati", rx.IssuerName)
-	require.Equal(t, "2026-06-02", rx.IssuedAt)
-	require.Equal(t, "2026-07-02", rx.ExpiresAt)
+	require.Equal(t, daysAgo(1), rx.IssuedAt)
+	require.Equal(t, dateIn(30), rx.ExpiresAt)
 	require.Len(t, rx.Items, 1) // full replace
 	require.Equal(t, newProd, rx.Items[0].ProductId)
 	require.Equal(t, int32(20), rx.Items[0].PrescribedQty)
@@ -49,7 +49,7 @@ func TestUpdatePrescription_BlockedAfterDispensing(t *testing.T) {
 	_, err := env.svc.UpdatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.UpdatePrescriptionRequest{
 		Id:         created.Id,
 		IssuerName: "dr. Wati",
-		IssuedAt:   "2026-06-02",
+		IssuedAt:   daysAgo(1),
 	}))
 	require.Error(t, err)
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
@@ -65,7 +65,7 @@ func TestUpdatePrescription_BlockedWhenVoided(t *testing.T) {
 	_, err = env.svc.UpdatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.UpdatePrescriptionRequest{
 		Id:         created.Id,
 		IssuerName: "dr. Wati",
-		IssuedAt:   "2026-06-02",
+		IssuedAt:   daysAgo(1),
 	}))
 	require.Error(t, err)
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))

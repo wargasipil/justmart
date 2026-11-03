@@ -128,7 +128,7 @@ export default function SettingsBackups() {
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={backups.total}
+        total={backups.total} loading={backups.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />

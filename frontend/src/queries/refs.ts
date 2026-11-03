@@ -5,10 +5,12 @@ import {
   batchClient,
   customerClient,
   productClient,
+  manufacturerClient,
   supplierClient,
   userClient,
 } from "../lib/clients";
 import type { ProductRef } from "../gen/inventory_iface/v1/product_pb";
+import type { ManufacturerRef } from "../gen/inventory_iface/v1/manufacturer_pb";
 import type { SupplierRef } from "../gen/inventory_iface/v1/supplier_pb";
 import type { BatchRef } from "../gen/inventory_iface/v1/batch_pb";
 import type { CustomerRef } from "../gen/customer_iface/v1/customer_pb";
@@ -56,6 +58,13 @@ export function useSupplierRefs(ids: string[]): Map<string, SupplierRef> {
   return useRefs("supplierRefs", ids, async (i) => {
     const res = await supplierClient.resolveSuppliers({ ids: i });
     return res.suppliers;
+  });
+}
+
+export function useManufacturerRefs(ids: string[]): Map<string, ManufacturerRef> {
+  return useRefs("manufacturerRefs", ids, async (i) => {
+    const res = await manufacturerClient.resolveManufacturers({ ids: i });
+    return res.manufacturers;
   });
 }
 

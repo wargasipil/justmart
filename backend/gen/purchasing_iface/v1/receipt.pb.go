@@ -8,6 +8,7 @@ package purchasingifacev1
 
 import (
 	_ "github.com/justmart/backend/gen/auth_iface/v1"
+	v1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -195,6 +196,11 @@ type PurchaseReceiptItem struct {
 	// Current on-hand of this line's batch in the PO warehouse (BASE units) — the
 	// max returnable for this receipt line. Only populated on the PO-detail load.
 	ReturnableQty int64 `protobuf:"varint,13,opt,name=returnable_qty,json=returnableQty,proto3" json:"returnable_qty,omitempty"`
+	// Where this line's lot's expiry came from, read through batch_id from the
+	// lot itself (so a later correction shows here too). NONE means expiry_date is
+	// the no-expiry placeholder, not a date to print. UNSPECIFIED once the lot is
+	// gone (a cancelled receipt).
+	ExpirySource  v1.ExpirySource `protobuf:"varint,14,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -320,16 +326,27 @@ func (x *PurchaseReceiptItem) GetReturnableQty() int64 {
 	return 0
 }
 
+func (x *PurchaseReceiptItem) GetExpirySource() v1.ExpirySource {
+	if x != nil {
+		return x.ExpirySource
+	}
+	return v1.ExpirySource(0)
+}
+
 type ReceiveLineInput struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	PurchaseOrderItemId string                 `protobuf:"bytes,1,opt,name=purchase_order_item_id,json=purchaseOrderItemId,proto3" json:"purchase_order_item_id,omitempty"`
 	Qty                 int32                  `protobuf:"varint,2,opt,name=qty,proto3" json:"qty,omitempty"`                                            // qty in the chosen purchasable unit
 	UnitCostPrice       int64                  `protobuf:"varint,3,opt,name=unit_cost_price,json=unitCostPrice,proto3" json:"unit_cost_price,omitempty"` // per BASE unit; overrideable
 	BatchNumber         string                 `protobuf:"bytes,4,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"`
-	ExpiryDate          string                 `protobuf:"bytes,5,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`            // YYYY-MM-DD (required)
+	ExpiryDate          string                 `protobuf:"bytes,5,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`            // YYYY-MM-DD (required unless expiry_source = NONE)
 	ProductUnitId       string                 `protobuf:"bytes,6,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"` // purchasable unit; empty => PO line's unit
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Where expiry_date came from (UNSPECIFIED = ENTERED). The frontend seeds the
+	// product's default and is the only side that knows whether it was typed
+	// over, so it reports it. NONE stores the no-expiry placeholder.
+	ExpirySource  v1.ExpirySource `protobuf:"varint,7,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ReceiveLineInput) Reset() {
@@ -402,6 +419,13 @@ func (x *ReceiveLineInput) GetProductUnitId() string {
 		return x.ProductUnitId
 	}
 	return ""
+}
+
+func (x *ReceiveLineInput) GetExpirySource() v1.ExpirySource {
+	if x != nil {
+		return x.ExpirySource
+	}
+	return v1.ExpirySource(0)
 }
 
 type CreateReceiptRequest struct {
@@ -824,7 +848,7 @@ var File_purchasing_iface_v1_receipt_proto protoreflect.FileDescriptor
 
 const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\n" +
-	"!purchasing_iface/v1/receipt.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xf1\x03\n" +
+	"!purchasing_iface/v1/receipt.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a\x1einventory_iface/v1/batch.proto\"\xf1\x03\n" +
 	"\x0fPurchaseReceipt\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -846,7 +870,7 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\vvoid_reason\x18\f \x01(\tR\n" +
 	"voidReason\x12 \n" +
 	"\vcancellable\x18\r \x01(\bR\vcancellable\x122\n" +
-	"\x15cancel_blocked_reason\x18\x0e \x01(\tR\x13cancelBlockedReason\"\xcf\x03\n" +
+	"\x15cancel_blocked_reason\x18\x0e \x01(\tR\x13cancelBlockedReason\"\x96\x04\n" +
 	"\x13PurchaseReceiptItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x13purchase_receipt_id\x18\x02 \x01(\tR\x11purchaseReceiptId\x123\n" +
@@ -864,7 +888,8 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\tunit_name\x18\v \x01(\tR\bunitName\x12\x1f\n" +
 	"\vunit_factor\x18\f \x01(\x03R\n" +
 	"unitFactor\x12%\n" +
-	"\x0ereturnable_qty\x18\r \x01(\x03R\rreturnableQty\"\xed\x01\n" +
+	"\x0ereturnable_qty\x18\r \x01(\x03R\rreturnableQty\x12E\n" +
+	"\rexpiry_source\x18\x0e \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"\xb4\x02\n" +
 	"\x10ReceiveLineInput\x123\n" +
 	"\x16purchase_order_item_id\x18\x01 \x01(\tR\x13purchaseOrderItemId\x12\x10\n" +
 	"\x03qty\x18\x02 \x01(\x05R\x03qty\x12&\n" +
@@ -872,7 +897,8 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\fbatch_number\x18\x04 \x01(\tR\vbatchNumber\x12\x1f\n" +
 	"\vexpiry_date\x18\x05 \x01(\tR\n" +
 	"expiryDate\x12&\n" +
-	"\x0fproduct_unit_id\x18\x06 \x01(\tR\rproductUnitId\"\xd3\x01\n" +
+	"\x0fproduct_unit_id\x18\x06 \x01(\tR\rproductUnitId\x12E\n" +
+	"\rexpiry_source\x18\a \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"\xd3\x01\n" +
 	"\x14CreateReceiptRequest\x12*\n" +
 	"\x11purchase_order_id\x18\x01 \x01(\tR\x0fpurchaseOrderId\x12\x1f\n" +
 	"\vreceived_at\x18\x02 \x01(\tR\n" +
@@ -931,27 +957,30 @@ var file_purchasing_iface_v1_receipt_proto_goTypes = []any{
 	(*GetReceiptResponse)(nil),    // 8: purchasing_iface.v1.GetReceiptResponse
 	(*CancelReceiptRequest)(nil),  // 9: purchasing_iface.v1.CancelReceiptRequest
 	(*CancelReceiptResponse)(nil), // 10: purchasing_iface.v1.CancelReceiptResponse
+	(v1.ExpirySource)(0),          // 11: inventory_iface.v1.ExpirySource
 }
 var file_purchasing_iface_v1_receipt_proto_depIdxs = []int32{
 	1,  // 0: purchasing_iface.v1.PurchaseReceipt.items:type_name -> purchasing_iface.v1.PurchaseReceiptItem
-	2,  // 1: purchasing_iface.v1.CreateReceiptRequest.lines:type_name -> purchasing_iface.v1.ReceiveLineInput
-	0,  // 2: purchasing_iface.v1.CreateReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
-	0,  // 3: purchasing_iface.v1.ListReceiptsResponse.receipts:type_name -> purchasing_iface.v1.PurchaseReceipt
-	0,  // 4: purchasing_iface.v1.GetReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
-	0,  // 5: purchasing_iface.v1.CancelReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
-	3,  // 6: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:input_type -> purchasing_iface.v1.CreateReceiptRequest
-	5,  // 7: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:input_type -> purchasing_iface.v1.ListReceiptsRequest
-	7,  // 8: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:input_type -> purchasing_iface.v1.GetReceiptRequest
-	9,  // 9: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:input_type -> purchasing_iface.v1.CancelReceiptRequest
-	4,  // 10: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:output_type -> purchasing_iface.v1.CreateReceiptResponse
-	6,  // 11: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:output_type -> purchasing_iface.v1.ListReceiptsResponse
-	8,  // 12: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:output_type -> purchasing_iface.v1.GetReceiptResponse
-	10, // 13: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:output_type -> purchasing_iface.v1.CancelReceiptResponse
-	10, // [10:14] is the sub-list for method output_type
-	6,  // [6:10] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	11, // 1: purchasing_iface.v1.PurchaseReceiptItem.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	11, // 2: purchasing_iface.v1.ReceiveLineInput.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	2,  // 3: purchasing_iface.v1.CreateReceiptRequest.lines:type_name -> purchasing_iface.v1.ReceiveLineInput
+	0,  // 4: purchasing_iface.v1.CreateReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 5: purchasing_iface.v1.ListReceiptsResponse.receipts:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 6: purchasing_iface.v1.GetReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 7: purchasing_iface.v1.CancelReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	3,  // 8: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:input_type -> purchasing_iface.v1.CreateReceiptRequest
+	5,  // 9: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:input_type -> purchasing_iface.v1.ListReceiptsRequest
+	7,  // 10: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:input_type -> purchasing_iface.v1.GetReceiptRequest
+	9,  // 11: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:input_type -> purchasing_iface.v1.CancelReceiptRequest
+	4,  // 12: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:output_type -> purchasing_iface.v1.CreateReceiptResponse
+	6,  // 13: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:output_type -> purchasing_iface.v1.ListReceiptsResponse
+	8,  // 14: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:output_type -> purchasing_iface.v1.GetReceiptResponse
+	10, // 15: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:output_type -> purchasing_iface.v1.CancelReceiptResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_purchasing_iface_v1_receipt_proto_init() }

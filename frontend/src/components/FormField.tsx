@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import type { InputHTMLAttributes } from "react";
 
 import DatePickerField from "./DatePicker";
+import ExpiryInput, { type ExpiryInputProps } from "./ExpiryInput";
 import MoneyInput from "./MoneyInput";
 import NumberInput from "./NumberInput";
 
@@ -32,6 +33,10 @@ type Props<TForm extends FieldValues> = {
   // When true, render the digits-only NumberInput (integer/quantity; empty at zero;
   // emits a raw digit string, so the field's zod schema should be z.coerce.bigint/number).
   number?: boolean;
+  // Render the pack-style <ExpiryInput> (type "0327" for Mar 2027). Pass an
+  // object to forward its isDefault / blockExpired flags. Emits "YYYY-MM-DD",
+  // or "" while incomplete, so a required field's z.string().min(1) catches both.
+  expiry?: boolean | Pick<ExpiryInputProps, "isDefault" | "blockExpired">;
   // Render the input read-only (e.g. an immutable code on an edit form). The
   // field still participates in the form/schema; it just can't be edited.
   disabled?: boolean;
@@ -51,6 +56,7 @@ export default function FormField<TForm extends FieldValues>(props: Props<TForm>
     passwordToggle,
     money,
     number,
+    expiry,
     disabled,
   } = props;
   const { t } = useTranslation();
@@ -72,6 +78,13 @@ export default function FormField<TForm extends FieldValues>(props: Props<TForm>
               value={field.value ?? ""}
               onChange={field.onChange}
               placeholder={placeholder}
+            />
+          ) : expiry ? (
+            <ExpiryInput
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              disabled={disabled}
+              {...(typeof expiry === "object" ? expiry : {})}
             />
           ) : money ? (
             <MoneyInput

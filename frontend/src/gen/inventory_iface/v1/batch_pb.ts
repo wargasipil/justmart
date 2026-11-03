@@ -8,6 +8,51 @@ import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { ProductUnit } from "./product_pb.js";
 
 /**
+ * Where a lot's expiry date came from. The date alone cannot say whether
+ * anybody read it off the pack, and that is exactly what a shelf check needs to
+ * know: a DEFAULT date is the product's estimate, carried over because nobody
+ * typed over it.
+ *
+ * @generated from enum inventory_iface.v1.ExpirySource
+ */
+export enum ExpirySource {
+  /**
+   * treated as ENTERED (every lot before 00062)
+   *
+   * @generated from enum value: EXPIRY_SOURCE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * typed by a person, or confirmed later
+   *
+   * @generated from enum value: EXPIRY_SOURCE_ENTERED = 1;
+   */
+  ENTERED = 1,
+
+  /**
+   * the product's default, accepted unchanged at receive
+   *
+   * @generated from enum value: EXPIRY_SOURCE_DEFAULT = 2;
+   */
+  DEFAULT = 2,
+
+  /**
+   * the goods do not expire; the stored date is a placeholder
+   *
+   * @generated from enum value: EXPIRY_SOURCE_NONE = 3;
+   */
+  NONE = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(ExpirySource)
+proto3.util.setEnumType(ExpirySource, "inventory_iface.v1.ExpirySource", [
+  { no: 0, name: "EXPIRY_SOURCE_UNSPECIFIED" },
+  { no: 1, name: "EXPIRY_SOURCE_ENTERED" },
+  { no: 2, name: "EXPIRY_SOURCE_DEFAULT" },
+  { no: 3, name: "EXPIRY_SOURCE_NONE" },
+]);
+
+/**
  * Per-row outcome of a stock import.
  *
  * @generated from enum inventory_iface.v1.ImportStockStatus
@@ -134,6 +179,26 @@ export class Batch extends Message<Batch> {
    */
   productImageUpdatedAt = protoInt64.zero;
 
+  /**
+   * Who MADE this lot, as recorded on the purchase-order line it arrived on.
+   * Empty on every batch created before the column existed and on the manual
+   * CreateBatch path -- the fact was never captured, and filling it in from
+   * the product's current maker would invent provenance. This is the ONLY
+   * place the maker of physical stock is recorded: the product's own list
+   * says who MAY make it, this says who DID.
+   *
+   * @generated from field: string manufacturer_id = 15;
+   */
+  manufacturerId = "";
+
+  /**
+   * Where expiry_date came from. NONE means the date is the no-expiry
+   * placeholder and should be shown as "does not expire", not as a date.
+   *
+   * @generated from field: inventory_iface.v1.ExpirySource expiry_source = 16;
+   */
+  expirySource = ExpirySource.UNSPECIFIED;
+
   constructor(data?: PartialMessage<Batch>) {
     super();
     proto3.util.initPartial(data, this);
@@ -156,6 +221,8 @@ export class Batch extends Message<Batch> {
     { no: 12, name: "product_name", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 13, name: "units", kind: "message", T: ProductUnit, repeated: true },
     { no: 14, name: "product_image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 15, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 16, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Batch {
@@ -234,6 +301,21 @@ export class ListBatchesRequest extends Message<ListBatchesRequest> {
    */
   supplierId = "";
 
+  /**
+   * optional pabrik filter (the lot's own maker)
+   *
+   * @generated from field: string manufacturer_id = 10;
+   */
+  manufacturerId = "";
+
+  /**
+   * Optional: only lots whose expiry came from this source. DEFAULT is the
+   * shelf-check worklist -- dates nobody has read off the pack yet.
+   *
+   * @generated from field: inventory_iface.v1.ExpirySource expiry_source = 11;
+   */
+  expirySource = ExpirySource.UNSPECIFIED;
+
   constructor(data?: PartialMessage<ListBatchesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -251,6 +333,8 @@ export class ListBatchesRequest extends Message<ListBatchesRequest> {
     { no: 7, name: "to_unix", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 8, name: "date_field", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 9, name: "supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 10, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 11, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBatchesRequest {
@@ -426,6 +510,23 @@ export class CreateBatchRequest extends Message<CreateBatchRequest> {
    */
   initialQuantity = protoInt64.zero;
 
+  /**
+   * Who MADE this lot. Optional, and ARCHIVED makers are accepted here unlike
+   * on a product's approved-source list: this records what happened, and old
+   * stock entered by hand may well come from a factory since retired.
+   *
+   * @generated from field: string manufacturer_id = 8;
+   */
+  manufacturerId = "";
+
+  /**
+   * Where expiry_date came from (UNSPECIFIED = ENTERED). NONE stores the
+   * no-expiry placeholder and ignores expiry_date.
+   *
+   * @generated from field: inventory_iface.v1.ExpirySource expiry_source = 9;
+   */
+  expirySource = ExpirySource.UNSPECIFIED;
+
   constructor(data?: PartialMessage<CreateBatchRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -441,6 +542,8 @@ export class CreateBatchRequest extends Message<CreateBatchRequest> {
     { no: 5, name: "cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 6, name: "received_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 7, name: "initial_quantity", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): CreateBatchRequest {
@@ -543,6 +646,15 @@ export class ImportStockRow extends Message<ImportStockRow> {
    */
   expiryDate = "";
 
+  /**
+   * Who MADE the lot, by the pabrik CODE -- a CSV is hand-authored, so it is
+   * keyed by business codes like `sku` and `unit`, never by a UUID. Optional;
+   * an archived pabrik is accepted, since opening stock is history.
+   *
+   * @generated from field: string manufacturer_code = 7;
+   */
+  manufacturerCode = "";
+
   constructor(data?: PartialMessage<ImportStockRow>) {
     super();
     proto3.util.initPartial(data, this);
@@ -557,6 +669,7 @@ export class ImportStockRow extends Message<ImportStockRow> {
     { no: 4, name: "cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 5, name: "batch_number", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 6, name: "expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 7, name: "manufacturer_code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ImportStockRow {
@@ -1073,6 +1186,294 @@ export class ResolveBatchesResponse extends Message<ResolveBatchesResponse> {
 
   static equals(a: ResolveBatchesResponse | PlainMessage<ResolveBatchesResponse> | undefined, b: ResolveBatchesResponse | PlainMessage<ResolveBatchesResponse> | undefined): boolean {
     return proto3.util.equals(ResolveBatchesResponse, a, b);
+  }
+}
+
+/**
+ * Correct (or confirm) a lot's expiry after it was received. Changes ONLY the
+ * expiry -- UpdateBatch rewrites every field, so a caller holding just a date
+ * would zero the lot's cost. Every change is kept in batch_expiry_changes.
+ *
+ * @generated from message inventory_iface.v1.SetBatchExpiryRequest
+ */
+export class SetBatchExpiryRequest extends Message<SetBatchExpiryRequest> {
+  /**
+   * @generated from field: string batch_id = 1;
+   */
+  batchId = "";
+
+  /**
+   * YYYY-MM-DD; ignored when expiry_source = NONE
+   *
+   * @generated from field: string expiry_date = 2;
+   */
+  expiryDate = "";
+
+  /**
+   * ENTERED (or UNSPECIFIED) for a date read off the pack, NONE for goods that
+   * do not expire. DEFAULT is refused: an edit is always a person's decision.
+   *
+   * @generated from field: inventory_iface.v1.ExpirySource expiry_source = 3;
+   */
+  expirySource = ExpirySource.UNSPECIFIED;
+
+  /**
+   * required
+   *
+   * @generated from field: string reason = 4;
+   */
+  reason = "";
+
+  constructor(data?: PartialMessage<SetBatchExpiryRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.SetBatchExpiryRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "batch_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
+    { no: 4, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetBatchExpiryRequest {
+    return new SetBatchExpiryRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetBatchExpiryRequest {
+    return new SetBatchExpiryRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetBatchExpiryRequest {
+    return new SetBatchExpiryRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetBatchExpiryRequest | PlainMessage<SetBatchExpiryRequest> | undefined, b: SetBatchExpiryRequest | PlainMessage<SetBatchExpiryRequest> | undefined): boolean {
+    return proto3.util.equals(SetBatchExpiryRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.SetBatchExpiryResponse
+ */
+export class SetBatchExpiryResponse extends Message<SetBatchExpiryResponse> {
+  /**
+   * @generated from field: inventory_iface.v1.Batch batch = 1;
+   */
+  batch?: Batch;
+
+  constructor(data?: PartialMessage<SetBatchExpiryResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.SetBatchExpiryResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "batch", kind: "message", T: Batch },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SetBatchExpiryResponse {
+    return new SetBatchExpiryResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SetBatchExpiryResponse {
+    return new SetBatchExpiryResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SetBatchExpiryResponse {
+    return new SetBatchExpiryResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SetBatchExpiryResponse | PlainMessage<SetBatchExpiryResponse> | undefined, b: SetBatchExpiryResponse | PlainMessage<SetBatchExpiryResponse> | undefined): boolean {
+    return proto3.util.equals(SetBatchExpiryResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.BatchExpiryChange
+ */
+export class BatchExpiryChange extends Message<BatchExpiryChange> {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * @generated from field: string batch_id = 2;
+   */
+  batchId = "";
+
+  /**
+   * YYYY-MM-DD
+   *
+   * @generated from field: string old_expiry_date = 3;
+   */
+  oldExpiryDate = "";
+
+  /**
+   * @generated from field: inventory_iface.v1.ExpirySource old_expiry_source = 4;
+   */
+  oldExpirySource = ExpirySource.UNSPECIFIED;
+
+  /**
+   * YYYY-MM-DD
+   *
+   * @generated from field: string new_expiry_date = 5;
+   */
+  newExpiryDate = "";
+
+  /**
+   * @generated from field: inventory_iface.v1.ExpirySource new_expiry_source = 6;
+   */
+  newExpirySource = ExpirySource.UNSPECIFIED;
+
+  /**
+   * @generated from field: string reason = 7;
+   */
+  reason = "";
+
+  /**
+   * user id; resolve via ResolveUsers
+   *
+   * @generated from field: string changed_by = 8;
+   */
+  changedBy = "";
+
+  /**
+   * unix
+   *
+   * @generated from field: int64 changed_at = 9;
+   */
+  changedAt = protoInt64.zero;
+
+  constructor(data?: PartialMessage<BatchExpiryChange>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.BatchExpiryChange";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "batch_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "old_expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "old_expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
+    { no: 5, name: "new_expiry_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 6, name: "new_expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
+    { no: 7, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 8, name: "changed_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "changed_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): BatchExpiryChange {
+    return new BatchExpiryChange().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): BatchExpiryChange {
+    return new BatchExpiryChange().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): BatchExpiryChange {
+    return new BatchExpiryChange().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: BatchExpiryChange | PlainMessage<BatchExpiryChange> | undefined, b: BatchExpiryChange | PlainMessage<BatchExpiryChange> | undefined): boolean {
+    return proto3.util.equals(BatchExpiryChange, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ListBatchExpiryChangesRequest
+ */
+export class ListBatchExpiryChangesRequest extends Message<ListBatchExpiryChangesRequest> {
+  /**
+   * @generated from field: string batch_id = 1;
+   */
+  batchId = "";
+
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit = 0;
+
+  /**
+   * @generated from field: int32 offset = 3;
+   */
+  offset = 0;
+
+  constructor(data?: PartialMessage<ListBatchExpiryChangesRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ListBatchExpiryChangesRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "batch_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "offset", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBatchExpiryChangesRequest {
+    return new ListBatchExpiryChangesRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListBatchExpiryChangesRequest {
+    return new ListBatchExpiryChangesRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListBatchExpiryChangesRequest {
+    return new ListBatchExpiryChangesRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListBatchExpiryChangesRequest | PlainMessage<ListBatchExpiryChangesRequest> | undefined, b: ListBatchExpiryChangesRequest | PlainMessage<ListBatchExpiryChangesRequest> | undefined): boolean {
+    return proto3.util.equals(ListBatchExpiryChangesRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message inventory_iface.v1.ListBatchExpiryChangesResponse
+ */
+export class ListBatchExpiryChangesResponse extends Message<ListBatchExpiryChangesResponse> {
+  /**
+   * @generated from field: repeated inventory_iface.v1.BatchExpiryChange changes = 1;
+   */
+  changes: BatchExpiryChange[] = [];
+
+  /**
+   * @generated from field: int32 total = 2;
+   */
+  total = 0;
+
+  constructor(data?: PartialMessage<ListBatchExpiryChangesResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "inventory_iface.v1.ListBatchExpiryChangesResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "changes", kind: "message", T: BatchExpiryChange, repeated: true },
+    { no: 2, name: "total", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBatchExpiryChangesResponse {
+    return new ListBatchExpiryChangesResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ListBatchExpiryChangesResponse {
+    return new ListBatchExpiryChangesResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ListBatchExpiryChangesResponse {
+    return new ListBatchExpiryChangesResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ListBatchExpiryChangesResponse | PlainMessage<ListBatchExpiryChangesResponse> | undefined, b: ListBatchExpiryChangesResponse | PlainMessage<ListBatchExpiryChangesResponse> | undefined): boolean {
+    return proto3.util.equals(ListBatchExpiryChangesResponse, a, b);
   }
 }
 

@@ -19,6 +19,7 @@ import NumberInput from "../../components/NumberInput";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import type { ProductRef } from "../../gen/inventory_iface/v1/product_pb";
 import type { PurchaseReceipt } from "../../gen/purchasing_iface/v1/receipt_pb";
+import { formatDateOnly } from "../../lib/dateRange";
 import { toast } from "../../lib/toaster";
 import { useCreatePurchaseReturnMutation } from "../../queries/purchasing";
 
@@ -41,8 +42,9 @@ export function ReturnDialog({
 }) {
   const { t } = useTranslation();
   const createReturn = useCreatePurchaseReturnMutation();
-  const today = new Date().toISOString().slice(0, 10);
-  const [returnedAt, setReturnedAt] = useState(today);
+  // The LOCAL calendar date — toISOString() is UTC and defaulted to yesterday
+  // before 07:00 on a UTC+7 shop.
+  const [returnedAt, setReturnedAt] = useState(() => formatDateOnly(new Date()));
   const [reason, setReason] = useState("");
 
   type ReturnRow = {
@@ -85,6 +87,7 @@ export function ReturnDialog({
   const handleClose = () => {
     setRows([]);
     setReason("");
+    setReturnedAt(formatDateOnly(new Date()));
     onClose();
   };
 

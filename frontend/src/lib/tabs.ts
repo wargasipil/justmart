@@ -24,3 +24,23 @@ export function useTabsOrientation(): TabsOrientation {
     "vertical"
   );
 }
+
+/**
+ * Whether a tab strip has to become a picker instead of a strip.
+ *
+ * Below `md` a row of tabs does not fit: at 390px `/settings` renders 573px of
+ * triggers into a 366px strip, so two of its six tabs sit entirely off screen,
+ * a third is cut mid-word, and — because nothing scrolls the active trigger
+ * into view — opening `/settings/backups` shows a strip with no tab selected
+ * at all. Touch scrollbars are invisible at rest, so there is not even a hint
+ * that the rest exists. `/purchasing` is worse (8 tabs).
+ *
+ * `<RouteTabs>` therefore renders the same items as an `<EnumSelect>` there:
+ * picking one of a short fixed set is exactly what that wrapper is for (the
+ * Selects HARD RULE), it cannot clip or hide an option, and the trigger always
+ * names where you are. Same breakpoint as `useTabsOrientation`, so the two
+ * steps — rail → strip → picker — are stated once each.
+ */
+export function useTabsAsSelect(): boolean {
+  return useBreakpointValue({ base: true, md: false }, { ssr: false }) ?? false;
+}

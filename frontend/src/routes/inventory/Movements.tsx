@@ -210,7 +210,7 @@ export default function Movements() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={movementsQ.total}
+        total={movementsQ.total} loading={movementsQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

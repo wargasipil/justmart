@@ -1,7 +1,6 @@
-import { useMemo } from "react";
-import { HStack, Table, Text } from "@chakra-ui/react";
+import { useMemo, useState } from "react";
+import { Table, Text } from "@chakra-ui/react";
 
-import ExpiryBadge from "../../components/ExpiryBadge";
 import Pagination from "../../components/Pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { formatMoney } from "../../lib/format";
@@ -10,18 +9,29 @@ import { useBatchesQuery } from "../../queries/batches";
 import { useSupplierRefs } from "../../queries/refs";
 import { useTranslation } from "react-i18next";
 
-// In-stock lots for this product in the ACTIVE warehouse. The one detail tab the
-// till also sees — it answers "what's actually on the shelf and when does it
-// expire" — so the supplier and cost columns are dropped when showCost is off
-// (the backend redacts both fields for those roles anyway).
+import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
+import BatchExpiryCell from "./BatchExpiryCell";
+import BatchExpiryDialog from "./BatchExpiryDialog";
+
+// In-stock lots for this product in the ACTIVE warehouse — "what's actually on
+// the shelf and when does it expire". The supplier and cost columns follow
+// showCost (every role today; the backend redacts both fields if cost
+// visibility is ever narrowed again). The expiry correction is a WRITE —
+// SetBatchExpiry is OWNER + PHARMACIST — so it hangs off canManage
+// (lib/roles.ts canManageProducts), not showCost.
 export default function ProductBatchesTab({
   productId,
+  productName,
   showCost,
+  canManage,
 }: {
   productId: string;
+  productName?: string;
   showCost: boolean;
+  canManage: boolean;
 }) {
   const { t } = useTranslation();
+  const [editing, setEditing] = useState<Batch | null>(null);
   // Keyed by product id so navigating to a different product resets the pager
   // rather than landing on page 3 of a shorter list.
   const page = usePageState(`batches:${productId}`);
@@ -92,10 +102,7 @@ export default function ProductBatchesTab({
                   </Table.Cell>
                 )}
                 <Table.Cell>
-                  <HStack gap={2}>
-                    <Text>{b.expiryDate}</Text>
-                    <ExpiryBadge expiry={b.expiryDate} />
-                  </HStack>
+                  <BatchExpiryCell batch={b} onEdit={canManage ? () => setEditing(b) : undefined} />
                 </Table.Cell>
                 {showCost && (
                   <Table.Cell>{formatMoney(b.costPrice)}</Table.Cell>
@@ -120,10 +127,11 @@ export default function ProductBatchesTab({
       <Pagination
         page={page.page}
         pageSize={page.pageSize}
-        total={q.total}
+        total={q.total} loading={q.isPlaceholderData}
         onPageChange={page.setPage}
         onPageSizeChange={page.setPageSize}
       />
+      <BatchExpiryDialog batch={editing} productName={productName} onClose={() => setEditing(null)} />
     </>
   );
 }

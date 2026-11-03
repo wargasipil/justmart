@@ -43,6 +43,7 @@ func (p *PurchaseOrders) GetPurchaseOrdersSummary(
 		FromUnix:        req.Msg.FromUnix,
 		ToUnix:          req.Msg.ToUnix,
 		DateField:       req.Msg.DateField,
+		ManufacturerID:  req.Msg.ManufacturerId,
 	}
 
 	// Order-level figures: one row, straight off the filtered orders.

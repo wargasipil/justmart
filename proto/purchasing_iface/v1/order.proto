@@ -65,6 +65,11 @@ message PurchaseOrderItem {
   string discount_type = 13;   // 'FIXED' | 'PERCENT' (empty => FIXED)
   int64 discount_value = 14;
   bool discount_per_item = 15; // when true, discount applies to each item (× qty), not the whole line
+  // Which pabrik this line is being bought from, when the buyer knows. It is
+  // NOT derived from the product: a product may have several approved makers,
+  // and which one a given delivery is has to be read off the invoice. Flows
+  // to batches.manufacturer_id at receive, which is the whole point of it.
+  string manufacturer_id = 16;
 }
 
 message PurchaseOrderItemInput {
@@ -75,6 +80,7 @@ message PurchaseOrderItemInput {
   string discount_type = 5;      // 'FIXED' (default) | 'PERCENT'
   int64 discount_value = 6;      // FIXED=minor units; PERCENT=basis points (percent*100)
   bool discount_per_item = 7;    // when true, discount applies to each item (× qty), not the whole line
+  string manufacturer_id = 8;    // optional; the pabrik this line is sourced from
 }
 
 service PurchaseOrderService {
@@ -122,6 +128,8 @@ message ListPurchaseOrdersRequest {
   int64 to_unix = 7;           // date-range upper bound (exclusive; 0 = unbounded)
   string date_field = 8;       // which date the range filters: "created" | "received"
   int32 offset = 9;
+  // Orders containing at least one line from this pabrik.
+  string manufacturer_id = 10;
 }
 message ListPurchaseOrdersResponse {
   repeated PurchaseOrder orders = 1;
@@ -140,6 +148,7 @@ message GetPurchaseOrdersSummaryRequest {
   int64 from_unix = 5;
   int64 to_unix = 6;
   string date_field = 7;       // "created" | "received"
+  string manufacturer_id = 8;
 }
 message GetPurchaseOrdersSummaryResponse {
   int64 order_count = 1;    // matching purchase orders

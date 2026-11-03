@@ -15,7 +15,7 @@ const WAREHOUSES = [
 ];
 
 const meta = {
-  title: "Selects & pickers/WarehouseSelect",
+  title: "components/selects/WarehouseSelect",
   component: WarehouseSelect,
   parameters: storyDocs("warehouse-select"),
   tags: ["autodocs"],

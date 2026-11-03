@@ -183,7 +183,7 @@ export default function Stocktake() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={listQ.total}
+        total={listQ.total} loading={listQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />

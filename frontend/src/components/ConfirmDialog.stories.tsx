@@ -34,7 +34,7 @@ function Demo(props: Partial<React.ComponentProps<typeof ConfirmDialog>> & { tri
 }
 
 const meta = {
-  title: "Overlays/ConfirmDialog",
+  title: "components/overlays/ConfirmDialog",
   component: ConfirmDialog,
   parameters: storyDocs("confirm-dialog"),
   tags: ["autodocs"],

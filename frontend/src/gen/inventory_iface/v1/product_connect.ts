@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, PrintProductLabelRequest, PrintProductLabelResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
+import { AddProductManufacturerRequest, AddProductManufacturerResponse, ArchiveProductRequest, ArchiveProductResponse, CreateProductRequest, CreateProductResponse, DeleteProductImageRequest, DeleteProductImageResponse, GetProductExpiryDefaultsRequest, GetProductExpiryDefaultsResponse, GetProductImageRequest, GetProductImageResponse, GetProductRequest, GetProductResponse, GetProductsSummaryRequest, GetProductsSummaryResponse, ImportProductsRequest, ImportProductsResponse, ListLowStockRequest, ListLowStockResponse, ListProductPricesRequest, ListProductPricesResponse, ListProductRestockLogsRequest, ListProductRestockLogsResponse, ListProductsRequest, ListProductsResponse, ListProductUnitPricesRequest, ListProductUnitPricesResponse, PrintProductLabelRequest, PrintProductLabelResponse, ResolveProductsRequest, ResolveProductsResponse, SearchProductsRequest, SearchProductsResponse, SetProductManufacturersRequest, SetProductManufacturersResponse, UnarchiveProductRequest, UnarchiveProductResponse, UpdateProductRequest, UpdateProductResponse, UploadProductImageRequest, UploadProductImageResponse } from "./product_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -26,9 +26,8 @@ export const ProductService = {
      * cost) over ALL products matching the same filters as ListProducts — not the
      * current page. Drives the catalog stat row above the list.
      * 
-     * Narrower roles than ListProducts on purpose: the valuations are cost data,
-     * and cost never goes to a cashier (same posture as GetMyPerformance omitting
-     * COGS). POS reads the catalog through ListProducts and needs none of this.
+     * Same roles as ListProducts: the catalog is FULLY READABLE by the till,
+     * cost included (see common.CanSeeCost). Writes stay OWNER+PHARMACIST.
      *
      * @generated from rpc inventory_iface.v1.ProductService.GetProductsSummary
      */
@@ -76,6 +75,28 @@ export const ProductService = {
       name: "UpdateProduct",
       I: UpdateProductRequest,
       O: UpdateProductResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Manager-only like UpdateProduct: both write the catalog. Add is reachable
+     * from the restock form, which is where a buyer actually learns who made the
+     * goods; Set is the product detail page's admin card.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.AddProductManufacturer
+     */
+    addProductManufacturer: {
+      name: "AddProductManufacturer",
+      I: AddProductManufacturerRequest,
+      O: AddProductManufacturerResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc inventory_iface.v1.ProductService.SetProductManufacturers
+     */
+    setProductManufacturers: {
+      name: "SetProductManufacturers",
+      I: SetProductManufacturersRequest,
+      O: SetProductManufacturersResponse,
       kind: MethodKind.Unary,
     },
     /**
@@ -147,6 +168,19 @@ export const ProductService = {
       name: "ResolveProducts",
       I: ResolveProductsRequest,
       O: ResolveProductsResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * GetProductExpiryDefaults returns the expiry setting of the given products
+     * (max 500 ids) in one light read, for the Receive dialog to seed its lines.
+     * Same roles as receiving.
+     *
+     * @generated from rpc inventory_iface.v1.ProductService.GetProductExpiryDefaults
+     */
+    getProductExpiryDefaults: {
+      name: "GetProductExpiryDefaults",
+      I: GetProductExpiryDefaultsRequest,
+      O: GetProductExpiryDefaultsResponse,
       kind: MethodKind.Unary,
     },
     /**

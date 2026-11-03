@@ -75,14 +75,23 @@ test.describe("product picker dialog", () => {
       await expect(dialog).toBeHidden();
 
       // The line carries name + SKU as a static label (the product is chosen in
-      // the dialog, not on the row) and qty defaulted to 1. The unit cell is a
-      // combobox because this product has 2 purchasable units — its value is
-      // seeded to the BASE unit from the picked Product, which is the part the
-      // dialog is responsible for. (Combobox values don't reach the row name,
-      // hence the separate assertion.)
-      const line = page.getByRole("row", { name: new RegExp(`${name} PICK-${m} 1`) });
+      // the dialog, not on the row). Match the row on that label ALONE and
+      // assert everything else against its own control: a row's accessible name
+      // is the concatenation of its cells, so any control added to the product
+      // cell lands in the middle of it. Pinning "<name> PICK-<sku> 1" as one
+      // contiguous string silently encoded "nothing sits between the SKU and
+      // the qty", and the pabrik picker — which lives in that cell — broke it.
+      const line = page.getByRole("row", { name: new RegExp(`${name} PICK-${m}`) });
       await expect(line).toBeVisible();
-      await expect(line.getByRole("combobox").first()).toHaveText("tablet");
+      // Qty defaulted to 1, read off the input rather than the row's name.
+      await expect(line.getByRole("textbox").first()).toHaveValue("1");
+      // The unit cell is a combobox because this product has 2 purchasable
+      // units — its value is seeded to the BASE unit from the picked Product,
+      // which is the part the dialog is responsible for.
+      // By NAME, not position: the row holds two selects now (pabrik + unit),
+      // and .first() silently meant "whichever comes first in the DOM". The
+      // suite runs in the default (English) locale, like every other literal here.
+      await expect(line.getByRole("combobox", { name: "Unit" })).toHaveText("tablet");
 
       // Re-opening pre-checks what the form already holds…
       await addButton.click();

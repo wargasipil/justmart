@@ -9,7 +9,7 @@ import { storyDocs } from "../routes/dev/storyDocs";
 // a real version would need the backend and a real user id.
 
 const meta = {
-  title: "Data display/UserAvatar",
+  title: "components/data/UserAvatar",
   component: UserAvatar,
   parameters: storyDocs("user-avatar"),
   tags: ["autodocs"],

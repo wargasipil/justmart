@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
 	purchasingifacev1 "github.com/justmart/backend/gen/purchasing_iface/v1"
 	"github.com/justmart/backend/internal/model"
 	"github.com/justmart/backend/internal/service/common"
@@ -26,6 +27,10 @@ type restockEntry struct {
 	DiscountType    string
 	DiscountValue   int64
 	DiscountPerItem bool
+	// ManufacturerID is the maker named on the PO line -- the same value, and
+	// the same nullable form, this receipt stamps onto the lot. nil when the
+	// line named none.
+	ManufacturerID  *string
 	CreatedAt       time.Time // PO (restock order) created
 	ArrivedAt     time.Time // receipt received_at
 	ReceiptID     string
@@ -71,6 +76,7 @@ func recordRestock(tx *gorm.DB, e restockEntry) error {
 		DiscountType:     discType,
 		DiscountValue:    e.DiscountValue,
 		DiscountPerItem:  e.DiscountPerItem,
+		ManufacturerID:   e.ManufacturerID,
 		RestockCreatedAt: e.CreatedAt,
 		RestockArrivedAt: e.ArrivedAt,
 	}
@@ -481,6 +487,17 @@ func (p *PurchaseOrders) enrichList(ctx context.Context, orders []*purchasingifa
 // GetPurchaseOrdersSummary can narrow by exactly the same predicates: the stat
 // row sits above the list and must always describe the same set of orders.
 // Mirrors applySaleFilters shared by ListSales / GetSalesSummary on /orders.
+// manufacturerRef turns a possibly-empty id into the nullable column value:
+// "" means no pabrik was recorded, which is NULL, not an empty string the FK
+// would reject.
+func manufacturerRef(id string) *string {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil
+	}
+	return &id
+}
+
 type poFilterArgs struct {
 	WarehouseID     string
 	Status          purchasingifacev1.POStatus
@@ -490,6 +507,7 @@ type poFilterArgs struct {
 	FromUnix        int64
 	ToUnix          int64
 	DateField       string // "created" | "received"
+	ManufacturerID  string // orders with at least one line from this pabrik
 }
 
 // applyPOFilters narrows a purchase_orders query by f. Column names are left
@@ -502,6 +520,16 @@ func (p *PurchaseOrders) applyPOFilters(q *gorm.DB, f poFilterArgs) *gorm.DB {
 	}
 	if f.SupplierID != "" {
 		q = q.Where("supplier_id = ?", f.SupplierID)
+	}
+	// Pabrik is a LINE-level fact, so an order matches when any of its lines
+	// does -- the same id-IN-subquery shape the text search uses. Shared by
+	// ListPurchaseOrders and GetPurchaseOrdersSummary through this closure, so
+	// the stat row can never describe a different set than the table under it.
+	if f.ManufacturerID != "" {
+		sub := p.db.Table("purchase_order_items").
+			Select("purchase_order_id").
+			Where("manufacturer_id = ?", f.ManufacturerID)
+		q = q.Where("id IN (?)", sub)
 	}
 	if f.OnlyOutstanding {
 		q = q.Where("status NOT IN ?", []string{poStatusVoided, poStatusDraft}).
@@ -538,6 +566,46 @@ func (p *PurchaseOrders) applyPOFilters(q *gorm.DB, f poFilterArgs) *gorm.DB {
 		}
 	}
 	return q
+}
+
+// attachExpirySources sets each receipt line's expiry_source from its LOT, in
+// one query for the whole response. The receipt keeps its own copy of the
+// expiry date but not of the source, and the source is what tells the
+// no-expiry placeholder apart from a real date — without it the delivery table
+// printed "31 Dec 2099". Read live, so a later correction shows here too. A line
+// whose lot is gone (cancelled receipt) stays UNSPECIFIED.
+func attachExpirySources(ctx context.Context, db *gorm.DB, receipts ...*purchasingifacev1.PurchaseReceipt) error {
+	var ids []string
+	for _, r := range receipts {
+		for _, it := range r.Items {
+			if it.BatchId != "" {
+				ids = append(ids, it.BatchId)
+			}
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	var rows []struct {
+		ID           string `gorm:"column:id"`
+		ExpirySource string `gorm:"column:expiry_source"`
+	}
+	if err := db.WithContext(ctx).Model(&model.Batch{}).
+		Select("id, expiry_source").Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+		return err
+	}
+	src := make(map[string]inventoryifacev1.ExpirySource, len(rows))
+	for _, r := range rows {
+		src[r.ID] = inventoryifacev1.ExpirySource(common.ExpirySourceToWire(r.ExpirySource))
+	}
+	for _, r := range receipts {
+		for _, it := range r.Items {
+			if s, ok := src[it.BatchId]; ok {
+				it.ExpirySource = s
+			}
+		}
+	}
+	return nil
 }
 
 func (p *PurchaseReceipts) loadFull(ctx context.Context, id string) (*model.PurchaseReceipt, error) {

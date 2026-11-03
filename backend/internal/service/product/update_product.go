@@ -39,6 +39,10 @@ func (s *ProductService) UpdateProduct(
 	if req.Msg.UnitPrice < 0 {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "product.unit_price_negative")
 	}
+	expiryDefault, expiryMonths, err := expiryDefaultFromProto(req.Msg.ExpiryDefault, req.Msg.ExpiryDefaultMonths)
+	if err != nil {
+		return nil, err
+	}
 
 	priceChanged := req.Msg.UnitPrice != med.UnitPrice
 
@@ -50,10 +54,22 @@ func (s *ProductService) UpdateProduct(
 			Where("id = ?", med.ID).First(&model.Product{}).Error; err != nil {
 			return err
 		}
+		// Captured BEFORE the write: GORM's Updates() copies the map back into
+		// `med`, so a comparison made afterwards always sees the new value and
+		// the change below would never fire.
+		prevMaker := derefString(med.ManufacturerID)
 		updates := map[string]any{
 			"name":                  name,
 			"unit":                  unit,
 			"prescription_required": req.Msg.PrescriptionRequired,
+			// Always written, so an empty id CLEARS the link (NULL) rather than
+			// being indistinguishable from "field omitted" — the form always
+			// sends the current value.
+			"manufacturer_id": manufacturerRef(req.Msg.ManufacturerId),
+			// Always written, like the rest of this full replace: an omitted
+			// setting means MANUAL, the behaviour before the setting existed.
+			"expiry_default":        expiryDefault,
+			"expiry_default_months": expiryMonths,
 		}
 		// SKU is an editable unique business code. Apply only when a (changed)
 		// value is provided — empty keeps the current SKU (partial-update safe).
@@ -72,6 +88,20 @@ func (s *ProductService) UpdateProduct(
 		}
 		if err := tx.Model(med).Updates(updates).Error; err != nil {
 			return err
+		}
+		// Naming a NEW usual maker also approves it. Only a change is checked:
+		// a product already pointing at a factory that has since been archived
+		// must stay editable in every other field, so a re-save of the same id
+		// is left alone (the same rule SetProductManufacturers follows).
+		if newMaker := strings.TrimSpace(req.Msg.ManufacturerId); newMaker != prevMaker {
+			if newMaker != "" {
+				if err := assertAssignable(tx, newMaker); err != nil {
+					return err
+				}
+			}
+			if err := listPrimary(tx, med.ID, newMaker); err != nil {
+				return err
+			}
 		}
 
 		if priceChanged {

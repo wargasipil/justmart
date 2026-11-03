@@ -39,8 +39,18 @@ func (s *BatchService) ListBatches(
 		if req.Msg.ProductId != "" {
 			q = q.Where("b.product_id = ?", req.Msg.ProductId)
 		}
+		// Who MADE the stock, which is a different question from who sold it:
+		// a recall names the pabrik and a lot is the only row that records one.
+		if mid := strings.TrimSpace(req.Msg.ManufacturerId); mid != "" {
+			q = q.Where("b.manufacturer_id = ?", mid)
+		}
 		if sid := strings.TrimSpace(req.Msg.SupplierId); sid != "" {
 			q = q.Where("b.supplier_id = ?", sid)
+		}
+		// Where the expiry came from. DEFAULT is the shelf-check worklist: dates
+		// that are the product's estimate because nobody typed over them.
+		if req.Msg.ExpirySource != inventoryifacev1.ExpirySource_EXPIRY_SOURCE_UNSPECIFIED {
+			q = q.Where("b.expiry_source = ?", common.ExpirySourceFromWire(int32(req.Msg.ExpirySource)))
 		}
 		if req.Msg.OnlyInStock {
 			q = q.Having("COALESCE(SUM(sm.qty), 0) > 0")

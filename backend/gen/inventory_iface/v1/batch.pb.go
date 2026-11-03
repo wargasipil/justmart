@@ -22,6 +22,62 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Where a lot's expiry date came from. The date alone cannot say whether
+// anybody read it off the pack, and that is exactly what a shelf check needs to
+// know: a DEFAULT date is the product's estimate, carried over because nobody
+// typed over it.
+type ExpirySource int32
+
+const (
+	ExpirySource_EXPIRY_SOURCE_UNSPECIFIED ExpirySource = 0 // treated as ENTERED (every lot before 00062)
+	ExpirySource_EXPIRY_SOURCE_ENTERED     ExpirySource = 1 // typed by a person, or confirmed later
+	ExpirySource_EXPIRY_SOURCE_DEFAULT     ExpirySource = 2 // the product's default, accepted unchanged at receive
+	ExpirySource_EXPIRY_SOURCE_NONE        ExpirySource = 3 // the goods do not expire; the stored date is a placeholder
+)
+
+// Enum value maps for ExpirySource.
+var (
+	ExpirySource_name = map[int32]string{
+		0: "EXPIRY_SOURCE_UNSPECIFIED",
+		1: "EXPIRY_SOURCE_ENTERED",
+		2: "EXPIRY_SOURCE_DEFAULT",
+		3: "EXPIRY_SOURCE_NONE",
+	}
+	ExpirySource_value = map[string]int32{
+		"EXPIRY_SOURCE_UNSPECIFIED": 0,
+		"EXPIRY_SOURCE_ENTERED":     1,
+		"EXPIRY_SOURCE_DEFAULT":     2,
+		"EXPIRY_SOURCE_NONE":        3,
+	}
+)
+
+func (x ExpirySource) Enum() *ExpirySource {
+	p := new(ExpirySource)
+	*p = x
+	return p
+}
+
+func (x ExpirySource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ExpirySource) Descriptor() protoreflect.EnumDescriptor {
+	return file_inventory_iface_v1_batch_proto_enumTypes[0].Descriptor()
+}
+
+func (ExpirySource) Type() protoreflect.EnumType {
+	return &file_inventory_iface_v1_batch_proto_enumTypes[0]
+}
+
+func (x ExpirySource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ExpirySource.Descriptor instead.
+func (ExpirySource) EnumDescriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{0}
+}
+
 // Per-row outcome of a stock import.
 type ImportStockStatus int32
 
@@ -59,11 +115,11 @@ func (x ImportStockStatus) String() string {
 }
 
 func (ImportStockStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_inventory_iface_v1_batch_proto_enumTypes[0].Descriptor()
+	return file_inventory_iface_v1_batch_proto_enumTypes[1].Descriptor()
 }
 
 func (ImportStockStatus) Type() protoreflect.EnumType {
-	return &file_inventory_iface_v1_batch_proto_enumTypes[0]
+	return &file_inventory_iface_v1_batch_proto_enumTypes[1]
 }
 
 func (x ImportStockStatus) Number() protoreflect.EnumNumber {
@@ -72,7 +128,7 @@ func (x ImportStockStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ImportStockStatus.Descriptor instead.
 func (ImportStockStatus) EnumDescriptor() ([]byte, []int) {
-	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{0}
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{1}
 }
 
 type Batch struct {
@@ -102,8 +158,18 @@ type Batch struct {
 	// fills product_name, so a picker row can render <ProductImage> without a
 	// second round trip. 0 makes the client skip the image fetch entirely.
 	ProductImageUpdatedAt int64 `protobuf:"varint,14,opt,name=product_image_updated_at,json=productImageUpdatedAt,proto3" json:"product_image_updated_at,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Who MADE this lot, as recorded on the purchase-order line it arrived on.
+	// Empty on every batch created before the column existed and on the manual
+	// CreateBatch path -- the fact was never captured, and filling it in from
+	// the product's current maker would invent provenance. This is the ONLY
+	// place the maker of physical stock is recorded: the product's own list
+	// says who MAY make it, this says who DID.
+	ManufacturerId string `protobuf:"bytes,15,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
+	// Where expiry_date came from. NONE means the date is the no-expiry
+	// placeholder and should be shown as "does not expire", not as a date.
+	ExpirySource  ExpirySource `protobuf:"varint,16,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Batch) Reset() {
@@ -234,17 +300,35 @@ func (x *Batch) GetProductImageUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Batch) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
+func (x *Batch) GetExpirySource() ExpirySource {
+	if x != nil {
+		return x.ExpirySource
+	}
+	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
 type ListBatchesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	OnlyInStock   bool                   `protobuf:"varint,2,opt,name=only_in_stock,json=onlyInStock,proto3" json:"only_in_stock,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
-	Query         string                 `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`                             // ILIKE batch_number / product name / sku
-	FromUnix      int64                  `protobuf:"varint,6,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`      // date-range lower bound (0 = unbounded)
-	ToUnix        int64                  `protobuf:"varint,7,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`            // date-range upper bound (exclusive; 0 = unbounded)
-	DateField     string                 `protobuf:"bytes,8,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"`    // which date the range filters: "received" | "expiry"
-	SupplierId    string                 `protobuf:"bytes,9,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"` // optional supplier ID filter
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ProductId      string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	OnlyInStock    bool                   `protobuf:"varint,2,opt,name=only_in_stock,json=onlyInStock,proto3" json:"only_in_stock,omitempty"`
+	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset         int32                  `protobuf:"varint,4,opt,name=offset,proto3" json:"offset,omitempty"`
+	Query          string                 `protobuf:"bytes,5,opt,name=query,proto3" json:"query,omitempty"`                                          // ILIKE batch_number / product name / sku
+	FromUnix       int64                  `protobuf:"varint,6,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`                   // date-range lower bound (0 = unbounded)
+	ToUnix         int64                  `protobuf:"varint,7,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`                         // date-range upper bound (exclusive; 0 = unbounded)
+	DateField      string                 `protobuf:"bytes,8,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"`                 // which date the range filters: "received" | "expiry"
+	SupplierId     string                 `protobuf:"bytes,9,opt,name=supplier_id,json=supplierId,proto3" json:"supplier_id,omitempty"`              // optional supplier ID filter
+	ManufacturerId string                 `protobuf:"bytes,10,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"` // optional pabrik filter (the lot's own maker)
+	// Optional: only lots whose expiry came from this source. DEFAULT is the
+	// shelf-check worklist -- dates nobody has read off the pack yet.
+	ExpirySource  ExpirySource `protobuf:"varint,11,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -340,6 +424,20 @@ func (x *ListBatchesRequest) GetSupplierId() string {
 		return x.SupplierId
 	}
 	return ""
+}
+
+func (x *ListBatchesRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
+func (x *ListBatchesRequest) GetExpirySource() ExpirySource {
+	if x != nil {
+		return x.ExpirySource
+	}
+	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
 }
 
 type ListBatchesResponse struct {
@@ -491,8 +589,15 @@ type CreateBatchRequest struct {
 	CostPrice       int64                  `protobuf:"varint,5,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`
 	ReceivedAt      string                 `protobuf:"bytes,6,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"`
 	InitialQuantity int64                  `protobuf:"varint,7,opt,name=initial_quantity,json=initialQuantity,proto3" json:"initial_quantity,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Who MADE this lot. Optional, and ARCHIVED makers are accepted here unlike
+	// on a product's approved-source list: this records what happened, and old
+	// stock entered by hand may well come from a factory since retired.
+	ManufacturerId string `protobuf:"bytes,8,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
+	// Where expiry_date came from (UNSPECIFIED = ENTERED). NONE stores the
+	// no-expiry placeholder and ignores expiry_date.
+	ExpirySource  ExpirySource `protobuf:"varint,9,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateBatchRequest) Reset() {
@@ -574,6 +679,20 @@ func (x *CreateBatchRequest) GetInitialQuantity() int64 {
 	return 0
 }
 
+func (x *CreateBatchRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
+func (x *CreateBatchRequest) GetExpirySource() ExpirySource {
+	if x != nil {
+		return x.ExpirySource
+	}
+	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
 type CreateBatchResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Batch         *Batch                 `protobuf:"bytes,1,opt,name=batch,proto3" json:"batch,omitempty"`
@@ -620,15 +739,19 @@ func (x *CreateBatchResponse) GetBatch() *Batch {
 
 // One opening-stock row (CSV), keyed by SKU. The server resolves the product.
 type ImportStockRow struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Sku           string                 `protobuf:"bytes,1,opt,name=sku,proto3" json:"sku,omitempty"`
-	Quantity      int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`                         // in `unit` if set, else base units; must be > 0
-	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`                                  // optional pack name (resolved to a product unit → ×factor)
-	CostPrice     int64                  `protobuf:"varint,4,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`      // per BASE unit, minor units; optional (default 0)
-	BatchNumber   string                 `protobuf:"bytes,5,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"` // optional
-	ExpiryDate    string                 `protobuf:"bytes,6,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`    // optional YYYY-MM-DD; blank => far-future (non-expiring)
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Sku         string                 `protobuf:"bytes,1,opt,name=sku,proto3" json:"sku,omitempty"`
+	Quantity    int64                  `protobuf:"varint,2,opt,name=quantity,proto3" json:"quantity,omitempty"`                         // in `unit` if set, else base units; must be > 0
+	Unit        string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`                                  // optional pack name (resolved to a product unit → ×factor)
+	CostPrice   int64                  `protobuf:"varint,4,opt,name=cost_price,json=costPrice,proto3" json:"cost_price,omitempty"`      // per BASE unit, minor units; optional (default 0)
+	BatchNumber string                 `protobuf:"bytes,5,opt,name=batch_number,json=batchNumber,proto3" json:"batch_number,omitempty"` // optional
+	ExpiryDate  string                 `protobuf:"bytes,6,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"`    // optional YYYY-MM-DD; blank => far-future (non-expiring)
+	// Who MADE the lot, by the pabrik CODE -- a CSV is hand-authored, so it is
+	// keyed by business codes like `sku` and `unit`, never by a UUID. Optional;
+	// an archived pabrik is accepted, since opening stock is history.
+	ManufacturerCode string `protobuf:"bytes,7,opt,name=manufacturer_code,json=manufacturerCode,proto3" json:"manufacturer_code,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ImportStockRow) Reset() {
@@ -699,6 +822,13 @@ func (x *ImportStockRow) GetBatchNumber() string {
 func (x *ImportStockRow) GetExpiryDate() string {
 	if x != nil {
 		return x.ExpiryDate
+	}
+	return ""
+}
+
+func (x *ImportStockRow) GetManufacturerCode() string {
+	if x != nil {
+		return x.ManufacturerCode
 	}
 	return ""
 }
@@ -1296,11 +1426,348 @@ func (x *ResolveBatchesResponse) GetBatches() []*BatchRef {
 	return nil
 }
 
+// Correct (or confirm) a lot's expiry after it was received. Changes ONLY the
+// expiry -- UpdateBatch rewrites every field, so a caller holding just a date
+// would zero the lot's cost. Every change is kept in batch_expiry_changes.
+type SetBatchExpiryRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	BatchId    string                 `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
+	ExpiryDate string                 `protobuf:"bytes,2,opt,name=expiry_date,json=expiryDate,proto3" json:"expiry_date,omitempty"` // YYYY-MM-DD; ignored when expiry_source = NONE
+	// ENTERED (or UNSPECIFIED) for a date read off the pack, NONE for goods that
+	// do not expire. DEFAULT is refused: an edit is always a person's decision.
+	ExpirySource  ExpirySource `protobuf:"varint,3,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	Reason        string       `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"` // required
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetBatchExpiryRequest) Reset() {
+	*x = SetBatchExpiryRequest{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetBatchExpiryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetBatchExpiryRequest) ProtoMessage() {}
+
+func (x *SetBatchExpiryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetBatchExpiryRequest.ProtoReflect.Descriptor instead.
+func (*SetBatchExpiryRequest) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SetBatchExpiryRequest) GetBatchId() string {
+	if x != nil {
+		return x.BatchId
+	}
+	return ""
+}
+
+func (x *SetBatchExpiryRequest) GetExpiryDate() string {
+	if x != nil {
+		return x.ExpiryDate
+	}
+	return ""
+}
+
+func (x *SetBatchExpiryRequest) GetExpirySource() ExpirySource {
+	if x != nil {
+		return x.ExpirySource
+	}
+	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
+func (x *SetBatchExpiryRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type SetBatchExpiryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Batch         *Batch                 `protobuf:"bytes,1,opt,name=batch,proto3" json:"batch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetBatchExpiryResponse) Reset() {
+	*x = SetBatchExpiryResponse{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetBatchExpiryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetBatchExpiryResponse) ProtoMessage() {}
+
+func (x *SetBatchExpiryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetBatchExpiryResponse.ProtoReflect.Descriptor instead.
+func (*SetBatchExpiryResponse) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *SetBatchExpiryResponse) GetBatch() *Batch {
+	if x != nil {
+		return x.Batch
+	}
+	return nil
+}
+
+type BatchExpiryChange struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	BatchId         string                 `protobuf:"bytes,2,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
+	OldExpiryDate   string                 `protobuf:"bytes,3,opt,name=old_expiry_date,json=oldExpiryDate,proto3" json:"old_expiry_date,omitempty"` // YYYY-MM-DD
+	OldExpirySource ExpirySource           `protobuf:"varint,4,opt,name=old_expiry_source,json=oldExpirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"old_expiry_source,omitempty"`
+	NewExpiryDate   string                 `protobuf:"bytes,5,opt,name=new_expiry_date,json=newExpiryDate,proto3" json:"new_expiry_date,omitempty"` // YYYY-MM-DD
+	NewExpirySource ExpirySource           `protobuf:"varint,6,opt,name=new_expiry_source,json=newExpirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"new_expiry_source,omitempty"`
+	Reason          string                 `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
+	ChangedBy       string                 `protobuf:"bytes,8,opt,name=changed_by,json=changedBy,proto3" json:"changed_by,omitempty"`  // user id; resolve via ResolveUsers
+	ChangedAt       int64                  `protobuf:"varint,9,opt,name=changed_at,json=changedAt,proto3" json:"changed_at,omitempty"` // unix
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *BatchExpiryChange) Reset() {
+	*x = BatchExpiryChange{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchExpiryChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchExpiryChange) ProtoMessage() {}
+
+func (x *BatchExpiryChange) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchExpiryChange.ProtoReflect.Descriptor instead.
+func (*BatchExpiryChange) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *BatchExpiryChange) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *BatchExpiryChange) GetBatchId() string {
+	if x != nil {
+		return x.BatchId
+	}
+	return ""
+}
+
+func (x *BatchExpiryChange) GetOldExpiryDate() string {
+	if x != nil {
+		return x.OldExpiryDate
+	}
+	return ""
+}
+
+func (x *BatchExpiryChange) GetOldExpirySource() ExpirySource {
+	if x != nil {
+		return x.OldExpirySource
+	}
+	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
+func (x *BatchExpiryChange) GetNewExpiryDate() string {
+	if x != nil {
+		return x.NewExpiryDate
+	}
+	return ""
+}
+
+func (x *BatchExpiryChange) GetNewExpirySource() ExpirySource {
+	if x != nil {
+		return x.NewExpirySource
+	}
+	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
+func (x *BatchExpiryChange) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *BatchExpiryChange) GetChangedBy() string {
+	if x != nil {
+		return x.ChangedBy
+	}
+	return ""
+}
+
+func (x *BatchExpiryChange) GetChangedAt() int64 {
+	if x != nil {
+		return x.ChangedAt
+	}
+	return 0
+}
+
+type ListBatchExpiryChangesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BatchId       string                 `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBatchExpiryChangesRequest) Reset() {
+	*x = ListBatchExpiryChangesRequest{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBatchExpiryChangesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBatchExpiryChangesRequest) ProtoMessage() {}
+
+func (x *ListBatchExpiryChangesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBatchExpiryChangesRequest.ProtoReflect.Descriptor instead.
+func (*ListBatchExpiryChangesRequest) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ListBatchExpiryChangesRequest) GetBatchId() string {
+	if x != nil {
+		return x.BatchId
+	}
+	return ""
+}
+
+func (x *ListBatchExpiryChangesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListBatchExpiryChangesRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListBatchExpiryChangesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changes       []*BatchExpiryChange   `protobuf:"bytes,1,rep,name=changes,proto3" json:"changes,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBatchExpiryChangesResponse) Reset() {
+	*x = ListBatchExpiryChangesResponse{}
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBatchExpiryChangesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBatchExpiryChangesResponse) ProtoMessage() {}
+
+func (x *ListBatchExpiryChangesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_inventory_iface_v1_batch_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBatchExpiryChangesResponse.ProtoReflect.Descriptor instead.
+func (*ListBatchExpiryChangesResponse) Descriptor() ([]byte, []int) {
+	return file_inventory_iface_v1_batch_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListBatchExpiryChangesResponse) GetChanges() []*BatchExpiryChange {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
+func (x *ListBatchExpiryChangesResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 var File_inventory_iface_v1_batch_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\n" +
-	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xf9\x03\n" +
+	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xe9\x04\n" +
 	"\x05Batch\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1322,7 +1789,9 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x05po_no\x18\v \x01(\tR\x04poNo\x12!\n" +
 	"\fproduct_name\x18\f \x01(\tR\vproductName\x125\n" +
 	"\x05units\x18\r \x03(\v2\x1f.inventory_iface.v1.ProductUnitR\x05units\x127\n" +
-	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\"\x91\x02\n" +
+	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\x12'\n" +
+	"\x0fmanufacturer_id\x18\x0f \x01(\tR\x0emanufacturerId\x12E\n" +
+	"\rexpiry_source\x18\x10 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"\x81\x03\n" +
 	"\x12ListBatchesRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\"\n" +
@@ -1335,14 +1804,17 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\n" +
 	"date_field\x18\b \x01(\tR\tdateField\x12\x1f\n" +
 	"\vsupplier_id\x18\t \x01(\tR\n" +
-	"supplierId\"`\n" +
+	"supplierId\x12'\n" +
+	"\x0fmanufacturer_id\x18\n" +
+	" \x01(\tR\x0emanufacturerId\x12E\n" +
+	"\rexpiry_source\x18\v \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"`\n" +
 	"\x13ListBatchesResponse\x123\n" +
 	"\abatches\x18\x01 \x03(\v2\x19.inventory_iface.v1.BatchR\abatches\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"!\n" +
 	"\x0fGetBatchRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"C\n" +
 	"\x10GetBatchResponse\x12/\n" +
-	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\x83\x02\n" +
+	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xf3\x02\n" +
 	"\x12CreateBatchRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1f\n" +
@@ -1355,9 +1827,11 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"cost_price\x18\x05 \x01(\x03R\tcostPrice\x12\x1f\n" +
 	"\vreceived_at\x18\x06 \x01(\tR\n" +
 	"receivedAt\x12)\n" +
-	"\x10initial_quantity\x18\a \x01(\x03R\x0finitialQuantity\"F\n" +
+	"\x10initial_quantity\x18\a \x01(\x03R\x0finitialQuantity\x12'\n" +
+	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerId\x12E\n" +
+	"\rexpiry_source\x18\t \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"F\n" +
 	"\x13CreateBatchResponse\x12/\n" +
-	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xb5\x01\n" +
+	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\xe2\x01\n" +
 	"\x0eImportStockRow\x12\x10\n" +
 	"\x03sku\x18\x01 \x01(\tR\x03sku\x12\x1a\n" +
 	"\bquantity\x18\x02 \x01(\x03R\bquantity\x12\x12\n" +
@@ -1366,7 +1840,8 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"cost_price\x18\x04 \x01(\x03R\tcostPrice\x12!\n" +
 	"\fbatch_number\x18\x05 \x01(\tR\vbatchNumber\x12\x1f\n" +
 	"\vexpiry_date\x18\x06 \x01(\tR\n" +
-	"expiryDate\"\xab\x01\n" +
+	"expiryDate\x12+\n" +
+	"\x11manufacturer_code\x18\a \x01(\tR\x10manufacturerCode\"\xab\x01\n" +
 	"\x11ImportStockResult\x12\x10\n" +
 	"\x03row\x18\x01 \x01(\x05R\x03row\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12=\n" +
@@ -1411,12 +1886,44 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x15ResolveBatchesRequest\x12\x10\n" +
 	"\x03ids\x18\x01 \x03(\tR\x03ids\"P\n" +
 	"\x16ResolveBatchesResponse\x126\n" +
-	"\abatches\x18\x01 \x03(\v2\x1c.inventory_iface.v1.BatchRefR\abatches*\xa0\x01\n" +
+	"\abatches\x18\x01 \x03(\v2\x1c.inventory_iface.v1.BatchRefR\abatches\"\xb2\x01\n" +
+	"\x15SetBatchExpiryRequest\x12\x19\n" +
+	"\bbatch_id\x18\x01 \x01(\tR\abatchId\x12\x1f\n" +
+	"\vexpiry_date\x18\x02 \x01(\tR\n" +
+	"expiryDate\x12E\n" +
+	"\rexpiry_source\x18\x03 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\x12\x16\n" +
+	"\x06reason\x18\x04 \x01(\tR\x06reason\"I\n" +
+	"\x16SetBatchExpiryResponse\x12/\n" +
+	"\x05batch\x18\x01 \x01(\v2\x19.inventory_iface.v1.BatchR\x05batch\"\x80\x03\n" +
+	"\x11BatchExpiryChange\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
+	"\bbatch_id\x18\x02 \x01(\tR\abatchId\x12&\n" +
+	"\x0fold_expiry_date\x18\x03 \x01(\tR\roldExpiryDate\x12L\n" +
+	"\x11old_expiry_source\x18\x04 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\x0foldExpirySource\x12&\n" +
+	"\x0fnew_expiry_date\x18\x05 \x01(\tR\rnewExpiryDate\x12L\n" +
+	"\x11new_expiry_source\x18\x06 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\x0fnewExpirySource\x12\x16\n" +
+	"\x06reason\x18\a \x01(\tR\x06reason\x12\x1d\n" +
+	"\n" +
+	"changed_by\x18\b \x01(\tR\tchangedBy\x12\x1d\n" +
+	"\n" +
+	"changed_at\x18\t \x01(\x03R\tchangedAt\"h\n" +
+	"\x1dListBatchExpiryChangesRequest\x12\x19\n" +
+	"\bbatch_id\x18\x01 \x01(\tR\abatchId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"w\n" +
+	"\x1eListBatchExpiryChangesResponse\x12?\n" +
+	"\achanges\x18\x01 \x03(\v2%.inventory_iface.v1.BatchExpiryChangeR\achanges\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total*{\n" +
+	"\fExpirySource\x12\x1d\n" +
+	"\x19EXPIRY_SOURCE_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15EXPIRY_SOURCE_ENTERED\x10\x01\x12\x19\n" +
+	"\x15EXPIRY_SOURCE_DEFAULT\x10\x02\x12\x16\n" +
+	"\x12EXPIRY_SOURCE_NONE\x10\x03*\xa0\x01\n" +
 	"\x11ImportStockStatus\x12#\n" +
 	"\x1fIMPORT_STOCK_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bIMPORT_STOCK_STATUS_CREATED\x10\x01\x12&\n" +
 	"\"IMPORT_STOCK_STATUS_SKIPPED_EXISTS\x10\x02\x12\x1d\n" +
-	"\x19IMPORT_STOCK_STATUS_ERROR\x10\x032\xf4\x05\n" +
+	"\x19IMPORT_STOCK_STATUS_ERROR\x10\x032\xef\a\n" +
 	"\fBatchService\x12h\n" +
 	"\vListBatches\x12&.inventory_iface.v1.ListBatchesRequest\x1a'.inventory_iface.v1.ListBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12_\n" +
 	"\bGetBatch\x12#.inventory_iface.v1.GetBatchRequest\x1a$.inventory_iface.v1.GetBatchResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12f\n" +
@@ -1424,7 +1931,9 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\vImportStock\x12&.inventory_iface.v1.ImportStockRequest\x1a'.inventory_iface.v1.ImportStockResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12f\n" +
 	"\vUpdateBatch\x12&.inventory_iface.v1.UpdateBatchRequest\x1a'.inventory_iface.v1.UpdateBatchResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12n\n" +
 	"\rSearchBatches\x12(.inventory_iface.v1.SearchBatchesRequest\x1a).inventory_iface.v1.SearchBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12q\n" +
-	"\x0eResolveBatches\x12).inventory_iface.v1.ResolveBatchesRequest\x1a*.inventory_iface.v1.ResolveBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
+	"\x0eResolveBatches\x12).inventory_iface.v1.ResolveBatchesRequest\x1a*.inventory_iface.v1.ResolveBatchesResponse\"\b\x8a\xb5\x18\x04\x01\x02\x03\x04\x12o\n" +
+	"\x0eSetBatchExpiry\x12).inventory_iface.v1.SetBatchExpiryRequest\x1a*.inventory_iface.v1.SetBatchExpiryResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12\x87\x01\n" +
+	"\x16ListBatchExpiryChanges\x121.inventory_iface.v1.ListBatchExpiryChangesRequest\x1a2.inventory_iface.v1.ListBatchExpiryChangesResponse\"\x06\x8a\xb5\x18\x02\x01\x02BEZCgithub.com/justmart/backend/gen/inventory_iface/v1;inventoryifacev1b\x06proto3"
 
 var (
 	file_inventory_iface_v1_batch_proto_rawDescOnce sync.Once
@@ -1438,60 +1947,78 @@ func file_inventory_iface_v1_batch_proto_rawDescGZIP() []byte {
 	return file_inventory_iface_v1_batch_proto_rawDescData
 }
 
-var file_inventory_iface_v1_batch_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_inventory_iface_v1_batch_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_inventory_iface_v1_batch_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_inventory_iface_v1_batch_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_inventory_iface_v1_batch_proto_goTypes = []any{
-	(ImportStockStatus)(0),         // 0: inventory_iface.v1.ImportStockStatus
-	(*Batch)(nil),                  // 1: inventory_iface.v1.Batch
-	(*ListBatchesRequest)(nil),     // 2: inventory_iface.v1.ListBatchesRequest
-	(*ListBatchesResponse)(nil),    // 3: inventory_iface.v1.ListBatchesResponse
-	(*GetBatchRequest)(nil),        // 4: inventory_iface.v1.GetBatchRequest
-	(*GetBatchResponse)(nil),       // 5: inventory_iface.v1.GetBatchResponse
-	(*CreateBatchRequest)(nil),     // 6: inventory_iface.v1.CreateBatchRequest
-	(*CreateBatchResponse)(nil),    // 7: inventory_iface.v1.CreateBatchResponse
-	(*ImportStockRow)(nil),         // 8: inventory_iface.v1.ImportStockRow
-	(*ImportStockResult)(nil),      // 9: inventory_iface.v1.ImportStockResult
-	(*ImportStockRequest)(nil),     // 10: inventory_iface.v1.ImportStockRequest
-	(*ImportStockResponse)(nil),    // 11: inventory_iface.v1.ImportStockResponse
-	(*UpdateBatchRequest)(nil),     // 12: inventory_iface.v1.UpdateBatchRequest
-	(*UpdateBatchResponse)(nil),    // 13: inventory_iface.v1.UpdateBatchResponse
-	(*SearchBatchesRequest)(nil),   // 14: inventory_iface.v1.SearchBatchesRequest
-	(*SearchBatchesResponse)(nil),  // 15: inventory_iface.v1.SearchBatchesResponse
-	(*BatchRef)(nil),               // 16: inventory_iface.v1.BatchRef
-	(*ResolveBatchesRequest)(nil),  // 17: inventory_iface.v1.ResolveBatchesRequest
-	(*ResolveBatchesResponse)(nil), // 18: inventory_iface.v1.ResolveBatchesResponse
-	(*ProductUnit)(nil),            // 19: inventory_iface.v1.ProductUnit
+	(ExpirySource)(0),                      // 0: inventory_iface.v1.ExpirySource
+	(ImportStockStatus)(0),                 // 1: inventory_iface.v1.ImportStockStatus
+	(*Batch)(nil),                          // 2: inventory_iface.v1.Batch
+	(*ListBatchesRequest)(nil),             // 3: inventory_iface.v1.ListBatchesRequest
+	(*ListBatchesResponse)(nil),            // 4: inventory_iface.v1.ListBatchesResponse
+	(*GetBatchRequest)(nil),                // 5: inventory_iface.v1.GetBatchRequest
+	(*GetBatchResponse)(nil),               // 6: inventory_iface.v1.GetBatchResponse
+	(*CreateBatchRequest)(nil),             // 7: inventory_iface.v1.CreateBatchRequest
+	(*CreateBatchResponse)(nil),            // 8: inventory_iface.v1.CreateBatchResponse
+	(*ImportStockRow)(nil),                 // 9: inventory_iface.v1.ImportStockRow
+	(*ImportStockResult)(nil),              // 10: inventory_iface.v1.ImportStockResult
+	(*ImportStockRequest)(nil),             // 11: inventory_iface.v1.ImportStockRequest
+	(*ImportStockResponse)(nil),            // 12: inventory_iface.v1.ImportStockResponse
+	(*UpdateBatchRequest)(nil),             // 13: inventory_iface.v1.UpdateBatchRequest
+	(*UpdateBatchResponse)(nil),            // 14: inventory_iface.v1.UpdateBatchResponse
+	(*SearchBatchesRequest)(nil),           // 15: inventory_iface.v1.SearchBatchesRequest
+	(*SearchBatchesResponse)(nil),          // 16: inventory_iface.v1.SearchBatchesResponse
+	(*BatchRef)(nil),                       // 17: inventory_iface.v1.BatchRef
+	(*ResolveBatchesRequest)(nil),          // 18: inventory_iface.v1.ResolveBatchesRequest
+	(*ResolveBatchesResponse)(nil),         // 19: inventory_iface.v1.ResolveBatchesResponse
+	(*SetBatchExpiryRequest)(nil),          // 20: inventory_iface.v1.SetBatchExpiryRequest
+	(*SetBatchExpiryResponse)(nil),         // 21: inventory_iface.v1.SetBatchExpiryResponse
+	(*BatchExpiryChange)(nil),              // 22: inventory_iface.v1.BatchExpiryChange
+	(*ListBatchExpiryChangesRequest)(nil),  // 23: inventory_iface.v1.ListBatchExpiryChangesRequest
+	(*ListBatchExpiryChangesResponse)(nil), // 24: inventory_iface.v1.ListBatchExpiryChangesResponse
+	(*ProductUnit)(nil),                    // 25: inventory_iface.v1.ProductUnit
 }
 var file_inventory_iface_v1_batch_proto_depIdxs = []int32{
-	19, // 0: inventory_iface.v1.Batch.units:type_name -> inventory_iface.v1.ProductUnit
-	1,  // 1: inventory_iface.v1.ListBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
-	1,  // 2: inventory_iface.v1.GetBatchResponse.batch:type_name -> inventory_iface.v1.Batch
-	1,  // 3: inventory_iface.v1.CreateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
-	0,  // 4: inventory_iface.v1.ImportStockResult.status:type_name -> inventory_iface.v1.ImportStockStatus
-	8,  // 5: inventory_iface.v1.ImportStockRequest.rows:type_name -> inventory_iface.v1.ImportStockRow
-	9,  // 6: inventory_iface.v1.ImportStockResponse.results:type_name -> inventory_iface.v1.ImportStockResult
-	1,  // 7: inventory_iface.v1.UpdateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
-	1,  // 8: inventory_iface.v1.SearchBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
-	16, // 9: inventory_iface.v1.ResolveBatchesResponse.batches:type_name -> inventory_iface.v1.BatchRef
-	2,  // 10: inventory_iface.v1.BatchService.ListBatches:input_type -> inventory_iface.v1.ListBatchesRequest
-	4,  // 11: inventory_iface.v1.BatchService.GetBatch:input_type -> inventory_iface.v1.GetBatchRequest
-	6,  // 12: inventory_iface.v1.BatchService.CreateBatch:input_type -> inventory_iface.v1.CreateBatchRequest
-	10, // 13: inventory_iface.v1.BatchService.ImportStock:input_type -> inventory_iface.v1.ImportStockRequest
-	12, // 14: inventory_iface.v1.BatchService.UpdateBatch:input_type -> inventory_iface.v1.UpdateBatchRequest
-	14, // 15: inventory_iface.v1.BatchService.SearchBatches:input_type -> inventory_iface.v1.SearchBatchesRequest
-	17, // 16: inventory_iface.v1.BatchService.ResolveBatches:input_type -> inventory_iface.v1.ResolveBatchesRequest
-	3,  // 17: inventory_iface.v1.BatchService.ListBatches:output_type -> inventory_iface.v1.ListBatchesResponse
-	5,  // 18: inventory_iface.v1.BatchService.GetBatch:output_type -> inventory_iface.v1.GetBatchResponse
-	7,  // 19: inventory_iface.v1.BatchService.CreateBatch:output_type -> inventory_iface.v1.CreateBatchResponse
-	11, // 20: inventory_iface.v1.BatchService.ImportStock:output_type -> inventory_iface.v1.ImportStockResponse
-	13, // 21: inventory_iface.v1.BatchService.UpdateBatch:output_type -> inventory_iface.v1.UpdateBatchResponse
-	15, // 22: inventory_iface.v1.BatchService.SearchBatches:output_type -> inventory_iface.v1.SearchBatchesResponse
-	18, // 23: inventory_iface.v1.BatchService.ResolveBatches:output_type -> inventory_iface.v1.ResolveBatchesResponse
-	17, // [17:24] is the sub-list for method output_type
-	10, // [10:17] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	25, // 0: inventory_iface.v1.Batch.units:type_name -> inventory_iface.v1.ProductUnit
+	0,  // 1: inventory_iface.v1.Batch.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	0,  // 2: inventory_iface.v1.ListBatchesRequest.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	2,  // 3: inventory_iface.v1.ListBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
+	2,  // 4: inventory_iface.v1.GetBatchResponse.batch:type_name -> inventory_iface.v1.Batch
+	0,  // 5: inventory_iface.v1.CreateBatchRequest.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	2,  // 6: inventory_iface.v1.CreateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
+	1,  // 7: inventory_iface.v1.ImportStockResult.status:type_name -> inventory_iface.v1.ImportStockStatus
+	9,  // 8: inventory_iface.v1.ImportStockRequest.rows:type_name -> inventory_iface.v1.ImportStockRow
+	10, // 9: inventory_iface.v1.ImportStockResponse.results:type_name -> inventory_iface.v1.ImportStockResult
+	2,  // 10: inventory_iface.v1.UpdateBatchResponse.batch:type_name -> inventory_iface.v1.Batch
+	2,  // 11: inventory_iface.v1.SearchBatchesResponse.batches:type_name -> inventory_iface.v1.Batch
+	17, // 12: inventory_iface.v1.ResolveBatchesResponse.batches:type_name -> inventory_iface.v1.BatchRef
+	0,  // 13: inventory_iface.v1.SetBatchExpiryRequest.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	2,  // 14: inventory_iface.v1.SetBatchExpiryResponse.batch:type_name -> inventory_iface.v1.Batch
+	0,  // 15: inventory_iface.v1.BatchExpiryChange.old_expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	0,  // 16: inventory_iface.v1.BatchExpiryChange.new_expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	22, // 17: inventory_iface.v1.ListBatchExpiryChangesResponse.changes:type_name -> inventory_iface.v1.BatchExpiryChange
+	3,  // 18: inventory_iface.v1.BatchService.ListBatches:input_type -> inventory_iface.v1.ListBatchesRequest
+	5,  // 19: inventory_iface.v1.BatchService.GetBatch:input_type -> inventory_iface.v1.GetBatchRequest
+	7,  // 20: inventory_iface.v1.BatchService.CreateBatch:input_type -> inventory_iface.v1.CreateBatchRequest
+	11, // 21: inventory_iface.v1.BatchService.ImportStock:input_type -> inventory_iface.v1.ImportStockRequest
+	13, // 22: inventory_iface.v1.BatchService.UpdateBatch:input_type -> inventory_iface.v1.UpdateBatchRequest
+	15, // 23: inventory_iface.v1.BatchService.SearchBatches:input_type -> inventory_iface.v1.SearchBatchesRequest
+	18, // 24: inventory_iface.v1.BatchService.ResolveBatches:input_type -> inventory_iface.v1.ResolveBatchesRequest
+	20, // 25: inventory_iface.v1.BatchService.SetBatchExpiry:input_type -> inventory_iface.v1.SetBatchExpiryRequest
+	23, // 26: inventory_iface.v1.BatchService.ListBatchExpiryChanges:input_type -> inventory_iface.v1.ListBatchExpiryChangesRequest
+	4,  // 27: inventory_iface.v1.BatchService.ListBatches:output_type -> inventory_iface.v1.ListBatchesResponse
+	6,  // 28: inventory_iface.v1.BatchService.GetBatch:output_type -> inventory_iface.v1.GetBatchResponse
+	8,  // 29: inventory_iface.v1.BatchService.CreateBatch:output_type -> inventory_iface.v1.CreateBatchResponse
+	12, // 30: inventory_iface.v1.BatchService.ImportStock:output_type -> inventory_iface.v1.ImportStockResponse
+	14, // 31: inventory_iface.v1.BatchService.UpdateBatch:output_type -> inventory_iface.v1.UpdateBatchResponse
+	16, // 32: inventory_iface.v1.BatchService.SearchBatches:output_type -> inventory_iface.v1.SearchBatchesResponse
+	19, // 33: inventory_iface.v1.BatchService.ResolveBatches:output_type -> inventory_iface.v1.ResolveBatchesResponse
+	21, // 34: inventory_iface.v1.BatchService.SetBatchExpiry:output_type -> inventory_iface.v1.SetBatchExpiryResponse
+	24, // 35: inventory_iface.v1.BatchService.ListBatchExpiryChanges:output_type -> inventory_iface.v1.ListBatchExpiryChangesResponse
+	27, // [27:36] is the sub-list for method output_type
+	18, // [18:27] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_inventory_iface_v1_batch_proto_init() }
@@ -1505,8 +2032,8 @@ func file_inventory_iface_v1_batch_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_inventory_iface_v1_batch_proto_rawDesc), len(file_inventory_iface_v1_batch_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   18,
+			NumEnums:      2,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

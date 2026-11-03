@@ -1,6 +1,6 @@
 # Pesanan yang sudah selesai, bisa dibatalkan?
 
-**Bisa — lewat tombol Refund di halaman pesanannya, maksimal 1 hari setelah
+**Bisa — lewat tombol Refund di halaman pesanannya, maksimal 7 hari setelah
 transaksi, dan hanya oleh Owner atau Admin. Pesanannya tidak dihapus: statusnya
 berubah jadi Dikembalikan, lengkap dengan alasannya.**
 
@@ -66,18 +66,22 @@ dianggap tetap dibawa pasien dan resepnya tidak diutak-atik.
 
 | Keadaan | Kenapa | Yang bisa dilakukan |
 |---|---|---|
-| Pesanan sudah **lebih dari 1 hari** | batas refund 1 hari sejak transaksi diselesaikan | tangani manual: buat penyesuaian stok kalau barangnya kembali, dan catat uangnya di luar aplikasi |
+| Pesanan sudah **lebih dari 7 hari** | batas refund 7 hari sejak transaksi diselesaikan | tangani manual: buat penyesuaian stok kalau barangnya kembali, dan catat uangnya di luar aplikasi |
 | Status sudah **Dikembalikan** | satu pesanan hanya bisa di-refund sekali | tidak ada yang perlu dilakukan — refundnya sudah tercatat |
 | Anda masuk sebagai **Kasir** atau **Apoteker** | refund menyangkut uang dan stok sekaligus, jadi dibatasi ke tingkat pengelola | minta Owner atau Admin yang melakukannya |
 | Status **Dibatalkan** atau **Draf** | belum pernah jadi penjualan | tidak perlu di-refund |
 
-## Kenapa dibatasi 1 hari
+## Kenapa dibatasi 7 hari
 
-Refund menyentuh dua hal sekaligus: **uang di laci** dan **stok di rak**. Selama
-hari yang sama, keduanya masih bisa dicocokkan — kasnya belum ditutup dan
-barangnya masih jelas asalnya. Lewat dari itu, stok sudah bergerak karena
-penjualan lain, laporan harian sudah dibaca, dan menambahkan barang kembali ke
-tanggal kemarin justru membuat angka yang sudah dipakai jadi tidak cocok.
+Seminggu cukup untuk kebanyakan pengembalian: pelanggan yang salah beli atau
+barangnya ternyata cacat biasanya kembali dalam beberapa hari.
 
-Karena itu Justmart memilih menutup jalurnya daripada membiarkan koreksi lama
+Tapi refund **mengubah laporan hari transaksinya**, bukan hari refundnya.
+Pesanan yang di-refund keluar dari omzet dan laba **tanggal ia dijual** — jadi
+refund atas penjualan hari Senin yang dilakukan hari Sabtu akan menurunkan omzet
+hari Senin, padahal laporan Senin mungkin sudah Anda baca. Barang yang kembali
+ke stok dicatat masuk **hari ini**.
+
+Makin lama jendelanya, makin jauh ke belakang laporan yang bisa berubah. Karena
+itu Justmart menutup jalurnya setelah 7 hari daripada membiarkan koreksi lama
 diam-diam mengubah laporan yang sudah jadi.

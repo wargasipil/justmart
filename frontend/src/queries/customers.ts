@@ -9,7 +9,7 @@ import type {
   UpdateCustomerRequest,
 } from "../gen/customer_iface/v1/customer_pb";
 
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type CustomersQueryOpts = {
   includeInactive?: boolean;
@@ -36,6 +36,7 @@ export function useCustomersQuery(opts: CustomersQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: customerKeys.list({ includeInactive, query, page, pageSize }),
+    placeholderData: keepPageData(customerKeys.list({ includeInactive, query, page, pageSize })),
     queryFn: async () => {
       const res = await customerClient.listCustomers({
         includeInactive,

@@ -28,7 +28,7 @@ function Controlled({ type, value, ...rest }: React.ComponentProps<typeof Discou
 }
 
 const meta = {
-  title: "Forms & inputs/DiscountField",
+  title: "components/forms/DiscountField",
   component: DiscountField,
   parameters: storyDocs("discount-field"),
   tags: ["autodocs"],

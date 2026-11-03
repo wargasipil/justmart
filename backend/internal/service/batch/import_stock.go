@@ -21,9 +21,6 @@ import (
 // under this; the client can chunk if it ever needs more).
 const maxImportStockRows = 5000
 
-// farFutureExpiry is the sentinel expiry for non-expiring goods (blank CSV cell).
-var farFutureExpiry = time.Date(2099, 12, 31, 0, 0, 0, 0, time.UTC)
-
 // errBatchExists marks a row whose (product, batch_number) already exists —
 // reported as SKIPPED (so re-importing a file with batch numbers is safe).
 var errBatchExists = errors.New("a batch with this number already exists for the product")
@@ -68,9 +65,12 @@ func (s *BatchService) ImportStock(
 			continue
 		}
 
-		// Expiry: blank => non-expiring sentinel.
-		expiry := farFutureExpiry
+		// Expiry: blank => the goods do not expire. Recorded as source NONE so the
+		// lot reads "does not expire" rather than as a real 2099 date.
+		expiry := common.NoExpiryDate
+		expirySource := common.ExpirySourceNone
 		if ed := strings.TrimSpace(row.ExpiryDate); ed != "" {
+			expirySource = common.ExpirySourceEntered
 			expiry, err = time.Parse(common.DateLayout, ed)
 			if err != nil {
 				res.Status = inventoryifacev1.ImportStockStatus_IMPORT_STOCK_STATUS_ERROR
@@ -125,12 +125,34 @@ func (s *BatchService) ImportStock(
 				}
 			}
 
+			// Who MADE the lot, resolved by CODE like the product is by SKU and
+			// the pack by unit name — a hand-authored CSV cannot carry UUIDs.
+			//
+			// ARCHIVED is accepted, the same asymmetry CreateBatch follows: an
+			// approved-source list is intent and refuses a retired factory,
+			// while a lot records what happened — and opening stock is by
+			// definition goods that arrived before today.
+			var makerID *string
+			if code := strings.TrimSpace(row.ManufacturerCode); code != "" {
+				var maker model.Manufacturer
+				mErr := tx.Where("code = ?", code).First(&maker).Error
+				if errors.Is(mErr, gorm.ErrRecordNotFound) {
+					return fmt.Errorf("manufacturer code %q not found", code)
+				}
+				if mErr != nil {
+					return mErr
+				}
+				makerID = &maker.ID
+			}
+
 			b := model.Batch{
-				ProductID:   product.ID,
-				BatchNumber: batchNo,
-				ExpiryDate:  expiry,
-				CostPrice:   row.CostPrice,
-				ReceivedAt:  time.Now(),
+				ProductID:      product.ID,
+				BatchNumber:    batchNo,
+				ExpiryDate:     expiry,
+				ExpirySource:   expirySource,
+				CostPrice:      row.CostPrice,
+				ReceivedAt:     time.Now(),
+				ManufacturerID: makerID,
 			}
 			if err := tx.Create(&b).Error; err != nil {
 				return fmt.Errorf("create batch: %w", err)

@@ -12,7 +12,7 @@ import { useCrumbLabel } from "../lib/breadcrumbs";
 // story below is the genuine trail for that path.
 
 const meta = {
-  title: "Layout & page chrome/Breadcrumbs",
+  title: "components/layout/Breadcrumbs",
   component: Breadcrumbs,
   parameters: storyDocs("breadcrumbs"),
   tags: ["autodocs"],

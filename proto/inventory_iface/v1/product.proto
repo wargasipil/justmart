@@ -51,7 +51,46 @@ message Product {
   // marker is what tells the UI whether to fetch at all, and doubles as the
   // client cache key so a re-upload appears without an invalidate.
   int64 image_updated_at = 29;
+  // Who MADE this product ("pabrik"), as opposed to the supplier who sold it
+  // to the shop. Resolve to a name via ResolveManufacturers — never rendered
+  // as a raw id. Empty = not recorded, which is every product until someone
+  // sets it.
+  string manufacturer_id = 30;
+  // Every pabrik this product may be sourced from -- the approved-source
+  // list, of which manufacturer_id above is the PRIMARY and always a member.
+  // Embedded rather than paginated for the same reason price_tiers is: the
+  // restock form needs the whole set to offer the buyer a constrained picker,
+  // and a partial list would silently hide a legitimate source. Bounded by
+  // how many factories make one item, which is a handful.
+  repeated string manufacturer_ids = 31;
+  // How the Receive dialog pre-fills a new lot's expiry for this product. The
+  // server only STORES the setting; the frontend computes the date and seeds
+  // the field, and the person receiving can always type over it.
+  ExpiryDefault expiry_default = 32;
+  int32 expiry_default_months = 33; // > 0 only when expiry_default = MONTHS
 }
+
+// How a product's new lots get their expiry pre-filled at receive.
+enum ExpiryDefault {
+  EXPIRY_DEFAULT_UNSPECIFIED = 0; // treated as MANUAL
+  EXPIRY_DEFAULT_MANUAL = 1;      // field starts empty: type it from the pack
+  EXPIRY_DEFAULT_MONTHS = 2;      // received date + expiry_default_months, end of that month
+  EXPIRY_DEFAULT_NONE = 3;        // the goods do not expire; no field at all
+}
+
+// A product's expiry setting, as GetProductExpiryDefaults returns it -- just
+// enough for the Receive dialog to seed its lines without fetching each
+// product in full.
+message ProductExpiryDefault {
+  string product_id = 1;
+  ExpiryDefault expiry_default = 2;
+  int32 expiry_default_months = 3;
+  // Carried so the dialog can apply the pharmacy rule (no estimated expiry on
+  // a prescription medicine) without a second lookup.
+  bool prescription_required = 4;
+}
+message GetProductExpiryDefaultsRequest { repeated string product_ids = 1; }
+message GetProductExpiryDefaultsResponse { repeated ProductExpiryDefault defaults = 1; }
 
 // A unit of measure for a product. Stock is stored in the base unit (factor 1);
 // larger units convert via `factor` (base units per 1 of this unit).
@@ -112,6 +151,9 @@ message ProductRestockLog {
   int64 restock_created_at = 7; // unix; PO (restock order) created
   int64 restock_arrived_at = 8; // unix; receipt received_at
   bool discount_per_item = 9;   // when true, discount was applied per item (× qty)
+  // Who MADE this delivery, snapshotted from the purchase-order line. Empty on
+  // anything received before the maker was recorded -- not-recorded, not "any".
+  string manufacturer_id = 10;
 }
 
 service ProductService {
@@ -151,6 +193,17 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  // Manager-only like UpdateProduct: both write the catalog. Add is reachable
+  // from the restock form, which is where a buyer actually learns who made the
+  // goods; Set is the product detail page's admin card.
+  rpc AddProductManufacturer(AddProductManufacturerRequest) returns (AddProductManufacturerResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
+  rpc SetProductManufacturers(SetProductManufacturersRequest) returns (SetProductManufacturersResponse) {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
@@ -194,6 +247,13 @@ service ProductService {
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
     option (auth_iface.v1.allowed_roles) = ROLE_CASHIER;
     option (auth_iface.v1.allowed_roles) = ROLE_APOTEKER;
+  }
+  // GetProductExpiryDefaults returns the expiry setting of the given products
+  // (max 500 ids) in one light read, for the Receive dialog to seed its lines.
+  // Same roles as receiving.
+  rpc GetProductExpiryDefaults(GetProductExpiryDefaultsRequest) returns (GetProductExpiryDefaultsResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
   // ListLowStock returns active products whose ready_stock in the caller's
   // active warehouse is <= the low-stock threshold (Settings.low_stock_threshold).
@@ -297,6 +357,9 @@ message CreateProductRequest {
   int64 unit_price = 5;       // base unit sell price
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // optional; if empty, a base unit is created from unit/unit_price
+  string manufacturer_id = 8;           // optional; "" = none
+  ExpiryDefault expiry_default = 9;     // UNSPECIFIED = MANUAL
+  int32 expiry_default_months = 10;     // required (1..120) when expiry_default = MONTHS
 }
 message CreateProductResponse { Product product = 1; }
 
@@ -333,8 +396,41 @@ message UpdateProductRequest {
   bool prescription_required = 6;
   repeated ProductUnitInput units = 7;  // upsert the full unit set (exactly one is_base, base factor 1)
   string sku = 8;                        // editable business code; unique (excludes self on update)
+  string manufacturer_id = 9;            // optional; "" clears it
+  // Always written, like the rest of this full replace: UNSPECIFIED = MANUAL.
+  ExpiryDefault expiry_default = 10;
+  int32 expiry_default_months = 11;      // required (1..120) when expiry_default = MONTHS
 }
 message UpdateProductResponse { Product product = 1; }
+
+// AddProductManufacturer approves one more pabrik for a product, idempotently.
+// It is what the RESTOCK FORM calls: a buyer holding the invoice has just
+// learned of a source the catalog does not list yet, and blocking them behind
+// an admin screen they cannot reach from there would mean the order simply
+// records no maker at all. When the product has no primary yet the addition
+// becomes it -- a first source is the usual one until someone says otherwise.
+//
+// Narrow ON PURPOSE, like the set-replace below: UpdateProduct is a full
+// replace of name/sku/units/price, so a form holding one line's worth of
+// product data would overwrite the rest of the catalog row to change this.
+message AddProductManufacturerRequest {
+  string product_id = 1;
+  string manufacturer_id = 2;
+}
+message AddProductManufacturerResponse { Product product = 1; }
+
+// SetProductManufacturers replaces the whole approved-source list and names
+// which of them is primary. The admin card on the product detail page; the
+// full-set shape mirrors how units are edited (one upsert of the complete
+// set), so a removal is expressed by absence rather than by a second RPC.
+message SetProductManufacturersRequest {
+  string product_id = 1;
+  repeated string manufacturer_ids = 2;  // empty clears the list AND the primary
+  // Must be one of manufacturer_ids, or empty to let the server keep the
+  // current primary when it survives the edit and pick the first otherwise.
+  string primary_manufacturer_id = 3;
+}
+message SetProductManufacturersResponse { Product product = 1; }
 
 message ArchiveProductRequest { string id = 1; }
 message ArchiveProductResponse { Product product = 1; }

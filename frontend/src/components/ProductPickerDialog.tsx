@@ -241,7 +241,7 @@ export default function ProductPickerDialog({
                 <Pagination
                   page={page}
                   pageSize={pageSize}
-                  total={productsQ.total}
+                  total={productsQ.total} loading={productsQ.isPlaceholderData}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
                 />

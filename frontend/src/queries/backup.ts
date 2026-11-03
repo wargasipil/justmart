@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { backupClient } from "../lib/clients";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export const backupKeys = {
   all: ["backups"] as const,
@@ -15,6 +15,7 @@ export function useBackupsQuery(opts: { page?: number; pageSize?: number } = {})
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: backupKeys.list(page, pageSize),
+    placeholderData: keepPageData(backupKeys.list(page, pageSize)),
     queryFn: async () => {
       const res = await backupClient.listBackups({ limit: pageSize, offset: page * pageSize });
       return { rows: res.backups, total: res.total };

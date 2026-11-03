@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { warehouseClient } from "../lib/clients";
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 import type {
   CreateWarehouseRequest,
   GrantWarehouseAccessRequest,
@@ -38,6 +38,7 @@ export function useWarehousesQuery(opts: WarehousesQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: warehouseKeys.list({ includeInactive, page, pageSize, query }),
+    placeholderData: keepPageData(warehouseKeys.list({ includeInactive, page, pageSize, query })),
     queryFn: async () => {
       const res = await warehouseClient.listWarehouses({
         includeInactive,

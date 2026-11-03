@@ -19,7 +19,7 @@ func TestCreatePrescription_HappyPath(t *testing.T) {
 	resp, err := env.svc.CreatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		CustomerId: custID,
 		IssuerName: "dr. Sutomo",
-		IssuedAt:   "2026-06-01",
+		IssuedAt:   daysAgo(0),
 		Items: []*prescriptionifacev1.PrescriptionItemInput{
 			{ProductId: prodID, PrescribedQty: 10, DosageInstructions: "3x1"},
 		},
@@ -31,8 +31,8 @@ func TestCreatePrescription_HappyPath(t *testing.T) {
 	require.NotEmpty(t, rx.RxNo)                 // RX-YYYY-NNNN assigned
 	require.Equal(t, custID, rx.CustomerId)
 	require.Equal(t, "ACTIVE", rx.Status)        // computed
-	require.Equal(t, "2026-06-01", rx.IssuedAt)
-	require.Equal(t, "2026-08-30", rx.ExpiresAt) // issued + 90d default
+	require.Equal(t, daysAgo(0), rx.IssuedAt)
+	require.Equal(t, dateIn(90), rx.ExpiresAt) // issued + 90d default
 	require.Len(t, rx.Items, 1)
 	require.Equal(t, prodID, rx.Items[0].ProductId)
 	require.Equal(t, int32(10), rx.Items[0].PrescribedQty)
@@ -48,7 +48,7 @@ func TestCreatePrescription_WithFeeAndPatientInfo(t *testing.T) {
 	resp, err := env.svc.CreatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		CustomerId:     custID,
 		IssuerName:     "dr. Sutomo",
-		IssuedAt:       "2026-06-01",
+		IssuedAt:       daysAgo(0),
 		BiayaJasa:      15000,
 		PatientAge:     7,
 		PatientWeight:  "20 kg",
@@ -79,7 +79,7 @@ func TestCreatePrescription_RejectsNegativeFee(t *testing.T) {
 	_, err := env.svc.CreatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		CustomerId: custID,
 		IssuerName: "dr. Sutomo",
-		IssuedAt:   "2026-06-01",
+		IssuedAt:   daysAgo(0),
 		BiayaJasa:  -1,
 		Items:      []*prescriptionifacev1.PrescriptionItemInput{{ProductId: prodID, PrescribedQty: 1}},
 	}))
@@ -95,7 +95,7 @@ func TestCreatePrescription_RequiresCustomer(t *testing.T) {
 	_, err := env.svc.CreatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		CustomerId: "", // missing -> InvalidArgument
 		IssuerName: "dr. Sutomo",
-		IssuedAt:   "2026-06-01",
+		IssuedAt:   daysAgo(0),
 		Items: []*prescriptionifacev1.PrescriptionItemInput{
 			{ProductId: prodID, PrescribedQty: 5},
 		},
@@ -112,7 +112,7 @@ func TestCreatePrescription_RequiresItems(t *testing.T) {
 	_, err := env.svc.CreatePrescription(env.ctx, connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		CustomerId: custID,
 		IssuerName: "dr. Sutomo",
-		IssuedAt:   "2026-06-01",
+		IssuedAt:   daysAgo(0),
 		Items:      nil, // no lines -> InvalidArgument
 	}))
 	require.Error(t, err)
@@ -125,7 +125,7 @@ func TestCreatePrescription_Unauthenticated(t *testing.T) {
 
 	_, err := env.svc.CreatePrescription(context.Background(), connect.NewRequest(&prescriptionifacev1.CreatePrescriptionRequest{
 		IssuerName: "dr. Sutomo",
-		IssuedAt:   "2026-06-01",
+		IssuedAt:   daysAgo(0),
 	}))
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))

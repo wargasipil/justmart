@@ -12,7 +12,7 @@ import { Emitted } from "../routes/dev/storyDecorators";
 // Nothing fires until the popover is opened, so browsing costs nothing.
 
 const meta = {
-  title: "Selects & pickers/SupplierSelect",
+  title: "components/selects/SupplierSelect",
   component: SupplierSelect,
   parameters: storyDocs("supplier-select", { needsBackend: true }),
   tags: ["autodocs", "needs-backend"],

@@ -17,7 +17,9 @@ import (
 
 // refundWindow bounds how long after completion a sale may be refunded. Past
 // this, the refund is rejected (stale returns must be handled manually).
-const refundWindow = 24 * time.Hour
+// frontend/src/routes/OrderDetail.tsx mirrors it to decide whether to offer
+// the Refund button — change both together.
+const refundWindow = 7 * 24 * time.Hour
 
 // RefundSale fully refunds a COMPLETED order. It flips the sale to REFUNDED,
 // records the refunded amount/reason, and — when restock is requested — returns
@@ -52,10 +54,11 @@ func (s *SaleService) RefundSale(
 			return connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("only completed sales can be refunded; this one is %s", sale.Status))
 		}
-		// Refunds are time-boxed: only within refundWindow (1 day) of completion.
+		// Refunds are time-boxed: only within refundWindow of completion.
 		if sale.CompletedAt == nil || now.Sub(*sale.CompletedAt) > refundWindow {
 			return connect.NewError(connect.CodeFailedPrecondition,
-				errors.New("refunds are only allowed within 1 day of completion"))
+				fmt.Errorf("refunds are only allowed within %d days of completion",
+					int(refundWindow/(24*time.Hour))))
 		}
 
 		var items []model.SaleItem

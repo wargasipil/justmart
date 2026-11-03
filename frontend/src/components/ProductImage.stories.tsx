@@ -8,7 +8,7 @@ import { storyDocs } from "../routes/dev/storyDocs";
 // render the neutral placeholder and make no request.
 
 const meta = {
-  title: "Data display/ProductImage",
+  title: "components/data/ProductImage",
   component: ProductImage,
   parameters: storyDocs("product-image"),
   tags: ["autodocs"],

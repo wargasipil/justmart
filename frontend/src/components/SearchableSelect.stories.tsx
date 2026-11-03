@@ -39,7 +39,7 @@ function peopleSearch(query: string): Promise<Person[]> {
 }
 
 const meta = {
-  title: "Selects & pickers/SearchableSelect",
+  title: "components/selects/SearchableSelect",
   parameters: storyDocs("searchable-select"),
   tags: ["autodocs"],
 } satisfies Meta;

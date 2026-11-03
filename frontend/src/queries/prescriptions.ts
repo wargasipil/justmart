@@ -6,6 +6,7 @@ import type {
   CreatePrescriptionRequest,
   UpdatePrescriptionRequest,
 } from "../gen/prescription_iface/v1/prescription_pb";
+import { keepPageData } from "../lib/pagination";
 
 export type PrescriptionsQueryOpts = {
   status?: string;
@@ -29,6 +30,7 @@ export function usePrescriptionsQuery(opts: PrescriptionsQueryOpts = {}) {
   const { status = "", customerId = "", limit = 25, offset = 0, enabled = true } = opts;
   const q = useQuery({
     queryKey: prescriptionKeys.list({ status, customerId, limit, offset }),
+    placeholderData: keepPageData(prescriptionKeys.list({ status, customerId, limit, offset })),
     queryFn: async () => {
       const res = await prescriptionClient.listPrescriptions({
         status,

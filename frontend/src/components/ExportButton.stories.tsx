@@ -7,7 +7,7 @@ import { toast } from "../lib/toaster";
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const meta = {
-  title: "Toolbar & filters/ExportButton",
+  title: "components/toolbar/ExportButton",
   component: ExportButton,
   parameters: storyDocs("export-button"),
   tags: ["autodocs"],

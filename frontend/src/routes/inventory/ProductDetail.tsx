@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Badge,
   Box,
@@ -22,12 +22,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCrumbLabel } from "../../lib/breadcrumbs";
 import BackButton from "../../components/BackButton";
 import ProductImage from "../../components/ProductImage";
+import { manufacturerLabel } from "../../components/ManufacturerSelect";
+import { expiryDefaultSummary } from "./ProductExpiryDefaultField";
 import ProductImagePicker from "./ProductImagePicker";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
 import { useAuth } from "../../lib/auth";
 import { formatMoney } from "../../lib/format";
 import { canManageProducts, canSeeCost } from "../../lib/roles";
+import { useManufacturerRefs } from "../../queries/refs";
 import { toast } from "../../lib/toaster";
 import {
   useArchiveProductMutation,
@@ -40,6 +43,7 @@ import { Card, Field, Tile, UnitsCard } from "./productDetailCards";
 import ProductBatchesTab from "./ProductBatchesTab";
 import DiscountTab from "./ProductDiscountTab";
 import GrosirPanel from "./ProductGrosirPanel";
+import ProductManufacturersPanel from "./ProductManufacturersPanel";
 import ProductMovementsTab from "./ProductMovementsTab";
 import ProductPriceHistoryTab from "./ProductPriceHistoryTab";
 import ProductRestockTab from "./ProductRestockTab";
@@ -56,8 +60,9 @@ export default function ProductDetail() {
   const { user } = useAuth();
   // The till reads this page in full — cost, restock history, the ledger and
   // the grosir ladder included. What it does NOT get is the write surfaces
-  // (edit / archive / image upload / tier + discount mutations), whose RPCs
-  // stay manager-only, so those hang off canManage instead.
+  // (edit / archive / image upload / tier + discount mutations / the pabrik
+  // approved-sources card / the lot expiry correction), whose RPCs stay
+  // manager-only, so those hang off canManage instead.
   const showCost = canSeeCost(user?.role);
   const canManage = canManageProducts(user?.role);
   const [editing, setEditing] = useState(false);
@@ -67,6 +72,10 @@ export default function ProductDetail() {
 
   const medQ = useProductQuery(id);
   useCrumbLabel(medQ.data?.name);
+  // Resolve-by-IDs for the one referenced pabrik (HARD RULE) — bounded to a
+  // single id, and disabled entirely when the product has none.
+  const mfrId = medQ.data?.manufacturerId ?? "";
+  const mfrRefs = useManufacturerRefs(useMemo(() => (mfrId ? [mfrId] : []), [mfrId]));
   const archive = useArchiveProductMutation();
   const unarchive = useUnarchiveProductMutation();
   // Each tab owns its own query and pager (keyed by product id, so navigating to
@@ -217,9 +226,23 @@ export default function ProductDetail() {
                     label={t("inventory.products.unit")}
                     value={med.unit}
                   />
+                  {/* Pabrik — outside the showCost gate: who made it is not
+                      purchase cost, so the till sees it like the SKU. */}
+                  <Field
+                    label={t("inventory.products.manufacturer")}
+                    value={manufacturerLabel(mfrRefs.get(med.manufacturerId)) ?? "—"}
+                  />
                   <Field
                     label={t("inventory.products.unitPrice")}
                     value={formatMoney(med.unitPrice)}
+                  />
+                  {/* How this product's lots get their expiry on the Receive
+                      screen. Not cost, so outside the showCost gate: the
+                      catalog is fully readable by the till (edits to it live
+                      on the product form, behind canManage). */}
+                  <Field
+                    label={t("inventory.products.expiryDefault")}
+                    value={expiryDefaultSummary(t, med)}
                   />
                   {showCost && (
                     <>
@@ -285,6 +308,16 @@ export default function ProductDetail() {
               directly under the unit list it keys off. */}
           <Stack gap={6}>
             <UnitsCard product={med} showCost={showCost} />
+            {/* Approved sources. Every control in this card is a write
+                (Set/AddProductManufacturer, and the picker searches pabrik
+                through the manager-only SearchManufacturers), so it hangs off
+                the catalog write gate. The till still SEES a pabrik name on the
+                Info block above, which is why that one is not gated. */}
+            {canManage && (
+              <Card title={t("inventory.products.manufacturers")}>
+                <ProductManufacturersPanel product={med} />
+              </Card>
+            )}
             {/* The ladder itself is readable by the till (it prices against
                 cost, which the till now sees); only the add/edit/delete
                 controls inside are manager-gated. */}
@@ -336,7 +369,12 @@ export default function ProductDetail() {
             </Tabs.List>
 
             <Tabs.Content value="batches" p={4}>
-              <ProductBatchesTab productId={id} showCost={showCost} />
+              <ProductBatchesTab
+                productId={id}
+                productName={med.name}
+                showCost={showCost}
+                canManage={canManage}
+              />
             </Tabs.Content>
 
             {/* Rendered, not just untriggered: Chakra keeps inactive panels

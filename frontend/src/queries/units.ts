@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { unitClient } from "../lib/clients";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 import type {
   ArchiveUnitBaseRequest,
   ArchiveUnitDerivativeRequest,
@@ -28,6 +28,7 @@ export function useUnitBasesQuery(
   const { includeInactive = false, page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: unitKeys.bases(includeInactive, page, pageSize),
+    placeholderData: keepPageData(unitKeys.bases(includeInactive, page, pageSize)),
     queryFn: async () => {
       const res = await unitClient.listUnitBases({
         includeInactive,

@@ -281,7 +281,7 @@ export default function Orders() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={salesQ.total}
+          total={salesQ.total} loading={salesQ.isPlaceholderData}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />

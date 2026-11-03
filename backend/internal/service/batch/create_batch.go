@@ -2,6 +2,7 @@ package batch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -27,12 +28,19 @@ func (s *BatchService) CreateBatch(
 	if req.Msg.ProductId == "" {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.product_required")
 	}
-	expiry, err := time.Parse(common.DateLayout, req.Msg.ExpiryDate)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("expiry_date must be YYYY-MM-DD: %w", err))
+	expirySource := common.ExpirySourceFromWire(int32(req.Msg.ExpirySource))
+	expiry, ok := common.LotExpiry(req.Msg.ExpiryDate, expirySource)
+	if !ok {
+		return nil, common.TokenError(connect.CodeInvalidArgument, "batch.expiry_invalid")
+	}
+	if expirySource == common.ExpirySourceNone {
+		if err := s.assertMayHaveNoExpiry(ctx, s.db, req.Msg.ProductId); err != nil {
+			return nil, err
+		}
 	}
 	received := time.Now()
 	if req.Msg.ReceivedAt != "" {
+		var err error
 		received, err = time.Parse(common.DateLayout, req.Msg.ReceivedAt)
 		if err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("received_at must be YYYY-MM-DD: %w", err))
@@ -46,15 +54,34 @@ func (s *BatchService) CreateBatch(
 	}
 
 	batch := model.Batch{
-		ProductID:   req.Msg.ProductId,
-		BatchNumber: strings.TrimSpace(req.Msg.BatchNumber),
-		ExpiryDate:  expiry,
-		CostPrice:   req.Msg.CostPrice,
-		ReceivedAt:  received,
+		ProductID:    req.Msg.ProductId,
+		BatchNumber:  strings.TrimSpace(req.Msg.BatchNumber),
+		ExpiryDate:   expiry,
+		ExpirySource: expirySource,
+		CostPrice:    req.Msg.CostPrice,
+		ReceivedAt:   received,
 	}
 	if req.Msg.SupplierId != "" {
 		sid := req.Msg.SupplierId
 		batch.SupplierID = &sid
+	}
+	// Who MADE the lot. The manual path is the one place a person is holding
+	// the box and can read the factory off it, so refusing to record it would
+	// mint a lot that answers no recall while the answer was in front of them.
+	//
+	// Existence is checked but NOT activity: unlike a product's approved-source
+	// list (which refuses an archived pabrik, since you cannot start sourcing
+	// from a retired factory), a lot records what happened -- and hand-entered
+	// stock may genuinely come from one. Same posture as CreateReceipt.
+	if mid := strings.TrimSpace(req.Msg.ManufacturerId); mid != "" {
+		var maker model.Manufacturer
+		if e := s.db.WithContext(ctx).Where("id = ?", mid).First(&maker).Error; e != nil {
+			if errors.Is(e, gorm.ErrRecordNotFound) {
+				return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("manufacturer %s not found", mid))
+			}
+			return nil, connect.NewError(connect.CodeInternal, e)
+		}
+		batch.ManufacturerID = &mid
 	}
 
 	warehouseID, err := common.ResolveWarehouse(ctx, s.db, caller)

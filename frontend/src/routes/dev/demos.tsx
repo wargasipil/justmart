@@ -25,6 +25,7 @@ import ColumnsPopover from "../../components/ColumnsPopover";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import DashboardTile from "../../components/DashboardTile";
 import DatePickerField from "../../components/DatePicker";
+import ExpiryInput from "../../components/ExpiryInput";
 import DateRangeFilter from "../../components/DateRangeFilter";
 import DiscountField, { type DiscountType } from "../../components/DiscountField";
 import EntityDialog from "../../components/EntityDialog";
@@ -42,11 +43,15 @@ import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
 import StockUnitPopover from "../../components/StockUnitPopover";
 import SummaryTile from "../../components/SummaryTile";
+import ManufacturerSelect from "../../components/ManufacturerSelect";
 import SupplierSelect from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
 import TrendChart from "../../components/TrendChart";
 import UserAvatar from "../../components/UserAvatar";
 import ProductImage from "../../components/ProductImage";
+import ProductItem from "../../components/products/ProductItem";
+import ManufacturerListItemMobile from "../../components/manufacturer/ManufacturerListItemMobile";
+import ProductItemMobile from "../../components/products/ProductItemMobile";
 import ProductPickerDialog from "../../components/ProductPickerDialog";
 import WarehouseSelect from "../../components/WarehouseSelect";
 import {
@@ -278,6 +283,18 @@ export function DatePickerDemo() {
   );
 }
 
+// Starts empty: type 0327 (end of Mar 2027) or 05/03/27 (that exact day) and
+// watch the readout and the emitted date agree.
+export function ExpiryInputDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <Stack gap={2} maxW="280px">
+      <ExpiryInput value={value} onChange={setValue} aria-label="Expiry" />
+      <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
 export function DiscountFieldDemo() {
   const [type, setType] = useState<DiscountType>("FIXED");
   const [value, setValue] = useState(5000);
@@ -435,6 +452,18 @@ export function SupplierSelectDemo() {
   return (
     <Stack gap={2} maxW="280px">
       <SupplierSelect value={value} onChange={setValue} />
+      <Emitted>{value}</Emitted>
+    </Stack>
+  );
+}
+
+// Like SupplierSelectDemo, this one IS a server search — it needs the dev
+// backend to return rows. Listed as needs-backend in the registry.
+export function ManufacturerSelectDemo() {
+  const [value, setValue] = useState("");
+  return (
+    <Stack gap={2} maxW="280px">
+      <ManufacturerSelect value={value} onChange={setValue} />
       <Emitted>{value}</Emitted>
     </Stack>
   );
@@ -755,6 +784,56 @@ export function ProductImageDemo() {
       <ProductImage productId="demo-3" name="Vitamin C" version={0} size={56} />
       <ProductImage productId="demo-4" name="Antasida" version={0} size={96} />
     </HStack>
+  );
+}
+
+// Sample products — imageUpdatedAt 0 = no picture, so no fetch.
+const DEMO_ITEMS = [
+  { id: "demo-p1", name: "Indomie Goreng 85 g", sku: "8998866200011", imageUpdatedAt: 0n, unit: "pcs", unitPrice: 3_500n, readyStock: 320n, active: true },
+  { id: "demo-p2", name: "Minyak Goreng Bimoli Spesial 2 L Pouch Isi Ulang", sku: "8992628020015", imageUpdatedAt: 0n, unit: "pouch", unitPrice: 38_900n, readyStock: 0n, active: true },
+];
+
+export function ProductItemDemo() {
+  return (
+    <Stack gap={4}>
+      <ProductItem product={DEMO_ITEMS[0]} />
+      <ProductItem product={DEMO_ITEMS[1]} size={28} meta=" · pouch" />
+    </Stack>
+  );
+}
+
+export function ProductItemMobileDemo() {
+  const [last, setLast] = useState("");
+  return (
+    <Stack gap={0} maxW="390px" borderWidth="1px" borderRadius="md">
+      {DEMO_ITEMS.map((p) => (
+        <ProductItemMobile key={p.id} product={p} onClick={() => setLast(p.sku)} />
+      ))}
+      <Text fontSize="xs" color="fg.muted" px={3} py={2}>
+        {last || "—"}
+      </Text>
+    </Stack>
+  );
+}
+
+// Sample pabrik: one with a phone, one reachable only by email, one archived.
+const DEMO_MANUFACTURERS = [
+  { id: "demo-m1", code: "MFR-0001", name: "PT Kalbe Farma Tbk", phone: "021-4287-3888", contactEmail: "care@kalbe.co.id", address: "Jl. Letjen Suprapto Kav. 4, Jakarta Pusat", active: true },
+  { id: "demo-m2", code: "MFR-0010", name: "PT Novell Pharmaceutical Laboratories", phone: "", contactEmail: "info@novellpharm.com", address: "Jl. Pos Pengumben, Jakarta Barat", active: true },
+  { id: "demo-m3", code: "MFR-0029", name: "CV Aneka Pangan Lestari", phone: "", contactEmail: "", address: "Cikarang, Bekasi", active: false },
+];
+
+export function ManufacturerListItemMobileDemo() {
+  const [last, setLast] = useState("");
+  return (
+    <Stack gap={0} maxW="390px" borderWidth="1px" borderRadius="md">
+      {DEMO_MANUFACTURERS.map((m) => (
+        <ManufacturerListItemMobile key={m.id} manufacturer={m} onClick={() => setLast(m.code)} />
+      ))}
+      <Text fontSize="xs" color="fg.muted" px={3} py={2}>
+        {last || "—"}
+      </Text>
+    </Stack>
   );
 }
 

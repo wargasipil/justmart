@@ -24,6 +24,9 @@ export const PO_STATUS_BY_TAB: Record<string, POStatus> = {
 export type RestockRequestFilters = {
   status: POStatus;
   supplierId: string;
+  // Line-level, unlike supplierId: an order matches when ANY of its lines
+  // is sourced from this pabrik.
+  manufacturerId: string;
   onlyOutstanding: boolean;
   query: string;
   fromUnix: bigint;
@@ -39,6 +42,8 @@ export type RestockFilters = {
   setSearchInput: (v: string) => void;
   supplierId: string;
   setSupplierId: (v: string) => void;
+  manufacturerId: string;
+  setManufacturerId: (v: string) => void;
   onlyOutstanding: boolean;
   setOnlyOutstanding: (v: boolean) => void;
   dateField: string;
@@ -59,6 +64,7 @@ export function RestockFiltersProvider({
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [manufacturerId, setManufacturerId] = useState("");
   const [onlyOutstanding, setOnlyOutstanding] = useState(false);
   // "" = Any date (the picker's own off state) — send no bounds at all then.
   const [dateField, setDateField] = useState("");
@@ -75,11 +81,22 @@ export function RestockFiltersProvider({
 
   const value = useMemo<RestockFilters>(
     () => ({
-      request: { status, supplierId, onlyOutstanding, query, fromUnix, toUnix, dateField },
+      request: {
+        status,
+        supplierId,
+        manufacturerId,
+        onlyOutstanding,
+        query,
+        fromUnix,
+        toUnix,
+        dateField,
+      },
       searchInput,
       setSearchInput,
       supplierId,
       setSupplierId,
+      manufacturerId,
+      setManufacturerId,
       onlyOutstanding,
       setOnlyOutstanding,
       dateField,
@@ -87,7 +104,18 @@ export function RestockFiltersProvider({
       range,
       setRange,
     }),
-    [status, supplierId, onlyOutstanding, query, fromUnix, toUnix, dateField, searchInput, range],
+    [
+      status,
+      supplierId,
+      manufacturerId,
+      onlyOutstanding,
+      query,
+      fromUnix,
+      toUnix,
+      dateField,
+      searchInput,
+      range,
+    ],
   );
 
   return (
@@ -106,5 +134,5 @@ export function useRestockFilters(): RestockFilters {
 // A stable string of the active filters, for usePageState's reset key — paging
 // snaps back to 0 whenever any of them changes.
 export function restockPageKey(f: RestockRequestFilters): string {
-  return `${f.status}|${f.supplierId}|${f.onlyOutstanding}|${f.query}|${f.dateField}|${f.fromUnix}|${f.toUnix}`;
+  return `${f.status}|${f.supplierId}|${f.manufacturerId}|${f.onlyOutstanding}|${f.query}|${f.dateField}|${f.fromUnix}|${f.toUnix}`;
 }

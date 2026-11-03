@@ -348,8 +348,13 @@ type PurchaseOrderItem struct {
 	DiscountType    string `protobuf:"bytes,13,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"` // 'FIXED' | 'PERCENT' (empty => FIXED)
 	DiscountValue   int64  `protobuf:"varint,14,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`
 	DiscountPerItem bool   `protobuf:"varint,15,opt,name=discount_per_item,json=discountPerItem,proto3" json:"discount_per_item,omitempty"` // when true, discount applies to each item (× qty), not the whole line
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Which pabrik this line is being bought from, when the buyer knows. It is
+	// NOT derived from the product: a product may have several approved makers,
+	// and which one a given delivery is has to be read off the invoice. Flows
+	// to batches.manufacturer_id at receive, which is the whole point of it.
+	ManufacturerId string `protobuf:"bytes,16,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PurchaseOrderItem) Reset() {
@@ -487,6 +492,13 @@ func (x *PurchaseOrderItem) GetDiscountPerItem() bool {
 	return false
 }
 
+func (x *PurchaseOrderItem) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
 type PurchaseOrderItemInput struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ProductId       string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
@@ -496,6 +508,7 @@ type PurchaseOrderItemInput struct {
 	DiscountType    string                 `protobuf:"bytes,5,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"`             // 'FIXED' (default) | 'PERCENT'
 	DiscountValue   int64                  `protobuf:"varint,6,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`         // FIXED=minor units; PERCENT=basis points (percent*100)
 	DiscountPerItem bool                   `protobuf:"varint,7,opt,name=discount_per_item,json=discountPerItem,proto3" json:"discount_per_item,omitempty"` // when true, discount applies to each item (× qty), not the whole line
+	ManufacturerId  string                 `protobuf:"bytes,8,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`       // optional; the pabrik this line is sourced from
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -579,6 +592,13 @@ func (x *PurchaseOrderItemInput) GetDiscountPerItem() bool {
 	return false
 }
 
+func (x *PurchaseOrderItemInput) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
 type ListPurchaseOrdersRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Status          POStatus               `protobuf:"varint,1,opt,name=status,proto3,enum=purchasing_iface.v1.POStatus" json:"status,omitempty"`
@@ -590,8 +610,10 @@ type ListPurchaseOrdersRequest struct {
 	ToUnix          int64                  `protobuf:"varint,7,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`         // date-range upper bound (exclusive; 0 = unbounded)
 	DateField       string                 `protobuf:"bytes,8,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"` // which date the range filters: "created" | "received"
 	Offset          int32                  `protobuf:"varint,9,opt,name=offset,proto3" json:"offset,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Orders containing at least one line from this pabrik.
+	ManufacturerId string `protobuf:"bytes,10,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ListPurchaseOrdersRequest) Reset() {
@@ -687,6 +709,13 @@ func (x *ListPurchaseOrdersRequest) GetOffset() int32 {
 	return 0
 }
 
+func (x *ListPurchaseOrdersRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
+	}
+	return ""
+}
+
 type ListPurchaseOrdersResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Orders        []*PurchaseOrder       `protobuf:"bytes,1,rep,name=orders,proto3" json:"orders,omitempty"`
@@ -752,6 +781,7 @@ type GetPurchaseOrdersSummaryRequest struct {
 	FromUnix        int64                  `protobuf:"varint,5,opt,name=from_unix,json=fromUnix,proto3" json:"from_unix,omitempty"`
 	ToUnix          int64                  `protobuf:"varint,6,opt,name=to_unix,json=toUnix,proto3" json:"to_unix,omitempty"`
 	DateField       string                 `protobuf:"bytes,7,opt,name=date_field,json=dateField,proto3" json:"date_field,omitempty"` // "created" | "received"
+	ManufacturerId  string                 `protobuf:"bytes,8,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -831,6 +861,13 @@ func (x *GetPurchaseOrdersSummaryRequest) GetToUnix() int64 {
 func (x *GetPurchaseOrdersSummaryRequest) GetDateField() string {
 	if x != nil {
 		return x.DateField
+	}
+	return ""
+}
+
+func (x *GetPurchaseOrdersSummaryRequest) GetManufacturerId() string {
+	if x != nil {
+		return x.ManufacturerId
 	}
 	return ""
 }
@@ -1515,7 +1552,7 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\n" +
 	"ppn_amount\x18\x18 \x01(\x03R\tppnAmount\x12\x19\n" +
 	"\bppn_rate\x18\x19 \x01(\x05R\appnRate\x12'\n" +
-	"\x0freturned_amount\x18\x1a \x01(\x03R\x0ereturnedAmount\"\x98\x04\n" +
+	"\x0freturned_amount\x18\x1a \x01(\x03R\x0ereturnedAmount\"\xc1\x04\n" +
 	"\x11PurchaseOrderItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
 	"\x11purchase_order_id\x18\x02 \x01(\tR\x0fpurchaseOrderId\x12\x1d\n" +
@@ -1536,7 +1573,8 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"unitFactor\x12#\n" +
 	"\rdiscount_type\x18\r \x01(\tR\fdiscountType\x12%\n" +
 	"\x0ediscount_value\x18\x0e \x01(\x03R\rdiscountValue\x12*\n" +
-	"\x11discount_per_item\x18\x0f \x01(\bR\x0fdiscountPerItem\"\xa0\x02\n" +
+	"\x11discount_per_item\x18\x0f \x01(\bR\x0fdiscountPerItem\x12'\n" +
+	"\x0fmanufacturer_id\x18\x10 \x01(\tR\x0emanufacturerId\"\xc9\x02\n" +
 	"\x16PurchaseOrderItemInput\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1f\n" +
@@ -1546,7 +1584,8 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\x0fproduct_unit_id\x18\x04 \x01(\tR\rproductUnitId\x12#\n" +
 	"\rdiscount_type\x18\x05 \x01(\tR\fdiscountType\x12%\n" +
 	"\x0ediscount_value\x18\x06 \x01(\x03R\rdiscountValue\x12*\n" +
-	"\x11discount_per_item\x18\a \x01(\bR\x0fdiscountPerItem\"\xb7\x02\n" +
+	"\x11discount_per_item\x18\a \x01(\bR\x0fdiscountPerItem\x12'\n" +
+	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerId\"\xe0\x02\n" +
 	"\x19ListPurchaseOrdersRequest\x125\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1d.purchasing_iface.v1.POStatusR\x06status\x12\x1f\n" +
 	"\vsupplier_id\x18\x02 \x01(\tR\n" +
@@ -1558,10 +1597,12 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\ato_unix\x18\a \x01(\x03R\x06toUnix\x12\x1d\n" +
 	"\n" +
 	"date_field\x18\b \x01(\tR\tdateField\x12\x16\n" +
-	"\x06offset\x18\t \x01(\x05R\x06offset\"n\n" +
+	"\x06offset\x18\t \x01(\x05R\x06offset\x12'\n" +
+	"\x0fmanufacturer_id\x18\n" +
+	" \x01(\tR\x0emanufacturerId\"n\n" +
 	"\x1aListPurchaseOrdersResponse\x12:\n" +
 	"\x06orders\x18\x01 \x03(\v2\".purchasing_iface.v1.PurchaseOrderR\x06orders\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"\x8f\x02\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xb8\x02\n" +
 	"\x1fGetPurchaseOrdersSummaryRequest\x125\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1d.purchasing_iface.v1.POStatusR\x06status\x12\x1f\n" +
 	"\vsupplier_id\x18\x02 \x01(\tR\n" +
@@ -1571,7 +1612,8 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\tfrom_unix\x18\x05 \x01(\x03R\bfromUnix\x12\x17\n" +
 	"\ato_unix\x18\x06 \x01(\x03R\x06toUnix\x12\x1d\n" +
 	"\n" +
-	"date_field\x18\a \x01(\tR\tdateField\"\x9d\x01\n" +
+	"date_field\x18\a \x01(\tR\tdateField\x12'\n" +
+	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerId\"\x9d\x01\n" +
 	" GetPurchaseOrdersSummaryResponse\x12\x1f\n" +
 	"\vorder_count\x18\x01 \x01(\x03R\n" +
 	"orderCount\x12#\n" +

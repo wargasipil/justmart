@@ -173,7 +173,7 @@ export default function Warehouses() {
         <Pagination
           page={page}
           pageSize={pageSize}
-          total={warehousesQ.total}
+          total={warehousesQ.total} loading={warehousesQ.isPlaceholderData}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />

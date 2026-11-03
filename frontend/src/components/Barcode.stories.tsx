@@ -5,7 +5,7 @@ import Barcode from "./Barcode";
 import { storyDocs } from "../routes/dev/storyDocs";
 
 const meta = {
-  title: "Data display/Barcode",
+  title: "components/data/Barcode",
   component: Barcode,
   parameters: storyDocs("barcode"),
   tags: ["autodocs"],

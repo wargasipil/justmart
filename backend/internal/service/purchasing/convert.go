@@ -72,6 +72,9 @@ func poItemToProto(it *model.PurchaseOrderItem) *purchasingifacev1.PurchaseOrder
 	if it.ProductUnitID != nil {
 		out.ProductUnitId = *it.ProductUnitID
 	}
+	if it.ManufacturerID != nil {
+		out.ManufacturerId = *it.ManufacturerID
+	}
 	return out
 }
 

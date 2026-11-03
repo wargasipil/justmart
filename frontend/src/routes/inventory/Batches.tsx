@@ -11,39 +11,25 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Search, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 
 import DateRangeFilter from "../../components/DateRangeFilter";
-import EntityDrawer from "../../components/EntityDrawer";
-import ExpiryBadge from "../../components/ExpiryBadge";
+import EnumSelect from "../../components/EnumSelect";
 import ImportStockDialog from "./ImportStockDialog";
-import FormField from "../../components/FormField";
 import Pagination from "../../components/Pagination";
-import SearchableSelect from "../../components/SearchableSelect";
+import ManufacturerSelect, { manufacturerLabel } from "../../components/ManufacturerSelect";
 import SupplierSelect, { supplierLabel } from "../../components/SupplierSelect";
 import TableScroll from "../../components/TableScroll";
-import { searchProducts } from "../../queries/products";
+import { ExpirySource, type Batch } from "../../gen/inventory_iface/v1/batch_pb";
 import { resolveRange, type DateRange } from "../../lib/dateRange";
 import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
-import { toast } from "../../lib/toaster";
-import { useBatchesQuery, useCreateBatchMutation } from "../../queries/batches";
-import { useProductRefs, useSupplierRefs } from "../../queries/refs";
-
-const Schema = z.object({
-  productId: z.string().min(1),
-  supplierId: z.string(),
-  batchNumber: z.string(),
-  expiryDate: z.string().min(1),
-  costPrice: z.coerce.bigint().min(0n),
-  receivedAt: z.string(),
-  initialQuantity: z.coerce.bigint().min(0n),
-});
-type FormValues = z.infer<typeof Schema>;
+import { useBatchesQuery } from "../../queries/batches";
+import { useManufacturerRefs, useProductRefs, useSupplierRefs } from "../../queries/refs";
+import BatchExpiryCell from "./BatchExpiryCell";
+import BatchExpiryDialog from "./BatchExpiryDialog";
+import { CreateBatchDrawer } from "./batchDrawers";
 
 export default function Batches() {
   const { t } = useTranslation();
@@ -65,8 +51,19 @@ export default function Batches() {
   const fromUnix = dateField ? range.fromUnix : 0;
   const toUnix = dateField ? range.toUnix : 0;
   const [supplierId, setSupplierId] = useState("");
+  const [manufacturerId, setManufacturerId] = useState("");
+  // Where each lot's expiry came from. "Product default" is the shelf-check
+  // worklist: dates that are an estimate because nobody typed over them.
+  const [expirySource, setExpirySource] = useState<ExpirySource>(ExpirySource.UNSPECIFIED);
+  const expirySourceOptions = [
+    { value: String(ExpirySource.UNSPECIFIED), label: t("inventory.batches.expirySourceAll") },
+    { value: String(ExpirySource.DEFAULT), label: t("inventory.batches.expirySourceDefault") },
+    { value: String(ExpirySource.ENTERED), label: t("inventory.batches.expirySourceEntered") },
+    { value: String(ExpirySource.NONE), label: t("inventory.batches.expirySourceNone") },
+  ];
+  const [editing, setEditing] = useState<Batch | null>(null);
   const { page, setPage, pageSize, setPageSize } = usePageState(
-    `${query}|${dateField}|${fromUnix}|${toUnix}|${supplierId}`,
+    `${query}|${dateField}|${fromUnix}|${toUnix}|${supplierId}|${manufacturerId}|${expirySource}`,
   );
   const batchesQ = useBatchesQuery({
     // Scope rows to the active warehouse: only lots with stock here (backend
@@ -74,9 +71,11 @@ export default function Batches() {
     onlyInStock: true,
     query,
     supplierId,
+    manufacturerId,
     dateField,
     fromUnix,
     toUnix,
+    expirySource,
     page,
     pageSize,
   });
@@ -85,7 +84,10 @@ export default function Batches() {
   const medRefs = useProductRefs(
     useMemo(() => batchesQ.rows.map((b) => b.productId), [batchesQ.rows]),
   );
-  // Table cells only — <SupplierSelect> resolves its own trigger label.
+  // Table cells only — the selects resolve their own trigger labels.
+  const manufacturerRefs = useManufacturerRefs(
+    useMemo(() => batchesQ.rows.map((b) => b.manufacturerId).filter(Boolean), [batchesQ.rows]),
+  );
   const supplierRefs = useSupplierRefs(
     useMemo(() => batchesQ.rows.map((b) => b.supplierId).filter(Boolean), [batchesQ.rows]),
   );
@@ -122,6 +124,31 @@ export default function Batches() {
               placeholder={t("inventory.batches.supplier")}
             />
           </Box>
+          {/*
+            Who MADE the stock, beside who sold it. The lot is the only row
+            that records a maker, so this is the filter a recall actually
+            needs: pabrik X recalls their batch, and this is where you find
+            every lot of theirs still on the shelf.
+          */}
+          <Box width="200px">
+            <ManufacturerSelect
+              size="sm"
+              value={manufacturerId}
+              onChange={setManufacturerId}
+              placeholder={t("inventory.products.manufacturer")}
+            />
+          </Box>
+          <Box width="220px">
+            <EnumSelect
+              size="sm"
+              value={String(expirySource)}
+              onChange={(v) => setExpirySource(Number(v) as ExpirySource)}
+              items={expirySourceOptions}
+              itemToString={(o) => o.label}
+              itemToValue={(o) => o.value}
+              ariaLabel={t("inventory.batches.expirySourceFilter")}
+            />
+          </Box>
         </HStack>
         <HStack gap={2}>
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
@@ -147,6 +174,7 @@ export default function Batches() {
                 <Table.ColumnHeader>{t("inventory.batches.product")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.batchNumber")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.supplier")}</Table.ColumnHeader>
+                <Table.ColumnHeader>{t("inventory.products.manufacturer")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.expiry")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.cost")}</Table.ColumnHeader>
                 <Table.ColumnHeader>{t("inventory.batches.qty")}</Table.ColumnHeader>
@@ -159,11 +187,17 @@ export default function Batches() {
                   <Table.Cell>{medRefs.get(b.productId)?.name ?? "—"}</Table.Cell>
                   <Table.Cell>{b.batchNumber || "—"}</Table.Cell>
                   <Table.Cell>{supplierLabel(supplierRefs.get(b.supplierId)) ?? "—"}</Table.Cell>
+                  {/*
+                    Who MADE the lot. Blank on everything received before the
+                    column existed and on the manual CreateBatch path -- the
+                    dash is honest there, the alternative would be the
+                    product's current maker invented as this lot's history.
+                  */}
                   <Table.Cell>
-                    <HStack gap={2}>
-                      <Text>{b.expiryDate}</Text>
-                      <ExpiryBadge expiry={b.expiryDate} />
-                    </HStack>
+                    {manufacturerLabel(manufacturerRefs.get(b.manufacturerId)) ?? "—"}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <BatchExpiryCell batch={b} onEdit={() => setEditing(b)} />
                   </Table.Cell>
                   <Table.Cell>{formatMoney(b.costPrice)}</Table.Cell>
                   <Table.Cell>{String(b.currentQuantity)}</Table.Cell>
@@ -197,118 +231,18 @@ export default function Batches() {
       <Pagination
         page={page}
         pageSize={pageSize}
-        total={batchesQ.total}
+        total={batchesQ.total} loading={batchesQ.isPlaceholderData}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       />
 
-      <CreateDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <CreateBatchDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <ImportStockDialog open={importOpen} onClose={() => setImportOpen(false)} />
+      <BatchExpiryDialog
+        batch={editing}
+        productName={editing ? medRefs.get(editing.productId)?.name : undefined}
+        onClose={() => setEditing(null)}
+      />
     </Stack>
-  );
-}
-
-function CreateDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { t } = useTranslation();
-  const create = useCreateBatchMutation();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(Schema),
-    defaultValues: {
-      productId: "",
-      supplierId: "",
-      batchNumber: "",
-      expiryDate: "",
-      costPrice: 0n,
-      receivedAt: "",
-      initialQuantity: 0n,
-    },
-  });
-
-  const submit = form.handleSubmit(async (values) => {
-    try {
-      await create.mutateAsync(values);
-      toast.success(t("common.create") + " ✓");
-      form.reset();
-      onClose();
-    } catch {
-      /* toast handled globally */
-    }
-  });
-
-  return (
-    <EntityDrawer
-      open={open}
-      onClose={onClose}
-      title={t("inventory.batches.addTitle")}
-      footer={
-        <HStack justify="space-between">
-          <Button variant="ghost" onClick={onClose}>
-            {t("common.cancel")}
-          </Button>
-          <Button colorPalette="blue" onClick={submit} loading={create.isPending}>
-            {t("inventory.batches.receive")}
-          </Button>
-        </HStack>
-      }
-    >
-      <form onSubmit={submit}>
-        <Stack gap={4}>
-          <Stack gap={1}>
-            <Text fontSize="sm" fontWeight="medium" color="fg.muted">
-              {t("inventory.batches.product")} *
-            </Text>
-            <SearchableSelect
-              value={form.watch("productId")}
-              onChange={(v) => form.setValue("productId", v)}
-              loadOptions={searchProducts}
-              itemToString={(m) => `${m.sku} · ${m.name}`}
-              itemToValue={(m) => m.id}
-              placeholder={t("inventory.batches.selectProduct")}
-            />
-          </Stack>
-          <Stack gap={1}>
-            <Text fontSize="sm" fontWeight="medium" color="fg.muted">
-              {t("inventory.batches.supplier")}
-            </Text>
-            <SupplierSelect
-              value={form.watch("supplierId")}
-              onChange={(v) => form.setValue("supplierId", v)}
-              placeholder={t("inventory.batches.supplierNone")}
-            />
-          </Stack>
-          <FormField
-            control={form.control}
-            name="batchNumber"
-            label={t("inventory.batches.batchNumber")}
-          />
-          <FormField
-            control={form.control}
-            name="expiryDate"
-            label={t("inventory.batches.expiry")}
-            type="date"
-            required
-          />
-          <FormField
-            control={form.control}
-            name="receivedAt"
-            label={t("inventory.batches.received")}
-            type="date"
-          />
-          <FormField
-            control={form.control}
-            name="costPrice"
-            label={t("inventory.batches.costPerUnit")}
-            money
-          />
-          <FormField
-            control={form.control}
-            name="initialQuantity"
-            label={t("inventory.batches.initialQty")}
-            number
-            required
-          />
-        </Stack>
-      </form>
-    </EntityDrawer>
   );
 }

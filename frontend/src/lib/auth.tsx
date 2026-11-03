@@ -12,7 +12,7 @@ import { User } from "../gen/user_iface/v1/users_pb";
 import { authClient } from "./clients";
 import { ACCESS_KEY, REFRESH_KEY } from "./transport";
 
-type AuthState = {
+export type AuthState = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -27,6 +27,14 @@ type AuthState = {
 };
 
 const AuthCtx = createContext<AuthState | null>(null);
+
+/**
+ * The raw context, for Storybook only. A page story provides a fixed signed-in
+ * user through it (`withPageContext` in routes/dev/storyDecorators) instead of
+ * mounting AuthProvider, which would read tokens and call `Me`. App code goes
+ * through AuthProvider + useAuth, never this.
+ */
+export const AuthContext = AuthCtx;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

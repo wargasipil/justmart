@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { analyticsClient } from "../lib/clients";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 import type {
   DailyMetricRequest,
   Granularity,
@@ -69,6 +69,7 @@ export function useProductMetricQuery(opts: ProductOpts) {
   };
   return useQuery({
     queryKey: ["analytics", "product", req],
+    placeholderData: keepPageData(["analytics", "product", req]),
     queryFn: async () => {
       const res = await analyticsClient.productMetric(req);
       return {
@@ -102,6 +103,7 @@ export function useUserMetricQuery(opts: UserOpts) {
   };
   return useQuery({
     queryKey: ["analytics", "user", req],
+    placeholderData: keepPageData(["analytics", "user", req]),
     queryFn: async () => {
       const res = await analyticsClient.userMetric(req);
       return {

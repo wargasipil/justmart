@@ -3,6 +3,7 @@ import { AlertTriangle, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import EnumSelect from "../../components/EnumSelect";
+import PurchaseLineManufacturer, { type MakerRef } from "./PurchaseLineManufacturer";
 import MoneyInput from "../../components/MoneyInput";
 import NumberInput from "../../components/NumberInput";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
@@ -29,6 +30,16 @@ export type PurchaseLinesTableProps = {
   /** True when the entered cost is above the agreed price (warns, never blocks). */
   isAboveAgreement: (l: Line) => boolean;
   /**
+   * Any pabrik by id, or undefined while it resolves. Resolved by the PARENT
+   * in ONE batched call covering every line's chosen AND approved makers, not
+   * per row -- see the resolve-by-IDs HARD RULE. Handing the labels down also
+   * keeps the picker from flashing a raw id: its own resolve lands a beat
+   * after mount and its trigger reads its label once.
+   */
+  manufacturerRef: (id: string) => MakerRef | undefined;
+  /** Records which pabrik this LINE is sourced from (order data, not catalog). */
+  onSetManufacturer: (idx: number, manufacturerId: string) => void;
+  /**
    * The PO's PPN as a whole percent, or 0 when the switch is off. PPN is
    * capitalized into inventory cost, so it moves the derived per-base-unit
    * column — and the header says so, since that figure then no longer
@@ -50,6 +61,8 @@ export default function PurchaseLinesTable({
   onRemove,
   agreementFor,
   isAboveAgreement,
+  manufacturerRef,
+  onSetManufacturer,
   ppnRate = 0,
 }: PurchaseLinesTableProps) {
   const { t } = useTranslation();
@@ -90,6 +103,19 @@ export default function PurchaseLinesTable({
                   <Text fontSize="xs" color="fg.muted">
                     {l.productSku}
                   </Text>
+                  {/*
+                    Which pabrik this LINE is bought from. It sits in the
+                    product cell rather than in a column of its own because a
+                    phone at 390px cannot afford an eighth one, and it reads as
+                    part of the item's identity anyway. The pick is order data:
+                    it rides along to the server with the line and is stamped
+                    onto the lot at receive.
+                  */}
+                  <PurchaseLineManufacturer
+                    line={l}
+                    refFor={manufacturerRef}
+                    onChange={(id) => onSetManufacturer(idx, id)}
+                  />
                   {agreement && (
                     <Stack gap={0.5} mt={1}>
                       <Text fontSize="xs" color="fg.muted">
@@ -111,6 +137,7 @@ export default function PurchaseLinesTable({
                     <EnumSelect
                       size="sm"
                       width="110px"
+                      ariaLabel={t("purchasing.unit")}
                       value={l.productUnitId}
                       onChange={(v) => onChange(idx, { productUnitId: v })}
                       items={l.units}

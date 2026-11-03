@@ -35,6 +35,7 @@ func (p *PurchaseOrders) ListPurchaseOrders(
 		FromUnix:        req.Msg.FromUnix,
 		ToUnix:          req.Msg.ToUnix,
 		DateField:       req.Msg.DateField,
+		ManufacturerID:  req.Msg.ManufacturerId,
 	}
 	applyFilters := func(q *gorm.DB) *gorm.DB { return p.applyPOFilters(q, filters) }
 

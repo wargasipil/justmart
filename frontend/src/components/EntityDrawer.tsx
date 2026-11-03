@@ -1,4 +1,4 @@
-import { Box, Drawer, Heading, HStack, IconButton, Portal, Stack } from "@chakra-ui/react";
+import { Box, Drawer, Heading, IconButton, Portal, Stack } from "@chakra-ui/react";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -32,13 +32,19 @@ export default function EntityDrawer({
         <Drawer.Backdrop />
         <Drawer.Positioner>
           <Drawer.Content>
+            {/* Title + CloseTrigger as direct children: the header recipe is
+                the flex row, so it is what pins the [x] to the corner. An
+                HStack in between shrinks to the title's width and takes the
+                button with it. `asChild` keeps our own Heading type. */}
             <Drawer.Header borderBottomWidth="1px">
-              <HStack justify="space-between">
+              <Drawer.Title asChild>
                 <Heading size="lg">{title}</Heading>
-                <IconButton aria-label="close" variant="ghost" size="sm" onClick={onClose}>
+              </Drawer.Title>
+              <Drawer.CloseTrigger asChild>
+                <IconButton aria-label="close" variant="ghost" size="sm">
                   <X size={18} />
                 </IconButton>
-              </HStack>
+              </Drawer.CloseTrigger>
             </Drawer.Header>
             <Drawer.Body>
               <Stack gap={4}>{children}</Stack>

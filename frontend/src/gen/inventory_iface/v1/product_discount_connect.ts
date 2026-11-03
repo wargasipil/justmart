@@ -13,6 +13,9 @@ export const ProductDiscountService = {
   typeName: "inventory_iface.v1.ProductDiscountService",
   methods: {
     /**
+     * Read is open to the till (the catalog is fully readable — see
+     * common.CanSeeCost); create/update/delete below stay OWNER+PHARMACIST.
+     *
      * @generated from rpc inventory_iface.v1.ProductDiscountService.ListProductDiscounts
      */
     listProductDiscounts: {

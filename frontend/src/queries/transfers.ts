@@ -4,7 +4,7 @@ import type { PartialMessage } from "@bufbuild/protobuf";
 import { stockTransferClient } from "../lib/clients";
 import type { CreateTransferRequest } from "../gen/warehouse_iface/v1/transfer_pb";
 
-import { ALL_LIMIT, DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { ALL_LIMIT, DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export type TransfersQueryOpts = {
   warehouseId?: string;
@@ -33,6 +33,7 @@ export function useTransfersQuery(opts: TransfersQueryOpts = {}) {
   } = opts;
   const q = useQuery({
     queryKey: transferKeys.list({ warehouseId, query, fromUnix, toUnix, page, pageSize }),
+    placeholderData: keepPageData(transferKeys.list({ warehouseId, query, fromUnix, toUnix, page, pageSize })),
     queryFn: async () => {
       const res = await stockTransferClient.listTransfers({
         warehouseId,

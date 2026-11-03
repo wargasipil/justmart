@@ -27,6 +27,16 @@ export type Line = {
   // the product is chosen in the picker dialog, not on the row.
   productName: string;
   productSku: string;
+  // Which pabrik THIS line is bought from. Order data, sent with the line and
+  // stamped onto the lot at receive -- not a catalog fact. A product may have
+  // several approved makers and only the invoice says which one a given
+  // delivery is, so this starts at the product's primary as a suggestion and
+  // the buyer confirms or changes it.
+  manufacturerId: string;
+  // The product's approved sources, snapshotted from the picker. What the
+  // row's picker offers first; it does not REFUSE anything else, because a
+  // buyer holding the invoice has better information than the catalog.
+  approvedManufacturerIds: string[];
   productUnitId: string; // chosen purchasable unit ("" => base)
   units: ProductUnit[]; // purchasable + active units of the picked product
   orderedQty: number; // in the chosen unit
@@ -40,6 +50,8 @@ export const emptyLine = (): Line => ({
   productId: "",
   productName: "",
   productSku: "",
+  manufacturerId: "",
+  approvedManufacturerIds: [],
   productUnitId: "",
   units: [],
   orderedQty: 1,
@@ -74,6 +86,13 @@ export const lineFromItem = (it: PurchaseOrderItem, product?: Product): Line => 
     // hydrated product is the real source and the item fields are the fallback.
     productName: product?.name ?? it.productName,
     productSku: product?.sku ?? it.productSku,
+    // The pabrik is ORDER data, stored on the line itself -- restore exactly
+    // what was saved (empty = not recorded), never the product's current
+    // primary, or an untouched re-save would silently re-attribute the line.
+    // The approved list comes from the hydrated product: it is what the row's
+    // picker offers first, exactly as on a fresh pick.
+    manufacturerId: it.manufacturerId,
+    approvedManufacturerIds: product?.manufacturerIds ?? [],
     // A legacy line stored against the base unit carries no unit id; point it at
     // the base unit so the selector shows it. Never fall back to units[0] — that
     // could be a box, and the factor would be wrong in the user's favour.

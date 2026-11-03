@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import RouteTabs from "./RouteTabs";
 import { storyDocs } from "../routes/dev/storyDocs";
+import { MOBILE } from "../screens/viewports";
 
 const ANALYTICS_TABS = [
   { value: "daily", to: "/analytics/daily", label: "Harian" },
@@ -19,7 +20,7 @@ const SETTINGS_TABS = [
 ];
 
 const meta = {
-  title: "Layout & page chrome/RouteTabs",
+  title: "components/layout/RouteTabs",
   component: RouteTabs,
   parameters: {
     ...storyDocs("route-tabs"),
@@ -69,8 +70,11 @@ export const VerticalRail: Story = {
 };
 
 /**
- * Many tabs in a narrow frame. Triggers never shrink — the strip scrolls
- * instead of overlapping its own labels.
+ * Many tabs in a narrow CONTAINER on a wide viewport — a rail's panel, say.
+ * Triggers never shrink, so the strip scrolls instead of overlapping its own
+ * labels. Note what scrolling costs: the tabs past the edge give no hint that
+ * they exist. That is tolerable here, where the page around it is wide; on a
+ * phone it is not, which is what the Phone story below shows.
  */
 export const Overflowing: Story = {
   args: { items: SETTINGS_TABS },
@@ -80,4 +84,21 @@ export const Overflowing: Story = {
       <RouteTabs {...args} />
     </Box>
   ),
+};
+
+/**
+ * The same tabs on a phone (390px): not a strip at all, but an `<EnumSelect>`
+ * of the same items — `<RouteTabs>` switches on its own via `useTabsAsSelect()`,
+ * so no caller passes anything.
+ *
+ * Compare with `Overflowing` above. At this width the strip fitted three of
+ * these six triggers, cut a fourth mid-word and put two entirely off screen —
+ * and since nothing scrolled the active trigger into view, landing on
+ * `/settings/backups` showed a strip with no tab selected. The picker cannot
+ * clip an option, and its trigger always names where you are.
+ */
+export const Phone: Story = {
+  args: { items: SETTINGS_TABS },
+  globals: MOBILE,
+  parameters: { router: { initialEntries: ["/settings/backups"] } },
 };

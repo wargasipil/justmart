@@ -44,6 +44,9 @@ func (p *PurchaseReceipts) ListReceipts(
 	for i := range rows {
 		out = append(out, receiptToProto(&rows[i]))
 	}
+	if err := attachExpirySources(ctx, p.db, out...); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	// Surface each line's returnable max = its batch's current on-hand in the PO
 	// warehouse (the purchase-return dialog caps qty by this). Only when scoped
 	// to a single PO (the detail page always is). Enriches THIS PAGE's rows only,

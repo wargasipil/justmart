@@ -5,7 +5,7 @@ import DashboardTile from "./DashboardTile";
 import { storyDocs } from "../routes/dev/storyDocs";
 
 const meta = {
-  title: "Layout & page chrome/DashboardTile",
+  title: "components/layout/DashboardTile",
   component: DashboardTile,
   parameters: storyDocs("dashboard-tile"),
   tags: ["autodocs"],

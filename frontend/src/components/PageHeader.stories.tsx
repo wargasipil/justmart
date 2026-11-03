@@ -5,7 +5,7 @@ import PageHeader from "./PageHeader";
 import { storyDocs } from "../routes/dev/storyDocs";
 
 const meta = {
-  title: "Layout & page chrome/PageHeader",
+  title: "components/layout/PageHeader",
   component: PageHeader,
   parameters: storyDocs("page-header"),
   tags: ["autodocs"],

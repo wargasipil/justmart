@@ -1,4 +1,4 @@
-import { Box, Dialog, Heading, HStack, IconButton, Portal, Stack } from "@chakra-ui/react";
+import { Box, Dialog, Heading, IconButton, Portal, Stack } from "@chakra-ui/react";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -34,13 +34,17 @@ export default function EntityDialog({
         <Dialog.Backdrop />
         <Dialog.Positioner>
           <Dialog.Content>
+            {/* Same as EntityDrawer: the header recipe is the flex row, so
+                Title and CloseTrigger are its direct children. */}
             <Dialog.Header borderBottomWidth="1px">
-              <HStack justify="space-between">
+              <Dialog.Title asChild>
                 <Heading size="lg">{title}</Heading>
-                <IconButton aria-label="close" variant="ghost" size="sm" onClick={onClose}>
+              </Dialog.Title>
+              <Dialog.CloseTrigger asChild>
+                <IconButton aria-label="close" variant="ghost" size="sm">
                   <X size={18} />
                 </IconButton>
-              </HStack>
+              </Dialog.CloseTrigger>
             </Dialog.Header>
             <Dialog.Body>
               <Stack gap={4}>{children}</Stack>

@@ -14,7 +14,7 @@ kesalahannya, bukan dari langkahnya.
 
 ```
 Pesanan yang sudah selesai bisa dibatalkan lewat tombol Refund di halaman
-pesanannya, maksimal 1 hari setelah transaksi, dan hanya oleh Owner atau Admin.
+pesanannya, maksimal 7 hari setelah transaksi, dan hanya oleh Owner atau Admin.
 
 Membatalkan bukan berarti menghapus. Pesanannya tetap ada di riwayat dengan
 status Dikembalikan, lengkap dengan waktu, jumlah, alasan, dan keterangan apakah
@@ -49,16 +49,16 @@ bisa dicari lewat tab Dikembalikan di Riwayat order. Tombol Cetak struk ikut
 hilang, jadi cetak dulu kalau struknya dibutuhkan sebagai bukti.
 
 KALAU TOMBOL REFUND TIDAK MUNCUL
-- Pesanan sudah lebih dari 1 hari: batasnya 1 hari sejak transaksi diselesaikan.
+- Pesanan sudah lebih dari 7 hari: batasnya 7 hari sejak transaksi diselesaikan.
 - Status sudah Dikembalikan: satu pesanan hanya bisa di-refund sekali.
 - Anda masuk sebagai Kasir atau Apoteker: minta Owner atau Admin yang melakukan.
 - Status Dibatalkan atau Draf: belum pernah jadi penjualan, tidak perlu refund.
 
-KENAPA DIBATASI 1 HARI
-Refund menyentuh uang di laci dan stok di rak sekaligus. Selama hari yang sama
-keduanya masih bisa dicocokkan. Lewat dari itu, stok sudah bergerak karena
-penjualan lain dan laporan hariannya sudah dibaca, sehingga koreksi lama justru
-membuat angka yang sudah dipakai jadi tidak cocok.
+KENAPA DIBATASI 7 HARI
+Seminggu cukup untuk kebanyakan pengembalian. Tapi refund mengubah laporan hari
+transaksinya, bukan hari refundnya: pesanan yang di-refund keluar dari omzet
+tanggal ia dijual, sementara barangnya masuk stok hari ini. Makin lama
+jendelanya, makin jauh ke belakang laporan yang bisa berubah.
 
 Keranjang di kasir yang belum ditekan Selesaikan bukan pesanan sama sekali.
 Keranjang seperti itu dibuang begitu Anda keluar dari Kasir, tidak masuk riwayat,

@@ -14,6 +14,7 @@ import (
 	"github.com/justmart/backend/internal/service/branch"
 	"github.com/justmart/backend/internal/service/customer"
 	"github.com/justmart/backend/internal/service/health"
+	"github.com/justmart/backend/internal/service/manufacturer"
 	"github.com/justmart/backend/internal/service/prescription"
 	"github.com/justmart/backend/internal/service/priceagreement"
 	"github.com/justmart/backend/internal/service/productdiscount"
@@ -75,6 +76,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 	stockService := stock.NewStockService(db)
 	stocktakeService := stocktake.NewStocktakeService(db)
 	supplierService := supplier.NewSupplierService(db)
+	manufacturerService := manufacturer.NewManufacturerService(db)
 	transferService := transfer.NewTransferService(db)
 	unitService := unit.NewUnitService(db)
 	warehouseService := warehouse.NewWarehouseService(db)
@@ -101,6 +103,7 @@ func initApp(path configPath, version2 buildVersion) (*App, func(), error) {
 		Stock:             stockService,
 		Stocktakes:        stocktakeService,
 		Suppliers:         supplierService,
+		Manufacturers:     manufacturerService,
 		Transfers:         transferService,
 		Units:             unitService,
 		Users:             userService,

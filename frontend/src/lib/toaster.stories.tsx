@@ -8,7 +8,7 @@ import { storyDocs } from "../routes/dev/storyDocs";
 // preview decorator mounts it, exactly as main.tsx does.
 
 const meta = {
-  title: "Feedback/toast",
+  title: "components/feedback/toast",
   parameters: storyDocs("toast"),
   tags: ["autodocs"],
 } satisfies Meta;

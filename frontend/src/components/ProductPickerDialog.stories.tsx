@@ -7,7 +7,7 @@ import { storyDocs } from "../routes/dev/storyDocs";
 import { Emitted } from "../routes/dev/storyDecorators";
 
 const meta = {
-  title: "Overlays/ProductPickerDialog",
+  title: "components/overlays/ProductPickerDialog",
   component: ProductPickerDialog,
   parameters: storyDocs("product-picker-dialog", { needsBackend: true }),
   tags: ["autodocs", "needs-backend"],

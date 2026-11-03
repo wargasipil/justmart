@@ -20,8 +20,13 @@ type Props = {
 export default function PageHeader({ title, titleBadge, description, actions }: Props) {
   return (
     <Stack gap={3} pb={4} mb={4} borderBottomWidth="1px">
-      <Flex align="center" justify="space-between" gap={4}>
-        <Box>
+      {/* Wraps on a phone: the actions drop under the title instead of pushing
+          the page sideways — but only when they genuinely don't fit. The title
+          block's basis is 12rem rather than its content width, so a long
+          description wraps inside it instead of shoving a single Add button
+          onto its own line; the button stays top-right. */}
+      <Flex align="center" justify="space-between" gap={4} wrap="wrap">
+        <Box minW={0} flex="1 1 12rem">
           <HStack gap={2}>
             <Heading size="xl">{title}</Heading>
             {titleBadge}
@@ -32,7 +37,11 @@ export default function PageHeader({ title, titleBadge, description, actions }: 
             </Text>
           )}
         </Box>
-        {actions && <HStack gap={2}>{actions}</HStack>}
+        {actions && (
+          <HStack gap={2} wrap="wrap">
+            {actions}
+          </HStack>
+        )}
       </Flex>
     </Stack>
   );

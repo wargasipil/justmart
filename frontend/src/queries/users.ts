@@ -11,7 +11,7 @@ import type {
 } from "../gen/user_iface/v1/users_pb";
 import { useAuth } from "../lib/auth";
 import { dataUrlFromBytes, makeImageRenditions } from "../lib/imageRenditions";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 
 export const userKeys = {
   all: ["users"] as const,
@@ -35,6 +35,7 @@ export function useUsersQuery(opts: { page?: number; pageSize?: number } = {}) {
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE } = opts;
   const q = useQuery({
     queryKey: userKeys.list(page, pageSize),
+    placeholderData: keepPageData(userKeys.list(page, pageSize)),
     queryFn: async () => {
       const res = await userClient.listUsers({ limit: pageSize, offset: page * pageSize });
       return { rows: res.users, total: res.total };

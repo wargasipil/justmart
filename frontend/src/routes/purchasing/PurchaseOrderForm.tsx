@@ -33,10 +33,12 @@ import {
 } from "../../lib/purchaseLine";
 import { toast } from "../../lib/toaster";
 import { usePriceAgreementsQuery } from "../../queries/priceAgreements";
+import { useAddProductManufacturerMutation } from "../../queries/products";
 import {
   useCreatePurchaseOrderMutation,
   useUpdatePurchaseOrderMutation,
 } from "../../queries/purchasing";
+import { useManufacturerRefs } from "../../queries/refs";
 
 /** The whole editable state of a restock order - what an edit seeds from. */
 export type PurchaseOrderSeed = {
@@ -123,6 +125,68 @@ export default function PurchaseOrderForm({
     return a ? perChosenUnitGross(l) > Number(a.price) : false;
   };
 
+  // Every id any row can show, in ONE batched resolve: each line's chosen
+  // pabrik AND its product's approved list, since the short picker labels
+  // those too. One call for the whole table, never one per row.
+  const makerIds = useMemo(
+    () =>
+      lines.flatMap((l) => [l.manufacturerId, ...l.approvedManufacturerIds]).filter(Boolean),
+    [lines],
+  );
+  const makerRefs = useManufacturerRefs(makerIds);
+  const manufacturerRef = (id: string) => makerRefs.get(id);
+
+  const addMakerMut = useAddProductManufacturerMutation();
+  // The line's pabrik is ORDER data: it rides along with the line, is stored on
+  // purchase_order_items, and becomes the lot's maker at receive. So the pick
+  // lands in local state and is committed by Buat / Simpan like every other
+  // field -- NOT written to the product, which is what the single-column model
+  // used to do and why restocking the same item from a second pabrik silently
+  // relabelled every earlier batch. (Same on edit: UpdatePurchaseOrder replaces
+  // the lines, manufacturer_id included.)
+  //
+  // The one catalog side effect is deliberate and additive: naming a source the
+  // product is not approved for APPROVES it, so the next order starts from a
+  // list that has learned. It never removes one, never moves the primary, and
+  // never blocks the pick -- a buyer holding the invoice knows more than the
+  // catalog does, and failing that write must not cost them the line.
+  const setManufacturer = (idx: number, manufacturerId: string) => {
+    const line = lines[idx];
+    if (!line || line.manufacturerId === manufacturerId) return;
+    // Keyed by product, not index: the picker re-orders lines on every re-open.
+    setLines((cur) =>
+      cur.map((l) =>
+        l.productId === line.productId ? { ...l, manufacturerId } : l,
+      ),
+    );
+    if (!manufacturerId || line.approvedManufacturerIds.includes(manufacturerId)) return;
+    addMakerMut.mutate(
+      { productId: line.productId, manufacturerId },
+      {
+        onSuccess: () => {
+          // Remember it locally too, or the row would offer to approve the same
+          // maker again on the next pick.
+          setLines((cur) =>
+            cur.map((l) =>
+              l.productId === line.productId
+                ? {
+                    ...l,
+                    approvedManufacturerIds: [...l.approvedManufacturerIds, manufacturerId],
+                  }
+                : l,
+            ),
+          );
+          // The pabrik NAME is deliberately not interpolated: at this instant it
+          // is not in the batched refs yet (it was not one of the line ids a
+          // moment ago), so it would render as an empty gap in the sentence.
+          toast.success(t("purchasing.manufacturerApproved", { product: line.productName }));
+        },
+        // The line keeps the pabrik regardless: the ORDER is still correct,
+        // only the catalog failed to learn. The Tier-1 toast says so.
+      },
+    );
+  };
+
   // Sum the NET line totals (after per-line discount) so the displayed totals
   // match what the backend computes from the same discounts.
   const subtotal = useMemo(
@@ -158,6 +222,11 @@ export default function PurchaseOrderForm({
           productId: id,
           productName: p?.name ?? "",
           productSku: p?.sku ?? "",
+          // The product's PRIMARY maker as a suggestion, its whole approved
+          // list as what the row's picker offers. A suggestion, not a fact:
+          // the buyer confirms it against the invoice in front of them.
+          manufacturerId: p?.manufacturerId ?? "",
+          approvedManufacturerIds: p?.manufacturerIds ?? [],
           units,
           productUnitId: base?.id ?? units[0]?.id ?? "",
         };
@@ -183,6 +252,7 @@ export default function PurchaseOrderForm({
     items: lines.map((l) => ({
       productId: l.productId,
       productUnitId: l.productUnitId,
+      manufacturerId: l.manufacturerId,
       orderedQty: l.orderedQty,
       unitCostPrice: BigInt(unitCostBaseOf(l)), // GROSS per base unit (from cost/item)
       discountType: l.discountType,
@@ -299,6 +369,8 @@ export default function PurchaseOrderForm({
             onRemove={removeLine}
             agreementFor={agreementFor}
             isAboveAgreement={isAboveAgreement}
+            manufacturerRef={manufacturerRef}
+            onSetManufacturer={setManufacturer}
             ppnRate={ppnEnabled ? rateClamped : 0}
           />
         </Box>

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tansta
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { productPriceTierClient } from "../lib/clients";
-import { DEFAULT_PAGE_SIZE } from "../lib/pagination";
+import { DEFAULT_PAGE_SIZE, keepPageData } from "../lib/pagination";
 import { productKeys } from "./products";
 import type {
   CreateProductPriceTierRequest,
@@ -33,6 +33,7 @@ export function useProductPriceTiersQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productPriceTierKeys.list(productId, page, pageSize),
+    placeholderData: keepPageData(productPriceTierKeys.list(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productPriceTierClient.listProductPriceTiers({
         productId,
@@ -56,6 +57,7 @@ export function useProductTierPricesQuery(
   const { page = 0, pageSize = DEFAULT_PAGE_SIZE, enabled = true } = opts;
   const q = useQuery({
     queryKey: productPriceTierKeys.history(productId, page, pageSize),
+    placeholderData: keepPageData(productPriceTierKeys.history(productId, page, pageSize)),
     queryFn: async () => {
       const res = await productPriceTierClient.listProductTierPrices({
         productId,

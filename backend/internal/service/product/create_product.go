@@ -69,6 +69,9 @@ func validateCreate(msg *inventoryifacev1.CreateProductRequest) error {
 	if msg.UnitPrice < 0 {
 		return common.TokenError(connect.CodeInvalidArgument, "product.unit_price_negative")
 	}
+	if _, _, err := expiryDefaultFromProto(msg.ExpiryDefault, msg.ExpiryDefaultMonths); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -76,16 +79,30 @@ func validateCreate(msg *inventoryifacev1.CreateProductRequest) error {
 // tx. Assumes validateCreate already passed. Returns the created product. Shared
 // by CreateProduct (one tx) and ImportProducts (one tx per row).
 func createProductTx(tx *gorm.DB, msg *inventoryifacev1.CreateProductRequest, userID string) (*model.Product, error) {
+	// Already validated by validateCreate; re-derived here for the stored form.
+	expiryDefault, expiryMonths, err := expiryDefaultFromProto(msg.ExpiryDefault, msg.ExpiryDefaultMonths)
+	if err != nil {
+		return nil, err
+	}
 	med := &model.Product{
 		SKU:                  strings.TrimSpace(msg.Sku),
 		Name:                 strings.TrimSpace(msg.Name),
 		Unit:                 strings.TrimSpace(msg.Unit),
 		UnitPrice:            msg.UnitPrice,
 		PrescriptionRequired: msg.PrescriptionRequired,
+		ManufacturerID:       manufacturerRef(msg.ManufacturerId),
+		ExpiryDefault:        expiryDefault,
+		ExpiryDefaultMonths:  expiryMonths,
 		Active:               true,
 	}
 	if err := tx.Create(med).Error; err != nil {
 		return nil, fmt.Errorf("create product: %w", err)
+	}
+	// A product created WITH a pabrik is approved for it — otherwise it would
+	// point at a maker its own approved-source list does not contain, and the
+	// pabrik's product page (which lists by that table) would never show it.
+	if err := listPrimary(tx, med.ID, derefString(med.ManufacturerID)); err != nil {
+		return nil, fmt.Errorf("approve product manufacturer: %w", err)
 	}
 	price := model.ProductPrice{
 		ProductID:     med.ID,

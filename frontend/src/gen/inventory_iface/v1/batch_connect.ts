@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CreateBatchRequest, CreateBatchResponse, GetBatchRequest, GetBatchResponse, ImportStockRequest, ImportStockResponse, ListBatchesRequest, ListBatchesResponse, ResolveBatchesRequest, ResolveBatchesResponse, SearchBatchesRequest, SearchBatchesResponse, UpdateBatchRequest, UpdateBatchResponse } from "./batch_pb.js";
+import { CreateBatchRequest, CreateBatchResponse, GetBatchRequest, GetBatchResponse, ImportStockRequest, ImportStockResponse, ListBatchesRequest, ListBatchesResponse, ListBatchExpiryChangesRequest, ListBatchExpiryChangesResponse, ResolveBatchesRequest, ResolveBatchesResponse, SearchBatchesRequest, SearchBatchesResponse, SetBatchExpiryRequest, SetBatchExpiryResponse, UpdateBatchRequest, UpdateBatchResponse } from "./batch_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -80,6 +80,28 @@ export const BatchService = {
       name: "ResolveBatches",
       I: ResolveBatchesRequest,
       O: ResolveBatchesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * SetBatchExpiry corrects or confirms a received lot's expiry, with a
+     * required reason; ListBatchExpiryChanges is that lot's history of them.
+     * Manager-only, same as creating a lot.
+     *
+     * @generated from rpc inventory_iface.v1.BatchService.SetBatchExpiry
+     */
+    setBatchExpiry: {
+      name: "SetBatchExpiry",
+      I: SetBatchExpiryRequest,
+      O: SetBatchExpiryResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * @generated from rpc inventory_iface.v1.BatchService.ListBatchExpiryChanges
+     */
+    listBatchExpiryChanges: {
+      name: "ListBatchExpiryChanges",
+      I: ListBatchExpiryChangesRequest,
+      O: ListBatchExpiryChangesResponse,
       kind: MethodKind.Unary,
     },
   }
