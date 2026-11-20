@@ -16,8 +16,7 @@ import { savedPrinterTarget } from "../lib/printerTarget";
 import { toast } from "../lib/toaster";
 import { useCustomerRefs, useProductRefs, useUserRefs } from "../queries/refs";
 import { usePrintReceiptMutation, useRefundSaleMutation, useSaleQuery } from "../queries/sales";
-
-const REFUND_WINDOW_SECONDS = 7 * 24 * 60 * 60;
+import { useSettingsQuery } from "../queries/settings";
 
 const PAYMENT_KEY: Record<number, string> = {
   0: "unspecified",
@@ -54,6 +53,11 @@ export default function OrderDetail() {
   const { user } = useAuth();
   const saleQ = useSaleQuery(id);
   useCrumbLabel(saleQ.data ? saleQ.data.saleNo || saleQ.data.id.slice(0, 8) : undefined);
+  // Refund is manager-tier (proto: OWNER + PHARMACIST) and so is GetSettings,
+  // which carries the refund window — so other roles neither see the button
+  // nor fetch the settings.
+  const canManageRefunds = user?.role === Role.OWNER || user?.role === Role.PHARMACIST;
+  const settingsQ = useSettingsQuery(canManageRefunds);
   const refund = useRefundSaleMutation();
   const printMut = usePrintReceiptMutation();
 
@@ -99,15 +103,18 @@ export default function OrderDetail() {
   const paymentLabel = t(`orders.payments.${PAYMENT_KEY[sale.paymentSource] ?? "unspecified"}`);
   const change = Number(sale.paidAmount) - Number(sale.total);
 
-  // Refunds are time-boxed to 7 days after completion — mirrors refundWindow in
-  // backend/internal/service/sale/refund_sale.go; change both together.
+  // Refund window is configurable via Settings ▸ General (refund_window_days).
+  // 0 = unlimited. When settings are still loading, hide the button (safe default).
+  const refundWindowDays = settingsQ.data?.refundWindowDays;
   const withinRefundWindow =
+    refundWindowDays !== undefined &&
     sale.completedAt > 0n &&
-    Date.now() / 1000 - Number(sale.completedAt) <= REFUND_WINDOW_SECONDS;
+    (refundWindowDays === 0 ||
+      Date.now() / 1000 - Number(sale.completedAt) <= refundWindowDays * 86400);
   const canRefund =
     sale.status === SaleStatus.COMPLETED &&
     withinRefundWindow &&
-    (user?.role === Role.OWNER || user?.role === Role.PHARMACIST);
+    canManageRefunds;
 
   const onConfirmRefund = async () => {
     try {

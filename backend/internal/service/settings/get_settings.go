@@ -25,11 +25,16 @@ func (s *SettingsService) GetSettings(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	refundWindowDays, err := common.GetRefundWindowDays(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	return connect.NewResponse(&settingsifacev1.GetSettingsResponse{
 		Settings: &settingsifacev1.Settings{
 			LowStockThreshold: threshold,
 			AppTitle:          title,
 			BusinessType:      settingsifacev1.BussinessType(bt),
+			RefundWindowDays:  refundWindowDays,
 		},
 	}), nil
 }

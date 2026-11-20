@@ -15,12 +15,6 @@ import (
 	"github.com/justmart/backend/internal/service/common"
 )
 
-// refundWindow bounds how long after completion a sale may be refunded. Past
-// this, the refund is rejected (stale returns must be handled manually).
-// frontend/src/routes/OrderDetail.tsx mirrors it to decide whether to offer
-// the Refund button — change both together.
-const refundWindow = 7 * 24 * time.Hour
-
 // RefundSale fully refunds a COMPLETED order. It flips the sale to REFUNDED,
 // records the refunded amount/reason, and — when restock is requested — returns
 // the goods to stock (a positive RETURN movement mirroring each of the sale's
@@ -28,6 +22,9 @@ const refundWindow = 7 * 24 * time.Hour
 // (restock=false) leave stock + Rx dispensing untouched. Manager-tier
 // (OWNER+PHARMACIST, proto-declared). Terminal: a REFUNDED sale can't be
 // refunded again.
+//
+// The refund time window is configurable via Settings ▸ General
+// (refund_window_days in app_settings). 0 = unlimited, default 7 days.
 //
 // Analytics/summary/today-snapshot all filter status='COMPLETED' and COGS keys
 // off type='SALE', so a refunded order drops out of revenue/COGS automatically
@@ -42,6 +39,12 @@ func (s *SaleService) RefundSale(
 	}
 	now := time.Now()
 
+	// Read the configurable refund window BEFORE the transaction (read-only).
+	windowDays, err := common.GetRefundWindowDays(ctx, s.db)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var sale model.Sale
 		if err := common.RowLock(tx).Where("id = ?", req.Msg.SaleId).First(&sale).Error; err != nil {
@@ -54,11 +57,17 @@ func (s *SaleService) RefundSale(
 			return connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("only completed sales can be refunded; this one is %s", sale.Status))
 		}
-		// Refunds are time-boxed: only within refundWindow of completion.
-		if sale.CompletedAt == nil || now.Sub(*sale.CompletedAt) > refundWindow {
+		// Refunds are time-boxed: only within the configured window of completion.
+		// windowDays == 0 means unlimited (no time check).
+		if windowDays > 0 {
+			refundWindow := time.Duration(windowDays) * 24 * time.Hour
+			if sale.CompletedAt == nil || now.Sub(*sale.CompletedAt) > refundWindow {
+				return connect.NewError(connect.CodeFailedPrecondition,
+					fmt.Errorf("refunds are only allowed within %d days of completion", windowDays))
+			}
+		} else if sale.CompletedAt == nil {
 			return connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("refunds are only allowed within %d days of completion",
-					int(refundWindow/(24*time.Hour))))
+				fmt.Errorf("sale has no completion timestamp"))
 		}
 
 		var items []model.SaleItem

@@ -79,7 +79,7 @@ function backupsFixture(count: number) {
 
 function newShop() {
   return {
-    settings: { lowStockThreshold: 10, appTitle: "Toko Jaya", businessType: BussinessType.RETAIL },
+    settings: { lowStockThreshold: 10, appTitle: "Toko Jaya", businessType: BussinessType.RETAIL, refundWindowDays: 7 },
     printTarget: { connectorDeviceId: "kasir-1", printerName: "EPSON TM-T82 Receipt" },
     receipt: {
       header: "TOKO JAYA\nJl. Merdeka 1, Bandung\n0812-3456-7890",
@@ -163,9 +163,13 @@ function generalHandlers(shop: Shop): HttpHandler[] {
       if ([...appTitle].length > MAX_APP_TITLE_LEN) {
         return rpcError(Code.InvalidArgument, "settings.app_title_too_long");
       }
+      if (req.refundWindowDays < 0) {
+        return rpcError(Code.InvalidArgument, "settings.refund_window_negative");
+      }
       shop.settings = {
         lowStockThreshold: req.lowStockThreshold,
         appTitle,
+        refundWindowDays: req.refundWindowDays,
         // UNSPECIFIED means "leave the mode alone", so a threshold-only save
         // cannot silently reset a pharmacy shop to retail.
         businessType:

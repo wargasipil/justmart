@@ -22,6 +22,7 @@ const Schema = z.object({
   lowStockThreshold: z.coerce.number().int().min(0),
   appTitle: z.string().max(MAX_APP_TITLE_LEN),
   businessType: z.coerce.number().int(),
+  refundWindowDays: z.coerce.number().int().min(0),
 });
 type FormValues = z.infer<typeof Schema>;
 
@@ -42,6 +43,7 @@ export default function SettingsGeneral() {
               q.data.businessType === BussinessType.PHARMACY_SHOP
                 ? BussinessType.PHARMACY_SHOP
                 : BussinessType.RETAIL,
+            refundWindowDays: q.data.refundWindowDays,
           }
         : undefined,
     [q.data],
@@ -60,6 +62,7 @@ export default function SettingsGeneral() {
         lowStockThreshold: v.lowStockThreshold,
         appTitle: v.appTitle,
         businessType: v.businessType as BussinessType,
+        refundWindowDays: v.refundWindowDays,
       });
       toast.success(t("common.save") + " ✓");
     } catch (err) {
@@ -110,6 +113,13 @@ export default function SettingsGeneral() {
         name="lowStockThreshold"
         label={t("settings.lowStockThreshold")}
         helperText={t("settings.lowStockHelp")}
+        number
+      />
+      <FormField
+        control={form.control}
+        name="refundWindowDays"
+        label={t("settings.refundWindowDays")}
+        helperText={t("settings.refundWindowDaysHelp")}
         number
       />
       <Box>

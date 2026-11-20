@@ -18,6 +18,8 @@ message Settings {
   // The shop's business mode (retail vs pharmacy). UNSPECIFIED behaves as
   // retail. Owner-editable in Settings ▸ General.
   BussinessType business_type = 3;
+  // Max days after completion a sale can be refunded. 0 = unlimited. Default 7.
+  int32 refund_window_days = 4;
 }
 
 service SettingsService {
@@ -140,6 +142,8 @@ message UpdateSettingsRequest {
   int32 low_stock_threshold = 1;
   string app_title = 2;             // "" clears the override (built-in brand)
   BussinessType business_type = 3;  // UNSPECIFIED leaves the current mode unchanged
+  // Max days after completion a sale can be refunded. 0 = unlimited. Default 7.
+  int32 refund_window_days = 4;
 }
 message UpdateSettingsResponse {
   Settings settings = 1;

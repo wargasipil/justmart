@@ -17,6 +17,12 @@ const (
 	SettingKeyLowStockThreshold = "low_stock_threshold"
 	DefaultLowStockThreshold    = int32(10)
 
+	// SettingKeyRefundWindowDays stores the maximum number of days after
+	// completion during which a sale may be refunded. 0 = unlimited (no time
+	// limit). Default 7 when no row exists yet.
+	SettingKeyRefundWindowDays = "refund_window_days"
+	DefaultRefundWindowDays    = int32(7)
+
 	// SettingKeyBussinessType stores the shop's business type as the stringified
 	// BussinessType enum value (e.g. "1"). 0 (UNSPECIFIED) when unset.
 	SettingKeyBussinessType = "business_type"
@@ -272,4 +278,29 @@ func GetLowStockThreshold(ctx context.Context, db *gorm.DB) (int32, error) {
 		return DefaultLowStockThreshold, nil
 	}
 	return int32(n), nil
+}
+
+// GetRefundWindowDays reads the configured refund window from app_settings,
+// returning the default (7) when no row exists or the stored value is invalid.
+// 0 means unlimited (no time limit on refunds). Shared by SettingsService and
+// SaleService.RefundSale.
+func GetRefundWindowDays(ctx context.Context, db *gorm.DB) (int32, error) {
+	var row model.AppSetting
+	err := db.WithContext(ctx).Where("key = ?", SettingKeyRefundWindowDays).First(&row).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return DefaultRefundWindowDays, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	n, perr := strconv.ParseInt(row.Value, 10, 32)
+	if perr != nil {
+		return DefaultRefundWindowDays, nil
+	}
+	return int32(n), nil
+}
+
+// SetRefundWindowDays persists the refund window (days). 0 means unlimited.
+func SetRefundWindowDays(ctx context.Context, db *gorm.DB, days int32) error {
+	return setSetting(ctx, db, SettingKeyRefundWindowDays, strconv.FormatInt(int64(days), 10))
 }

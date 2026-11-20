@@ -165,3 +165,50 @@ func TestUpdateSettings_UnknownBusinessType(t *testing.T) {
 	require.True(t, errors.As(err, &ce))
 	require.Equal(t, "settings.business_type_invalid", ce.Message())
 }
+
+// RefundWindowDays is persisted and readable.
+func TestUpdateSettings_RefundWindowDays(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+	ctx := context.Background()
+
+	// Set to 14 and read back.
+	resp, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		RefundWindowDays:  14,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(14), resp.Msg.Settings.RefundWindowDays)
+
+	got, err := svc.GetSettings(ctx, connect.NewRequest(&settingsifacev1.GetSettingsRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, int32(14), got.Msg.Settings.RefundWindowDays)
+
+	// Set to 0 (unlimited) — valid.
+	resp2, err := svc.UpdateSettings(ctx, connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		RefundWindowDays:  0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, int32(0), resp2.Msg.Settings.RefundWindowDays)
+
+	got2, err := svc.GetSettings(ctx, connect.NewRequest(&settingsifacev1.GetSettingsRequest{}))
+	require.NoError(t, err)
+	require.Equal(t, int32(0), got2.Msg.Settings.RefundWindowDays)
+}
+
+// A negative refund window is rejected with a stable token.
+func TestUpdateSettings_RefundWindowDaysNegative(t *testing.T) {
+	t.Parallel()
+	svc := settingssvc.NewSettingsService(servicetest.NewDB(t, servicetest.NewConfig(t)))
+
+	_, err := svc.UpdateSettings(context.Background(), connect.NewRequest(&settingsifacev1.UpdateSettingsRequest{
+		LowStockThreshold: 10,
+		RefundWindowDays:  -1,
+	}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	var ce *connect.Error
+	require.True(t, errors.As(err, &ce))
+	require.Equal(t, "settings.refund_window_negative", ce.Message())
+}

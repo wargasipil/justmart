@@ -85,6 +85,7 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "auth.current_password_wrong": { field: "current", i18nKey: "serverErrors.auth.currentPasswordWrong" },
   // settings
   "settings.threshold_negative": { field: "lowStockThreshold", i18nKey: "validation.thresholdInvalid" },
+  "settings.refund_window_negative": { field: "refundWindowDays", i18nKey: "validation.refundWindowNegative" },
   "settings.app_title_too_long": { field: "appTitle", i18nKey: "validation.appTitleTooLong" },
   "settings.business_type_invalid": { field: "businessType", i18nKey: "validation.businessTypeInvalid" },
   "settings.tunnel_token_invalid": { field: "token", i18nKey: "validation.tunnelTokenInvalid" },

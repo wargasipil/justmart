@@ -150,9 +150,13 @@ export function useSetTunnelSettingsMutation() {
   });
 }
 
-export function useSettingsQuery() {
+// GetSettings is OWNER + PHARMACIST only. A page every role can open (the
+// order detail reads the refund window from it) passes `enabled: false` for
+// the other roles, or the PermissionDenied would surface as an error toast.
+export function useSettingsQuery(enabled = true) {
   const q = useQuery({
     queryKey: settingsKeys.all,
+    enabled,
     queryFn: async () => {
       const res = await settingsClient.getSettings({});
       return res.settings;
@@ -172,6 +176,7 @@ export function useUpdateSettingsMutation() {
       lowStockThreshold: number;
       appTitle: string;
       businessType: BussinessType;
+      refundWindowDays: number;
     }) => settingsClient.updateSettings(req),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: settingsKeys.all });

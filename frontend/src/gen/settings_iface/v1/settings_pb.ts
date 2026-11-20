@@ -63,6 +63,13 @@ export class Settings extends Message<Settings> {
    */
   businessType = BussinessType.UNSPECIFIED;
 
+  /**
+   * Max days after completion a sale can be refunded. 0 = unlimited. Default 7.
+   *
+   * @generated from field: int32 refund_window_days = 4;
+   */
+  refundWindowDays = 0;
+
   constructor(data?: PartialMessage<Settings>) {
     super();
     proto3.util.initPartial(data, this);
@@ -74,6 +81,7 @@ export class Settings extends Message<Settings> {
     { no: 1, name: "low_stock_threshold", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 2, name: "app_title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "business_type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+    { no: 4, name: "refund_window_days", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Settings {
@@ -340,6 +348,13 @@ export class UpdateSettingsRequest extends Message<UpdateSettingsRequest> {
    */
   businessType = BussinessType.UNSPECIFIED;
 
+  /**
+   * Max days after completion a sale can be refunded. 0 = unlimited. Default 7.
+   *
+   * @generated from field: int32 refund_window_days = 4;
+   */
+  refundWindowDays = 0;
+
   constructor(data?: PartialMessage<UpdateSettingsRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -351,6 +366,7 @@ export class UpdateSettingsRequest extends Message<UpdateSettingsRequest> {
     { no: 1, name: "low_stock_threshold", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 2, name: "app_title", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "business_type", kind: "enum", T: proto3.getEnumType(BussinessType) },
+    { no: 4, name: "refund_window_days", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): UpdateSettingsRequest {

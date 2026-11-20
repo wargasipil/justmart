@@ -11,6 +11,7 @@ import (
 
 	posifacev1 "github.com/justmart/backend/gen/pos_iface/v1"
 	"github.com/justmart/backend/internal/model"
+	"github.com/justmart/backend/internal/service/common"
 	salesvc "github.com/justmart/backend/internal/service/sale"
 )
 
@@ -153,6 +154,57 @@ func TestRefundSale_AllowsWithinSevenDays(t *testing.T) {
 	resp, err := svc.RefundSale(ctx, connect.NewRequest(&posifacev1.RefundSaleRequest{SaleId: saleID, Restock: true}))
 	require.NoError(t, err)
 	require.Equal(t, posifacev1.SaleStatus_SALE_STATUS_REFUNDED, resp.Msg.Sale.Status)
+}
+
+// completedSaleAgedWithDB is like completedSaleAged but also returns the gorm DB
+// so callers can manipulate app_settings (e.g. refund_window_days).
+func completedSaleAgedWithDB(t *testing.T, sku string, age time.Duration) (*salesvc.SaleService, context.Context, *gorm.DB, string) {
+	t.Helper()
+	svc, ctx, db, ownerID := newSaleSvc(t)
+	productID := seedProduct(t, db, sku, "Item", 1000)
+	seedStock(t, db, productID, ownerID, 50)
+	saleID := startDraft(t, svc, ctx)
+	_, err := svc.AddItem(ctx, connect.NewRequest(&posifacev1.AddItemRequest{SaleId: saleID, ProductId: productID, Qty: 1}))
+	require.NoError(t, err)
+	_, err = svc.CompleteSale(ctx, connect.NewRequest(&posifacev1.CompleteSaleRequest{
+		SaleId: saleID, PaymentSource: posifacev1.PaymentSource_PAYMENT_SOURCE_CASH, PaidAmount: 1000,
+	}))
+	require.NoError(t, err)
+	require.NoError(t, db.Model(&model.Sale{}).Where("id = ?", saleID).
+		Update("completed_at", time.Now().Add(-age)).Error)
+	return svc, ctx, db, saleID
+}
+
+// With refund_window_days = 0 (unlimited), even very old orders can be refunded.
+func TestRefundSale_UnlimitedWindow(t *testing.T) {
+	t.Parallel()
+	svc, ctx, db, saleID := completedSaleAgedWithDB(t, "rf-unlim", 365*24*time.Hour)
+	require.NoError(t, common.SetRefundWindowDays(context.Background(), db, 0))
+
+	resp, err := svc.RefundSale(ctx, connect.NewRequest(&posifacev1.RefundSaleRequest{SaleId: saleID, Restock: true}))
+	require.NoError(t, err)
+	require.Equal(t, posifacev1.SaleStatus_SALE_STATUS_REFUNDED, resp.Msg.Sale.Status)
+}
+
+// With refund_window_days = 1, a 2-day-old order is rejected.
+func TestRefundSale_CustomWindowRejects(t *testing.T) {
+	t.Parallel()
+	svc, ctx, db, saleID := completedSaleAgedWithDB(t, "rf-cust1", 2*24*time.Hour)
+	require.NoError(t, common.SetRefundWindowDays(context.Background(), db, 1))
+
+	_, err := svc.RefundSale(ctx, connect.NewRequest(&posifacev1.RefundSaleRequest{SaleId: saleID, Restock: true}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+// Default (no setting row) → 7-day window applies — an 8-day-old order is rejected.
+func TestRefundSale_DefaultWindowApplies(t *testing.T) {
+	t.Parallel()
+	svc, ctx, saleID := completedSaleAged(t, "rf-def", 8*24*time.Hour)
+
+	_, err := svc.RefundSale(ctx, connect.NewRequest(&posifacev1.RefundSaleRequest{SaleId: saleID, Restock: true}))
+	require.Error(t, err)
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
 // A refunded sale drops out of the sales summary (status filter excludes it).

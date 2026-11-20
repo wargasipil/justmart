@@ -188,6 +188,8 @@
     },
     "lowStockThreshold": "Low-stock threshold",
     "lowStockHelp": "Show a notification when a $t(glossary.product)'s ready stock in the active warehouse is at or below this number.",
+    "refundWindowDays": "Refund window (days)",
+    "refundWindowDaysHelp": "Maximum days after completion an order can be refunded. 0 = unlimited.",
     "invalidThreshold": "Threshold must be a non-negative integer",
     "units": {
       "title": "Unit catalog",
@@ -1204,6 +1206,7 @@
     "passwordMismatch": "Passwords do not match",
     "passwordMin": "Password must be at least 8 characters",
     "thresholdInvalid": "Threshold must be a non-negative integer",
+    "refundWindowNegative": "Refund window cannot be negative",
     "appTitleTooLong": "Title must be 60 characters or fewer",
     "businessTypeInvalid": "Choose a valid business mode",
     "tunnelTokenInvalid": "Paste the token only — no command, quotes or spaces"

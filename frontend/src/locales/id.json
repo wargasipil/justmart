@@ -188,6 +188,8 @@
     },
     "lowStockThreshold": "Ambang stok menipis",
     "lowStockHelp": "Tampilkan notifikasi saat stok siap $t(glossary.product) di gudang aktif ≤ angka ini.",
+    "refundWindowDays": "Batas waktu refund (hari)",
+    "refundWindowDaysHelp": "Maksimal hari setelah selesai pesanan bisa di-refund. 0 = tanpa batas.",
     "invalidThreshold": "Ambang harus bilangan bulat tak negatif",
     "units": {
       "title": "Katalog satuan",
@@ -1204,6 +1206,7 @@
     "passwordMismatch": "Kata sandi tidak cocok",
     "passwordMin": "Kata sandi minimal 8 karakter",
     "thresholdInvalid": "Ambang harus bilangan bulat tak negatif",
+    "refundWindowNegative": "Batas waktu refund tidak boleh negatif",
     "appTitleTooLong": "Judul maksimal 60 karakter",
     "businessTypeInvalid": "Pilih mode bisnis yang valid",
     "tunnelTokenInvalid": "Isi tokennya saja — tanpa perintah, tanda kutip, atau spasi"

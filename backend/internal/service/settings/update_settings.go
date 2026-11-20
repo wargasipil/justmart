@@ -31,6 +31,9 @@ func (s *SettingsService) UpdateSettings(
 	if req.Msg.LowStockThreshold < 0 {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "settings.threshold_negative")
 	}
+	if req.Msg.RefundWindowDays < 0 {
+		return nil, common.TokenError(connect.CodeInvalidArgument, "settings.refund_window_negative")
+	}
 	title := strings.TrimSpace(req.Msg.AppTitle)
 	if len([]rune(title)) > MaxAppTitleLen {
 		return nil, common.TokenError(connect.CodeInvalidArgument, "settings.app_title_too_long")
@@ -55,6 +58,9 @@ func (s *SettingsService) UpdateSettings(
 		if err := common.SetAppTitle(ctx, tx, title); err != nil {
 			return err
 		}
+		if err := common.SetRefundWindowDays(ctx, tx, req.Msg.RefundWindowDays); err != nil {
+			return err
+		}
 		// UNSPECIFIED means "don't touch the mode" — so a caller that only edits
 		// the threshold can't silently reset a pharmacy shop to retail.
 		if bt != settingsifacev1.BussinessType_BUSSINESS_TYPE_UNSPECIFIED {
@@ -75,6 +81,7 @@ func (s *SettingsService) UpdateSettings(
 			LowStockThreshold: req.Msg.LowStockThreshold,
 			AppTitle:          title,
 			BusinessType:      settingsifacev1.BussinessType(effective),
+			RefundWindowDays:  req.Msg.RefundWindowDays,
 		},
 	}), nil
 }

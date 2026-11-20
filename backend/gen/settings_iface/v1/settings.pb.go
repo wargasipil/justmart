@@ -83,9 +83,11 @@ type Settings struct {
 	AppTitle string `protobuf:"bytes,2,opt,name=app_title,json=appTitle,proto3" json:"app_title,omitempty"`
 	// The shop's business mode (retail vs pharmacy). UNSPECIFIED behaves as
 	// retail. Owner-editable in Settings ▸ General.
-	BusinessType  BussinessType `protobuf:"varint,3,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BusinessType BussinessType `protobuf:"varint,3,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"`
+	// Max days after completion a sale can be refunded. 0 = unlimited. Default 7.
+	RefundWindowDays int32 `protobuf:"varint,4,opt,name=refund_window_days,json=refundWindowDays,proto3" json:"refund_window_days,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Settings) Reset() {
@@ -137,6 +139,13 @@ func (x *Settings) GetBusinessType() BussinessType {
 		return x.BusinessType
 	}
 	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
+}
+
+func (x *Settings) GetRefundWindowDays() int32 {
+	if x != nil {
+		return x.RefundWindowDays
+	}
+	return 0
 }
 
 type GetBussinessSettingsRequest struct {
@@ -400,8 +409,10 @@ type UpdateSettingsRequest struct {
 	LowStockThreshold int32                  `protobuf:"varint,1,opt,name=low_stock_threshold,json=lowStockThreshold,proto3" json:"low_stock_threshold,omitempty"`
 	AppTitle          string                 `protobuf:"bytes,2,opt,name=app_title,json=appTitle,proto3" json:"app_title,omitempty"`                                                   // "" clears the override (built-in brand)
 	BusinessType      BussinessType          `protobuf:"varint,3,opt,name=business_type,json=businessType,proto3,enum=settings_iface.v1.BussinessType" json:"business_type,omitempty"` // UNSPECIFIED leaves the current mode unchanged
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Max days after completion a sale can be refunded. 0 = unlimited. Default 7.
+	RefundWindowDays int32 `protobuf:"varint,4,opt,name=refund_window_days,json=refundWindowDays,proto3" json:"refund_window_days,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UpdateSettingsRequest) Reset() {
@@ -453,6 +464,13 @@ func (x *UpdateSettingsRequest) GetBusinessType() BussinessType {
 		return x.BusinessType
 	}
 	return BussinessType_BUSSINESS_TYPE_UNSPECIFIED
+}
+
+func (x *UpdateSettingsRequest) GetRefundWindowDays() int32 {
+	if x != nil {
+		return x.RefundWindowDays
+	}
+	return 0
 }
 
 type UpdateSettingsResponse struct {
@@ -1588,11 +1606,12 @@ var File_settings_iface_v1_settings_proto protoreflect.FileDescriptor
 
 const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\n" +
-	" settings_iface/v1/settings.proto\x12\x11settings_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\x9e\x01\n" +
+	" settings_iface/v1/settings.proto\x12\x11settings_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xcc\x01\n" +
 	"\bSettings\x12.\n" +
 	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\x12\x1b\n" +
 	"\tapp_title\x18\x02 \x01(\tR\bappTitle\x12E\n" +
-	"\rbusiness_type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\"\x1d\n" +
+	"\rbusiness_type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\x12,\n" +
+	"\x12refund_window_days\x18\x04 \x01(\x05R\x10refundWindowDays\"\x1d\n" +
 	"\x1bGetBussinessSettingsRequest\"q\n" +
 	"\x1cGetBussinessSettingsResponse\x124\n" +
 	"\x04type\x18\x01 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\x04type\x12\x1b\n" +
@@ -1603,11 +1622,12 @@ const file_settings_iface_v1_settings_proto_rawDesc = "" +
 	"\tapp_title\x18\x02 \x01(\tR\bappTitle\"\x14\n" +
 	"\x12GetSettingsRequest\"N\n" +
 	"\x13GetSettingsResponse\x127\n" +
-	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"\xab\x01\n" +
+	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"\xd9\x01\n" +
 	"\x15UpdateSettingsRequest\x12.\n" +
 	"\x13low_stock_threshold\x18\x01 \x01(\x05R\x11lowStockThreshold\x12\x1b\n" +
 	"\tapp_title\x18\x02 \x01(\tR\bappTitle\x12E\n" +
-	"\rbusiness_type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\"Q\n" +
+	"\rbusiness_type\x18\x03 \x01(\x0e2 .settings_iface.v1.BussinessTypeR\fbusinessType\x12,\n" +
+	"\x12refund_window_days\x18\x04 \x01(\x05R\x10refundWindowDays\"Q\n" +
 	"\x16UpdateSettingsResponse\x127\n" +
 	"\bsettings\x18\x01 \x01(\v2\x1b.settings_iface.v1.SettingsR\bsettings\"\x17\n" +
 	"\x15GetPrintTargetRequest\"k\n" +
