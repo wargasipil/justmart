@@ -316,6 +316,20 @@ export class ListBatchesRequest extends Message<ListBatchesRequest> {
    */
   expirySource = ExpirySource.UNSPECIFIED;
 
+  /**
+   * Sort column: "" (default = expiry ascending) | "batch_number" | "supplier" | "expiry" | "cost" | "qty".
+   *
+   * @generated from field: string sort_by = 12;
+   */
+  sortBy = "";
+
+  /**
+   * descending; ignored when sort_by is ""
+   *
+   * @generated from field: bool sort_desc = 13;
+   */
+  sortDesc = false;
+
   constructor(data?: PartialMessage<ListBatchesRequest>) {
     super();
     proto3.util.initPartial(data, this);
@@ -335,6 +349,8 @@ export class ListBatchesRequest extends Message<ListBatchesRequest> {
     { no: 9, name: "supplier_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 10, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 11, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
+    { no: 12, name: "sort_by", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 13, name: "sort_desc", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ListBatchesRequest {

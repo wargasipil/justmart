@@ -599,6 +599,35 @@ const q = useProductsQuery({ page, pageSize });
         Demo: demo.MetricTableDemo,
       },
       {
+        id: "sortable-column-header",
+        name: "SortableColumnHeader",
+        file: "src/components/SortableColumnHeader.tsx",
+        summary: "Click-to-sort Table.ColumnHeader: label + direction arrow, aria-sort, keyboard reachable.",
+        props: [
+          { name: "label", type: "string", required: true, desc: "Localized column title." },
+          { name: "active", type: "boolean", required: true, desc: "This column is the current sort." },
+          { name: "desc", type: "boolean", required: true, desc: "Direction of the active sort; ignored while inactive." },
+          { name: "onClick", type: "() => void", required: true, desc: "Fired once per activation (mouse anywhere in the cell, or Enter/Space)." },
+          { name: "align", type: '"start" | "end"', desc: 'Default "start". Use "end" over a right-aligned numeric column.' },
+        ],
+        usage: `const [sort, setSort] = useState<ColumnSort>(null); // null = the list's default order
+const sortable = (by: string) => ({
+  active: sort?.by === by,
+  desc: sort?.by === by && sort.desc,
+  onClick: () => setSort((s) => cycleColumnSort(s, by)),
+});
+const page = usePageState(\`lots:\${sort?.by ?? ""}:\${sort?.desc ?? ""}\`); // re-sort -> page 0
+const q = useBatchesQuery({ sortBy: sort?.by, sortDesc: sort?.desc, page: page.page, pageSize: page.pageSize });
+…
+<Table.Row>
+  <SortableColumnHeader label={t("inventory.batches.expiry")} {...sortable("expiry")} />
+  <SortableColumnHeader label={t("inventory.batches.qty")} align="end" {...sortable("qty")} />
+</Table.Row>`,
+        notes:
+          "Sort a paginated list on the SERVER (pass the column to its List RPC): sorting the 25 rows on screen re-orders one page, not the list. Put the sort in the usePageState reset key so a re-sort returns to page 0. cycleColumnSort (same module) is the three-step cycle: new column -> ascending -> descending -> null (default order). The label sits in a real <button> so the header is reachable by Tab; its click bubbles to the <th>'s onClick, so the whole cell is the hit area and each activation fires once. The arrow occupies a fixed 12px slot so the label never jumps. MetricTable keeps its own private header (unsorted -> DESC -> ASC cycle).",
+        Demo: demo.SortableColumnHeaderDemo,
+      },
+      {
         id: "chart-card",
         name: "ChartCard",
         file: "src/components/ChartCard.tsx",

@@ -41,6 +41,10 @@ import PageHeader from "../../components/PageHeader";
 import Pagination from "../../components/Pagination";
 import RouteTabs from "../../components/RouteTabs";
 import SearchableSelect from "../../components/SearchableSelect";
+import SortableColumnHeader, {
+  cycleColumnSort,
+  type ColumnSort,
+} from "../../components/SortableColumnHeader";
 import StockUnitPopover from "../../components/StockUnitPopover";
 import SummaryTile from "../../components/SummaryTile";
 import ManufacturerSelect from "../../components/ManufacturerSelect";
@@ -696,6 +700,52 @@ export function MetricTableDemo() {
       onSortChange={setSort}
       dimensionHeader={t("analytics.menu.daily")}
     />
+  );
+}
+
+// Sample lots for the SortableColumnHeader demo. The demo sorts them in memory;
+// a real list sends the sort to its List RPC so the order spans every page.
+const SORT_ROWS = [
+  { batch: "B-2026-0031", expiry: "2027-09-30", qty: 40 },
+  { batch: "B-2026-0007", expiry: "2027-02-28", qty: 120 },
+  { batch: "B-2026-0019", expiry: "2027-05-31", qty: 75 },
+];
+type SortRow = (typeof SORT_ROWS)[number];
+
+export function SortableColumnHeaderDemo() {
+  const { t } = useTranslation();
+  const [sort, setSort] = useState<ColumnSort>(null);
+  const rows = [...SORT_ROWS];
+  if (sort) {
+    const key = sort.by as keyof SortRow;
+    rows.sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0) * (sort.desc ? -1 : 1));
+  }
+  const sortable = (by: keyof SortRow) => ({
+    active: sort?.by === by,
+    desc: sort?.by === by && sort.desc,
+    onClick: () => setSort((s) => cycleColumnSort(s, by)),
+  });
+  return (
+    <TableScroll maxH="220px">
+      <Table.Root size="sm" stickyHeader>
+        <Table.Header>
+          <Table.Row>
+            <SortableColumnHeader label={t("inventory.batches.batchNumber")} {...sortable("batch")} />
+            <SortableColumnHeader label={t("inventory.batches.expiry")} {...sortable("expiry")} />
+            <SortableColumnHeader label={t("inventory.batches.qty")} align="end" {...sortable("qty")} />
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
+          {rows.map((r) => (
+            <Table.Row key={r.batch}>
+              <Table.Cell fontFamily="mono">{r.batch}</Table.Cell>
+              <Table.Cell>{r.expiry}</Table.Cell>
+              <Table.Cell textAlign="end">{r.qty}</Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </TableScroll>
   );
 }
 

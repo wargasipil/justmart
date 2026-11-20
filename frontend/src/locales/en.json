@@ -1281,7 +1281,8 @@
       "expiryRequired": "A prescription $t(glossary.product) always expires — enter the date from the pack",
       "reasonRequired": "A reason is required",
       "expiryUnchanged": "That is already the expiry — change the date, or close",
-      "expirySourceInvalid": "Pick a date or \"does not expire\""
+      "expirySourceInvalid": "Pick a date or \"does not expire\"",
+      "sortInvalid": "This list cannot be sorted that way"
     },
     "manufacturer": {
       "codeTaken": "This manufacturer code is already in use",

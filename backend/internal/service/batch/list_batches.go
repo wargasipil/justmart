@@ -28,6 +28,10 @@ func (s *BatchService) ListBatches(
 	}
 
 	limit, offset := common.NormPage(req.Msg.Limit, req.Msg.Offset)
+	order, err := listBatchesOrder(caller, req.Msg.SortBy, req.Msg.SortDesc)
+	if err != nil {
+		return nil, err
+	}
 
 	// Per-warehouse stock is computed in SQL (GROUP BY) so only_in_stock +
 	// pagination + total stay consistent.
@@ -91,7 +95,7 @@ func (s *BatchService) ListBatches(
 	var rows []batchRow
 	if err := base().
 		Select("b.*, COALESCE(SUM(sm.qty), 0) AS qty").
-		Order("b.expiry_date ASC").Offset(offset).Limit(limit).Scan(&rows).Error; err != nil {
+		Order(order).Offset(offset).Limit(limit).Scan(&rows).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	out := make([]*inventoryifacev1.Batch, 0, len(rows))
@@ -136,4 +140,54 @@ func (s *BatchService) ListBatches(
 		Batches: out,
 		Total:   int32(total),
 	}), nil
+}
+
+// listBatchesSortColumns whitelists ListBatchesRequest.sort_by -> its ORDER BY
+// expression. Only these constant strings ever reach Order(); the request
+// value is a map KEY, never interpolated into SQL.
+//
+// Each expression is legal under the query's GROUP BY b.id on SQLite AND
+// Postgres: b.* columns are functionally dependent on the primary key, the
+// supplier name is a correlated subquery (so no join has to be grouped), and
+// qty orders by the aggregate EXPRESSION rather than its "qty" alias. The
+// supplier subquery is COALESCEd to the empty string so a lot with no supplier
+// sorts in the same place on both engines (SQLite puts NULL first ascending,
+// Postgres last).
+var listBatchesSortColumns = map[string]string{
+	"batch_number": "b.batch_number",
+	"supplier":     "COALESCE((SELECT s.name FROM suppliers s WHERE s.id = b.supplier_id), '')",
+	"expiry":       "b.expiry_date",
+	"cost":         "b.cost_price",
+	"qty":          "COALESCE(SUM(sm.qty), 0)",
+}
+
+// listBatchesDefaultOrder is soonest expiry first. Like every sorted order here
+// it ends in b.id so equal keys keep one stable order and rows never shuffle
+// between pages (OFFSET paging over a non-unique key is otherwise undefined).
+const listBatchesDefaultOrder = "b.expiry_date ASC, b.id ASC"
+
+// listBatchesOrder resolves the request's sort into an ORDER BY clause.
+// "" is the default order; an unknown column is refused with a stable token.
+func listBatchesOrder(caller auth.Principal, sortBy string, desc bool) (string, error) {
+	sortBy = strings.TrimSpace(sortBy)
+	if sortBy == "" {
+		return listBatchesDefaultOrder, nil
+	}
+	expr, ok := listBatchesSortColumns[sortBy]
+	if !ok {
+		return "", common.TokenError(connect.CodeInvalidArgument, "batch.sort_invalid")
+	}
+	// Cost and supplier are the fields redactCost blanks for a caller who may
+	// not see cost. Ordering rows by a value the response then hides would
+	// still leak it (the row order IS the ranking), so such a caller gets the
+	// default order instead. Every role may see cost today (common.CanSeeCost);
+	// this keeps the sort honest if that predicate is ever narrowed again.
+	if (sortBy == "cost" || sortBy == "supplier") && !common.CanSeeCost(caller.Role) {
+		return listBatchesDefaultOrder, nil
+	}
+	dir := " ASC"
+	if desc {
+		dir = " DESC"
+	}
+	return expr + dir + ", b.id ASC", nil
 }

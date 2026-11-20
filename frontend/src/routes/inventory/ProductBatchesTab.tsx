@@ -2,6 +2,10 @@ import { useMemo, useState } from "react";
 import { Table, Text } from "@chakra-ui/react";
 
 import Pagination from "../../components/Pagination";
+import SortableColumnHeader, {
+  cycleColumnSort,
+  type ColumnSort,
+} from "../../components/SortableColumnHeader";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
@@ -32,12 +36,19 @@ export default function ProductBatchesTab({
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<Batch | null>(null);
+  // Sorted on the SERVER (ListBatches sort_by / sort_desc) so the order spans
+  // every page, not just the 25 rows on screen. null = the default order,
+  // soonest expiry first.
+  const [sort, setSort] = useState<ColumnSort>(null);
   // Keyed by product id so navigating to a different product resets the pager
-  // rather than landing on page 3 of a shorter list.
-  const page = usePageState(`batches:${productId}`);
+  // rather than landing on page 3 of a shorter list; keyed by the sort too, so
+  // re-sorting starts again from the first page.
+  const page = usePageState(`batches:${productId}:${sort?.by ?? ""}:${sort?.desc ?? ""}`);
   const q = useBatchesQuery({
     productId,
     onlyInStock: true,
+    sortBy: sort?.by,
+    sortDesc: sort?.desc,
     page: page.page,
     pageSize: page.pageSize,
   });
@@ -60,31 +71,44 @@ export default function ProductBatchesTab({
     ),
   );
 
+  // Props for one sortable header; `by` is the server's sort_by column key.
+  const sortable = (by: string) => ({
+    active: sort?.by === by,
+    desc: sort?.by === by && sort.desc,
+    onClick: () => setSort((s) => cycleColumnSort(s, by)),
+  });
+
   return (
     <>
       <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
         <Table.Root size="sm" stickyHeader>
           <Table.Header bg="bg.muted">
             <Table.Row>
-              <Table.ColumnHeader>
-                {t("inventory.batches.batchNumber")}
-              </Table.ColumnHeader>
+              <SortableColumnHeader
+                label={t("inventory.batches.batchNumber")}
+                {...sortable("batch_number")}
+              />
               {showCost && (
-                <Table.ColumnHeader>
-                  {t("inventory.batches.supplier")}
-                </Table.ColumnHeader>
+                <SortableColumnHeader
+                  label={t("inventory.batches.supplier")}
+                  {...sortable("supplier")}
+                />
               )}
-              <Table.ColumnHeader>
-                {t("inventory.batches.expiry")}
-              </Table.ColumnHeader>
+              <SortableColumnHeader
+                label={t("inventory.batches.expiry")}
+                {...sortable("expiry")}
+              />
               {showCost && (
-                <Table.ColumnHeader>
-                  {t("inventory.batches.cost")}
-                </Table.ColumnHeader>
+                <SortableColumnHeader
+                  label={t("inventory.batches.cost")}
+                  {...sortable("cost")}
+                />
               )}
-              <Table.ColumnHeader textAlign="end">
-                {t("inventory.batches.qty")}
-              </Table.ColumnHeader>
+              <SortableColumnHeader
+                label={t("inventory.batches.qty")}
+                align="end"
+                {...sortable("qty")}
+              />
             </Table.Row>
           </Table.Header>
           <Table.Body>

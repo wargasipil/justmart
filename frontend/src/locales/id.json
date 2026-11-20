@@ -1281,7 +1281,8 @@
       "expiryRequired": "$t(glossary.productCap) resep selalu kedaluwarsa — isi tanggal dari kemasan",
       "reasonRequired": "Alasan wajib diisi",
       "expiryUnchanged": "Itu sudah tanggal kedaluwarsanya — ubah tanggalnya, atau tutup",
-      "expirySourceInvalid": "Pilih tanggal atau \"tidak kedaluwarsa\""
+      "expirySourceInvalid": "Pilih tanggal atau \"tidak kedaluwarsa\"",
+      "sortInvalid": "Daftar ini tidak bisa diurutkan dengan cara itu"
     },
     "manufacturer": {
       "codeTaken": "Kode pabrik ini sudah dipakai",

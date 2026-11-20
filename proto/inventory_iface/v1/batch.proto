@@ -125,6 +125,9 @@ message ListBatchesRequest {
   // Optional: only lots whose expiry came from this source. DEFAULT is the
   // shelf-check worklist -- dates nobody has read off the pack yet.
   ExpirySource expiry_source = 11;
+  // Sort column: "" (default = expiry ascending) | "batch_number" | "supplier" | "expiry" | "cost" | "qty".
+  string sort_by = 12;
+  bool sort_desc = 13;  // descending; ignored when sort_by is ""
 }
 message ListBatchesResponse {
   repeated Batch batches = 1;

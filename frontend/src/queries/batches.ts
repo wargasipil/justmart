@@ -24,6 +24,10 @@ export type BatchesQueryOpts = {
   dateField?: string; // "received" | "expiry"
   /** Only lots whose expiry came from this source; UNSPECIFIED = any. DEFAULT is the shelf-check worklist. */
   expirySource?: ExpirySource;
+  /** Server-side sort column ("" = default, soonest expiry first): batch_number | supplier | expiry | cost | qty. */
+  sortBy?: string;
+  /** Descending; ignored when sortBy is "". */
+  sortDesc?: boolean;
   page?: number;
   pageSize?: number;
 };
@@ -49,11 +53,13 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
     toUnix = 0,
     dateField = "",
     expirySource = ExpirySource.UNSPECIFIED,
+    sortBy = "",
+    sortDesc = false,
     page = 0,
     pageSize = DEFAULT_PAGE_SIZE,
   } = opts;
   const key = batchKeys.list({
-    productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, expirySource, page, pageSize,
+    productId, supplierId, manufacturerId, onlyInStock, query, fromUnix, toUnix, dateField, expirySource, sortBy, sortDesc, page, pageSize,
   });
   const q = useQuery({
     queryKey: key,
@@ -69,6 +75,8 @@ export function useBatchesQuery(opts: BatchesQueryOpts = {}) {
         toUnix: BigInt(toUnix),
         dateField,
         expirySource,
+        sortBy,
+        sortDesc,
         limit: pageSize,
         offset: page * pageSize,
       });

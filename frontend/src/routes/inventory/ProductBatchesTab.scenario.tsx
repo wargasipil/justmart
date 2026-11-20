@@ -2,6 +2,7 @@ import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
 
 import { BatchService } from "../../gen/inventory_iface/v1/batch_connect";
+import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
 import { PHARMACY_CATALOG, SUPPLIERS, dateIn } from "../dev/fixtures";
 import { batchesFor } from "../dev/productDetailFixtures";
@@ -25,9 +26,28 @@ import ProductBatchesTab from "./ProductBatchesTab";
 
 const PRODUCT = PHARMACY_CATALOG[0];
 
+// The column headers are a SERVER sort (ListBatches sort_by / sort_desc), so the
+// mock re-orders the rows the way backend batch/list_batches.go does: its
+// whitelist of columns, soonest expiry first by default, ties broken by id.
+const SORT_KEY: Record<string, (b: Batch) => string | number> = {
+  batch_number: (b) => b.batchNumber,
+  supplier: (b) => SUPPLIERS.find((s) => s.id === b.supplierId)?.name ?? "",
+  expiry: (b) => b.expiryDate,
+  cost: (b) => Number(b.costPrice),
+  qty: (b) => Number(b.currentQuantity),
+};
+const compare = (a: string | number, b: string | number) =>
+  typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b));
+
+const sortLots = (rows: Batch[], sortBy: string, desc: boolean) => {
+  const key = SORT_KEY[sortBy] ?? SORT_KEY.expiry;
+  const dir = sortBy && desc ? -1 : 1;
+  return [...rows].sort((a, b) => compare(key(a), key(b)) * dir || compare(a.id, b.id));
+};
+
 const listBatches = (rows = batchesFor(PRODUCT)) =>
   mockRpc(BatchService, "listBatches", (req) => ({
-    batches: rows.slice(req.offset, req.offset + (req.limit || 25)),
+    batches: sortLots(rows, req.sortBy, req.sortDesc).slice(req.offset, req.offset + (req.limit || 25)),
     total: rows.length,
   }));
 

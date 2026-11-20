@@ -152,6 +152,7 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "batch.reason_required": { field: "reason", i18nKey: "serverErrors.batch.reasonRequired" },
   "batch.expiry_unchanged": { field: "expiryDate", i18nKey: "serverErrors.batch.expiryUnchanged" },
   "batch.expiry_source_invalid": { i18nKey: "serverErrors.batch.expirySourceInvalid" },
+  "batch.sort_invalid": { i18nKey: "serverErrors.batch.sortInvalid" },
   "batch.qty_negative": { i18nKey: "serverErrors.common.amountNegative" },
   "batch.cost_negative": { i18nKey: "serverErrors.common.amountNegative" },
   // stocktake

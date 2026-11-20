@@ -328,7 +328,10 @@ type ListBatchesRequest struct {
 	ManufacturerId string                 `protobuf:"bytes,10,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"` // optional pabrik filter (the lot's own maker)
 	// Optional: only lots whose expiry came from this source. DEFAULT is the
 	// shelf-check worklist -- dates nobody has read off the pack yet.
-	ExpirySource  ExpirySource `protobuf:"varint,11,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	ExpirySource ExpirySource `protobuf:"varint,11,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	// Sort column: "" (default = expiry ascending) | "batch_number" | "supplier" | "expiry" | "cost" | "qty".
+	SortBy        string `protobuf:"bytes,12,opt,name=sort_by,json=sortBy,proto3" json:"sort_by,omitempty"`
+	SortDesc      bool   `protobuf:"varint,13,opt,name=sort_desc,json=sortDesc,proto3" json:"sort_desc,omitempty"` // descending; ignored when sort_by is ""
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -438,6 +441,20 @@ func (x *ListBatchesRequest) GetExpirySource() ExpirySource {
 		return x.ExpirySource
 	}
 	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
+func (x *ListBatchesRequest) GetSortBy() string {
+	if x != nil {
+		return x.SortBy
+	}
+	return ""
+}
+
+func (x *ListBatchesRequest) GetSortDesc() bool {
+	if x != nil {
+		return x.SortDesc
+	}
+	return false
 }
 
 type ListBatchesResponse struct {
@@ -1791,7 +1808,7 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x05units\x18\r \x03(\v2\x1f.inventory_iface.v1.ProductUnitR\x05units\x127\n" +
 	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\x12'\n" +
 	"\x0fmanufacturer_id\x18\x0f \x01(\tR\x0emanufacturerId\x12E\n" +
-	"\rexpiry_source\x18\x10 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"\x81\x03\n" +
+	"\rexpiry_source\x18\x10 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"\xb7\x03\n" +
 	"\x12ListBatchesRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\"\n" +
@@ -1807,7 +1824,9 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"supplierId\x12'\n" +
 	"\x0fmanufacturer_id\x18\n" +
 	" \x01(\tR\x0emanufacturerId\x12E\n" +
-	"\rexpiry_source\x18\v \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"`\n" +
+	"\rexpiry_source\x18\v \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\x12\x17\n" +
+	"\asort_by\x18\f \x01(\tR\x06sortBy\x12\x1b\n" +
+	"\tsort_desc\x18\r \x01(\bR\bsortDesc\"`\n" +
 	"\x13ListBatchesResponse\x123\n" +
 	"\abatches\x18\x01 \x03(\v2\x19.inventory_iface.v1.BatchR\abatches\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"!\n" +
