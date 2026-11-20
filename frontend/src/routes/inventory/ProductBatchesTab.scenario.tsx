@@ -1,5 +1,6 @@
 import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
+import { expect, userEvent, within } from "storybook/test";
 
 import { BatchService } from "../../gen/inventory_iface/v1/batch_connect";
 import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
@@ -61,7 +62,7 @@ const resolveSuppliers = mockRpc(SupplierService, "resolveSuppliers", (req) => (
 /** Everything but `title` and the device — the story file adds those. */
 export const meta = {
   component: ProductBatchesTab,
-  args: { productId: PRODUCT.id, showCost: true, canManage: true },
+  args: { productId: PRODUCT.id, showCost: true, canManage: true, units: PRODUCT.units },
   parameters: { msw: mockApi(listBatches(), resolveSuppliers) },
 };
 
@@ -84,6 +85,30 @@ export const stories = {
       "receives the manager's figures (batch.redactCost lets every role through). What is gone " +
       "is the expiry pencil: correcting a lot's expiry is SetBatchExpiry, OWNER+PHARMACIST.",
     { args: { canManage: false } },
+  ),
+  CostPerPack: story(
+    "A lot's cost is stored per BASE unit (tablet). The picker above the table re-expresses the " +
+      "Cost column per pack; this story picks the box, so each lot reads 100 × its per-tablet " +
+      "cost — the figure on the supplier's invoice. Display only: sorting still runs on the " +
+      "stored per-base cost, and one factor keeps that order. A product with no pack unit gets " +
+      "no picker.",
+    {
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await userEvent.click(
+          await canvas.findByRole("combobox", { name: /^(show cost per|tampilkan modal per)$/i }),
+        );
+        const body = within(canvasElement.ownerDocument.body);
+        await userEvent.click(await body.findByRole("option", { name: /^box/i }));
+        await expect(await canvas.findByRole("columnheader", { name: /\/ box/i })).toBeInTheDocument();
+        // Every lot's cost × 100, whatever the locale's grouping separator.
+        const cells = canvas.getAllByRole("cell").map((c) => c.textContent ?? "");
+        for (const b of batchesFor(PRODUCT)) {
+          const digits = (b.costPrice * 100n).toLocaleString("en-US").replace(/,/g, "[.,]");
+          await expect(cells.some((c) => new RegExp(digits).test(c))).toBe(true);
+        }
+      },
+    },
   ),
   Expiring: story(
     "Every lot inside the warning window, one of them already past it. Worth pinning on its " +

@@ -25,6 +25,7 @@ export default meta;
 
 export const Manager = scenario.stories.Manager;
 export const Till = scenario.stories.Till;
+export const CostPerPack = scenario.stories.CostPerPack;
 export const Expiring = scenario.stories.Expiring;
 export const Paged = scenario.stories.Paged;
 export const Empty = scenario.stories.Empty;

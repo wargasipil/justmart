@@ -383,6 +383,7 @@ export default function ProductDetail() {
                 productName={med.name}
                 showCost={showCost}
                 canManage={canManage}
+                units={med.units}
               />
             </Tabs.Content>
 
