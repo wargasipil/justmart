@@ -68,6 +68,8 @@ message Product {
   // the field, and the person receiving can always type over it.
   ExpiryDefault expiry_default = 32;
   int32 expiry_default_months = 33; // > 0 only when expiry_default = MONTHS
+  string last_sale_date = 34;      // YYYY-MM-DD of most recent COMPLETED sale containing this product in the active warehouse (GetProduct only; empty if none)
+  string last_sale_no = 35;        // sale_no of that sale (GetProduct only; empty if none)
 }
 
 // How a product's new lots get their expiry pre-filled at receive.

@@ -275,6 +275,15 @@ export default function ProductDetail() {
                         : "—"
                     }
                   />
+                  <Field
+                    label={t("inventory.products.lastSale")}
+                    value={
+                      med.lastSaleDate
+                        ? med.lastSaleDate +
+                          (med.lastSaleNo ? ` · ${med.lastSaleNo}` : "")
+                        : "—"
+                    }
+                  />
                   {/* Each stock tile carries its own valuation, so "how much do I
                     hold / have coming" reads as one figure pair instead of a
                     count here and a lone total elsewhere. */}

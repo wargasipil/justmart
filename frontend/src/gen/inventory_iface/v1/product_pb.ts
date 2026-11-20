@@ -355,6 +355,20 @@ export class Product extends Message<Product> {
    */
   expiryDefaultMonths = 0;
 
+  /**
+   * YYYY-MM-DD of most recent COMPLETED sale containing this product in the active warehouse (GetProduct only; empty if none)
+   *
+   * @generated from field: string last_sale_date = 34;
+   */
+  lastSaleDate = "";
+
+  /**
+   * sale_no of that sale (GetProduct only; empty if none)
+   *
+   * @generated from field: string last_sale_no = 35;
+   */
+  lastSaleNo = "";
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -395,6 +409,8 @@ export class Product extends Message<Product> {
     { no: 31, name: "manufacturer_ids", kind: "scalar", T: 9 /* ScalarType.STRING */, repeated: true },
     { no: 32, name: "expiry_default", kind: "enum", T: proto3.getEnumType(ExpiryDefault) },
     { no: 33, name: "expiry_default_months", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 34, name: "last_sale_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 35, name: "last_sale_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {

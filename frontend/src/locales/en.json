@@ -783,6 +783,7 @@
       "confirmUnarchive": "Restore this $t(glossary.product)?",
       "lastRestock": "Last restock",
       "lastStocktake": "Last opname",
+      "lastSale": "Last sold",
       "opnameBefore": "Opname before",
       "units": "Units",
       "unitBase": "Base",

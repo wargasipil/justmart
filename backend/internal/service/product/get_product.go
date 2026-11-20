@@ -76,6 +76,25 @@ func (s *ProductService) GetProduct(
 		out.LastStocktakeDate = st.CompletedAt.Format(common.DateLayout)
 		out.LastStocktakeVariance = st.Variance
 	}
+	// Last sale = the most recent COMPLETED sale that included this product
+	// in the active warehouse, with its sale number.
+	var ls struct {
+		CompletedAt time.Time `gorm:"column:completed_at"`
+		SaleNo      string    `gorm:"column:sale_no"`
+	}
+	if err := s.db.WithContext(ctx).
+		Table("sale_items si").
+		Select("sa.completed_at AS completed_at, COALESCE(sa.sale_no, '') AS sale_no").
+		Joins("JOIN sales sa ON sa.id = si.sale_id").
+		Where("si.product_id = ? AND sa.warehouse_id = ? AND sa.status = ?", med.ID, warehouseID, "COMPLETED").
+		Order("sa.completed_at DESC").
+		Limit(1).Scan(&ls).Error; err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if !ls.CompletedAt.IsZero() {
+		out.LastSaleDate = ls.CompletedAt.Format(common.DateLayout)
+		out.LastSaleNo = ls.SaleNo
+	}
 	// Total stock (on-hand in the active warehouse) + valuation at cost.
 	var v struct {
 		TotalStock int64 `gorm:"column:total_stock"`

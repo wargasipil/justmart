@@ -136,3 +136,41 @@ func TestGetProduct_Unauthenticated(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
+
+// A completed sale referencing the product populates LastSaleDate + LastSaleNo.
+func TestGetProduct_LastSale(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	pid := seedProduct(t, svc, ctx, "SKU-LASTSALE", "Last sale product", 5000)
+	whID := defaultWarehouseID(t, gormDB)
+	seedBatchWithStock(t, gormDB, pid, whID, ownerID, 50, 1000)
+
+	// Seed a COMPLETED sale with one item referencing the product.
+	seedCompletedSale(t, gormDB, pid, whID, ownerID, "INV-001")
+
+	resp, err := svc.GetProduct(ctx, connect.NewRequest(&inventoryifacev1.GetProductRequest{Id: pid}))
+	require.NoError(t, err)
+	p := resp.Msg.Product
+	require.NotEmpty(t, p.LastSaleDate)
+	require.Equal(t, "INV-001", p.LastSaleNo)
+}
+
+// A product that has never been sold has empty last_sale fields.
+func TestGetProduct_NoSale(t *testing.T) {
+	t.Parallel()
+	gormDB, cfg := servicetest.New(t)
+	ownerID := servicetest.EnsureOwner(t, gormDB, cfg)
+	svc := productsvc.NewProductService(gormDB)
+	ctx := servicetest.OwnerCtx(context.Background(), ownerID)
+
+	pid := seedProduct(t, svc, ctx, "SKU-NOSALE", "No sale product", 3000)
+
+	resp, err := svc.GetProduct(ctx, connect.NewRequest(&inventoryifacev1.GetProductRequest{Id: pid}))
+	require.NoError(t, err)
+	require.Empty(t, resp.Msg.Product.LastSaleDate)
+	require.Empty(t, resp.Msg.Product.LastSaleNo)
+}

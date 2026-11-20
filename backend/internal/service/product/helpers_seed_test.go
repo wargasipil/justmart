@@ -129,3 +129,31 @@ func seedBatchWithStock(t *testing.T, db *gorm.DB, productID, warehouseID, userI
 	require.NoError(t, db.Create(&mv).Error)
 	return batch.ID
 }
+
+// seedCompletedSale inserts a COMPLETED sale with one item for the given
+// product, so the last-sale enrichment has data.
+func seedCompletedSale(t *testing.T, db *gorm.DB, productID, warehouseID, userID, saleNo string) {
+	t.Helper()
+	now := time.Now()
+	sn := saleNo
+	sale := model.Sale{
+		SaleNo:        &sn,
+		CashierUserID: userID,
+		WarehouseID:   &warehouseID,
+		Status:        "COMPLETED",
+		CompletedAt:   &now,
+		Subtotal:      5000,
+		Total:         5000,
+		PaidAmount:    5000,
+	}
+	require.NoError(t, db.Create(&sale).Error)
+	require.NoError(t, db.Create(&model.SaleItem{
+		SaleID:            sale.ID,
+		ProductID:         productID,
+		Qty:               1,
+		UnitPriceSnapshot: 5000,
+		LineTotal:         5000,
+		UnitFactor:        1,
+		BaseQty:           1,
+	}).Error)
+}

@@ -783,6 +783,7 @@
       "confirmUnarchive": "Pulihkan $t(glossary.product) ini?",
       "lastRestock": "Restok terakhir",
       "lastStocktake": "Opname terakhir",
+      "lastSale": "Terakhir terjual",
       "opnameBefore": "Opname sebelum",
       "units": "Satuan",
       "unitBase": "Satuan dasar",

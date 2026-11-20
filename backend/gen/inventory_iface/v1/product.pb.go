@@ -244,6 +244,8 @@ type Product struct {
 	// the field, and the person receiving can always type over it.
 	ExpiryDefault       ExpiryDefault `protobuf:"varint,32,opt,name=expiry_default,json=expiryDefault,proto3,enum=inventory_iface.v1.ExpiryDefault" json:"expiry_default,omitempty"`
 	ExpiryDefaultMonths int32         `protobuf:"varint,33,opt,name=expiry_default_months,json=expiryDefaultMonths,proto3" json:"expiry_default_months,omitempty"` // > 0 only when expiry_default = MONTHS
+	LastSaleDate        string        `protobuf:"bytes,34,opt,name=last_sale_date,json=lastSaleDate,proto3" json:"last_sale_date,omitempty"`                       // YYYY-MM-DD of most recent COMPLETED sale containing this product in the active warehouse (GetProduct only; empty if none)
+	LastSaleNo          string        `protobuf:"bytes,35,opt,name=last_sale_no,json=lastSaleNo,proto3" json:"last_sale_no,omitempty"`                             // sale_no of that sale (GetProduct only; empty if none)
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -500,6 +502,20 @@ func (x *Product) GetExpiryDefaultMonths() int32 {
 		return x.ExpiryDefaultMonths
 	}
 	return 0
+}
+
+func (x *Product) GetLastSaleDate() string {
+	if x != nil {
+		return x.LastSaleDate
+	}
+	return ""
+}
+
+func (x *Product) GetLastSaleNo() string {
+	if x != nil {
+		return x.LastSaleNo
+	}
+	return ""
 }
 
 // A product's expiry setting, as GetProductExpiryDefaults returns it -- just
@@ -3604,7 +3620,7 @@ var File_inventory_iface_v1_product_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\n" +
-	" inventory_iface/v1/product.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a+inventory_iface/v1/product_price_tier.proto\"\x95\v\n" +
+	" inventory_iface/v1/product.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a+inventory_iface/v1/product_price_tier.proto\"\xdd\v\n" +
 	"\aProduct\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03sku\x18\x02 \x01(\tR\x03sku\x12\x12\n" +
@@ -3643,7 +3659,10 @@ const file_inventory_iface_v1_product_proto_rawDesc = "" +
 	"\x0fmanufacturer_id\x18\x1e \x01(\tR\x0emanufacturerId\x12)\n" +
 	"\x10manufacturer_ids\x18\x1f \x03(\tR\x0fmanufacturerIds\x12H\n" +
 	"\x0eexpiry_default\x18  \x01(\x0e2!.inventory_iface.v1.ExpiryDefaultR\rexpiryDefault\x122\n" +
-	"\x15expiry_default_months\x18! \x01(\x05R\x13expiryDefaultMonthsJ\x04\b\x04\x10\x05R\fmanufacturer\"\xe8\x01\n" +
+	"\x15expiry_default_months\x18! \x01(\x05R\x13expiryDefaultMonths\x12$\n" +
+	"\x0elast_sale_date\x18\" \x01(\tR\flastSaleDate\x12 \n" +
+	"\flast_sale_no\x18# \x01(\tR\n" +
+	"lastSaleNoJ\x04\b\x04\x10\x05R\fmanufacturer\"\xe8\x01\n" +
 	"\x14ProductExpiryDefault\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12H\n" +
