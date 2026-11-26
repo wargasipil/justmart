@@ -2,6 +2,7 @@ import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
 import type { HttpHandler } from "msw";
 import { Route } from "react-router-dom";
+import { expect, userEvent, within } from "storybook/test";
 
 import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { PriceAgreementService } from "../../gen/inventory_iface/v1/price_agreement_connect";
@@ -9,15 +10,18 @@ import type { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreemen
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import type { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
+import { type PurchaseOrderSeed, emptyLine } from "../../lib/purchaseLine";
+import { clearRestockDraft, saveRestockDraft } from "../../lib/restockDraft";
 import {
   MANUFACTURERS,
   PHARMACY_CATALOG,
   RETAIL_CATALOG,
+  SUPPLIERS,
   filterManufacturers,
   filterProducts,
 } from "../../routes/dev/fixtures";
 import { agreementsForSupplier } from "../../routes/dev/restockFixtures";
-import { withPageContext } from "../../routes/dev/storyDecorators";
+import { STORY_USERS, withPageContext } from "../../routes/dev/storyDecorators";
 import { mockApi, mockRpc, mockRpcError } from "../../routes/dev/storyMocks";
 import NewPurchaseOrder from "../../routes/purchasing/NewPurchaseOrder";
 import PurchaseOrderDetail from "../../routes/purchasing/PurchaseOrderDetail";
@@ -33,8 +37,11 @@ import { newShop, shopHandlers } from "./restockShop";
 //
 // EVERY STORY OPENS THE SAME EMPTY FORM, and that is a property of the page,
 // not a gap here: the lines live in local component state with no prop and no
-// query param, so there is no seam to seed a half-written order through. What
-// the stories differ in is therefore what the SERVER does — which suppliers
+// query param. The one seam is the draft the page keeps in the browser
+// (lib/restockDraft.ts), which only ResumeDraft uses — every story starts and
+// ends with it cleared (meta.beforeEach), or typing into one story would offer
+// that draft to the next. What the stories differ in is otherwise what the
+// SERVER does — which suppliers
 // come back, whether they have agreed prices, what the catalog holds, and
 // whether the create succeeds. That is the interesting axis anyway: the form
 // itself is the same six fields every time.
@@ -144,6 +151,13 @@ export const meta = {
     msw: mockApi(...formHandlers()),
   },
   decorators: [withPageContext],
+  // The page keeps whatever is typed in localStorage; clear it before and after
+  // every story so one story's typing is never offered to the next.
+  beforeEach: () => {
+    const clear = () => Object.values(STORY_USERS).forEach((u) => clearRestockDraft(u.id));
+    clear();
+    return clear;
+  },
 };
 
 const story = (description: string, s: StoryObj = {}): StoryObj => ({
@@ -189,6 +203,37 @@ const MULTI_SOURCE: Product[] = RETAIL_CATALOG.map((p, i) => {
   copy.manufacturerId = copy.manufacturerIds[0];
   return copy;
 });
+
+/** One kept line: the product's largest purchasable pack, priced at its latest cost. */
+const keptLine = (p: Product, orderedQty: number) => {
+  const units = p.units.filter((u) => u.purchasable && u.active);
+  const pack = [...units].sort((a, b) => Number(b.factor - a.factor))[0];
+  return {
+    ...emptyLine(),
+    productId: p.id,
+    productName: p.name,
+    productSku: p.sku,
+    manufacturerId: p.manufacturerId,
+    approvedManufacturerIds: p.manufacturerIds,
+    units,
+    productUnitId: pack?.id ?? "",
+    orderedQty,
+    costPerItem: Number(p.referenceCost * (pack && !pack.isBase ? pack.factor : 1n)),
+  };
+};
+
+/** A half-entered faktur: supplier and number typed, two lines, PPN on. */
+const KEPT_DRAFT: PurchaseOrderSeed = {
+  supplierId: SUPPLIERS[0].id,
+  invoiceNo: "FKT-2611-0042",
+  invoiceDate: "",
+  dueAt: "",
+  note: "",
+  lines: [keptLine(RETAIL_CATALOG[0], 5), keptLine(RETAIL_CATALOG[1], 2)],
+  cartDiscount: 0,
+  ppnEnabled: true,
+  ppnRate: 11,
+};
 
 export const stories = {
   Owner: story(
@@ -265,6 +310,28 @@ export const stories = {
       "done mid-order by a buyer reading an invoice. The toast reports the catalog half, " +
       "because that is the half which outlives this form and survives abandoning it.",
     { parameters: own({ catalog: NO_MAKERS }) },
+  ),
+  ResumeDraft: story(
+    "Someone started this order two hours ago and left the page: the form kept what they " +
+      "typed in this browser, and offers it back above an empty form — supplier, count, and " +
+      "when it was kept. It is an OFFER, never applied unasked, because whoever opens the form " +
+      "may be starting a different order; while it is open nothing is saved, so ignoring it " +
+      "cannot overwrite it. Lanjutkan remounts the form seeded from the draft (the play " +
+      "function presses it); Buang deletes it. A successful Buat or Batal clears it. Kept per " +
+      "user and per browser only — a DRAFT order, which Buat creates, is what another PC sees.",
+    {
+      parameters: own(),
+      beforeEach: () => {
+        saveRestockDraft(STORY_USERS.owner.id, KEPT_DRAFT, Date.now() - 2 * 3600_000);
+      },
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await userEvent.click(await canvas.findByRole("button", { name: /^(continue|lanjutkan)$/i }));
+        expect((await canvas.findAllByText(RETAIL_CATALOG[0].name)).length).toBeGreaterThan(0);
+        expect(await canvas.findByDisplayValue("FKT-2611-0042")).toBeTruthy();
+        expect(canvas.queryByRole("button", { name: /^(continue|lanjutkan)$/i })).toBeNull();
+      },
+    },
   ),
   CreateFailed: story(
     "The server refuses the create. The global MutationCache turns it into an error toast and " +

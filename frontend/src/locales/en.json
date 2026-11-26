@@ -296,6 +296,14 @@
     "invoiceDate": "Invoice date",
     "dueAt": "Due date",
     "createdBy": "Created by",
+    "draftKept": {
+      "title": "Continue your unfinished restock order?",
+      "items_one": "{{count}} $t(glossary.product)",
+      "items_other": "{{count}} $t(glossary.products)",
+      "savedAt": "kept {{when}}",
+      "resume": "Continue",
+      "discard": "Discard"
+    },
     "cartDiscount": "Discount",
     "ppn": "PPN",
     "ppnEnabled": "Include PPN",

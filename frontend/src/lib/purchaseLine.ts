@@ -207,3 +207,19 @@ export const unitNameOf = (l: Line): string =>
 
 // The entered cost per chosen unit — the basis for the price-agreement compare.
 export const perChosenUnitGross = (l: Line): number => l.costPerItem;
+
+/**
+ * The whole editable state of a restock order: what the form seeds from (an
+ * edit, a resumed draft) and what lib/restockDraft.ts keeps in the browser.
+ */
+export type PurchaseOrderSeed = {
+  supplierId: string;
+  invoiceNo: string;
+  invoiceDate: string;
+  dueAt: string;
+  note: string;
+  lines: Line[];
+  cartDiscount: number;
+  ppnEnabled: boolean;
+  ppnRate: number;
+};

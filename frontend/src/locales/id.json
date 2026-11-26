@@ -296,6 +296,14 @@
     "invoiceDate": "Tanggal faktur",
     "dueAt": "Jatuh tempo bayar",
     "createdBy": "Dibuat oleh",
+    "draftKept": {
+      "title": "Lanjutkan input sebelumnya?",
+      "items_one": "{{count}} $t(glossary.product)",
+      "items_other": "{{count}} $t(glossary.product)",
+      "savedAt": "disimpan {{when}}",
+      "resume": "Lanjutkan",
+      "discard": "Buang"
+    },
     "cartDiscount": "Diskon",
     "ppn": "PPN",
     "ppnEnabled": "Termasuk PPN",

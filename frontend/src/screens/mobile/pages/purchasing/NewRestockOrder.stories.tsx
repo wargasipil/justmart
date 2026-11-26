@@ -33,4 +33,5 @@ export const NoAgreements = withShell(scenario.stories.NoAgreements);
 export const MultipleManufacturers = withShell(scenario.stories.MultipleManufacturers);
 export const MissingManufacturer = withShell(scenario.stories.MissingManufacturer);
 export const EmptyCatalog = withShell(scenario.stories.EmptyCatalog);
+export const ResumeDraft = withShell(scenario.stories.ResumeDraft);
 export const CreateFailed = withShell(scenario.stories.CreateFailed);

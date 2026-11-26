@@ -4,9 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 
 import BackButton from "../../components/BackButton";
-import PurchaseOrderForm, { type PurchaseOrderSeed } from "./PurchaseOrderForm";
+import PurchaseOrderForm from "./PurchaseOrderForm";
 import { POStatus } from "../../gen/purchasing_iface/v1/order_pb";
-import { lineFromItem } from "../../lib/purchaseLine";
+import { type PurchaseOrderSeed, lineFromItem } from "../../lib/purchaseLine";
 import { useProductsWithUnitsQuery } from "../../queries/products";
 import { usePurchaseOrderQuery } from "../../queries/purchasing";
 import { useSupplierRefs } from "../../queries/refs";

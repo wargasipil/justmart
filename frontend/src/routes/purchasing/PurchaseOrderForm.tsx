@@ -7,25 +7,25 @@ import {
   Input,
   Link as ChakraLink,
   Stack,
-  Switch,
   Text,
 } from "@chakra-ui/react";
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import DatePickerField from "../../components/DatePicker";
-import MoneyInput from "../../components/MoneyInput";
 import ProductPickerDialog from "../../components/ProductPickerDialog";
 import SupplierSelect from "../../components/SupplierSelect";
 import PurchaseLinesTable from "./PurchaseLinesTable";
+import PurchaseOrderTotals from "./PurchaseOrderTotals";
+import { usePurchaseOrderState } from "./usePurchaseOrderState";
 import type { PriceAgreement } from "../../gen/inventory_iface/v1/price_agreement_pb";
 import type { Product } from "../../gen/inventory_iface/v1/product_pb";
-import { formatMoney } from "../../lib/format";
 import { ALL_LIMIT } from "../../lib/pagination";
 import {
   type Line,
+  type PurchaseOrderSeed,
   emptyLine,
   lineNet,
   perChosenUnitGross,
@@ -41,19 +41,6 @@ import {
 } from "../../queries/purchasing";
 import { useManufacturerRefs } from "../../queries/refs";
 
-/** The whole editable state of a restock order - what an edit seeds from. */
-export type PurchaseOrderSeed = {
-  supplierId: string;
-  invoiceNo: string;
-  invoiceDate: string;
-  dueAt: string;
-  note: string;
-  lines: Line[];
-  cartDiscount: number;
-  ppnEnabled: boolean;
-  ppnRate: number;
-};
-
 export type PurchaseOrderFormProps = {
   /**
    * Present => edit this existing order via UpdatePurchaseOrder; absent =>
@@ -68,6 +55,13 @@ export type PurchaseOrderFormProps = {
    * supplier is immutable once the order exists and renders as a label.
    */
   supplierName?: string;
+  /**
+   * Called with the whole form state whenever it changes, and once at mount.
+   * The new-order page keeps it in the browser (lib/restockDraft.ts).
+   */
+  onSnapshot?: (seed: PurchaseOrderSeed) => void;
+  /** Called when the form is done with: after a successful save, and on Batal. */
+  onFinish?: () => void;
 };
 
 /**
@@ -84,6 +78,8 @@ export default function PurchaseOrderForm({
   poId,
   seed,
   supplierName,
+  onSnapshot,
+  onFinish,
 }: PurchaseOrderFormProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -91,17 +87,23 @@ export default function PurchaseOrderForm({
   const updateMut = useUpdatePurchaseOrderMutation();
   const isEdit = !!poId;
 
-  const [supplierId, setSupplierId] = useState(seed?.supplierId ?? "");
-  const [invoiceNo, setInvoiceNo] = useState(seed?.invoiceNo ?? "");
-  const [invoiceDate, setInvoiceDate] = useState(seed?.invoiceDate ?? "");
-  const [dueAt, setDueAt] = useState(seed?.dueAt ?? "");
-  const [note, setNote] = useState(seed?.note ?? "");
-  const [lines, setLines] = useState<Line[]>(seed?.lines ?? []);
+  const {
+    supplierId, setSupplierId,
+    invoiceNo, setInvoiceNo,
+    invoiceDate, setInvoiceDate,
+    dueAt, setDueAt,
+    note, setNote,
+    lines, setLines,
+    cartDiscount, setCartDiscount,
+    ppnEnabled, setPpnEnabled,
+    ppnRate, setPpnRate,
+    snapshot,
+  } = usePurchaseOrderState(seed);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [cartDiscount, setCartDiscount] = useState(seed?.cartDiscount ?? 0);
-  const [ppnEnabled, setPpnEnabled] = useState(seed?.ppnEnabled ?? false);
-  // percent; current Indonesian default
-  const [ppnRate, setPpnRate] = useState(seed?.ppnRate ?? 11);
+
+  useEffect(() => {
+    onSnapshot?.(snapshot);
+  }, [snapshot, onSnapshot]);
 
   // Active price agreements for the chosen supplier — reference only, to warn
   // (not block) when a line's entered cost is above the agreed price. Gated on
@@ -274,11 +276,13 @@ export default function PurchaseOrderForm({
     try {
       if (poId) {
         await updateMut.mutateAsync({ id: poId, ...payload() });
+        onFinish?.();
         toast.success(t("common.save") + " ✓");
         navigate(`/purchasing/${poId}`);
         return;
       }
       const res = await createMut.mutateAsync({ supplierId, ...payload() });
+      onFinish?.();
       toast.success(t("common.create") + " ✓");
       if (res.order?.id) navigate(`/purchasing/${res.order.id}`);
       else navigate("/purchasing/all");
@@ -379,68 +383,25 @@ export default function PurchaseOrderForm({
           />
         </Box>
 
-        <Box
-          borderWidth="1px"
-          borderRadius="md"
-          p={4}
-          maxW="420px"
-          alignSelf="flex-end"
-          w="full"
-        >
-          <Stack gap={2}>
-            <HStack justify="space-between">
-              <Text color="fg.muted">{t("purchasing.subtotal")}</Text>
-              <Text fontFamily="mono">{formatMoney(subtotal)}</Text>
-            </HStack>
-            <HStack justify="space-between" align="center">
-              <Text color="fg.muted">{t("purchasing.cartDiscount")}</Text>
-              <MoneyInput
-                size="sm"
-                width="140px"
-                value={cartDiscount}
-                onChange={(raw) => setCartDiscount(Number(raw || 0))}
-              />
-            </HStack>
-            <HStack justify="space-between" align="center">
-              <HStack gap={2}>
-                <Switch.Root
-                  checked={ppnEnabled}
-                  onCheckedChange={(e) => setPpnEnabled(e.checked)}
-                >
-                  <Switch.HiddenInput />
-                  <Switch.Control />
-                </Switch.Root>
-                <Text color="fg.muted">{t("purchasing.ppn")}</Text>
-                <Input
-                  size="xs"
-                  type="number"
-                  width="60px"
-                  value={ppnRate}
-                  onChange={(e) => setPpnRate(parseInt(e.target.value, 10) || 0)}
-                  disabled={!ppnEnabled}
-                  min={0}
-                  max={100}
-                  aria-label={t("purchasing.ppnRate")}
-                />
-                <Text color="fg.muted">%</Text>
-              </HStack>
-              <Text fontFamily="mono" color={ppnEnabled ? "fg" : "fg.muted"}>
-                {formatMoney(ppnAmount)}
-              </Text>
-            </HStack>
-            <HStack justify="space-between" pt={2} borderTopWidth="1px">
-              <Text fontWeight="bold">{t("purchasing.total")}</Text>
-              <Text fontWeight="bold" fontFamily="mono">
-                {formatMoney(total)}
-              </Text>
-            </HStack>
-          </Stack>
-        </Box>
+        <PurchaseOrderTotals
+          subtotal={subtotal}
+          cartDiscount={cartDiscount}
+          onCartDiscountChange={setCartDiscount}
+          ppnEnabled={ppnEnabled}
+          onPpnEnabledChange={setPpnEnabled}
+          ppnRate={ppnRate}
+          onPpnRateChange={setPpnRate}
+          ppnAmount={ppnAmount}
+          total={total}
+        />
 
         <HStack justify="flex-end" gap={2} pt={2}>
           <Button
             variant="ghost"
-            onClick={() => navigate(poId ? `/purchasing/${poId}` : "/purchasing/all")}
+            onClick={() => {
+              onFinish?.();
+              navigate(poId ? `/purchasing/${poId}` : "/purchasing/all");
+            }}
           >
             {t("common.cancel")}
           </Button>
