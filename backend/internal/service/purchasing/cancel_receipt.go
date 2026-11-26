@@ -71,132 +71,8 @@ func (p *PurchaseReceipts) CancelReceipt(
 	receiptID := strings.TrimSpace(req.Msg.Id)
 
 	err = p.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		var r model.PurchaseReceipt
-		if e := tx.Preload("Items").Where("id = ?", receiptID).First(&r).Error; e != nil {
-			if errors.Is(e, gorm.ErrRecordNotFound) {
-				return connect.NewError(connect.CodeNotFound, errors.New("receipt not found"))
-			}
-			return connect.NewError(connect.CodeInternal, e)
-		}
-		if r.VoidedAt != nil {
-			return common.TokenError(connect.CodeFailedPrecondition, cancelBlockedVoided)
-		}
-
-		// Lock the PO: received_qty and status are about to move.
-		po, e := (&PurchaseOrders{db: tx}).lockByID(tx, r.PurchaseOrderID)
-		if e != nil {
-			return e
-		}
-		if po.Status == poStatusClosed {
-			return common.TokenError(connect.CodeFailedPrecondition, cancelBlockedPOClosed)
-		}
-
-		// Lock every lot first, in one deterministic-order statement, so a
-		// concurrent sale can't slip a movement in between the check and the
-		// delete (LockBatchesByID orders by id — same discipline as CompleteSale).
-		batchIDs := make([]string, 0, len(r.Items))
-		for i := range r.Items {
-			if r.Items[i].BatchID != nil {
-				batchIDs = append(batchIDs, *r.Items[i].BatchID)
-			}
-		}
-		if len(batchIDs) > 0 {
-			if e := common.LockBatchesByID(tx, batchIDs); e != nil {
-				return connect.NewError(connect.CodeInternal, e)
-			}
-		}
-
-		// restockKey identifies a product_last_restocks row; collected here and
-		// recomputed once per distinct key after the lines are undone (two lines
-		// of the same product on one receipt share a key).
-		type restockKey struct{ warehouseID, productID, supplierID string }
-		touched := map[restockKey]struct{}{}
-
-		for i := range r.Items {
-			item := &r.Items[i]
-
-			if item.BatchID != nil {
-				// The untouched assertion. Exactly one movement, and it must be
-				// the PURCHASE this receipt wrote for the full qty — anything
-				// else (a sale, transfer, adjustment, write-off, stocktake
-				// variance, partial return) means stock history depends on this
-				// lot and only a return can unwind it.
-				var mvs []model.StockMovement
-				if e := tx.Where("batch_id = ?", *item.BatchID).Find(&mvs).Error; e != nil {
-					return connect.NewError(connect.CodeInternal, e)
-				}
-				if len(mvs) != 1 || mvs[0].Type != "PURCHASE" || mvs[0].Qty != item.Qty {
-					return common.TokenError(connect.CodeFailedPrecondition, cancelBlockedConsumed)
-				}
-
-				// stocktake_lines.batch_id is a NOT NULL FK, so an open session
-				// holding this lot would turn the delete below into an opaque
-				// constraint error. Refuse with a reason the operator can act on.
-				var stocktakeLines int64
-				if e := tx.Model(&model.StocktakeLine{}).
-					Where("batch_id = ?", *item.BatchID).Count(&stocktakeLines).Error; e != nil {
-					return connect.NewError(connect.CodeInternal, e)
-				}
-				if stocktakeLines > 0 {
-					return common.TokenError(connect.CodeFailedPrecondition, cancelBlockedStocktake)
-				}
-
-				// Drop the receipt line's reference before the batch row goes, so
-				// the FK never sees a dangling link.
-				if e := tx.Model(&model.PurchaseReceiptItem{}).
-					Where("id = ?", item.ID).
-					Update("batch_id", nil).Error; e != nil {
-					return connect.NewError(connect.CodeInternal, e)
-				}
-				if e := tx.Where("id = ?", mvs[0].ID).
-					Delete(&model.StockMovement{}).Error; e != nil {
-					return connect.NewError(connect.CodeInternal, e)
-				}
-				if e := tx.Where("id = ?", *item.BatchID).
-					Delete(&model.Batch{}).Error; e != nil {
-					return connect.NewError(connect.CodeInternal, e)
-				}
-			}
-
-			// Give the ordered qty back so the PO reads as still awaiting it.
-			if e := tx.Model(&model.PurchaseOrderItem{}).
-				Where("id = ?", item.PurchaseOrderItemID).
-				Update("received_qty", gorm.Expr("received_qty - ?", item.Qty)).Error; e != nil {
-				return connect.NewError(connect.CodeInternal, e)
-			}
-
-			touched[restockKey{po.WarehouseID, item.ProductID, po.SupplierID}] = struct{}{}
-		}
-
-		// Undo the restock records. The log row is found by receipt_id; the
-		// last-value row must be REBUILT from the newest survivor, not reverted —
-		// it is an upsert, so it holds no memory of what it replaced.
-		if e := tx.Where("receipt_id = ?", r.ID).
-			Delete(&model.ProductRestockLog{}).Error; e != nil {
-			return connect.NewError(connect.CodeInternal, e)
-		}
-		for k := range touched {
-			if e := rebuildLastRestock(tx, k.warehouseID, k.productID, k.supplierID); e != nil {
-				return e
-			}
-		}
-
-		now := time.Now()
-		if e := tx.Model(&model.PurchaseReceipt{}).Where("id = ?", r.ID).
-			Updates(map[string]any{
-				"voided_at":   now,
-				"voided_by":   caller.UserID,
-				"void_reason": reason,
-			}).Error; e != nil {
-			return connect.NewError(connect.CodeInternal, e)
-		}
-
-		// Reflect the reduced received_qty: RECEIVED → PARTIALLY_RECEIVED, or
-		// back to SENT when this was the only receipt.
-		if e := recomputePOStatus(tx, po); e != nil {
-			return connect.NewError(connect.CodeInternal, e)
-		}
-		return nil
+		_, e := cancelReceiptTx(tx, caller, receiptID, reason)
+		return e
 	})
 	if err != nil {
 		return nil, common.AsConnectErr(err)
@@ -209,6 +85,142 @@ func (p *PurchaseReceipts) CancelReceipt(
 	return connect.NewResponse(&purchasingifacev1.CancelReceiptResponse{
 		Receipt: receiptToProto(full),
 	}), nil
+}
+
+// cancelReceiptTx is CancelReceipt's work inside a caller-provided transaction:
+// every precondition (each refusal is one of the cancelBlocked* tokens) and every
+// effect, in the same locking order -- the PO first, then the receipt's lots in
+// id order. ReplaceReceipt runs it before createReceiptTx in ONE transaction, so
+// a refusal from either half rolls the whole edit back. reason must already be
+// trimmed and non-empty. Returns the receipt as loaded BEFORE the cancel (its
+// items still name their lots).
+func cancelReceiptTx(tx *gorm.DB, caller auth.Principal, receiptID, reason string) (*model.PurchaseReceipt, error) {
+	var r model.PurchaseReceipt
+	if e := tx.Preload("Items").Where("id = ?", receiptID).First(&r).Error; e != nil {
+		if errors.Is(e, gorm.ErrRecordNotFound) {
+			return nil, connect.NewError(connect.CodeNotFound, errors.New("receipt not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, e)
+	}
+	if r.VoidedAt != nil {
+		return nil, common.TokenError(connect.CodeFailedPrecondition, cancelBlockedVoided)
+	}
+
+	// Lock the PO: received_qty and status are about to move.
+	po, e := (&PurchaseOrders{db: tx}).lockByID(tx, r.PurchaseOrderID)
+	if e != nil {
+		return nil, e
+	}
+	if po.Status == poStatusClosed {
+		return nil, common.TokenError(connect.CodeFailedPrecondition, cancelBlockedPOClosed)
+	}
+
+	// Lock every lot first, in one deterministic-order statement, so a
+	// concurrent sale can't slip a movement in between the check and the
+	// delete (LockBatchesByID orders by id — same discipline as CompleteSale).
+	batchIDs := make([]string, 0, len(r.Items))
+	for i := range r.Items {
+		if r.Items[i].BatchID != nil {
+			batchIDs = append(batchIDs, *r.Items[i].BatchID)
+		}
+	}
+	if len(batchIDs) > 0 {
+		if e := common.LockBatchesByID(tx, batchIDs); e != nil {
+			return nil, connect.NewError(connect.CodeInternal, e)
+		}
+	}
+
+	// restockKey identifies a product_last_restocks row; collected here and
+	// recomputed once per distinct key after the lines are undone (two lines
+	// of the same product on one receipt share a key).
+	type restockKey struct{ warehouseID, productID, supplierID string }
+	touched := map[restockKey]struct{}{}
+
+	for i := range r.Items {
+		item := &r.Items[i]
+
+		if item.BatchID != nil {
+			// The untouched assertion. Exactly one movement, and it must be
+			// the PURCHASE this receipt wrote for the full qty — anything
+			// else (a sale, transfer, adjustment, write-off, stocktake
+			// variance, partial return) means stock history depends on this
+			// lot and only a return can unwind it.
+			var mvs []model.StockMovement
+			if e := tx.Where("batch_id = ?", *item.BatchID).Find(&mvs).Error; e != nil {
+				return nil, connect.NewError(connect.CodeInternal, e)
+			}
+			if len(mvs) != 1 || mvs[0].Type != "PURCHASE" || mvs[0].Qty != item.Qty {
+				return nil, common.TokenError(connect.CodeFailedPrecondition, cancelBlockedConsumed)
+			}
+
+			// stocktake_lines.batch_id is a NOT NULL FK, so an open session
+			// holding this lot would turn the delete below into an opaque
+			// constraint error. Refuse with a reason the operator can act on.
+			var stocktakeLines int64
+			if e := tx.Model(&model.StocktakeLine{}).
+				Where("batch_id = ?", *item.BatchID).Count(&stocktakeLines).Error; e != nil {
+				return nil, connect.NewError(connect.CodeInternal, e)
+			}
+			if stocktakeLines > 0 {
+				return nil, common.TokenError(connect.CodeFailedPrecondition, cancelBlockedStocktake)
+			}
+
+			// Drop the receipt line's reference before the batch row goes, so
+			// the FK never sees a dangling link.
+			if e := tx.Model(&model.PurchaseReceiptItem{}).
+				Where("id = ?", item.ID).
+				Update("batch_id", nil).Error; e != nil {
+				return nil, connect.NewError(connect.CodeInternal, e)
+			}
+			if e := tx.Where("id = ?", mvs[0].ID).
+				Delete(&model.StockMovement{}).Error; e != nil {
+				return nil, connect.NewError(connect.CodeInternal, e)
+			}
+			if e := tx.Where("id = ?", *item.BatchID).
+				Delete(&model.Batch{}).Error; e != nil {
+				return nil, connect.NewError(connect.CodeInternal, e)
+			}
+		}
+
+		// Give the ordered qty back so the PO reads as still awaiting it.
+		if e := tx.Model(&model.PurchaseOrderItem{}).
+			Where("id = ?", item.PurchaseOrderItemID).
+			Update("received_qty", gorm.Expr("received_qty - ?", item.Qty)).Error; e != nil {
+			return nil, connect.NewError(connect.CodeInternal, e)
+		}
+
+		touched[restockKey{po.WarehouseID, item.ProductID, po.SupplierID}] = struct{}{}
+	}
+
+	// Undo the restock records. The log row is found by receipt_id; the
+	// last-value row must be REBUILT from the newest survivor, not reverted —
+	// it is an upsert, so it holds no memory of what it replaced.
+	if e := tx.Where("receipt_id = ?", r.ID).
+		Delete(&model.ProductRestockLog{}).Error; e != nil {
+		return nil, connect.NewError(connect.CodeInternal, e)
+	}
+	for k := range touched {
+		if e := rebuildLastRestock(tx, k.warehouseID, k.productID, k.supplierID); e != nil {
+			return nil, e
+		}
+	}
+
+	now := time.Now()
+	if e := tx.Model(&model.PurchaseReceipt{}).Where("id = ?", r.ID).
+		Updates(map[string]any{
+			"voided_at":   now,
+			"voided_by":   caller.UserID,
+			"void_reason": reason,
+		}).Error; e != nil {
+		return nil, connect.NewError(connect.CodeInternal, e)
+	}
+
+	// Reflect the reduced received_qty: RECEIVED → PARTIALLY_RECEIVED, or
+	// back to SENT when this was the only receipt.
+	if e := recomputePOStatus(tx, po); e != nil {
+		return nil, connect.NewError(connect.CodeInternal, e)
+	}
+	return &r, nil
 }
 
 // rebuildLastRestock restores product_last_restocks for one (warehouse,

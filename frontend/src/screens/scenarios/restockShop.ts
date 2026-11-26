@@ -1,3 +1,4 @@
+import { Code } from "@connectrpc/connect";
 import type { HttpHandler } from "msw";
 
 import { ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
@@ -8,7 +9,12 @@ import { UserService } from "../../gen/user_iface/v1/users_connect";
 import { POStatus, PurchaseOrder, PurchaseOrderItem } from "../../gen/purchasing_iface/v1/order_pb";
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
 import { PurchasePaymentService } from "../../gen/purchasing_iface/v1/payment_connect";
-import { PurchaseReceipt, PurchaseReceiptItem } from "../../gen/purchasing_iface/v1/receipt_pb";
+import {
+  type CreateReceiptRequest,
+  PurchaseReceipt,
+  PurchaseReceiptItem,
+  type ReplaceReceiptRequest,
+} from "../../gen/purchasing_iface/v1/receipt_pb";
 import { PurchaseReceiptService } from "../../gen/purchasing_iface/v1/receipt_connect";
 import { PurchaseReturn, PurchaseReturnItem } from "../../gen/purchasing_iface/v1/return_pb";
 import { PurchaseReturnService } from "../../gen/purchasing_iface/v1/return_connect";
@@ -29,7 +35,7 @@ import {
   poEditable,
 } from "../../routes/dev/restockFixtures";
 import { STORY_USERS } from "../../routes/dev/storyDecorators";
-import { mockRpc } from "../../routes/dev/storyMocks";
+import { mockRpc, rpcError } from "../../routes/dev/storyMocks";
 
 // The fake shop behind the restock-order stories — one writeable copy of the
 // ledger plus the handlers the detail page reads and writes. The states and
@@ -43,7 +49,8 @@ import { mockRpc } from "../../routes/dev/storyMocks";
 // per-story store instead means the page behaves — Send moves DRAFT to SENT and
 // swaps the action row, Receive lands a delivery and advances the order to
 // partially- or fully-received, Pay closes a received order once it is settled,
-// Cancel strikes a delivery through and hands the stock back. Same reasoning as
+// Cancel strikes a delivery through and hands the stock back, Edit (Ubah) does
+// that and lands the corrected delivery under a new number. Same reasoning as
 // the Products story mocking ListProducts as a function of the request, and as
 // settingsShop.ts next door.
 //
@@ -229,6 +236,108 @@ function createOrderHandler(shop: Shop): HttpHandler {
   });
 }
 
+type ReceiveInput = Pick<CreateReceiptRequest, "purchaseOrderId" | "receivedAt" | "note" | "invoiceNo" | "lines">;
+
+/** CreateReceipt's effect: a new delivery, its lots and the order's received qty. */
+function receiveInto(shop: Shop, req: ReceiveInput): PurchaseReceipt {
+  const po = find(shop, req.purchaseOrderId)!;
+  const no = shop.nextReceiptNo++;
+  const receipt = new PurchaseReceipt({
+    id: `rcv-new-${no}`,
+    receiptNo: `RCV-2026-${String(no).padStart(4, "0")}`,
+    purchaseOrderId: po.id,
+    receivedAt: req.receivedAt || dateIn(0),
+    receivedBy: "user-admin",
+    invoiceNo: req.invoiceNo,
+    note: req.note,
+    createdAt: BigInt(Math.floor(Date.now() / 1000)),
+    // A brand-new delivery's lots are untouched by definition, so it is
+    // always cancellable the moment it lands.
+    cancellable: true,
+    items: req.lines.map((l, i) => {
+      const item = po.items.find((it) => it.id === l.purchaseOrderItemId)!;
+      const factor = Number(item.unitFactor) || 1;
+      const qty = l.qty * factor;
+      item.receivedQty += qty;
+      return new PurchaseReceiptItem({
+        id: `rcv-new-${no}-i${i + 1}`,
+        purchaseReceiptId: `rcv-new-${no}`,
+        purchaseOrderItemId: item.id,
+        productId: item.productId,
+        qty,
+        unitCostPrice: l.unitCostPrice || item.unitCostPrice,
+        batchNumber: l.batchNumber,
+        // Like the server: a "does not expire" line stores the placeholder.
+        expiryDate: l.expirySource === ExpirySource.NONE ? "2099-12-31" : l.expiryDate,
+        // Read back from the lot, like the server: UNSPECIFIED was typed.
+        expirySource: l.expirySource || ExpirySource.ENTERED,
+        batchId: `rcv-new-${no}-b${i + 1}`,
+        productUnitId: item.productUnitId,
+        unitName: item.unitName,
+        unitFactor: item.unitFactor,
+        returnableQty: BigInt(qty),
+      });
+    }),
+  });
+  shop.receipts.push(receipt);
+  po.receivedAt = receipt.createdAt;
+  po.invoiceNo = req.invoiceNo || po.invoiceNo;
+  recomputeStatus(po);
+  settle(po);
+  return receipt;
+}
+
+/** CancelReceipt's effect: the delivery struck through and its qty given back. */
+function cancelIn(shop: Shop, receipt: PurchaseReceipt, reason: string) {
+  const po = find(shop, receipt.purchaseOrderId)!;
+  receipt.voidedAt = BigInt(Math.floor(Date.now() / 1000));
+  receipt.voidedBy = "user-owner";
+  receipt.voidReason = reason;
+  receipt.cancellable = false;
+  for (const it of receipt.items) {
+    const line = po.items.find((l) => l.id === it.purchaseOrderItemId);
+    if (line) line.receivedQty = Math.max(0, line.receivedQty - it.qty);
+    // The lot is deleted outright, not offset by a compensating movement —
+    // so the batch link goes with it.
+    it.batchId = "";
+    it.returnableQty = 0n;
+  }
+  recomputeStatus(po);
+  settle(po);
+}
+
+/**
+ * ReplaceReceipt's refusals, checked BEFORE anything is written — the server
+ * runs the edit in one transaction, so a refused edit leaves the old delivery
+ * exactly as it was. The cancel half's reasons come off the receipt's own
+ * precomputed cancel_blocked_reason (the fixtures seed it, as markCancellable
+ * does); the receive half's is the qty ceiling: what is still outstanding on the
+ * line plus what this delivery brought, which the cancel gives back first.
+ */
+function replaceRefusal(shop: Shop, receipt: PurchaseReceipt, req: ReplaceReceiptRequest) {
+  if (!req.reason.trim()) return rpcError(Code.InvalidArgument, "purchasing.reason_required");
+  if (receipt.voidedAt !== 0n) return rpcError(Code.FailedPrecondition, "purchasing.receipt_already_voided");
+  if (!receipt.cancellable) return rpcError(Code.FailedPrecondition, receipt.cancelBlockedReason);
+  if (req.lines.length === 0) return rpcError(Code.InvalidArgument, "purchasing.lines_required");
+  const po = find(shop, receipt.purchaseOrderId)!;
+  const asked = new Map<string, number>();
+  for (const l of req.lines) {
+    const item = po.items.find((it) => it.id === l.purchaseOrderItemId);
+    if (!item) return rpcError(Code.InvalidArgument, "purchasing.po_item_not_found");
+    asked.set(item.id, (asked.get(item.id) ?? 0) + l.qty * (Number(item.unitFactor) || 1));
+  }
+  for (const [itemId, qty] of asked) {
+    const item = po.items.find((it) => it.id === itemId)!;
+    const given = receipt.items
+      .filter((it) => it.purchaseOrderItemId === itemId)
+      .reduce((sum, it) => sum + it.qty, 0);
+    if (qty > item.orderedQty - item.receivedQty + given) {
+      return rpcError(Code.FailedPrecondition, "purchasing.receive_exceeds_remaining");
+    }
+  }
+  return undefined;
+}
+
 function receiptHandlers(shop: Shop): HttpHandler[] {
   return [
     mockRpc(PurchaseReceiptService, "listReceipts", (req) => {
@@ -238,71 +347,25 @@ function receiptHandlers(shop: Shop): HttpHandler[] {
       const limit = req.limit > 0 ? req.limit : DEFAULT_LIMIT;
       return { receipts: rows.slice(req.offset, req.offset + limit), total: rows.length };
     }),
-    mockRpc(PurchaseReceiptService, "createReceipt", (req) => {
-      const po = find(shop, req.purchaseOrderId)!;
-      const no = shop.nextReceiptNo++;
-      const receipt = new PurchaseReceipt({
-        id: `rcv-new-${no}`,
-        receiptNo: `RCV-2026-${String(no).padStart(4, "0")}`,
-        purchaseOrderId: po.id,
-        receivedAt: req.receivedAt || dateIn(0),
-        receivedBy: "user-admin",
-        invoiceNo: req.invoiceNo,
-        note: req.note,
-        createdAt: BigInt(Math.floor(Date.now() / 1000)),
-        // A brand-new delivery's lots are untouched by definition, so it is
-        // always cancellable the moment it lands.
-        cancellable: true,
-        items: req.lines.map((l, i) => {
-          const item = po.items.find((it) => it.id === l.purchaseOrderItemId)!;
-          const factor = Number(item.unitFactor) || 1;
-          const qty = l.qty * factor;
-          item.receivedQty += qty;
-          return new PurchaseReceiptItem({
-            id: `rcv-new-${no}-i${i + 1}`,
-            purchaseReceiptId: `rcv-new-${no}`,
-            purchaseOrderItemId: item.id,
-            productId: item.productId,
-            qty,
-            unitCostPrice: l.unitCostPrice || item.unitCostPrice,
-            batchNumber: l.batchNumber,
-            // Like the server: a "does not expire" line stores the placeholder.
-            expiryDate: l.expirySource === ExpirySource.NONE ? "2099-12-31" : l.expiryDate,
-            // Read back from the lot, like the server: UNSPECIFIED was typed.
-            expirySource: l.expirySource || ExpirySource.ENTERED,
-            batchId: `rcv-new-${no}-b${i + 1}`,
-            productUnitId: item.productUnitId,
-            unitName: item.unitName,
-            unitFactor: item.unitFactor,
-            returnableQty: BigInt(qty),
-          });
-        }),
-      });
-      shop.receipts.push(receipt);
-      po.receivedAt = receipt.createdAt;
-      po.invoiceNo = req.invoiceNo || po.invoiceNo;
-      recomputeStatus(po);
-      settle(po);
-      return { receipt };
-    }),
+    mockRpc(PurchaseReceiptService, "createReceipt", (req) => ({ receipt: receiveInto(shop, req) })),
     mockRpc(PurchaseReceiptService, "cancelReceipt", (req) => {
       const receipt = shop.receipts.find((r) => r.id === req.id)!;
-      const po = find(shop, receipt.purchaseOrderId)!;
-      receipt.voidedAt = BigInt(Math.floor(Date.now() / 1000));
-      receipt.voidedBy = "user-owner";
-      receipt.voidReason = req.reason;
-      receipt.cancellable = false;
-      for (const it of receipt.items) {
-        const line = po.items.find((l) => l.id === it.purchaseOrderItemId);
-        if (line) line.receivedQty = Math.max(0, line.receivedQty - it.qty);
-        // The lot is deleted outright, not offset by a compensating movement —
-        // so the batch link goes with it.
-        it.batchId = "";
-        it.returnableQty = 0n;
-      }
-      recomputeStatus(po);
-      settle(po);
+      cancelIn(shop, receipt, req.reason);
       return { receipt };
+    }),
+    // Edit a delivery: the cancel and the receive above, composed in the
+    // server's order — cancel first, so the corrected lines are checked against
+    // the qty the old delivery gave back — and linked old → new for the
+    // "diganti oleh RCV-…" marker on the struck-through row.
+    mockRpc(PurchaseReceiptService, "replaceReceipt", (req) => {
+      const old = shop.receipts.find((r) => r.id === req.id)!;
+      const refusal = replaceRefusal(shop, old, req);
+      if (refusal) return refusal;
+      cancelIn(shop, old, req.reason.trim());
+      const receipt = receiveInto(shop, { ...req, purchaseOrderId: old.purchaseOrderId });
+      old.replacedById = receipt.id;
+      old.replacedByNo = receipt.receiptNo;
+      return { receipt, replaced: old };
     }),
   ];
 }

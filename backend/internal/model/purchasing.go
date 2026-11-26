@@ -82,6 +82,10 @@ type PurchaseReceipt struct {
 	VoidedAt   *time.Time `gorm:"column:voided_at"`
 	VoidedBy   *string    `gorm:"type:uuid;column:voided_by"`
 	VoidReason string     `gorm:"not null;default:'';column:void_reason"`
+	// Set on a receipt voided by ReplaceReceipt ("ubah penerimaan"): the
+	// receipt that superseded it. Nil on a live receipt and on one cancelled
+	// outright.
+	ReplacedByID *string `gorm:"type:uuid;column:replaced_by_id"`
 
 	Items []PurchaseReceiptItem `gorm:"foreignKey:PurchaseReceiptID"`
 }

@@ -373,6 +373,16 @@
       "warning": "Stok di bawah ini akan dihapus dari gudang dan order restock dibuka kembali, seolah pengiriman tidak pernah dicatat. Hanya bisa selama stoknya belum terpakai. Kalau barangnya memang dikembalikan ke pemasok, buat retur pembelian saja.",
       "done": "Penerimaan dibatalkan"
     },
+    "edit": {
+      "action": "Ubah",
+      "title": "Ubah penerimaan {{no}}",
+      "warning": "Saat disimpan, penerimaan ini dibatalkan dan isian di bawah dicatat sebagai penerimaan baru dengan nomor RCV baru. Penerimaan lama tetap tampil sebagai dibatalkan, jadi perubahannya bisa ditelusuri. Hanya bisa selama stoknya belum terpakai.",
+      "reasonPlaceholder": "mis. jumlah salah ketik",
+      "max": "Maks.",
+      "confirm": "Simpan perubahan",
+      "done": "Penerimaan diubah",
+      "replacedBy": "diganti oleh {{no}}"
+    },
     "payments": "Pembayaran",
     "payTitle": "Catat pembayaran",
     "amount": "Jumlah",

@@ -373,6 +373,16 @@
       "warning": "This removes the stock below from the warehouse and reopens the restock order, as if the delivery had never been recorded. Only possible while none of it has been used. If the goods physically went back to the supplier, record a purchase return instead.",
       "done": "Receipt cancelled"
     },
+    "edit": {
+      "action": "Edit",
+      "title": "Edit delivery {{no}}",
+      "warning": "Saving cancels this delivery and records the corrected one below under a new RCV number. The old delivery stays listed as cancelled, so the change can be traced. Only possible while none of its stock has been used.",
+      "reasonPlaceholder": "e.g. quantity mistyped",
+      "max": "Max",
+      "confirm": "Save changes",
+      "done": "Delivery updated",
+      "replacedBy": "replaced by {{no}}"
+    },
     "payments": "Payments",
     "payTitle": "Record payment",
     "amount": "Amount",

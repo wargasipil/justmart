@@ -23,7 +23,8 @@ import { newShop, shopHandlers } from "./restockShop";
 //
 // The mocks WRITE (see restockShop.ts), so the actions work: Send advances the
 // order and swaps the action row, Receive lands a delivery, Pay closes a
-// settled one, Cancel strikes a delivery through and takes the stock back.
+// settled one, Cancel strikes a delivery through and takes the stock back, and
+// Edit (Ubah) does that and lands the corrected delivery under a new number.
 //
 // There is no cashier story: /purchasing is OWNER + PHARMACIST in the proto, so
 // a till is never routed here.
@@ -44,6 +45,35 @@ const at = (id: string) => ({ router: { initialEntries: [`/purchasing/${id}`] } 
 
 /** The header's Ubah (Edit) action, which follows PurchaseOrder.editable. */
 const EDIT_BUTTON = { name: /^(edit|ubah)$/i };
+
+/**
+ * A delivery row's own Ubah. It reads "Ubah" like the header's, but is NAMED
+ * per delivery ("Ubah penerimaan RCV-…"), so EDIT_BUTTON never matches it.
+ * Each delivery row is a group named by its RCV number.
+ */
+const DELIVERY_EDIT = { name: /^(edit delivery|ubah penerimaan) RCV-/i };
+
+/**
+ * po-received's deliveries: 0084 is cancellable, 0083 is blocked (its lot has
+ * been sold from). The next number the shop hands out is 0089.
+ */
+const CANCELLABLE_DELIVERY = "RCV-2026-0084";
+const BLOCKED_DELIVERY = "RCV-2026-0083";
+
+/** Opens Ubah on the cancellable delivery after checking the blocked one has none. */
+async function openEditDelivery(canvasElement: HTMLElement) {
+  const canvas = within(canvasElement);
+  // A blocked delivery offers neither Batalkan nor Ubah: the edit IS a cancel,
+  // so the row says why instead, once, for both.
+  const blocked = await canvas.findByRole("group", { name: BLOCKED_DELIVERY });
+  await expect(within(blocked).queryByRole("button", DELIVERY_EDIT)).toBeNull();
+  const row = await canvas.findByRole("group", { name: CANCELLABLE_DELIVERY });
+  await userEvent.click(within(row).getByRole("button", DELIVERY_EDIT));
+  const body = within(canvasElement.ownerDocument.body);
+  return body.findByRole("dialog", {
+    name: new RegExp(`^(edit delivery|ubah penerimaan) ${CANCELLABLE_DELIVERY}$`, "i"),
+  });
+}
 
 /** Everything the page reads and writes, over a fresh copy of the ledger. */
 export function detailHandlers() {
@@ -145,7 +175,8 @@ export const stories = {
       "becomes on receive — net of the line discount and inclusive of PPN — which is why it is " +
       "kept apart from the invoice arithmetic above it. The delivery below is cancellable: its " +
       "lots are untouched, so Batalkan is offered and the dialog spells out exactly which stock " +
-      "disappears. There is no Ubah: an order that has had a delivery is not editable.",
+      "disappears, and so is the delivery's own Ubah (correct it — see EditDelivery). There is no " +
+      "Ubah in the header: an order that has had a delivery is not editable.",
     {
       parameters: withOwnShop(at("po-partial")),
       play: async ({ canvasElement }) => {
@@ -161,12 +192,49 @@ export const stories = {
       "The four deliveries below are the point of this story — they are the four states a " +
       "receipt row has: one still cancellable, one blocked because its lot has already been " +
       "sold, one blocked because an open stocktake is holding the lot, and one already " +
-      "cancelled (struck through, badged, with its reason). A blocked row says WHY inline " +
+      "cancelled (struck through, badged, with its reason). The cancellable one offers Ubah " +
+      "beside Batalkan (see EditDelivery). A blocked row says WHY inline " +
       "instead of offering a dead button, and that reason is the same stable token CancelReceipt " +
       "would have refused with — translated through the shared server-error catalog, not a " +
       "second copy of the wording. The order also carries a per-line percentage discount, a " +
       "per-item fixed one and a cart-level discount.",
     { parameters: withOwnShop(at("po-received")) },
+  ),
+  EditDelivery: story(
+    "The fully-delivered order with Ubah pressed on its one cancellable delivery. Ubah opens " +
+      "Terima barang in edit mode, pre-filled with what that delivery recorded — the quantity in " +
+      "the line's pack unit, the batch number, the expiry (a product default stays marked as " +
+      "one), the received date, the faktur no and the note — under \"Ubah penerimaan RCV-…\". " +
+      "Each line's maximum is what is still owed plus what this delivery brought, because saving " +
+      "is ReplaceReceipt: the server cancels this delivery and records the corrected one under a " +
+      "NEW RCV number in one transaction, so the old one stays listed as cancelled and the " +
+      "change can be traced. A reason is required, as for Batalkan. Ubah is offered exactly " +
+      "where Batalkan is: the delivery whose lot has been sold from offers neither.",
+    {
+      parameters: withOwnShop(at("po-received")),
+      play: async ({ canvasElement }) => {
+        await openEditDelivery(canvasElement);
+      },
+    },
+  ),
+  DeliveryReplaced: story(
+    "The edit carried through: the reason typed and Simpan perubahan pressed. The edited " +
+      "delivery is struck through as cancelled, with its reason and \"diganti oleh " +
+      "RCV-2026-0089\" beside it, and the corrected delivery is listed above it as a live, " +
+      "cancellable row of its own — so it can be corrected again.",
+    {
+      parameters: withOwnShop(at("po-received")),
+      play: async ({ canvasElement }) => {
+        const dialog = within(await openEditDelivery(canvasElement));
+        await userEvent.type(dialog.getByRole("textbox", { name: /^(reason|alasan)$/i }), "Jumlah salah ketik");
+        await userEvent.click(dialog.getByRole("button", { name: /^(save changes|simpan perubahan)$/i }));
+        const canvas = within(canvasElement);
+        const old = await canvas.findByRole("group", { name: CANCELLABLE_DELIVERY });
+        await within(old).findByText(/^(replaced by|diganti oleh) RCV-2026-0089$/i);
+        const created = await canvas.findByRole("group", { name: "RCV-2026-0089" });
+        await expect(within(created).getByRole("button", DELIVERY_EDIT)).toBeVisible();
+      },
+    },
   ),
   Closed: story(
     "Delivered and paid in full — the end of the line. Only Retur remains, because returning " +

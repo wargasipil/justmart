@@ -29,6 +29,12 @@ message PurchaseReceipt {
   // a stable token (see serverErrors.ts), empty when cancellable.
   bool cancellable = 13;
   string cancel_blocked_reason = 14;
+  // Edit-delivery ("ubah penerimaan"): on a receipt voided by ReplaceReceipt,
+  // the receipt that superseded it and its RCV number (denormalized for
+  // display, batch-filled by ListReceipts). Empty on a live receipt and on one
+  // cancelled outright.
+  string replaced_by_id = 15;
+  string replaced_by_no = 16;
 }
 
 message PurchaseReceiptItem {
@@ -89,6 +95,17 @@ service PurchaseReceiptService {
     option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
     option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
   }
+  // ReplaceReceipt corrects a delivery entered with a mistake ("ubah
+  // penerimaan"): in ONE transaction it cancels the receipt (exactly
+  // CancelReceipt's preconditions and refusal tokens) and receives the
+  // corrected lines against the same order as a NEW receipt with its own RCV
+  // number. The old receipt stays, voided, with replaced_by_id pointing at the
+  // new one. Any refusal leaves the old delivery untouched. Same roles as
+  // CancelReceipt.
+  rpc ReplaceReceipt(ReplaceReceiptRequest) returns (ReplaceReceiptResponse) {
+    option (auth_iface.v1.allowed_roles) = ROLE_OWNER;
+    option (auth_iface.v1.allowed_roles) = ROLE_PHARMACIST;
+  }
 }
 
 message CreateReceiptRequest {
@@ -121,4 +138,20 @@ message CancelReceiptRequest {
 }
 message CancelReceiptResponse {
   PurchaseReceipt receipt = 1;     // the voided receipt (batch links cleared)
+}
+
+// The corrected delivery carries the same fields as CreateReceiptRequest,
+// minus purchase_order_id: it is always received against the replaced
+// receipt's order.
+message ReplaceReceiptRequest {
+  string id = 1;                   // the receipt being replaced
+  string reason = 2;               // required — why the delivery is corrected
+  string received_at = 3;          // YYYY-MM-DD (defaults to today if empty)
+  string note = 4;
+  repeated ReceiveLineInput lines = 5;
+  string invoice_no = 6;           // supplier invoice / nomor faktur
+}
+message ReplaceReceiptResponse {
+  PurchaseReceipt receipt = 1;     // the NEW receipt
+  PurchaseReceipt replaced = 2;    // the old one, now voided with replaced_by_id
 }

@@ -20,5 +20,8 @@ func (p *PurchaseReceipts) GetReceipt(
 	if err := attachExpirySources(ctx, p.db, out); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if err := attachReplacedByNo(ctx, p.db, out); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	return connect.NewResponse(&purchasingifacev1.GetReceiptResponse{Receipt: out}), nil
 }

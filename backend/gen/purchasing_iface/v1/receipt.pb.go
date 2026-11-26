@@ -46,8 +46,14 @@ type PurchaseReceipt struct {
 	// a stable token (see serverErrors.ts), empty when cancellable.
 	Cancellable         bool   `protobuf:"varint,13,opt,name=cancellable,proto3" json:"cancellable,omitempty"`
 	CancelBlockedReason string `protobuf:"bytes,14,opt,name=cancel_blocked_reason,json=cancelBlockedReason,proto3" json:"cancel_blocked_reason,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Edit-delivery ("ubah penerimaan"): on a receipt voided by ReplaceReceipt,
+	// the receipt that superseded it and its RCV number (denormalized for
+	// display, batch-filled by ListReceipts). Empty on a live receipt and on one
+	// cancelled outright.
+	ReplacedById  string `protobuf:"bytes,15,opt,name=replaced_by_id,json=replacedById,proto3" json:"replaced_by_id,omitempty"`
+	ReplacedByNo  string `protobuf:"bytes,16,opt,name=replaced_by_no,json=replacedByNo,proto3" json:"replaced_by_no,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PurchaseReceipt) Reset() {
@@ -174,6 +180,20 @@ func (x *PurchaseReceipt) GetCancellable() bool {
 func (x *PurchaseReceipt) GetCancelBlockedReason() string {
 	if x != nil {
 		return x.CancelBlockedReason
+	}
+	return ""
+}
+
+func (x *PurchaseReceipt) GetReplacedById() string {
+	if x != nil {
+		return x.ReplacedById
+	}
+	return ""
+}
+
+func (x *PurchaseReceipt) GetReplacedByNo() string {
+	if x != nil {
+		return x.ReplacedByNo
 	}
 	return ""
 }
@@ -844,11 +864,150 @@ func (x *CancelReceiptResponse) GetReceipt() *PurchaseReceipt {
 	return nil
 }
 
+// The corrected delivery carries the same fields as CreateReceiptRequest,
+// minus purchase_order_id: it is always received against the replaced
+// receipt's order.
+type ReplaceReceiptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`                                   // the receipt being replaced
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`                           // required — why the delivery is corrected
+	ReceivedAt    string                 `protobuf:"bytes,3,opt,name=received_at,json=receivedAt,proto3" json:"received_at,omitempty"` // YYYY-MM-DD (defaults to today if empty)
+	Note          string                 `protobuf:"bytes,4,opt,name=note,proto3" json:"note,omitempty"`
+	Lines         []*ReceiveLineInput    `protobuf:"bytes,5,rep,name=lines,proto3" json:"lines,omitempty"`
+	InvoiceNo     string                 `protobuf:"bytes,6,opt,name=invoice_no,json=invoiceNo,proto3" json:"invoice_no,omitempty"` // supplier invoice / nomor faktur
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplaceReceiptRequest) Reset() {
+	*x = ReplaceReceiptRequest{}
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceReceiptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceReceiptRequest) ProtoMessage() {}
+
+func (x *ReplaceReceiptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplaceReceiptRequest.ProtoReflect.Descriptor instead.
+func (*ReplaceReceiptRequest) Descriptor() ([]byte, []int) {
+	return file_purchasing_iface_v1_receipt_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ReplaceReceiptRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ReplaceReceiptRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *ReplaceReceiptRequest) GetReceivedAt() string {
+	if x != nil {
+		return x.ReceivedAt
+	}
+	return ""
+}
+
+func (x *ReplaceReceiptRequest) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+func (x *ReplaceReceiptRequest) GetLines() []*ReceiveLineInput {
+	if x != nil {
+		return x.Lines
+	}
+	return nil
+}
+
+func (x *ReplaceReceiptRequest) GetInvoiceNo() string {
+	if x != nil {
+		return x.InvoiceNo
+	}
+	return ""
+}
+
+type ReplaceReceiptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Receipt       *PurchaseReceipt       `protobuf:"bytes,1,opt,name=receipt,proto3" json:"receipt,omitempty"`   // the NEW receipt
+	Replaced      *PurchaseReceipt       `protobuf:"bytes,2,opt,name=replaced,proto3" json:"replaced,omitempty"` // the old one, now voided with replaced_by_id
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplaceReceiptResponse) Reset() {
+	*x = ReplaceReceiptResponse{}
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceReceiptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceReceiptResponse) ProtoMessage() {}
+
+func (x *ReplaceReceiptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_purchasing_iface_v1_receipt_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplaceReceiptResponse.ProtoReflect.Descriptor instead.
+func (*ReplaceReceiptResponse) Descriptor() ([]byte, []int) {
+	return file_purchasing_iface_v1_receipt_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ReplaceReceiptResponse) GetReceipt() *PurchaseReceipt {
+	if x != nil {
+		return x.Receipt
+	}
+	return nil
+}
+
+func (x *ReplaceReceiptResponse) GetReplaced() *PurchaseReceipt {
+	if x != nil {
+		return x.Replaced
+	}
+	return nil
+}
+
 var File_purchasing_iface_v1_receipt_proto protoreflect.FileDescriptor
 
 const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\n" +
-	"!purchasing_iface/v1/receipt.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a\x1einventory_iface/v1/batch.proto\"\xf1\x03\n" +
+	"!purchasing_iface/v1/receipt.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a\x1einventory_iface/v1/batch.proto\"\xbd\x04\n" +
 	"\x0fPurchaseReceipt\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -870,7 +1029,9 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\vvoid_reason\x18\f \x01(\tR\n" +
 	"voidReason\x12 \n" +
 	"\vcancellable\x18\r \x01(\bR\vcancellable\x122\n" +
-	"\x15cancel_blocked_reason\x18\x0e \x01(\tR\x13cancelBlockedReason\"\x96\x04\n" +
+	"\x15cancel_blocked_reason\x18\x0e \x01(\tR\x13cancelBlockedReason\x12$\n" +
+	"\x0ereplaced_by_id\x18\x0f \x01(\tR\freplacedById\x12$\n" +
+	"\x0ereplaced_by_no\x18\x10 \x01(\tR\freplacedByNo\"\x96\x04\n" +
 	"\x13PurchaseReceiptItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x13purchase_receipt_id\x18\x02 \x01(\tR\x11purchaseReceiptId\x123\n" +
@@ -924,13 +1085,26 @@ const file_purchasing_iface_v1_receipt_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"W\n" +
 	"\x15CancelReceiptResponse\x12>\n" +
-	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt2\xcc\x03\n" +
+	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt\"\xd0\x01\n" +
+	"\x15ReplaceReceiptRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x1f\n" +
+	"\vreceived_at\x18\x03 \x01(\tR\n" +
+	"receivedAt\x12\x12\n" +
+	"\x04note\x18\x04 \x01(\tR\x04note\x12;\n" +
+	"\x05lines\x18\x05 \x03(\v2%.purchasing_iface.v1.ReceiveLineInputR\x05lines\x12\x1d\n" +
+	"\n" +
+	"invoice_no\x18\x06 \x01(\tR\tinvoiceNo\"\x9a\x01\n" +
+	"\x16ReplaceReceiptResponse\x12>\n" +
+	"\areceipt\x18\x01 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\areceipt\x12@\n" +
+	"\breplaced\x18\x02 \x01(\v2$.purchasing_iface.v1.PurchaseReceiptR\breplaced2\xbf\x04\n" +
 	"\x16PurchaseReceiptService\x12n\n" +
 	"\rCreateReceipt\x12).purchasing_iface.v1.CreateReceiptRequest\x1a*.purchasing_iface.v1.CreateReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12k\n" +
 	"\fListReceipts\x12(.purchasing_iface.v1.ListReceiptsRequest\x1a).purchasing_iface.v1.ListReceiptsResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12e\n" +
 	"\n" +
 	"GetReceipt\x12&.purchasing_iface.v1.GetReceiptRequest\x1a'.purchasing_iface.v1.GetReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12n\n" +
-	"\rCancelReceipt\x12).purchasing_iface.v1.CancelReceiptRequest\x1a*.purchasing_iface.v1.CancelReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02BGZEgithub.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1b\x06proto3"
+	"\rCancelReceipt\x12).purchasing_iface.v1.CancelReceiptRequest\x1a*.purchasing_iface.v1.CancelReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02\x12q\n" +
+	"\x0eReplaceReceipt\x12*.purchasing_iface.v1.ReplaceReceiptRequest\x1a+.purchasing_iface.v1.ReplaceReceiptResponse\"\x06\x8a\xb5\x18\x02\x01\x02BGZEgithub.com/justmart/backend/gen/purchasing_iface/v1;purchasingifacev1b\x06proto3"
 
 var (
 	file_purchasing_iface_v1_receipt_proto_rawDescOnce sync.Once
@@ -944,43 +1118,50 @@ func file_purchasing_iface_v1_receipt_proto_rawDescGZIP() []byte {
 	return file_purchasing_iface_v1_receipt_proto_rawDescData
 }
 
-var file_purchasing_iface_v1_receipt_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_purchasing_iface_v1_receipt_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_purchasing_iface_v1_receipt_proto_goTypes = []any{
-	(*PurchaseReceipt)(nil),       // 0: purchasing_iface.v1.PurchaseReceipt
-	(*PurchaseReceiptItem)(nil),   // 1: purchasing_iface.v1.PurchaseReceiptItem
-	(*ReceiveLineInput)(nil),      // 2: purchasing_iface.v1.ReceiveLineInput
-	(*CreateReceiptRequest)(nil),  // 3: purchasing_iface.v1.CreateReceiptRequest
-	(*CreateReceiptResponse)(nil), // 4: purchasing_iface.v1.CreateReceiptResponse
-	(*ListReceiptsRequest)(nil),   // 5: purchasing_iface.v1.ListReceiptsRequest
-	(*ListReceiptsResponse)(nil),  // 6: purchasing_iface.v1.ListReceiptsResponse
-	(*GetReceiptRequest)(nil),     // 7: purchasing_iface.v1.GetReceiptRequest
-	(*GetReceiptResponse)(nil),    // 8: purchasing_iface.v1.GetReceiptResponse
-	(*CancelReceiptRequest)(nil),  // 9: purchasing_iface.v1.CancelReceiptRequest
-	(*CancelReceiptResponse)(nil), // 10: purchasing_iface.v1.CancelReceiptResponse
-	(v1.ExpirySource)(0),          // 11: inventory_iface.v1.ExpirySource
+	(*PurchaseReceipt)(nil),        // 0: purchasing_iface.v1.PurchaseReceipt
+	(*PurchaseReceiptItem)(nil),    // 1: purchasing_iface.v1.PurchaseReceiptItem
+	(*ReceiveLineInput)(nil),       // 2: purchasing_iface.v1.ReceiveLineInput
+	(*CreateReceiptRequest)(nil),   // 3: purchasing_iface.v1.CreateReceiptRequest
+	(*CreateReceiptResponse)(nil),  // 4: purchasing_iface.v1.CreateReceiptResponse
+	(*ListReceiptsRequest)(nil),    // 5: purchasing_iface.v1.ListReceiptsRequest
+	(*ListReceiptsResponse)(nil),   // 6: purchasing_iface.v1.ListReceiptsResponse
+	(*GetReceiptRequest)(nil),      // 7: purchasing_iface.v1.GetReceiptRequest
+	(*GetReceiptResponse)(nil),     // 8: purchasing_iface.v1.GetReceiptResponse
+	(*CancelReceiptRequest)(nil),   // 9: purchasing_iface.v1.CancelReceiptRequest
+	(*CancelReceiptResponse)(nil),  // 10: purchasing_iface.v1.CancelReceiptResponse
+	(*ReplaceReceiptRequest)(nil),  // 11: purchasing_iface.v1.ReplaceReceiptRequest
+	(*ReplaceReceiptResponse)(nil), // 12: purchasing_iface.v1.ReplaceReceiptResponse
+	(v1.ExpirySource)(0),           // 13: inventory_iface.v1.ExpirySource
 }
 var file_purchasing_iface_v1_receipt_proto_depIdxs = []int32{
 	1,  // 0: purchasing_iface.v1.PurchaseReceipt.items:type_name -> purchasing_iface.v1.PurchaseReceiptItem
-	11, // 1: purchasing_iface.v1.PurchaseReceiptItem.expiry_source:type_name -> inventory_iface.v1.ExpirySource
-	11, // 2: purchasing_iface.v1.ReceiveLineInput.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	13, // 1: purchasing_iface.v1.PurchaseReceiptItem.expiry_source:type_name -> inventory_iface.v1.ExpirySource
+	13, // 2: purchasing_iface.v1.ReceiveLineInput.expiry_source:type_name -> inventory_iface.v1.ExpirySource
 	2,  // 3: purchasing_iface.v1.CreateReceiptRequest.lines:type_name -> purchasing_iface.v1.ReceiveLineInput
 	0,  // 4: purchasing_iface.v1.CreateReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
 	0,  // 5: purchasing_iface.v1.ListReceiptsResponse.receipts:type_name -> purchasing_iface.v1.PurchaseReceipt
 	0,  // 6: purchasing_iface.v1.GetReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
 	0,  // 7: purchasing_iface.v1.CancelReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
-	3,  // 8: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:input_type -> purchasing_iface.v1.CreateReceiptRequest
-	5,  // 9: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:input_type -> purchasing_iface.v1.ListReceiptsRequest
-	7,  // 10: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:input_type -> purchasing_iface.v1.GetReceiptRequest
-	9,  // 11: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:input_type -> purchasing_iface.v1.CancelReceiptRequest
-	4,  // 12: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:output_type -> purchasing_iface.v1.CreateReceiptResponse
-	6,  // 13: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:output_type -> purchasing_iface.v1.ListReceiptsResponse
-	8,  // 14: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:output_type -> purchasing_iface.v1.GetReceiptResponse
-	10, // 15: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:output_type -> purchasing_iface.v1.CancelReceiptResponse
-	12, // [12:16] is the sub-list for method output_type
-	8,  // [8:12] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	2,  // 8: purchasing_iface.v1.ReplaceReceiptRequest.lines:type_name -> purchasing_iface.v1.ReceiveLineInput
+	0,  // 9: purchasing_iface.v1.ReplaceReceiptResponse.receipt:type_name -> purchasing_iface.v1.PurchaseReceipt
+	0,  // 10: purchasing_iface.v1.ReplaceReceiptResponse.replaced:type_name -> purchasing_iface.v1.PurchaseReceipt
+	3,  // 11: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:input_type -> purchasing_iface.v1.CreateReceiptRequest
+	5,  // 12: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:input_type -> purchasing_iface.v1.ListReceiptsRequest
+	7,  // 13: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:input_type -> purchasing_iface.v1.GetReceiptRequest
+	9,  // 14: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:input_type -> purchasing_iface.v1.CancelReceiptRequest
+	11, // 15: purchasing_iface.v1.PurchaseReceiptService.ReplaceReceipt:input_type -> purchasing_iface.v1.ReplaceReceiptRequest
+	4,  // 16: purchasing_iface.v1.PurchaseReceiptService.CreateReceipt:output_type -> purchasing_iface.v1.CreateReceiptResponse
+	6,  // 17: purchasing_iface.v1.PurchaseReceiptService.ListReceipts:output_type -> purchasing_iface.v1.ListReceiptsResponse
+	8,  // 18: purchasing_iface.v1.PurchaseReceiptService.GetReceipt:output_type -> purchasing_iface.v1.GetReceiptResponse
+	10, // 19: purchasing_iface.v1.PurchaseReceiptService.CancelReceipt:output_type -> purchasing_iface.v1.CancelReceiptResponse
+	12, // 20: purchasing_iface.v1.PurchaseReceiptService.ReplaceReceipt:output_type -> purchasing_iface.v1.ReplaceReceiptResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_purchasing_iface_v1_receipt_proto_init() }
@@ -994,7 +1175,7 @@ func file_purchasing_iface_v1_receipt_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_purchasing_iface_v1_receipt_proto_rawDesc), len(file_purchasing_iface_v1_receipt_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -3,7 +3,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { CancelReceiptRequest, CancelReceiptResponse, CreateReceiptRequest, CreateReceiptResponse, GetReceiptRequest, GetReceiptResponse, ListReceiptsRequest, ListReceiptsResponse } from "./receipt_pb.js";
+import { CancelReceiptRequest, CancelReceiptResponse, CreateReceiptRequest, CreateReceiptResponse, GetReceiptRequest, GetReceiptResponse, ListReceiptsRequest, ListReceiptsResponse, ReplaceReceiptRequest, ReplaceReceiptResponse } from "./receipt_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -51,6 +51,23 @@ export const PurchaseReceiptService = {
       name: "CancelReceipt",
       I: CancelReceiptRequest,
       O: CancelReceiptResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * ReplaceReceipt corrects a delivery entered with a mistake ("ubah
+     * penerimaan"): in ONE transaction it cancels the receipt (exactly
+     * CancelReceipt's preconditions and refusal tokens) and receives the
+     * corrected lines against the same order as a NEW receipt with its own RCV
+     * number. The old receipt stays, voided, with replaced_by_id pointing at the
+     * new one. Any refusal leaves the old delivery untouched. Same roles as
+     * CancelReceipt.
+     *
+     * @generated from rpc purchasing_iface.v1.PurchaseReceiptService.ReplaceReceipt
+     */
+    replaceReceipt: {
+      name: "ReplaceReceipt",
+      I: ReplaceReceiptRequest,
+      O: ReplaceReceiptResponse,
       kind: MethodKind.Unary,
     },
   }

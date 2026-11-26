@@ -1,5 +1,5 @@
 import { Badge, Box, Button, HStack, Heading, Spinner, Stack, Table, Text } from "@chakra-ui/react";
-import { Ban } from "lucide-react";
+import { Ban, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -7,17 +7,23 @@ import Pagination from "../../components/Pagination";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import type { ProductRef } from "../../gen/inventory_iface/v1/product_pb";
+import type { PurchaseOrder } from "../../gen/purchasing_iface/v1/order_pb";
 import type { PurchaseReceipt } from "../../gen/purchasing_iface/v1/receipt_pb";
 import { formatDate } from "../../lib/format";
 import { fmtUnitQty } from "../../lib/purchaseLine";
 import { SERVER_ERRORS } from "../../lib/serverErrors";
 import { CancelReceiptDialog } from "./CancelReceiptDialog";
+import { ReceiveDialog } from "./ReceiveDialog";
 
-// The deliveries recorded against a purchase order, plus the cancel affordance.
-// Page-local to PurchaseOrderDetail; the receipts QUERY stays in the parent
-// because it also feeds the returnable check, the ReturnDialog and the
-// product-ref resolution — this section only renders what it is handed and owns
-// the cancel dialog, which nothing else opens.
+// The deliveries recorded against a purchase order, plus the cancel and edit
+// affordances. Page-local to PurchaseOrderDetail; the receipts QUERY stays in
+// the parent because it also feeds the returnable check, the ReturnDialog and
+// the product-ref resolution — this section only renders what it is handed and
+// owns the cancel dialog and the edit (Terima barang in replace mode), which
+// nothing else opens.
+//
+// Ubah is offered exactly where Batalkan is: ReplaceReceipt IS a cancel plus a
+// re-receive, under the same preconditions, so one blocked reason covers both.
 
 // cancel_blocked_reason is the same stable token CancelReceipt would have failed
 // with, so it translates through the shared server-error catalog rather than a
@@ -27,6 +33,7 @@ function blockedReasonKey(token: string): string {
 }
 
 export default function PurchaseOrderReceipts({
+  po,
   receipts,
   isLoading,
   total,
@@ -36,6 +43,7 @@ export default function PurchaseOrderReceipts({
   onPageSizeChange,
   productRefs,
 }: {
+  po: PurchaseOrder;
   receipts: PurchaseReceipt[];
   isLoading: boolean;
   total: number;
@@ -50,6 +58,10 @@ export default function PurchaseOrderReceipts({
   // this being non-null — never `{cancelling && <Dialog…>}`, which would strand
   // Ark's body lock and freeze the page.
   const [cancelling, setCancelling] = useState<PurchaseReceipt | null>(null);
+  // The delivery being edited. Kept after close (only `editOpen` drops) so the
+  // dialog does not flip to "new delivery" while it animates out.
+  const [editing, setEditing] = useState<PurchaseReceipt | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <Box bg="bg.subtle" borderWidth="1px" borderRadius="lg" p={4}>
@@ -69,6 +81,8 @@ export default function PurchaseOrderReceipts({
             return (
               <Box
                 key={r.id}
+                role="group"
+                aria-label={r.receiptNo}
                 borderWidth="1px"
                 borderRadius="md"
                 p={3}
@@ -87,6 +101,11 @@ export default function PurchaseOrderReceipts({
                       {r.receiptNo}
                     </Text>
                     {voided && <Badge colorPalette="red">{t("purchasing.cancel.voided")}</Badge>}
+                    {voided && r.replacedByNo && (
+                      <Text fontSize="sm" color="fg.muted">
+                        {t("purchasing.edit.replacedBy", { no: r.replacedByNo })}
+                      </Text>
+                    )}
                     {r.invoiceNo && (
                       <Text fontSize="sm" color="fg.muted">
                         {t("purchasing.invoiceNo")}: {r.invoiceNo}
@@ -99,15 +118,32 @@ export default function PurchaseOrderReceipts({
                     </Text>
                     {!voided &&
                       (r.cancellable ? (
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          colorPalette="red"
-                          onClick={() => setCancelling(r)}
-                        >
-                          <Ban size={14} />
-                          {t("purchasing.cancel.action")}
-                        </Button>
+                        <HStack gap={1}>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            // Named per delivery: a page of rows all reading
+                            // just "Ubah" says nothing to a screen reader, and
+                            // the order header has its own Ubah.
+                            aria-label={t("purchasing.edit.title", { no: r.receiptNo })}
+                            onClick={() => {
+                              setEditing(r);
+                              setEditOpen(true);
+                            }}
+                          >
+                            <Pencil size={14} />
+                            {t("purchasing.edit.action")}
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            colorPalette="red"
+                            onClick={() => setCancelling(r)}
+                          >
+                            <Ban size={14} />
+                            {t("purchasing.cancel.action")}
+                          </Button>
+                        </HStack>
                       ) : (
                         // Say WHY inline rather than offering a dead button: the
                         // reason (already sold, open stocktake, settled PO) is
@@ -169,6 +205,13 @@ export default function PurchaseOrderReceipts({
         onClose={() => setCancelling(null)}
         receipt={cancelling}
         productRefs={productRefs}
+      />
+      <ReceiveDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        po={po}
+        productRefs={productRefs}
+        replacing={editing}
       />
     </Box>
   );

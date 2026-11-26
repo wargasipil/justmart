@@ -47,6 +47,9 @@ func (p *PurchaseReceipts) ListReceipts(
 	if err := attachExpirySources(ctx, p.db, out...); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if err := attachReplacedByNo(ctx, p.db, out...); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 	// Surface each line's returnable max = its batch's current on-hand in the PO
 	// warehouse (the purchase-return dialog caps qty by this). Only when scoped
 	// to a single PO (the detail page always is). Enriches THIS PAGE's rows only,
@@ -60,6 +63,39 @@ func (p *PurchaseReceipts) ListReceipts(
 		Receipts: out,
 		Total:    int32(total),
 	}), nil
+}
+
+// attachReplacedByNo fills replaced_by_no -- the RCV number of the receipt that
+// superseded a replaced one ("diganti oleh RCV-...") -- with ONE query for the
+// whole page, however many of its receipts were replaced.
+func attachReplacedByNo(ctx context.Context, db *gorm.DB, receipts ...*purchasingifacev1.PurchaseReceipt) error {
+	var ids []string
+	for _, r := range receipts {
+		if r.ReplacedById != "" {
+			ids = append(ids, r.ReplacedById)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	var rows []struct {
+		ID        string  `gorm:"column:id"`
+		ReceiptNo *string `gorm:"column:receipt_no"`
+	}
+	if err := db.WithContext(ctx).Model(&model.PurchaseReceipt{}).
+		Select("id, receipt_no").Where("id IN ?", ids).Scan(&rows).Error; err != nil {
+		return err
+	}
+	no := make(map[string]string, len(rows))
+	for _, r := range rows {
+		no[r.ID] = common.Deref(r.ReceiptNo)
+	}
+	for _, r := range receipts {
+		if r.ReplacedById != "" {
+			r.ReplacedByNo = no[r.ReplacedById]
+		}
+	}
+	return nil
 }
 
 // enrichReturnable sets returnable_qty (BASE units) on each receipt item = the

@@ -11,7 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import DatePickerField from "../../components/DatePicker";
@@ -20,161 +20,68 @@ import NumberInput from "../../components/NumberInput";
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import type { ProductRef } from "../../gen/inventory_iface/v1/product_pb";
-import type { PurchaseOrder, PurchaseOrderItem } from "../../gen/purchasing_iface/v1/order_pb";
-import { formatDateOnly } from "../../lib/dateRange";
-import { daysUntilExpiry, defaultExpiry } from "../../lib/expiry";
+import type { PurchaseOrder } from "../../gen/purchasing_iface/v1/order_pb";
+import type { PurchaseReceipt } from "../../gen/purchasing_iface/v1/receipt_pb";
 import { toast } from "../../lib/toaster";
-import { useProductExpiryDefaultsQuery } from "../../queries/products";
-import { useCreateReceiptMutation } from "../../queries/purchasing";
-import { useBusinessMode } from "../../queries/settings";
+import { useCreateReceiptMutation, useReplaceReceiptMutation } from "../../queries/purchasing";
+import { useReceiveDraft } from "./useReceiveDraft";
 
-// Record a delivery against a purchase order. Page-local — opened only from
+// Record a delivery against a purchase order — or, with `replacing`, correct
+// one already recorded ("ubah penerimaan"). Page-local — opened only from
 // PurchaseOrderDetail and coupled to its PO shape, so it lives beside the route
 // rather than in components/ (the shared vocabulary surfaced by /components).
+// The draft (lines, header, what each line saves) lives in useReceiveDraft.
+//
+// Editing is ReplaceReceipt: the server cancels the delivery and records the
+// corrected lines as a NEW one with its own RCV number, in one transaction, so
+// it is offered exactly where Batalkan is and needs a reason like Batalkan does.
 //
 // Stays MOUNTED and is driven purely by its `open` prop — never
 // `{open && <Dialog…>}` or an early `return null`. Unmounting an open
 // Dialog.Root leaves Ark's body lock in place and freezes the whole page.
-
-// No unit cost here by design: it is fully determined by the PO line (net of
-// its discount, plus PPN) and the backend derives it — see common.NetUnitCost.
-// The request therefore omits unit_cost_price, whose 0 default IS the "derive
-// it" signal. Re-adding an input would only let a receive contradict the order
-// it is fulfilling; the proto field survives as an API-level escape hatch.
-type LineDraft = {
-  purchaseOrderItemId: string;
-  productId: string;
-  qty: number; // in the PO line's purchasable unit
-  batchNumber: string;
-  // What was TYPED. Until a person types, the line shows its product's default
-  // instead (derived each render, so changing the received date moves it).
-  expiryTyped: string;
-  expiryTouched: boolean;
-  remaining: number; // in the purchasable unit
-  unitName: string;
-  unitFactor: number;
-  productUnitId: string;
-};
-
-function initialLines(items: PurchaseOrderItem[]): LineDraft[] {
-  return items
-    .filter((it) => it.receivedQty < it.orderedQty)
-    .map((it) => {
-      const factor = Number(it.unitFactor) || 1;
-      const remainingUnit = (it.orderedQty - it.receivedQty) / factor;
-      return {
-        purchaseOrderItemId: it.id,
-        productId: it.productId,
-        qty: remainingUnit,
-        batchNumber: "",
-        expiryTyped: "",
-        expiryTouched: false,
-        remaining: remainingUnit,
-        unitName: it.unitName,
-        unitFactor: factor,
-        productUnitId: it.productUnitId,
-      };
-    });
-}
 
 export function ReceiveDialog({
   open,
   onClose,
   po,
   productRefs,
+  replacing,
 }: {
   open: boolean;
   onClose: () => void;
   po: PurchaseOrder;
   productRefs: Map<string, ProductRef>;
+  /** The delivery being edited; absent for a new delivery. */
+  replacing?: PurchaseReceipt | null;
 }) {
   const { t } = useTranslation();
   const createReceipt = useCreateReceiptMutation();
-  const { isPharmacy } = useBusinessMode();
-  // The LOCAL calendar date. toISOString() is UTC, which on a UTC+7 shop made
-  // anything received before 07:00 default to yesterday.
-  const [receivedAt, setReceivedAt] = useState(() => formatDateOnly(new Date()));
-  const [note, setNote] = useState("");
-  const [lines, setLines] = useState<LineDraft[]>(() => initialLines(po.items));
-  // Bumped on every open so each line's <ExpiryInput> remounts with no
-  // half-typed text left over from the last delivery.
-  const [generation, setGeneration] = useState(0);
+  const replaceReceipt = useReplaceReceiptMutation();
+  const { isPharmacy, header, patchHeader, lines, updateLine, generation, lineExpiry, canSubmit, requestLines } =
+    useReceiveDraft(open, po, replacing);
   const expiryRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  // Each product's expiry setting, fetched in one read. The server only stores
-  // the setting; the date is computed here (defaultExpiry) and seeded into the
-  // line until somebody types over it.
-  const defaultsQ = useProductExpiryDefaultsQuery(
-    po.items.map((it) => it.productId),
-    { enabled: open },
-  );
-
-  // Re-derive everything on each closed → open edge. The dialog stays mounted,
-  // so without this a second delivery reopened on the previous one's draft:
-  // the old "remaining", batch number and expiry, ready to be submitted again
-  // as a new lot. Done during render (not in an effect) so the first open frame
-  // already shows the fresh lines.
-  const [wasOpen, setWasOpen] = useState(open);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) {
-      setLines(initialLines(po.items));
-      setReceivedAt(formatDateOnly(new Date()));
-      setNote("");
-      setGeneration((g) => g + 1);
-    }
-  }
-
-  // The expiry a line will be saved with, and where it came from.
-  const lineExpiry = (l: LineDraft): { iso: string; source: ExpirySource; isDefault: boolean } => {
-    if (l.expiryTouched) return { iso: l.expiryTyped, source: ExpirySource.ENTERED, isDefault: false };
-    const seed = defaultExpiry(defaultsQ.byId.get(l.productId), receivedAt, isPharmacy);
-    if (!seed) return { iso: "", source: ExpirySource.ENTERED, isDefault: false };
-    return { ...seed, isDefault: seed.source === ExpirySource.DEFAULT };
-  };
-  // Ready to save: a "does not expire" line needs nothing; any other needs a
-  // date, and in pharmacy mode one that has not already passed (the server
-  // refuses it too — retail only warns, in the readout).
-  const expiryReady = (l: LineDraft) => {
-    const e = lineExpiry(l);
-    if (e.source === ExpirySource.NONE) return true;
-    if (!e.iso) return false;
-    return !(isPharmacy && daysUntilExpiry(e.iso) < 0);
-  };
-
-  // A line at 0 is "not in this delivery" and is left off the request, so it
-  // stays outstanding on the order. Only the lines that arrived need an expiry.
-  const arriving = lines.filter((l) => l.qty > 0);
-  const canSubmit =
-    arriving.length > 0 && arriving.every((l) => l.qty <= l.remaining && expiryReady(l));
+  const fieldMinW = replacing ? "150px" : undefined;
 
   const submit = async () => {
+    const body = { receivedAt: header.receivedAt, note: header.note, lines: requestLines() };
     try {
-      await createReceipt.mutateAsync({
-        purchaseOrderId: po.id,
-        receivedAt,
-        note,
-        lines: arriving.map((l) => {
-          const e = lineExpiry(l);
-          return {
-            purchaseOrderItemId: l.purchaseOrderItemId,
-            qty: l.qty,
-            batchNumber: l.batchNumber,
-            expiryDate: e.iso,
-            expirySource: e.source,
-            productUnitId: l.productUnitId,
-          };
-        }),
-      });
-      toast.success(t("purchasing.receipt") + " ✓");
+      if (replacing) {
+        await replaceReceipt.mutateAsync({
+          ...body,
+          id: replacing.id,
+          reason: header.reason.trim(),
+          invoiceNo: header.invoiceNo,
+        });
+        toast.success(t("purchasing.edit.done"));
+      } else {
+        await createReceipt.mutateAsync({ ...body, purchaseOrderId: po.id });
+        toast.success(t("purchasing.receipt") + " ✓");
+      }
       onClose();
     } catch {
       /* toast handled globally */
     }
   };
-
-  const updateLine = (idx: number, patch: Partial<LineDraft>) =>
-    setLines((cur) => cur.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
 
   return (
     <Dialog.Root open={open} onOpenChange={(d) => !d.open && onClose()} size="xl">
@@ -183,7 +90,11 @@ export function ReceiveDialog({
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>{t("purchasing.receiveTitle")}</Dialog.Title>
+              <Dialog.Title>
+                {replacing
+                  ? t("purchasing.edit.title", { no: replacing.receiptNo })
+                  : t("purchasing.receiveTitle")}
+              </Dialog.Title>
               <Dialog.CloseTrigger asChild>
                 <IconButton aria-label="close" variant="ghost" size="sm">
                   <X size={16} />
@@ -192,18 +103,38 @@ export function ReceiveDialog({
             </Dialog.Header>
             <Dialog.Body>
               <Stack gap={4}>
-                <HStack gap={3}>
-                  <Box flex="1">
+                {replacing && (
+                  <Text fontSize="sm" color="fg.muted">
+                    {t("purchasing.edit.warning")}
+                  </Text>
+                )}
+                {/* Wraps only in edit mode, where a third field (faktur) joins. */}
+                <HStack gap={3} wrap="wrap">
+                  <Box flex="1" minW={fieldMinW}>
                     <Text fontSize="xs" color="fg.muted">
                       {t("purchasing.receivedAt")}
                     </Text>
-                    <DatePickerField value={receivedAt} onChange={setReceivedAt} />
+                    <DatePickerField value={header.receivedAt} onChange={(v) => patchHeader({ receivedAt: v })} />
                   </Box>
-                  <Box flex="2">
+                  {/* A new delivery inherits the order's faktur; an edit shows
+                      the one it recorded, because a wrong faktur no is one of
+                      the mistakes it exists to fix. */}
+                  {replacing && (
+                    <Box flex="1" minW={fieldMinW}>
+                      <Text fontSize="xs" color="fg.muted">
+                        {t("purchasing.invoiceNo")}
+                      </Text>
+                      <Input
+                        value={header.invoiceNo}
+                        onChange={(e) => patchHeader({ invoiceNo: e.target.value })}
+                      />
+                    </Box>
+                  )}
+                  <Box flex="2" minW={fieldMinW}>
                     <Text fontSize="xs" color="fg.muted">
                       {t("purchasing.note")}
                     </Text>
-                    <Input value={note} onChange={(e) => setNote(e.target.value)} />
+                    <Input value={header.note} onChange={(e) => patchHeader({ note: e.target.value })} />
                   </Box>
                 </HStack>
 
@@ -228,11 +159,12 @@ export function ReceiveDialog({
                         const name = productRefs.get(l.productId)?.name ?? "—";
                         const expiry = lineExpiry(l);
                         return (
-                          <Table.Row key={`${generation}-${l.purchaseOrderItemId}`} verticalAlign="top">
+                          <Table.Row key={`${generation}-${l.key}`} verticalAlign="top">
                             <Table.Cell>
                               {name}
                               <Text fontSize="xs" color="fg.muted">
-                                {t("purchasing.remaining")}: {l.remaining} {l.unitName}
+                                {replacing ? t("purchasing.edit.max") : t("purchasing.remaining")}:{" "}
+                                {l.remaining} {l.unitName}
                                 {l.qty === 0 && <> · {t("purchasing.notInDelivery")}</>}
                               </Text>
                             </Table.Cell>
@@ -302,6 +234,22 @@ export function ReceiveDialog({
                     </Table.Body>
                   </Table.Root>
                 </TableScroll>
+
+                {/* Required, like Batalkan's: the edit cancels a delivery, and
+                    the cancelled row shows why. */}
+                {replacing && (
+                  <Box>
+                    <Text fontSize="xs" color="fg.muted" mb={1}>
+                      {t("purchasing.cancel.reason")} *
+                    </Text>
+                    <Input
+                      value={header.reason}
+                      onChange={(e) => patchHeader({ reason: e.target.value })}
+                      placeholder={t("purchasing.edit.reasonPlaceholder")}
+                      aria-label={t("purchasing.cancel.reason")}
+                    />
+                  </Box>
+                )}
               </Stack>
             </Dialog.Body>
             <Dialog.Footer>
@@ -312,10 +260,10 @@ export function ReceiveDialog({
                 <Button
                   colorPalette="blue"
                   onClick={submit}
-                  loading={createReceipt.isPending}
+                  loading={createReceipt.isPending || replaceReceipt.isPending}
                   disabled={!canSubmit}
                 >
-                  {t("purchasing.actions.receive")}
+                  {replacing ? t("purchasing.edit.confirm") : t("purchasing.actions.receive")}
                 </Button>
               </HStack>
             </Dialog.Footer>

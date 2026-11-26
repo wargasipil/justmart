@@ -17,6 +17,7 @@ import type {
   CancelReceiptRequest,
   CreateReceiptRequest,
   ListReceiptsRequest,
+  ReplaceReceiptRequest,
 } from "../gen/purchasing_iface/v1/receipt_pb";
 import type {
   GetSupplierBalancesRequest,
@@ -178,6 +179,24 @@ export function useCancelReceiptMutation() {
   return useMutation({
     mutationFn: (req: PartialMessage<CancelReceiptRequest>) =>
       purchaseReceiptClient.cancelReceipt(req),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: purchasingKeys.all });
+      void qc.invalidateQueries({ queryKey: ["batches"] });
+      void qc.invalidateQueries({ queryKey: ["stock"] });
+      void qc.invalidateQueries({ queryKey: ["products"] });
+      void qc.invalidateQueries({ queryKey: ["productRestocks"] });
+    },
+  });
+}
+
+// Edit a delivery ("ubah penerimaan"): the server cancels the receipt and
+// receives the corrected lines as a new one, in one transaction. Both halves'
+// caches move, so it invalidates the union of what a receive and a cancel do.
+export function useReplaceReceiptMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (req: PartialMessage<ReplaceReceiptRequest>) =>
+      purchaseReceiptClient.replaceReceipt(req),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: purchasingKeys.all });
       void qc.invalidateQueries({ queryKey: ["batches"] });

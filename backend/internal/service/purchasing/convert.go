@@ -137,6 +137,10 @@ func receiptToProto(r *model.PurchaseReceipt) *purchasingifacev1.PurchaseReceipt
 			out.VoidedBy = *r.VoidedBy
 		}
 	}
+	// replaced_by_no is filled by attachReplacedByNo (a batched lookup).
+	if r.ReplacedByID != nil {
+		out.ReplacedById = *r.ReplacedByID
+	}
 	for i := range r.Items {
 		out.Items = append(out.Items, receiptItemToProto(&r.Items[i]))
 	}

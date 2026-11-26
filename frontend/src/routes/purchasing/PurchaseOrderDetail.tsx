@@ -248,6 +248,7 @@ export default function PurchaseOrderDetail() {
         manufacturerRefs={manufacturerRefs}
       />
       <PurchaseOrderReceipts
+        po={po}
         receipts={receiptsQ.rows}
         isLoading={receiptsQ.isLoading}
         total={receiptsQ.total}

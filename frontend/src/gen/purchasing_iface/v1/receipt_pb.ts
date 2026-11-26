@@ -94,6 +94,21 @@ export class PurchaseReceipt extends Message<PurchaseReceipt> {
    */
   cancelBlockedReason = "";
 
+  /**
+   * Edit-delivery ("ubah penerimaan"): on a receipt voided by ReplaceReceipt,
+   * the receipt that superseded it and its RCV number (denormalized for
+   * display, batch-filled by ListReceipts). Empty on a live receipt and on one
+   * cancelled outright.
+   *
+   * @generated from field: string replaced_by_id = 15;
+   */
+  replacedById = "";
+
+  /**
+   * @generated from field: string replaced_by_no = 16;
+   */
+  replacedByNo = "";
+
   constructor(data?: PartialMessage<PurchaseReceipt>) {
     super();
     proto3.util.initPartial(data, this);
@@ -116,6 +131,8 @@ export class PurchaseReceipt extends Message<PurchaseReceipt> {
     { no: 12, name: "void_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 13, name: "cancellable", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 14, name: "cancel_blocked_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 15, name: "replaced_by_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 16, name: "replaced_by_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseReceipt {
@@ -698,6 +715,132 @@ export class CancelReceiptResponse extends Message<CancelReceiptResponse> {
 
   static equals(a: CancelReceiptResponse | PlainMessage<CancelReceiptResponse> | undefined, b: CancelReceiptResponse | PlainMessage<CancelReceiptResponse> | undefined): boolean {
     return proto3.util.equals(CancelReceiptResponse, a, b);
+  }
+}
+
+/**
+ * The corrected delivery carries the same fields as CreateReceiptRequest,
+ * minus purchase_order_id: it is always received against the replaced
+ * receipt's order.
+ *
+ * @generated from message purchasing_iface.v1.ReplaceReceiptRequest
+ */
+export class ReplaceReceiptRequest extends Message<ReplaceReceiptRequest> {
+  /**
+   * the receipt being replaced
+   *
+   * @generated from field: string id = 1;
+   */
+  id = "";
+
+  /**
+   * required — why the delivery is corrected
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason = "";
+
+  /**
+   * YYYY-MM-DD (defaults to today if empty)
+   *
+   * @generated from field: string received_at = 3;
+   */
+  receivedAt = "";
+
+  /**
+   * @generated from field: string note = 4;
+   */
+  note = "";
+
+  /**
+   * @generated from field: repeated purchasing_iface.v1.ReceiveLineInput lines = 5;
+   */
+  lines: ReceiveLineInput[] = [];
+
+  /**
+   * supplier invoice / nomor faktur
+   *
+   * @generated from field: string invoice_no = 6;
+   */
+  invoiceNo = "";
+
+  constructor(data?: PartialMessage<ReplaceReceiptRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "purchasing_iface.v1.ReplaceReceiptRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "received_at", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "note", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 5, name: "lines", kind: "message", T: ReceiveLineInput, repeated: true },
+    { no: 6, name: "invoice_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReplaceReceiptRequest {
+    return new ReplaceReceiptRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReplaceReceiptRequest {
+    return new ReplaceReceiptRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReplaceReceiptRequest {
+    return new ReplaceReceiptRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ReplaceReceiptRequest | PlainMessage<ReplaceReceiptRequest> | undefined, b: ReplaceReceiptRequest | PlainMessage<ReplaceReceiptRequest> | undefined): boolean {
+    return proto3.util.equals(ReplaceReceiptRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message purchasing_iface.v1.ReplaceReceiptResponse
+ */
+export class ReplaceReceiptResponse extends Message<ReplaceReceiptResponse> {
+  /**
+   * the NEW receipt
+   *
+   * @generated from field: purchasing_iface.v1.PurchaseReceipt receipt = 1;
+   */
+  receipt?: PurchaseReceipt;
+
+  /**
+   * the old one, now voided with replaced_by_id
+   *
+   * @generated from field: purchasing_iface.v1.PurchaseReceipt replaced = 2;
+   */
+  replaced?: PurchaseReceipt;
+
+  constructor(data?: PartialMessage<ReplaceReceiptResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "purchasing_iface.v1.ReplaceReceiptResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "receipt", kind: "message", T: PurchaseReceipt },
+    { no: 2, name: "replaced", kind: "message", T: PurchaseReceipt },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ReplaceReceiptResponse {
+    return new ReplaceReceiptResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ReplaceReceiptResponse {
+    return new ReplaceReceiptResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ReplaceReceiptResponse {
+    return new ReplaceReceiptResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ReplaceReceiptResponse | PlainMessage<ReplaceReceiptResponse> | undefined, b: ReplaceReceiptResponse | PlainMessage<ReplaceReceiptResponse> | undefined): boolean {
+    return proto3.util.equals(ReplaceReceiptResponse, a, b);
   }
 }
 
