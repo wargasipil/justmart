@@ -62,6 +62,7 @@ func poItemToProto(it *model.PurchaseOrderItem) *purchasingifacev1.PurchaseOrder
 		OrderedQty:      it.OrderedQty,
 		ReceivedQty:     it.ReceivedQty,
 		UnitCostPrice:   it.UnitCostPrice,
+		PackCostPrice:   it.PackCostPrice,
 		Subtotal:        it.Subtotal,
 		UnitName:        it.UnitName,
 		UnitFactor:      factor,

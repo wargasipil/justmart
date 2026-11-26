@@ -102,6 +102,8 @@ func batchToProto(b *model.Batch, qty int64) *inventoryifacev1.Batch {
 		BatchNumber:     b.BatchNumber,
 		ExpiryDate:      b.ExpiryDate.Format(common.DateLayout),
 		CostPrice:       b.CostPrice,
+		CostPackPrice:   b.CostPackPrice,
+		CostPackFactor:  b.CostPackFactor,
 		ReceivedAt:      b.ReceivedAt.Format(common.DateLayout),
 		CurrentQuantity: qty,
 		CreatedAt:       b.CreatedAt.Unix(),

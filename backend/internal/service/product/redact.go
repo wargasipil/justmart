@@ -23,6 +23,8 @@ func redactCost(caller auth.Principal, products []*inventoryifacev1.Product) {
 		p.StockValuation = 0
 		p.OnOrderValuation = 0
 		p.ReferenceCost = 0
+		p.ReferenceCostPack = 0
+		p.ReferenceCostPackFactor = 0
 		// The whole last-restock block: price and discount ARE cost; qty, dates
 		// and the supplier describe the purchase that set it, and the till has
 		// no use for them.

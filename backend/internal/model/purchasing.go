@@ -41,6 +41,11 @@ type PurchaseOrderItem struct {
 	OrderedQty      int32  `gorm:"not null;column:ordered_qty"`  // BASE units
 	ReceivedQty     int32  `gorm:"not null;default:0;column:received_qty"` // BASE units
 	UnitCostPrice   int64  `gorm:"not null;default:0;column:unit_cost_price"` // per BASE unit
+	// GROSS cost of ONE purchase unit (UnitFactor base units), exactly as typed
+	// (00064). When > 0 the line gross is chosen qty x PackCostPrice and
+	// UnitCostPrice is only its rounded per-base derivative; 0 = a legacy line
+	// whose gross was base qty x UnitCostPrice.
+	PackCostPrice   int64  `gorm:"not null;default:0;column:pack_cost_price"`
 	Subtotal        int64  `gorm:"not null;default:0"`
 	// Purchasable unit the line was ordered in (display/entry metadata).
 	ProductUnitID *string `gorm:"type:uuid;column:product_unit_id"`

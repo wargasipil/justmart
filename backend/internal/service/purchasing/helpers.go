@@ -95,6 +95,47 @@ const (
 	discountPercent = "PERCENT"
 )
 
+// lineCost is what one PO line input resolves to before its discount: the
+// GROSS line amount, and the two cost columns the line row stores.
+type lineCost struct {
+	Gross    int64 // GROSS extended amount, before the line discount
+	UnitCost int64 // GROSS per BASE unit (purchase_order_items.unit_cost_price)
+	PackCost int64 // GROSS per ONE purchase unit; 0 = legacy line (pack_cost_price)
+}
+
+// lineGross prices one PO line input in its purchase unit (factor = base units
+// per that unit, >= 1). Shared by CreatePurchaseOrder and UpdatePurchaseOrder so
+// the two can never price the same line differently.
+//
+// pack_cost_price > 0 is the exact path: the supplier's faktur prices a box,
+// so the line is chosen qty × box price, to the rupiah. The per-base cost is
+// then only DERIVED (rounded half-up, once) for the readers that still want a
+// per-base figure: the receipt's fallback, returns, the detail page. Deriving
+// the gross back FROM that rounded figure is the bug this replaced: a box of 30
+// at Rp 65.000 became 2.167/base, and 50 boxes 3.250.500 instead of 3.250.000.
+//
+// pack_cost_price == 0 is a legacy client (or a free line): exactly the old
+// per-base math, so an order saved before this change re-prices identically.
+func lineGross(in *purchasingifacev1.PurchaseOrderItemInput, factor int64) (lineCost, error) {
+	if in.UnitCostPrice < 0 || in.PackCostPrice < 0 {
+		return lineCost{}, common.TokenError(connect.CodeInvalidArgument, "purchasing.cost_negative")
+	}
+	if factor < 1 {
+		factor = 1
+	}
+	if in.PackCostPrice > 0 {
+		return lineCost{
+			Gross:    int64(in.OrderedQty) * in.PackCostPrice,
+			UnitCost: (in.PackCostPrice + factor/2) / factor, // round half up
+			PackCost: in.PackCostPrice,
+		}, nil
+	}
+	return lineCost{
+		Gross:    int64(in.OrderedQty) * factor * in.UnitCostPrice,
+		UnitCost: in.UnitCostPrice,
+	}, nil
+}
+
 // lineNetSubtotal returns the NET extended line amount (gross − line discount)
 // and the normalized discount type. discValue is minor units when FIXED, basis
 // points (percent*100, so 12.5% = 1250) when PERCENT. The discount is clamped to
@@ -103,7 +144,9 @@ const (
 // When perItem is true, the discount applies to EACH item's cost (rounded per
 // item) and is then × chosenQty, instead of to the whole line. chosenQty is the
 // line qty in the purchasable unit (the pre-×factor value); perItemGross =
-// gross/chosenQty is exact because gross = chosenQty × factor × unitCost.
+// gross/chosenQty is exact because gross is always a multiple of chosenQty:
+// chosenQty × pack_cost_price, or chosenQty × factor × unitCost on a legacy line
+// (see lineGross).
 func lineNetSubtotal(gross int64, chosenQty int32, perItem bool, discType string, discValue int64) (net int64, normType string, err error) {
 	if discValue < 0 {
 		return 0, "", common.TokenError(connect.CodeInvalidArgument, "purchasing.discount_negative")

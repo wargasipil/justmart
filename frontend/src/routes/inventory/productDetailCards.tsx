@@ -167,10 +167,13 @@ export function UnitsCard({
 export function Field({
   label,
   value,
+  sub,
   mono,
 }: {
   label: string;
   value: string;
+  /** Muted secondary line under the value (e.g. the last cost per pack). */
+  sub?: string;
   mono?: boolean;
 }) {
   return (
@@ -179,6 +182,11 @@ export function Field({
         {label}
       </Text>
       <Text fontFamily={mono ? "mono" : undefined}>{value}</Text>
+      {sub && (
+        <Text fontSize="xs" color="fg.muted" mt={0.5}>
+          {sub}
+        </Text>
+      )}
     </Box>
   );
 }

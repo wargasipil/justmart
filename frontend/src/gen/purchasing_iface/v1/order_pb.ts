@@ -301,12 +301,14 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
   receivedQty = 0;
 
   /**
+   * GROSS per BASE unit; derived (rounded) from pack_cost_price when that is set
+   *
    * @generated from field: int64 unit_cost_price = 6;
    */
   unitCostPrice = protoInt64.zero;
 
   /**
-   * ordered_qty * unit_cost_price
+   * NET line total (gross − line discount)
    *
    * @generated from field: int64 subtotal = 7;
    */
@@ -376,6 +378,18 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
    */
   manufacturerId = "";
 
+  /**
+   * GROSS cost of ONE of this line's purchase unit (unit_name / unit_factor),
+   * exactly as typed off the faktur, e.g. 65000 for a box of 30. The line gross
+   * is (ordered_qty / unit_factor) x pack_cost_price, exact to the rupiah;
+   * unit_cost_price is then only a rounded per-base derivative of it.
+   * 0 = a legacy line saved before the field: gross = ordered_qty x
+   * unit_cost_price, and the per-unit price is unit_cost_price x unit_factor.
+   *
+   * @generated from field: int64 pack_cost_price = 17;
+   */
+  packCostPrice = protoInt64.zero;
+
   constructor(data?: PartialMessage<PurchaseOrderItem>) {
     super();
     proto3.util.initPartial(data, this);
@@ -400,6 +414,7 @@ export class PurchaseOrderItem extends Message<PurchaseOrderItem> {
     { no: 14, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 15, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 16, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 17, name: "pack_cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItem {
@@ -436,7 +451,7 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
   orderedQty = 0;
 
   /**
-   * per BASE unit (frontend derives from line total)
+   * GROSS per BASE unit; legacy input, ignored when pack_cost_price > 0
    *
    * @generated from field: int64 unit_cost_price = 3;
    */
@@ -477,6 +492,17 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
    */
   manufacturerId = "";
 
+  /**
+   * GROSS cost of ONE chosen purchase unit (product_unit_id; the base unit when
+   * empty), exactly as typed. When > 0 it is authoritative: line gross =
+   * ordered_qty x pack_cost_price (exact), and the server derives and stores
+   * unit_cost_price = round-half-up(pack_cost_price / factor) itself. 0 = a
+   * legacy client: gross = ordered_qty x factor x unit_cost_price, as before.
+   *
+   * @generated from field: int64 pack_cost_price = 9;
+   */
+  packCostPrice = protoInt64.zero;
+
   constructor(data?: PartialMessage<PurchaseOrderItemInput>) {
     super();
     proto3.util.initPartial(data, this);
@@ -493,6 +519,7 @@ export class PurchaseOrderItemInput extends Message<PurchaseOrderItemInput> {
     { no: 6, name: "discount_value", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 7, name: "discount_per_item", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 8, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 9, name: "pack_cost_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrderItemInput {

@@ -39,12 +39,16 @@ func TestBatchReads_TillSeesCost(t *testing.T) {
 	}))
 	require.NoError(t, err)
 	batchID := created.Msg.Batch.Id
+	// The exact pack cost is cost-bearing too (redactCost blanks it with
+	// cost_price), so the lot carries one for the till assertions to read.
+	stampPackCost(t, gormDB, batchID, 75_000, 30)
 
 	// Manager first, so the till assertions below compare against known-present
 	// data rather than a fixture that happens to be empty.
 	got, err := svc.GetBatch(ownerCtx, connect.NewRequest(&inventoryifacev1.GetBatchRequest{Id: batchID}))
 	require.NoError(t, err)
 	require.Equal(t, int64(2500), got.Msg.Batch.CostPrice)
+	require.Equal(t, int64(75_000), got.Msg.Batch.CostPackPrice)
 	require.Equal(t, sup.ID, got.Msg.Batch.SupplierId)
 
 	for _, role := range []string{"CASHIER", "APOTEKER"} {
@@ -53,6 +57,8 @@ func TestBatchReads_TillSeesCost(t *testing.T) {
 		got, err := svc.GetBatch(tillCtx, connect.NewRequest(&inventoryifacev1.GetBatchRequest{Id: batchID}))
 		require.NoError(t, err, role)
 		require.Equal(t, int64(2500), got.Msg.Batch.CostPrice, role)
+		require.Equal(t, int64(75_000), got.Msg.Batch.CostPackPrice, role)
+		require.Equal(t, int64(30), got.Msg.Batch.CostPackFactor, role)
 		require.Equal(t, sup.ID, got.Msg.Batch.SupplierId, role)
 		// The lot's identity and stock come through as before.
 		require.Equal(t, "RD-LOT-1", got.Msg.Batch.BatchNumber, role)
@@ -65,6 +71,7 @@ func TestBatchReads_TillSeesCost(t *testing.T) {
 		require.NoError(t, err, role)
 		require.Len(t, listed.Msg.Batches, 1, role)
 		require.Equal(t, int64(2500), listed.Msg.Batches[0].CostPrice, role)
+		require.Equal(t, int64(75_000), listed.Msg.Batches[0].CostPackPrice, role)
 		require.Equal(t, sup.ID, listed.Msg.Batches[0].SupplierId, role)
 
 		found, err := svc.SearchBatches(tillCtx, connect.NewRequest(&inventoryifacev1.SearchBatchesRequest{
@@ -73,6 +80,7 @@ func TestBatchReads_TillSeesCost(t *testing.T) {
 		require.NoError(t, err, role)
 		require.Len(t, found.Msg.Batches, 1, role)
 		require.Equal(t, int64(2500), found.Msg.Batches[0].CostPrice, role)
+		require.Equal(t, int64(75_000), found.Msg.Batches[0].CostPackPrice, role)
 		require.Equal(t, sup.ID, found.Msg.Batches[0].SupplierId, role)
 	}
 }

@@ -57,7 +57,7 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 				if in.OrderedQty <= 0 {
 					return common.TokenError(connect.CodeInvalidArgument, "purchasing.qty_invalid")
 				}
-				if in.UnitCostPrice < 0 {
+				if in.UnitCostPrice < 0 || in.PackCostPrice < 0 {
 					return common.TokenError(connect.CodeInvalidArgument, "purchasing.cost_negative")
 				}
 				unit, err := resolvePurchaseUnit(tx, in.ProductId, in.ProductUnitId)
@@ -65,8 +65,13 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 					return err
 				}
 				baseQty := in.OrderedQty * int32(unit.Factor) // ordered_qty stored in BASE units
-				gross := int64(baseQty) * in.UnitCostPrice
-				net, discType, err := lineNetSubtotal(gross, in.OrderedQty, in.DiscountPerItem, in.DiscountType, in.DiscountValue)
+				// Same pricing as CreatePurchaseOrder (lineGross): exact per pack
+				// when pack_cost_price is sent, the legacy per-base math otherwise.
+				cost, err := lineGross(in, unit.Factor)
+				if err != nil {
+					return err
+				}
+				net, discType, err := lineNetSubtotal(cost.Gross, in.OrderedQty, in.DiscountPerItem, in.DiscountType, in.DiscountValue)
 				if err != nil {
 					return err
 				}
@@ -74,8 +79,9 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 					PurchaseOrderID: po.ID,
 					ProductID:       in.ProductId,
 					OrderedQty:      baseQty,
-					UnitCostPrice:   in.UnitCostPrice, // GROSS per base unit
-					Subtotal:        net,              // NET (after per-line discount)
+					UnitCostPrice:   cost.UnitCost, // GROSS per base unit (derived when PackCost > 0)
+					PackCostPrice:   cost.PackCost, // GROSS per purchase unit, exact; 0 = legacy
+					Subtotal:        net,           // NET (after per-line discount)
 					DiscountType:    discType,
 					DiscountValue:   in.DiscountValue,
 					DiscountPerItem: in.DiscountPerItem,

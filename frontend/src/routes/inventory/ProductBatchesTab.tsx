@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
-import { HStack, Table, Text } from "@chakra-ui/react";
+import { Table, Text } from "@chakra-ui/react";
 
-import EnumSelect from "../../components/EnumSelect";
 import Pagination from "../../components/Pagination";
 import SortableColumnHeader, {
   cycleColumnSort,
@@ -10,6 +9,7 @@ import SortableColumnHeader, {
 import TableScroll, { TABLE_MAX_H_NESTED } from "../../components/TableScroll";
 import { formatMoney } from "../../lib/format";
 import { usePageState } from "../../lib/pagination";
+import { baseUnitsIn, costForUnit, costUnitsOf } from "../../lib/unitCost";
 import { useBatchesQuery } from "../../queries/batches";
 import { useSupplierRefs } from "../../queries/refs";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,17 @@ import type { Batch } from "../../gen/inventory_iface/v1/batch_pb";
 import type { ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import BatchExpiryCell from "./BatchExpiryCell";
 import BatchExpiryDialog from "./BatchExpiryDialog";
+
+// Every cost column sorts by the server's one "cost" key (b.cost_price, per
+// base unit): a lot that is cheaper per tablet is cheaper per box too, so one
+// order serves them all. Locally each column keeps its own key, "cost:<unit>",
+// so the arrow lands on the column that was clicked and a click on another
+// cost column starts its own asc/desc/clear cycle.
+const COST_SORT = "cost";
+const COST_SORT_PREFIX = `${COST_SORT}:`;
+
+/** One Cost column: the base units it is priced per, and its header. */
+type CostColumn = { key: string; label: string; factor: bigint };
 
 // In-stock lots for this product in the ACTIVE warehouse — "what's actually on
 // the shelf and when does it expire". The supplier and cost columns follow
@@ -36,7 +47,7 @@ export default function ProductBatchesTab({
   productName?: string;
   showCost: boolean;
   canManage: boolean;
-  /** The product's units — the Cost column can be shown per pack (strip, box). */
+  /** The product's units — one Cost column per unit (tablet, strip, box). */
   units?: ProductUnit[];
 }) {
   const { t } = useTranslation();
@@ -45,14 +56,15 @@ export default function ProductBatchesTab({
   // every page, not just the 25 rows on screen. null = the default order,
   // soonest expiry first.
   const [sort, setSort] = useState<ColumnSort>(null);
+  const serverSortBy = sort?.by.startsWith(COST_SORT_PREFIX) ? COST_SORT : sort?.by;
   // Keyed by product id so navigating to a different product resets the pager
-  // rather than landing on page 3 of a shorter list; keyed by the sort too, so
-  // re-sorting starts again from the first page.
-  const page = usePageState(`batches:${productId}:${sort?.by ?? ""}:${sort?.desc ?? ""}`);
+  // rather than landing on page 3 of a shorter list; keyed by the server sort
+  // too, so re-sorting starts again from the first page.
+  const page = usePageState(`batches:${productId}:${serverSortBy ?? ""}:${sort?.desc ?? ""}`);
   const q = useBatchesQuery({
     productId,
     onlyInStock: true,
-    sortBy: sort?.by,
+    sortBy: serverSortBy,
     sortDesc: sort?.desc,
     page: page.page,
     pageSize: page.pageSize,
@@ -76,58 +88,38 @@ export default function ProductBatchesTab({
     ),
   );
 
-  // A lot's cost is stored per BASE unit (tablet). The picker re-expresses the
-  // Cost column per pack — cost × factor, exact in bigint — because that is how
-  // a supplier invoice prices it. Display only: the server still sorts by the
-  // per-base cost, and multiplying every row by one factor keeps that order.
-  const costUnits = useMemo(
-    () =>
-      units
-        .filter((u) => u.active && (u.isBase || u.factor > 1n))
-        .sort((a, b) => Number(unitFactor(a) - unitFactor(b))),
-    [units],
-  );
-  const baseUnit = costUnits.find((u) => u.isBase);
-  const [costUnitId, setCostUnitId] = useState("");
-  // An id from another product (or a pack since removed) falls back to the base.
-  const costUnit = costUnits.find((u) => u.id === costUnitId) ?? baseUnit;
-  const costFactor = costUnit ? unitFactor(costUnit) : 1n;
-  const showCostUnits = showCost && !!baseUnit && costUnits.length > 1;
-  const costUnitLabel = (u: ProductUnit) =>
-    u.isBase
-      ? t("inventory.batches.costUnitBase", { unit: u.name })
-      : t("inventory.batches.costUnitPack", {
-          unit: u.name,
-          factor: u.factor.toString(),
-          base: baseUnit?.name ?? "",
-        });
+  // One Cost column per unit — tablet, strip, box — because a supplier's
+  // invoice prices the pack and the shelf sells the piece. A lot received
+  // against a per-box order line carries that box's exact cost, so the box
+  // column reads the faktur's figure rather than per-tablet × 30 (see
+  // lib/unitCost.ts). A product sold only in its base unit keeps the one plain
+  // "Cost" column.
+  const costColumns = useMemo((): CostColumn[] => {
+    if (!showCost) return [];
+    const perUnit = costUnitsOf(units);
+    if (perUnit.length < 2 || !perUnit.some((u) => u.isBase)) {
+      return [{ key: "base", label: t("inventory.batches.cost"), factor: 1n }];
+    }
+    return perUnit.map((u) => ({
+      key: u.id,
+      label: t("inventory.batches.costInUnit", { unit: u.name }),
+      factor: baseUnitsIn(u),
+    }));
+  }, [showCost, units, t]);
 
-  // Props for one sortable header; `by` is the server's sort_by column key.
+  // Props for one sortable header; `by` is the local sort key (the server's
+  // sort_by column, or "cost:<unit>" for a Cost column).
   const sortable = (by: string) => ({
     active: sort?.by === by,
     desc: sort?.by === by && sort.desc,
     onClick: () => setSort((s) => cycleColumnSort(s, by)),
   });
 
+  // Lot number, expiry and quantity, plus supplier and the cost columns.
+  const columnCount = 3 + (showCost ? 1 : 0) + costColumns.length;
+
   return (
     <>
-      {showCostUnits && (
-        <HStack justify="flex-end" gap={2} mb={2}>
-          <Text fontSize="sm" color="fg.muted">
-            {t("inventory.batches.costShowPer")}
-          </Text>
-          <EnumSelect
-            size="sm"
-            width="220px"
-            ariaLabel={t("inventory.batches.costShowPer")}
-            value={costUnit?.id ?? ""}
-            onChange={setCostUnitId}
-            items={costUnits}
-            itemToValue={(u) => u.id}
-            itemToString={costUnitLabel}
-          />
-        </HStack>
-      )}
       <TableScroll framed={false} maxH={TABLE_MAX_H_NESTED}>
         <Table.Root size="sm" stickyHeader>
           <Table.Header bg="bg.muted">
@@ -146,16 +138,14 @@ export default function ProductBatchesTab({
                 label={t("inventory.batches.expiry")}
                 {...sortable("expiry")}
               />
-              {showCost && (
+              {costColumns.map((c) => (
                 <SortableColumnHeader
-                  label={
-                    showCostUnits && costUnit
-                      ? t("inventory.batches.costInUnit", { unit: costUnit.name })
-                      : t("inventory.batches.cost")
-                  }
-                  {...sortable("cost")}
+                  key={c.key}
+                  label={c.label}
+                  align="end"
+                  {...sortable(COST_SORT_PREFIX + c.key)}
                 />
-              )}
+              ))}
               <SortableColumnHeader
                 label={t("inventory.batches.qty")}
                 align="end"
@@ -180,7 +170,11 @@ export default function ProductBatchesTab({
                 <Table.Cell>
                   <BatchExpiryCell batch={b} onEdit={canManage ? () => setEditing(b) : undefined} />
                 </Table.Cell>
-                {showCost && <Table.Cell>{formatMoney(b.costPrice * costFactor)}</Table.Cell>}
+                {costColumns.map((c) => (
+                  <Table.Cell key={c.key} textAlign="end">
+                    {formatMoney(costForUnit(b.costPrice, b.costPackPrice, b.costPackFactor, c.factor))}
+                  </Table.Cell>
+                ))}
                 <Table.Cell textAlign="end">
                   {b.currentQuantity.toString()}
                 </Table.Cell>
@@ -188,7 +182,7 @@ export default function ProductBatchesTab({
             ))}
             {q.rows.length === 0 && (
               <Table.Row>
-                <Table.Cell colSpan={showCost ? 5 : 3}>
+                <Table.Cell colSpan={columnCount}>
                   <Text color="fg.muted" textAlign="center" py={4}>
                     {t("common.noResults")}
                   </Text>
@@ -208,10 +202,4 @@ export default function ProductBatchesTab({
       <BatchExpiryDialog batch={editing} productName={productName} onClose={() => setEditing(null)} />
     </>
   );
-}
-
-// Base units per 1 of `u`. The base unit is 1 by definition, whatever the row
-// stores.
-function unitFactor(u: ProductUnit): bigint {
-  return u.isBase ? 1n : u.factor;
 }

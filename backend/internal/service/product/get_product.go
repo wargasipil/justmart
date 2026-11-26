@@ -110,20 +110,26 @@ func (s *ProductService) GetProduct(
 	}
 	out.TotalStock = v.TotalStock
 	out.StockValuation = v.Valuation
-	// Reference cost = the latest purchase cost (most recent batch's cost_price).
-	var refCost *int64
+	// Reference cost = the latest purchase cost (most recent batch's cost_price),
+	// plus that same lot's exact pack cost when its receipt stamped one -- read
+	// in one query so the per-base and per-pack figures always describe one lot.
+	var ref struct {
+		CostPrice      int64 `gorm:"column:cost_price"`
+		CostPackPrice  int64 `gorm:"column:cost_pack_price"`
+		CostPackFactor int64 `gorm:"column:cost_pack_factor"`
+	}
 	if err := s.db.WithContext(ctx).
 		Model(&model.Batch{}).
 		Where("product_id = ?", med.ID).
 		Order("received_at DESC, created_at DESC").
 		Limit(1).
-		Select("cost_price").
-		Scan(&refCost).Error; err != nil {
+		Select("cost_price, cost_pack_price, cost_pack_factor").
+		Scan(&ref).Error; err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	if refCost != nil {
-		out.ReferenceCost = *refCost
-	}
+	out.ReferenceCost = ref.CostPrice
+	out.ReferenceCostPack = ref.CostPackPrice
+	out.ReferenceCostPackFactor = ref.CostPackFactor
 	if err := s.attachUnits(ctx, []*inventoryifacev1.Product{out}); err != nil {
 		return nil, err
 	}

@@ -23,6 +23,7 @@ import {
   PURCHASE_RECEIPTS,
   PURCHASE_RETURNS,
   computePOTotals,
+  lineGross,
   lineNetSubtotal,
 } from "../../routes/dev/restockFixtures";
 import { mockRpc } from "../../routes/dev/storyMocks";
@@ -134,9 +135,11 @@ function orderHandlers(shop: Shop): HttpHandler[] {
  * exists to produce would be the one it cannot show.
  *
  * The request speaks the wire's units, and both conversions matter: ordered_qty
- * arrives in the CHOSEN pack unit and is stored in BASE units, while
- * unit_cost_price is already gross per BASE unit. Getting either backwards
- * yields an order whose total is off by the pack factor.
+ * arrives in the CHOSEN pack unit and is stored in BASE units, while the line
+ * is priced from pack_cost_price (per that chosen unit, exact) with the per-base
+ * unit_cost_price derived from it — lineGross, as the server does; a request
+ * without a pack price is priced from unit_cost_price per BASE unit. Getting
+ * either backwards yields an order whose total is off by the pack factor.
  */
 function createOrderHandler(shop: Shop): HttpHandler {
   return mockRpc(PurchaseOrderService, "createPurchaseOrder", (req) => {
@@ -147,7 +150,7 @@ function createOrderHandler(shop: Shop): HttpHandler {
       const unit = product?.units.find((u) => u.id === line.productUnitId) ?? product?.units[0];
       const factor = unit?.factor ?? 1n;
       const baseQty = line.orderedQty * Number(factor);
-      const gross = BigInt(baseQty) * line.unitCostPrice;
+      const cost = lineGross(line.orderedQty, factor, line.packCostPrice, line.unitCostPrice);
       return new PurchaseOrderItem({
         id: `${id}-i${i + 1}`,
         purchaseOrderId: id,
@@ -156,8 +159,9 @@ function createOrderHandler(shop: Shop): HttpHandler {
         productSku: product?.sku ?? "",
         orderedQty: baseQty,
         receivedQty: 0,
-        unitCostPrice: line.unitCostPrice,
-        subtotal: lineNetSubtotal(gross, line.orderedQty, line),
+        unitCostPrice: cost.unitCost,
+        packCostPrice: cost.packCost,
+        subtotal: lineNetSubtotal(cost.gross, line.orderedQty, line),
         // The pabrik the buyer sourced this line from, carried through exactly
         // as the server does. Dropping it here would make the form look like it
         // discards the field: the line shows a maker, the order it produces

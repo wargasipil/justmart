@@ -18,6 +18,13 @@ type Batch struct {
 	// Where ExpiryDate came from: ENTERED | DEFAULT | NONE (common.ExpirySource*).
 	// NONE means ExpiryDate is common.NoExpiryDate, not a real date.
 	ExpirySource string `gorm:"not null;default:ENTERED;column:expiry_source"`
+	// NET cost of ONE pack of CostPackFactor base units, on the same basis as
+	// CostPrice (line discount off, PPN capitalized), stamped by CreateReceipt
+	// from the PO line's exact pack price (00064). Both 0 when not known --
+	// older lots, CreateBatch, ImportStock, a receive with a cost override --
+	// and readers then derive per-unit cost from CostPrice.
+	CostPackPrice  int64 `gorm:"not null;default:0;column:cost_pack_price"`
+	CostPackFactor int64 `gorm:"not null;default:0;column:cost_pack_factor"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

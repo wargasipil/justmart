@@ -30,6 +30,7 @@ import {
   lineNet,
   perChosenUnitGross,
   unitCostBaseOf,
+  packCostOf,
 } from "../../lib/purchaseLine";
 import { toast } from "../../lib/toaster";
 import { usePriceAgreementsQuery } from "../../queries/priceAgreements";
@@ -254,7 +255,10 @@ export default function PurchaseOrderForm({
       productUnitId: l.productUnitId,
       manufacturerId: l.manufacturerId,
       orderedQty: l.orderedQty,
-      unitCostPrice: BigInt(unitCostBaseOf(l)), // GROSS per base unit (from cost/item)
+      // The price per chosen unit as typed — what the server prices the line
+      // from, exactly. The per-base figure rides along for older readers only.
+      packCostPrice: BigInt(packCostOf(l)),
+      unitCostPrice: BigInt(unitCostBaseOf(l)),
       discountType: l.discountType,
       discountPerItem: l.discountPerItem,
       // PERCENT: human decimal -> basis points (12.5 -> 1250). FIXED: minor units.

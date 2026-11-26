@@ -180,6 +180,21 @@ func (p *PurchaseReceipts) CreateReceipt(
 				unitCost = common.NetUnitCost(
 					poItem.Subtotal, int64(poItem.OrderedQty), poItem.UnitCostPrice, ppnRate)
 			}
+			// The same derivation once per PACK, so the lot can show what one
+			// box cost exactly (Rp 65.000, not cost_price × 30 = 65.010). Only
+			// when the PO line carries its exact pack price and no override was
+			// typed -- an override is a per-base figure with no pack behind it.
+			// A line whose base qty is not whole packs (cannot happen through
+			// CreatePurchaseOrder) is left unstamped rather than guessed at.
+			// 0/0 tells every reader to derive from cost_price instead.
+			var packCost, packFactor int64
+			if line.UnitCostPrice == 0 && poItem.PackCostPrice > 0 && poItem.UnitFactor > 0 &&
+				int64(poItem.OrderedQty)%poItem.UnitFactor == 0 {
+				if packQty := int64(poItem.OrderedQty) / poItem.UnitFactor; packQty > 0 {
+					packCost = common.NetUnitCost(poItem.Subtotal, packQty, poItem.PackCostPrice, ppnRate)
+					packFactor = poItem.UnitFactor
+				}
+			}
 
 			// Create the batch row carrying supplier + maker + cost + expiry.
 			//
@@ -201,6 +216,8 @@ func (p *PurchaseReceipts) CreateReceipt(
 				ExpiryDate:     expiry,
 				ExpirySource:   expirySource,
 				CostPrice:      unitCost,
+				CostPackPrice:  packCost,
+				CostPackFactor: packFactor,
 				ReceivedAt:     receivedAt,
 			}
 			if err := tx.Create(&batch).Error; err != nil {

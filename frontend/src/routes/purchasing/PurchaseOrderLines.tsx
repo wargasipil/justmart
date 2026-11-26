@@ -67,7 +67,18 @@ export default function PurchaseOrderLines({
                   {fmtUnitQty(it.receivedQty, it.unitName, it.unitFactor)} /{" "}
                   {fmtUnitQty(it.orderedQty, it.unitName, it.unitFactor)}
                 </Table.Cell>
-                <Table.Cell fontFamily="mono">{formatMoney(Number(it.unitCostPrice))}</Table.Cell>
+                {/* The price of ONE of the line's unit (one box), as the faktur
+                    prints it: the exact pack price when the line has one, else
+                    per-base cost x pack size for lines saved before 00064. */}
+                <Table.Cell fontFamily="mono">
+                  {formatMoney(
+                    Number(
+                      it.packCostPrice > 0n
+                        ? it.packCostPrice
+                        : it.unitCostPrice * (it.unitFactor > 0n ? it.unitFactor : 1n),
+                    ),
+                  )}
+                </Table.Cell>
                 <Table.Cell fontFamily="mono" color="fg.muted">
                   {it.discountValue > 0n
                     ? (it.discountType === "PERCENT"

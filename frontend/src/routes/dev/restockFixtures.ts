@@ -14,9 +14,9 @@ import { RETAIL_CATALOG, SUPPLIERS, WAREHOUSES, dateIn, daysAgo } from "./fixtur
 // back, so the dependency runs one way.
 //
 // Everything here is DERIVED rather than transcribed: every total is computed
-// by the same arithmetic the server uses (lineNetSubtotal -> computePOTotals),
-// so a story cannot show an order whose lines fail to add up to its total, and
-// changing a product's cost moves these figures with it.
+// by the same arithmetic the server uses (lineGross -> lineNetSubtotal ->
+// computePOTotals), so a story cannot show an order whose lines fail to add up
+// to its total, and changing a product's cost moves these figures with it.
 
 /** A line on a restock order, in the product's purchasable unit. */
 type POLine = {
@@ -94,6 +94,24 @@ export function lineNetSubtotal(gross: bigint, packs: number, d: LineDiscount): 
 }
 
 /**
+ * `lineGross` in TypeScript: a line's GROSS amount (before its discount) and the
+ * two cost columns the server stores beside it. `qty` is in the line's purchase
+ * unit of `factor` base units. A pack price (> 0) is exact — qty × pack — and
+ * the per-base cost is derived from it, half-up; 0 is a legacy line, priced
+ * from the per-base cost as it always was.
+ *
+ * Exported for the same reason as lineNetSubtotal: restockShop.ts prices a
+ * brand-new order with it, and must price it the way the seeded ones are.
+ */
+export function lineGross(qty: number, factor: bigint, packCost: bigint, unitCost: bigint) {
+  const f = factor > 0n ? factor : 1n;
+  if (packCost > 0n) {
+    return { gross: BigInt(qty) * packCost, unitCost: (packCost + f / 2n) / f, packCost };
+  }
+  return { gross: BigInt(qty) * f * unitCost, unitCost, packCost: 0n };
+}
+
+/**
  * `computePOTotals`: subtotal, less the order-level discount, plus PPN on what
  * remains. `ppnRate` is a whole percent; 0 means the order carries no PPN.
  */
@@ -111,8 +129,10 @@ function makePurchaseOrder(seed: POSeed): PurchaseOrder {
     const factor = Number(unit.factor);
     const receivedPacks = l.receivedPacks ?? (settled ? l.packs : 0);
     // ordered_qty / received_qty are BASE units on the wire; the unit fields
-    // beside them describe what was ordered in (see "Units of measure").
-    const gross = BigInt(l.packs * factor) * l.product.referenceCost;
+    // beside them describe what was ordered in (see "Units of measure"). Priced
+    // per pack, the way the restock form sends a line: the pack price is the
+    // per-base cost × factor, so the derived per-base cost is that cost exactly.
+    const cost = lineGross(l.packs, unit.factor, l.product.referenceCost * unit.factor, 0n);
     return new PurchaseOrderItem({
       id: `${seed.id}-i${i + 1}`,
       purchaseOrderId: seed.id,
@@ -121,8 +141,9 @@ function makePurchaseOrder(seed: POSeed): PurchaseOrder {
       productSku: l.product.sku,
       orderedQty: l.packs * factor,
       receivedQty: receivedPacks * factor,
-      unitCostPrice: l.product.referenceCost,
-      subtotal: lineNetSubtotal(gross, l.packs, l),
+      unitCostPrice: cost.unitCost,
+      packCostPrice: cost.packCost,
+      subtotal: lineNetSubtotal(cost.gross, l.packs, l),
       productUnitId: unit.id,
       unitName: unit.name,
       unitFactor: unit.factor,

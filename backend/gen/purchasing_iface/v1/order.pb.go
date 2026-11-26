@@ -334,10 +334,10 @@ type PurchaseOrderItem struct {
 	ProductId       string                 `protobuf:"bytes,3,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	OrderedQty      int32                  `protobuf:"varint,4,opt,name=ordered_qty,json=orderedQty,proto3" json:"ordered_qty,omitempty"`
 	ReceivedQty     int32                  `protobuf:"varint,5,opt,name=received_qty,json=receivedQty,proto3" json:"received_qty,omitempty"`
-	UnitCostPrice   int64                  `protobuf:"varint,6,opt,name=unit_cost_price,json=unitCostPrice,proto3" json:"unit_cost_price,omitempty"`
-	Subtotal        int64                  `protobuf:"varint,7,opt,name=subtotal,proto3" json:"subtotal,omitempty"`                         // ordered_qty * unit_cost_price
-	ProductName     string                 `protobuf:"bytes,8,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"` // denormalized for list display
-	ProductSku      string                 `protobuf:"bytes,9,opt,name=product_sku,json=productSku,proto3" json:"product_sku,omitempty"`    // denormalized for list display
+	UnitCostPrice   int64                  `protobuf:"varint,6,opt,name=unit_cost_price,json=unitCostPrice,proto3" json:"unit_cost_price,omitempty"` // GROSS per BASE unit; derived (rounded) from pack_cost_price when that is set
+	Subtotal        int64                  `protobuf:"varint,7,opt,name=subtotal,proto3" json:"subtotal,omitempty"`                                  // NET line total (gross − line discount)
+	ProductName     string                 `protobuf:"bytes,8,opt,name=product_name,json=productName,proto3" json:"product_name,omitempty"`          // denormalized for list display
+	ProductSku      string                 `protobuf:"bytes,9,opt,name=product_sku,json=productSku,proto3" json:"product_sku,omitempty"`             // denormalized for list display
 	// ordered_qty / received_qty are in BASE units; these describe the purchasable
 	// unit the line was ordered in (for display / entry). unit_factor = base per 1.
 	ProductUnitId string `protobuf:"bytes,10,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"`
@@ -353,8 +353,15 @@ type PurchaseOrderItem struct {
 	// and which one a given delivery is has to be read off the invoice. Flows
 	// to batches.manufacturer_id at receive, which is the whole point of it.
 	ManufacturerId string `protobuf:"bytes,16,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// GROSS cost of ONE of this line's purchase unit (unit_name / unit_factor),
+	// exactly as typed off the faktur, e.g. 65000 for a box of 30. The line gross
+	// is (ordered_qty / unit_factor) x pack_cost_price, exact to the rupiah;
+	// unit_cost_price is then only a rounded per-base derivative of it.
+	// 0 = a legacy line saved before the field: gross = ordered_qty x
+	// unit_cost_price, and the per-unit price is unit_cost_price x unit_factor.
+	PackCostPrice int64 `protobuf:"varint,17,opt,name=pack_cost_price,json=packCostPrice,proto3" json:"pack_cost_price,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PurchaseOrderItem) Reset() {
@@ -499,18 +506,31 @@ func (x *PurchaseOrderItem) GetManufacturerId() string {
 	return ""
 }
 
+func (x *PurchaseOrderItem) GetPackCostPrice() int64 {
+	if x != nil {
+		return x.PackCostPrice
+	}
+	return 0
+}
+
 type PurchaseOrderItemInput struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ProductId       string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	OrderedQty      int32                  `protobuf:"varint,2,opt,name=ordered_qty,json=orderedQty,proto3" json:"ordered_qty,omitempty"`                  // qty in the chosen purchasable unit (empty unit_id => base)
-	UnitCostPrice   int64                  `protobuf:"varint,3,opt,name=unit_cost_price,json=unitCostPrice,proto3" json:"unit_cost_price,omitempty"`       // per BASE unit (frontend derives from line total)
+	UnitCostPrice   int64                  `protobuf:"varint,3,opt,name=unit_cost_price,json=unitCostPrice,proto3" json:"unit_cost_price,omitempty"`       // GROSS per BASE unit; legacy input, ignored when pack_cost_price > 0
 	ProductUnitId   string                 `protobuf:"bytes,4,opt,name=product_unit_id,json=productUnitId,proto3" json:"product_unit_id,omitempty"`        // purchasable unit; empty => base unit
 	DiscountType    string                 `protobuf:"bytes,5,opt,name=discount_type,json=discountType,proto3" json:"discount_type,omitempty"`             // 'FIXED' (default) | 'PERCENT'
 	DiscountValue   int64                  `protobuf:"varint,6,opt,name=discount_value,json=discountValue,proto3" json:"discount_value,omitempty"`         // FIXED=minor units; PERCENT=basis points (percent*100)
 	DiscountPerItem bool                   `protobuf:"varint,7,opt,name=discount_per_item,json=discountPerItem,proto3" json:"discount_per_item,omitempty"` // when true, discount applies to each item (× qty), not the whole line
 	ManufacturerId  string                 `protobuf:"bytes,8,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`       // optional; the pabrik this line is sourced from
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// GROSS cost of ONE chosen purchase unit (product_unit_id; the base unit when
+	// empty), exactly as typed. When > 0 it is authoritative: line gross =
+	// ordered_qty x pack_cost_price (exact), and the server derives and stores
+	// unit_cost_price = round-half-up(pack_cost_price / factor) itself. 0 = a
+	// legacy client: gross = ordered_qty x factor x unit_cost_price, as before.
+	PackCostPrice int64 `protobuf:"varint,9,opt,name=pack_cost_price,json=packCostPrice,proto3" json:"pack_cost_price,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PurchaseOrderItemInput) Reset() {
@@ -597,6 +617,13 @@ func (x *PurchaseOrderItemInput) GetManufacturerId() string {
 		return x.ManufacturerId
 	}
 	return ""
+}
+
+func (x *PurchaseOrderItemInput) GetPackCostPrice() int64 {
+	if x != nil {
+		return x.PackCostPrice
+	}
+	return 0
 }
 
 type ListPurchaseOrdersRequest struct {
@@ -1552,7 +1579,7 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\n" +
 	"ppn_amount\x18\x18 \x01(\x03R\tppnAmount\x12\x19\n" +
 	"\bppn_rate\x18\x19 \x01(\x05R\appnRate\x12'\n" +
-	"\x0freturned_amount\x18\x1a \x01(\x03R\x0ereturnedAmount\"\xc1\x04\n" +
+	"\x0freturned_amount\x18\x1a \x01(\x03R\x0ereturnedAmount\"\xe9\x04\n" +
 	"\x11PurchaseOrderItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
 	"\x11purchase_order_id\x18\x02 \x01(\tR\x0fpurchaseOrderId\x12\x1d\n" +
@@ -1574,7 +1601,8 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\rdiscount_type\x18\r \x01(\tR\fdiscountType\x12%\n" +
 	"\x0ediscount_value\x18\x0e \x01(\x03R\rdiscountValue\x12*\n" +
 	"\x11discount_per_item\x18\x0f \x01(\bR\x0fdiscountPerItem\x12'\n" +
-	"\x0fmanufacturer_id\x18\x10 \x01(\tR\x0emanufacturerId\"\xc9\x02\n" +
+	"\x0fmanufacturer_id\x18\x10 \x01(\tR\x0emanufacturerId\x12&\n" +
+	"\x0fpack_cost_price\x18\x11 \x01(\x03R\rpackCostPrice\"\xf1\x02\n" +
 	"\x16PurchaseOrderItemInput\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1f\n" +
@@ -1585,7 +1613,8 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\rdiscount_type\x18\x05 \x01(\tR\fdiscountType\x12%\n" +
 	"\x0ediscount_value\x18\x06 \x01(\x03R\rdiscountValue\x12*\n" +
 	"\x11discount_per_item\x18\a \x01(\bR\x0fdiscountPerItem\x12'\n" +
-	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerId\"\xe0\x02\n" +
+	"\x0fmanufacturer_id\x18\b \x01(\tR\x0emanufacturerId\x12&\n" +
+	"\x0fpack_cost_price\x18\t \x01(\x03R\rpackCostPrice\"\xe0\x02\n" +
 	"\x19ListPurchaseOrdersRequest\x125\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1d.purchasing_iface.v1.POStatusR\x06status\x12\x1f\n" +
 	"\vsupplier_id\x18\x02 \x01(\tR\n" +

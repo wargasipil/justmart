@@ -199,6 +199,24 @@ export class Batch extends Message<Batch> {
    */
   expirySource = ExpirySource.UNSPECIFIED;
 
+  /**
+   * The lot's NET cost (same basis as cost_price: after the PO line discount,
+   * PPN capitalized) for ONE pack of cost_pack_factor base units, stamped at
+   * receive from the PO line's exact pack price -- so a box bought at
+   * Rp 65.000 reads 65.000, not cost_price x 30 = 65.010. Both 0 when unknown
+   * (lots received before the field, CreateBatch, ImportStock, a receive with
+   * a cost override): derive any per-unit cost from cost_price x factor.
+   * cost_pack_price is cost-bearing (batch.redactCost).
+   *
+   * @generated from field: int64 cost_pack_price = 17;
+   */
+  costPackPrice = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 cost_pack_factor = 18;
+   */
+  costPackFactor = protoInt64.zero;
+
   constructor(data?: PartialMessage<Batch>) {
     super();
     proto3.util.initPartial(data, this);
@@ -223,6 +241,8 @@ export class Batch extends Message<Batch> {
     { no: 14, name: "product_image_updated_at", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 15, name: "manufacturer_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 16, name: "expiry_source", kind: "enum", T: proto3.getEnumType(ExpirySource) },
+    { no: 17, name: "cost_pack_price", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 18, name: "cost_pack_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Batch {

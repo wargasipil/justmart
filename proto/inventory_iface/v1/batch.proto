@@ -54,6 +54,15 @@ message Batch {
   // Where expiry_date came from. NONE means the date is the no-expiry
   // placeholder and should be shown as "does not expire", not as a date.
   ExpirySource expiry_source = 16;
+  // The lot's NET cost (same basis as cost_price: after the PO line discount,
+  // PPN capitalized) for ONE pack of cost_pack_factor base units, stamped at
+  // receive from the PO line's exact pack price -- so a box bought at
+  // Rp 65.000 reads 65.000, not cost_price x 30 = 65.010. Both 0 when unknown
+  // (lots received before the field, CreateBatch, ImportStock, a receive with
+  // a cost override): derive any per-unit cost from cost_price x factor.
+  // cost_pack_price is cost-bearing (batch.redactCost).
+  int64 cost_pack_price = 17;
+  int64 cost_pack_factor = 18;
 }
 
 service BatchService {

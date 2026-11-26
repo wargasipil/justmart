@@ -51,8 +51,8 @@ message PurchaseOrderItem {
   string product_id = 3;
   int32 ordered_qty = 4;
   int32 received_qty = 5;
-  int64 unit_cost_price = 6;
-  int64 subtotal = 7;             // ordered_qty * unit_cost_price
+  int64 unit_cost_price = 6;      // GROSS per BASE unit; derived (rounded) from pack_cost_price when that is set
+  int64 subtotal = 7;             // NET line total (gross − line discount)
   string product_name = 8;       // denormalized for list display
   string product_sku = 9;        // denormalized for list display
   // ordered_qty / received_qty are in BASE units; these describe the purchasable
@@ -70,17 +70,30 @@ message PurchaseOrderItem {
   // and which one a given delivery is has to be read off the invoice. Flows
   // to batches.manufacturer_id at receive, which is the whole point of it.
   string manufacturer_id = 16;
+  // GROSS cost of ONE of this line's purchase unit (unit_name / unit_factor),
+  // exactly as typed off the faktur, e.g. 65000 for a box of 30. The line gross
+  // is (ordered_qty / unit_factor) x pack_cost_price, exact to the rupiah;
+  // unit_cost_price is then only a rounded per-base derivative of it.
+  // 0 = a legacy line saved before the field: gross = ordered_qty x
+  // unit_cost_price, and the per-unit price is unit_cost_price x unit_factor.
+  int64 pack_cost_price = 17;
 }
 
 message PurchaseOrderItemInput {
   string product_id = 1;
   int32 ordered_qty = 2;          // qty in the chosen purchasable unit (empty unit_id => base)
-  int64 unit_cost_price = 3;      // per BASE unit (frontend derives from line total)
+  int64 unit_cost_price = 3;      // GROSS per BASE unit; legacy input, ignored when pack_cost_price > 0
   string product_unit_id = 4;    // purchasable unit; empty => base unit
   string discount_type = 5;      // 'FIXED' (default) | 'PERCENT'
   int64 discount_value = 6;      // FIXED=minor units; PERCENT=basis points (percent*100)
   bool discount_per_item = 7;    // when true, discount applies to each item (× qty), not the whole line
   string manufacturer_id = 8;    // optional; the pabrik this line is sourced from
+  // GROSS cost of ONE chosen purchase unit (product_unit_id; the base unit when
+  // empty), exactly as typed. When > 0 it is authoritative: line gross =
+  // ordered_qty x pack_cost_price (exact), and the server derives and stores
+  // unit_cost_price = round-half-up(pack_cost_price / factor) itself. 0 = a
+  // legacy client: gross = ordered_qty x factor x unit_cost_price, as before.
+  int64 pack_cost_price = 9;
 }
 
 service PurchaseOrderService {

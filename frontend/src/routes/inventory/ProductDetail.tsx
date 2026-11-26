@@ -29,6 +29,8 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import PageHeader from "../../components/PageHeader";
 import { useAuth } from "../../lib/auth";
 import { formatMoney } from "../../lib/format";
+import { baseUnitsIn, costForUnit, costUnitsOf } from "../../lib/unitCost";
+import type { Product } from "../../gen/inventory_iface/v1/product_pb";
 import { canManageProducts, canSeeCost } from "../../lib/roles";
 import { useManufacturerRefs } from "../../queries/refs";
 import { toast } from "../../lib/toaster";
@@ -51,6 +53,30 @@ import ProductRestockTab from "./ProductRestockTab";
 function fmtVariance(v: bigint): string {
   if (v === 0n) return "±0";
   return v > 0n ? `+${v.toString()}` : v.toString();
+}
+
+// The last cost per PACK under the per-base figure, smallest pack first, e.g.
+// "Rp 9.200 / strip · Rp 92.000 / box" — what the supplier's faktur prices.
+// The latest lot's exact pack cost is used where it has one, so a box bought at
+// Rp 65.000 reads 65.000 rather than per-base × 30 (lib/unitCost.ts).
+// undefined = nothing to add: no cost recorded yet, or no pack unit.
+function lastCostPerPack(
+  t: (k: string, o?: Record<string, unknown>) => string,
+  med: Pick<Product, "units" | "referenceCost" | "referenceCostPack" | "referenceCostPackFactor">,
+): string | undefined {
+  if (med.referenceCost <= 0n) return undefined;
+  const packs = costUnitsOf(med.units).filter((u) => !u.isBase);
+  if (packs.length === 0) return undefined;
+  return packs
+    .map((u) =>
+      t("inventory.products.lastCostPerUnit", {
+        cost: formatMoney(
+          costForUnit(med.referenceCost, med.referenceCostPack, med.referenceCostPackFactor, baseUnitsIn(u)),
+        ),
+        unit: u.name,
+      }),
+    )
+    .join(" · ");
 }
 
 export default function ProductDetail() {
@@ -253,6 +279,7 @@ export default function ProductDetail() {
                             ? formatMoney(med.referenceCost)
                             : "—"
                         }
+                        sub={lastCostPerPack(t, med)}
                       />
                       <Field
                         label={t("inventory.products.lastRestock")}

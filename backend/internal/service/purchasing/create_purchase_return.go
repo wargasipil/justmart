@@ -140,7 +140,21 @@ func (p *PurchaseReturns) CreatePurchaseReturn(
 				return connect.NewError(connect.CodeInternal, e)
 			}
 
+			// Credit whole packs at the lot's exact pack cost (one box = Rp
+			// 65.000) instead of base qty x the rounded per-base cost (30 x
+			// 2.167 = 65.010) -- the rounding that made restock totals drift
+			// from the faktur. Qty is always in the receipt line's unit, so when
+			// that unit is the lot's pack every returned unit is a whole pack.
+			// Lots without an exact pack cost (0/0) keep the per-base credit.
 			lineRefund := int64(baseQty) * ri.UnitCostPrice
+			var lot model.Batch
+			if e := tx.Select("cost_pack_price", "cost_pack_factor").
+				Where("id = ?", *ri.BatchID).First(&lot).Error; e != nil {
+				return connect.NewError(connect.CodeInternal, e)
+			}
+			if lot.CostPackPrice > 0 && lot.CostPackFactor == factor {
+				lineRefund = int64(line.Qty) * lot.CostPackPrice
+			}
 			totalRefund += lineRefund
 			if e := tx.Create(&model.PurchaseReturnItem{
 				PurchaseReturnID:      ret.ID,

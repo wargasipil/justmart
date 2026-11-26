@@ -26,6 +26,25 @@ import ProductBatchesTab from "./ProductBatchesTab";
 // Rendered by ProductBatchesTab.stories.tsx ("components/products/ProductBatchesTab").
 
 const PRODUCT = PHARMACY_CATALOG[0];
+// Amlodipine comes in strips of 10 and boxes of 30 — a box factor that does not
+// divide evenly, which is exactly where per-tablet x 30 drifts off the faktur.
+const AMLODIPINE = PHARMACY_CATALOG[5];
+
+// Its lots, costed the way the case the columns exist for arrives: the two older
+// lots predate exact pack costs (cost_pack_factor 0 — every column is derived
+// from the per-tablet cost), the newest was received against an order line
+// priced Rp 65.000 per box of 30, which the lot keeps exactly (2.166,67 per
+// tablet, stored as 2.167; 2.167 x 30 would read 65.010).
+const amlodipineLots = (): Batch[] =>
+  batchesFor(AMLODIPINE).map((b, i) => {
+    const r = b.clone();
+    r.costPrice = [2_150n, 2_160n, 2_167n][i];
+    if (i === 2) {
+      r.costPackPrice = 65_000n;
+      r.costPackFactor = 30n;
+    }
+    return r;
+  });
 
 // The column headers are a SERVER sort (ListBatches sort_by / sort_desc), so the
 // mock re-orders the rows the way backend batch/list_batches.go does: its
@@ -75,38 +94,63 @@ const story = (description: string, s: Story = {}): Story => ({
 
 export const stories = {
   Manager: story(
-    "Five columns: lot number, supplier, expiry, cost and quantity. The three lots sit at " +
+    "Lot number, supplier, expiry, one cost column per unit (tablet, strip, box) and quantity. " +
+      "The three lots sit at " +
       "different distances from their expiry date, so ExpiryBadge shows each of its states — " +
       "and the costs climb with each arrival, ending at the product's reference cost (the " +
       "newest batch IS what \"last cost\" means on the page above).",
   ),
   Till: story(
-    "The same tab for a cashier: the same five columns, supplier and cost included — the till " +
+    "The same tab for a cashier: the same columns, supplier and cost included — the till " +
       "receives the manager's figures (batch.redactCost lets every role through). What is gone " +
       "is the expiry pencil: correcting a lot's expiry is SetBatchExpiry, OWNER+PHARMACIST.",
     { args: { canManage: false } },
   ),
-  CostPerPack: story(
-    "A lot's cost is stored per BASE unit (tablet). The picker above the table re-expresses the " +
-      "Cost column per pack; this story picks the box, so each lot reads 100 × its per-tablet " +
-      "cost — the figure on the supplier's invoice. Display only: sorting still runs on the " +
-      "stored per-base cost, and one factor keeps that order. A product with no pack unit gets " +
-      "no picker.",
+  CostPerUnit: story(
+    "One cost column per unit, base first, then each pack by size: tablet, strip of 10, box of " +
+      "30. The newest lot was bought against an order line priced Rp 65.000 a box, and its box " +
+      "column reads exactly that — the lot keeps the faktur's pack cost, where per-tablet x 30 " +
+      "would say 65.010; the strip is scaled from it (21.667). The two older lots predate that " +
+      "and derive every column from their per-tablet cost. All cost columns sort through the " +
+      "server's one per-base cost key (cheaper per tablet is cheaper per box), and the arrow " +
+      "sits only on the column that was clicked.",
     {
+      args: { productId: AMLODIPINE.id, productName: AMLODIPINE.name, units: AMLODIPINE.units },
+      parameters: { msw: mockApi(listBatches(amlodipineLots()), resolveSuppliers) },
       play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
-        await userEvent.click(
-          await canvas.findByRole("combobox", { name: /^(show cost per|tampilkan modal per)$/i }),
-        );
-        const body = within(canvasElement.ownerDocument.body);
-        await userEvent.click(await body.findByRole("option", { name: /^box/i }));
-        await expect(await canvas.findByRole("columnheader", { name: /\/ box/i })).toBeInTheDocument();
-        // Every lot's cost × 100, whatever the locale's grouping separator.
-        const cells = canvas.getAllByRole("cell").map((c) => c.textContent ?? "");
-        for (const b of batchesFor(PRODUCT)) {
-          const digits = (b.costPrice * 100n).toLocaleString("en-US").replace(/,/g, "[.,]");
-          await expect(cells.some((c) => new RegExp(digits).test(c))).toBe(true);
-        }
+        const box = await canvas.findByRole("columnheader", { name: /\/ box$/i });
+        const tablet = await canvas.findByRole("columnheader", { name: /\/ tablet$/i });
+        await expect(await canvas.findByRole("columnheader", { name: /\/ strip$/i })).toBeInTheDocument();
+        // The exact lot: the box at its faktur price, never per-tablet x 30.
+        await expect(await canvas.findByRole("cell", { name: /65[.,]000/ })).toBeInTheDocument();
+        await expect(canvas.queryByRole("cell", { name: /65[.,]010/ })).toBeNull();
+        await expect(canvas.getByRole("cell", { name: /21[.,]667/ })).toBeInTheDocument();
+        // A legacy lot, derived: 2.150 x 30.
+        await expect(canvas.getByRole("cell", { name: /64[.,]500/ })).toBeInTheDocument();
+        // Sorting by the box column marks that column, not its siblings.
+        await userEvent.click(within(box).getByRole("button"));
+        await expect(box).toHaveAttribute("aria-sort", "ascending");
+        await expect(tablet).toHaveAttribute("aria-sort", "none");
+      },
+    },
+  ),
+  BaseUnitOnly: story(
+    "A product sold only in its base unit (OBH, per bottle) has nothing to re-express: one " +
+      "plain Cost column, as before.",
+    {
+      args: {
+        productId: PHARMACY_CATALOG[3].id,
+        productName: PHARMACY_CATALOG[3].name,
+        units: PHARMACY_CATALOG[3].units,
+      },
+      parameters: { msw: mockApi(listBatches(batchesFor(PHARMACY_CATALOG[3])), resolveSuppliers) },
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await expect(
+          await canvas.findByRole("columnheader", { name: /^(cost|modal)$/i }),
+        ).toBeInTheDocument();
+        await expect(canvas.queryByRole("columnheader", { name: /\// })).toBeNull();
       },
     },
   ),

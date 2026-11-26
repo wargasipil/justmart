@@ -25,6 +25,15 @@ func (s *BatchService) UpdateBatch(
 		"batch_number": strings.TrimSpace(req.Msg.BatchNumber),
 		"cost_price":   req.Msg.CostPrice,
 	}
+	// The exact pack cost a receipt stamped is a fact about the OLD cost_price.
+	// A corrected per-base cost leaves it describing a price the lot no longer
+	// carries, so it is dropped and readers derive per-unit cost from the new
+	// cost_price (the same 0/0 every manual lot has). Re-saving the same cost
+	// keeps it.
+	if req.Msg.CostPrice != batch.CostPrice {
+		updates["cost_pack_price"] = int64(0)
+		updates["cost_pack_factor"] = int64(0)
+	}
 	if req.Msg.SupplierId != "" {
 		updates["supplier_id"] = req.Msg.SupplierId
 	}

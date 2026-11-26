@@ -20,6 +20,8 @@ func redactCost(caller auth.Principal, batches []*inventoryifacev1.Batch) {
 	}
 	for _, b := range batches {
 		b.CostPrice = 0
+		b.CostPackPrice = 0
+		b.CostPackFactor = 0
 		b.SupplierId = ""
 		b.PurchaseOrderId = ""
 		b.PoNo = ""

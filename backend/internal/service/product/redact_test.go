@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	inventoryifacev1 "github.com/justmart/backend/gen/inventory_iface/v1"
+	"github.com/justmart/backend/internal/model"
 	productsvc "github.com/justmart/backend/internal/service/product"
 	"github.com/justmart/backend/internal/service/servicetest"
 )
@@ -81,13 +82,18 @@ func TestGetProduct_TillSeesCost(t *testing.T) {
 
 	whID := defaultWarehouseID(t, gormDB)
 	pid := seedProduct(t, svc, ownerCtx, "SKU-REDACT-2", "Redact detail", 2000)
-	seedBatchWithStock(t, gormDB, pid, whID, ownerID, 40, 1200)
+	batchID := seedBatchWithStock(t, gormDB, pid, whID, ownerID, 40, 1200)
+	// The exact pack cost rides on the same lot (redactCost blanks it with
+	// reference_cost), so there is one to compare.
+	require.NoError(t, gormDB.Model(&model.Batch{}).Where("id = ?", batchID).
+		Updates(map[string]any{"cost_pack_price": int64(36_000), "cost_pack_factor": int64(30)}).Error)
 
 	resp, err := svc.GetProduct(ownerCtx, connect.NewRequest(&inventoryifacev1.GetProductRequest{Id: pid}))
 	require.NoError(t, err)
 	mgr := resp.Msg.Product
 	require.Equal(t, int64(40*1200), mgr.StockValuation)
 	require.Equal(t, int64(1200), mgr.ReferenceCost)
+	require.Equal(t, int64(36_000), mgr.ReferenceCostPack)
 
 	for _, role := range []string{"CASHIER", "APOTEKER"} {
 		tillCtx := servicetest.CtxAs(context.Background(), role, ownerID)
@@ -97,6 +103,8 @@ func TestGetProduct_TillSeesCost(t *testing.T) {
 
 		require.Equal(t, mgr.StockValuation, p.StockValuation, role)
 		require.Equal(t, mgr.ReferenceCost, p.ReferenceCost, role)
+		require.Equal(t, mgr.ReferenceCostPack, p.ReferenceCostPack, role)
+		require.Equal(t, mgr.ReferenceCostPackFactor, p.ReferenceCostPackFactor, role)
 		require.Equal(t, mgr.LastRestockDate, p.LastRestockDate, role)
 		require.Equal(t, mgr.LastRestockSupplier, p.LastRestockSupplier, role)
 

@@ -369,6 +369,21 @@ export class Product extends Message<Product> {
    */
   lastSaleNo = "";
 
+  /**
+   * The same latest batch's exact pack cost (Batch.cost_pack_price /
+   * cost_pack_factor): NET cost of ONE pack of reference_cost_pack_factor base
+   * units. GetProduct only; both 0 when that lot carries none (legacy, manual
+   * or imported stock) -- then derive per-unit cost from reference_cost.
+   *
+   * @generated from field: int64 reference_cost_pack = 36;
+   */
+  referenceCostPack = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 reference_cost_pack_factor = 37;
+   */
+  referenceCostPackFactor = protoInt64.zero;
+
   constructor(data?: PartialMessage<Product>) {
     super();
     proto3.util.initPartial(data, this);
@@ -411,6 +426,8 @@ export class Product extends Message<Product> {
     { no: 33, name: "expiry_default_months", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 34, name: "last_sale_date", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 35, name: "last_sale_no", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 36, name: "reference_cost_pack", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 37, name: "reference_cost_pack_factor", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): Product {

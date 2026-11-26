@@ -66,8 +66,13 @@ export const emptyLine = (): Line => ({
 // no-op to the rupiah. Three unit conversions have to be undone:
 //
 //   ordered_qty is BASE units       -> Line.orderedQty is in the CHOSEN unit
-//   unit_cost_price is per BASE     -> Line.costPerItem is per CHOSEN unit
+//   pack_cost_price is per CHOSEN   -> Line.costPerItem, as typed (exact); a
+//     legacy line (pack 0) only has unit_cost_price per BASE -> × factor
 //   PERCENT discount_value is bp    -> Line.discountValue is a human percent
+//
+// The legacy fallback re-prices identically on save: costPerItem = per-base ×
+// factor goes back as pack_cost_price, and qty × it is the old base qty ×
+// per-base gross.
 //
 // `product` supplies the unit list the row's selector needs. A unit that has
 // since been made non-purchasable or archived is KEPT when it is the one this
@@ -99,7 +104,8 @@ export const lineFromItem = (it: PurchaseOrderItem, product?: Product): Line => 
     productUnitId: it.productUnitId || units.find((u) => u.isBase)?.id || "",
     units,
     orderedQty: it.orderedQty / factor,
-    costPerItem: Number(it.unitCostPrice) * factor,
+    costPerItem:
+      it.packCostPrice > 0n ? Number(it.packCostPrice) : Number(it.unitCostPrice) * factor,
     discountType: isPct ? "PERCENT" : "FIXED",
     discountPerItem: it.discountPerItem,
     discountValue: isPct ? Number(it.discountValue) / 100 : Number(it.discountValue),
@@ -127,14 +133,21 @@ export const factorOf = (l: Line): number => {
 
 export const baseQtyOf = (l: Line): number => l.orderedQty * factorOf(l);
 
-// GROSS cost per BASE unit — derived from the entered cost-per-item / factor.
-// Sent to the backend as unit_cost_price; the preview uses this same rounded
-// integer so the displayed totals agree with what the server stores.
-export const unitCostBaseOf = (l: Line): number =>
-  Math.round(l.costPerItem / factorOf(l));
+// GROSS cost per ONE chosen unit, as typed — sent as pack_cost_price, which the
+// server prices the line from (lineGross in service/purchasing). Whole rupiah,
+// like the input it comes from.
+export const packCostOf = (l: Line): number => Math.round(l.costPerItem);
 
-// GROSS extended line amount = base qty × per-base cost.
-export const grossOf = (l: Line): number => baseQtyOf(l) * unitCostBaseOf(l);
+// GROSS cost per BASE unit, DERIVED (half-up) from the pack price. Sent as
+// unit_cost_price only for back-compat; the server derives the same figure
+// itself and never prices the line from it.
+export const unitCostBaseOf = (l: Line): number =>
+  Math.round(packCostOf(l) / factorOf(l));
+
+// GROSS extended line amount = chosen qty × pack price — exact, the faktur's
+// own arithmetic. (It used to be base qty × the ROUNDED per-base cost, which put
+// a box of 30 at Rp 65.000 × 50 at 3.250.500.)
+export const grossOf = (l: Line): number => l.orderedQty * packCostOf(l);
 
 // Per-line discount amount — mirrors the backend lineNetSubtotal EXACTLY so the
 // preview matches: per-item rounds each item then × qty; per-line rounds the

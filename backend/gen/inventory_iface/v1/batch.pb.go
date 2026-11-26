@@ -167,9 +167,18 @@ type Batch struct {
 	ManufacturerId string `protobuf:"bytes,15,opt,name=manufacturer_id,json=manufacturerId,proto3" json:"manufacturer_id,omitempty"`
 	// Where expiry_date came from. NONE means the date is the no-expiry
 	// placeholder and should be shown as "does not expire", not as a date.
-	ExpirySource  ExpirySource `protobuf:"varint,16,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ExpirySource ExpirySource `protobuf:"varint,16,opt,name=expiry_source,json=expirySource,proto3,enum=inventory_iface.v1.ExpirySource" json:"expiry_source,omitempty"`
+	// The lot's NET cost (same basis as cost_price: after the PO line discount,
+	// PPN capitalized) for ONE pack of cost_pack_factor base units, stamped at
+	// receive from the PO line's exact pack price -- so a box bought at
+	// Rp 65.000 reads 65.000, not cost_price x 30 = 65.010. Both 0 when unknown
+	// (lots received before the field, CreateBatch, ImportStock, a receive with
+	// a cost override): derive any per-unit cost from cost_price x factor.
+	// cost_pack_price is cost-bearing (batch.redactCost).
+	CostPackPrice  int64 `protobuf:"varint,17,opt,name=cost_pack_price,json=costPackPrice,proto3" json:"cost_pack_price,omitempty"`
+	CostPackFactor int64 `protobuf:"varint,18,opt,name=cost_pack_factor,json=costPackFactor,proto3" json:"cost_pack_factor,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Batch) Reset() {
@@ -312,6 +321,20 @@ func (x *Batch) GetExpirySource() ExpirySource {
 		return x.ExpirySource
 	}
 	return ExpirySource_EXPIRY_SOURCE_UNSPECIFIED
+}
+
+func (x *Batch) GetCostPackPrice() int64 {
+	if x != nil {
+		return x.CostPackPrice
+	}
+	return 0
+}
+
+func (x *Batch) GetCostPackFactor() int64 {
+	if x != nil {
+		return x.CostPackFactor
+	}
+	return 0
 }
 
 type ListBatchesRequest struct {
@@ -1784,7 +1807,7 @@ var File_inventory_iface_v1_batch_proto protoreflect.FileDescriptor
 
 const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\n" +
-	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xe9\x04\n" +
+	"\x1einventory_iface/v1/batch.proto\x12\x12inventory_iface.v1\x1a\x1aauth_iface/v1/policy.proto\x1a inventory_iface/v1/product.proto\"\xbb\x05\n" +
 	"\x05Batch\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
 	"\n" +
@@ -1808,7 +1831,9 @@ const file_inventory_iface_v1_batch_proto_rawDesc = "" +
 	"\x05units\x18\r \x03(\v2\x1f.inventory_iface.v1.ProductUnitR\x05units\x127\n" +
 	"\x18product_image_updated_at\x18\x0e \x01(\x03R\x15productImageUpdatedAt\x12'\n" +
 	"\x0fmanufacturer_id\x18\x0f \x01(\tR\x0emanufacturerId\x12E\n" +
-	"\rexpiry_source\x18\x10 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\"\xb7\x03\n" +
+	"\rexpiry_source\x18\x10 \x01(\x0e2 .inventory_iface.v1.ExpirySourceR\fexpirySource\x12&\n" +
+	"\x0fcost_pack_price\x18\x11 \x01(\x03R\rcostPackPrice\x12(\n" +
+	"\x10cost_pack_factor\x18\x12 \x01(\x03R\x0ecostPackFactor\"\xb7\x03\n" +
 	"\x12ListBatchesRequest\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\"\n" +
