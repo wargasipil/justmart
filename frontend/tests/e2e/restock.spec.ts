@@ -277,7 +277,7 @@ test.describe("restock (purchase order) end-to-end", () => {
   // units and a per-base cost, the form edits per-CHOSEN-unit figures, and the
   // conversion runs in both directions. A wrong factor here silently re-prices
   // the order at 1/100th, and the only place that shows is this round trip.
-  test("edit a DRAFT restock: seeds per-unit figures, saves, and is gone once sent", async ({
+  test("edit a restock: seeds per-unit figures, saves, stays editable once sent, gone once delivered", async ({
     page,
   }) => {
     const m = String(Date.now());
@@ -310,8 +310,10 @@ test.describe("restock (purchase order) end-to-end", () => {
         return po.order.id as string;
       }, ids);
 
+      // `exact`: a delivery row's own button is "Edit delivery RCV-…".
+      const edit = page.getByRole("button", { name: "Edit", exact: true });
       await page.goto(`/purchasing/${poId}`);
-      await page.getByRole("button", { name: "Edit" }).click();
+      await edit.click();
       await page.waitForURL(/\/purchasing\/[0-9a-f-]{36}\/edit$/);
 
       // The supplier is immutable (UpdatePurchaseOrder carries no supplier_id),
@@ -332,9 +334,45 @@ test.describe("restock (purchase order) end-to-end", () => {
       await page.waitForURL(/\/purchasing\/[0-9a-f-]{36}$/);
       await expect(page.getByText("7 box").first()).toBeVisible();
 
-      // Once sent it is frozen: the action disappears rather than failing on click.
+      // Sent but nothing delivered yet: still editable, and the edit page
+      // warns that the supplier is not told automatically.
       await page.getByRole("button", { name: "Send" }).click();
-      await expect(page.getByRole("button", { name: "Edit" })).toHaveCount(0);
+      await expect(page.getByText("Sent", { exact: true })).toBeVisible();
+      await edit.click();
+      await page.waitForURL(/\/purchasing\/[0-9a-f-]{36}\/edit$/);
+      await expect(page.getByText(/already sent to the supplier/i)).toBeVisible();
+      await page.goto(`/purchasing/${poId}`);
+
+      // Once a delivery exists the order is frozen: the action disappears
+      // rather than failing on click. Received over the API (the receive
+      // dialog has its own test above).
+      await page.evaluate(async (id: string) => {
+        const token = localStorage.getItem("justmart_access_token");
+        const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+        const post = async (path: string, body: unknown) => {
+          const res = await fetch(`/api/${path}`, { method: "POST", headers, body: JSON.stringify(body) });
+          if (!res.ok) throw new Error(`${path}: ${res.status} ${await res.text()}`);
+          return res.json();
+        };
+        const got = await post("purchasing_iface.v1.PurchaseOrderService/GetPurchaseOrder", { id });
+        await post("purchasing_iface.v1.PurchaseReceiptService/CreateReceipt", {
+          purchaseOrderId: id,
+          lines: [
+            {
+              purchaseOrderItemId: got.order.items[0].id,
+              qty: 7,
+              batchNumber: `RS-ED-${Date.now()}`,
+              expiryDate: "2099-12-31",
+            },
+          ],
+        });
+      }, poId);
+      await page.reload();
+      await expect(page.getByRole("button", { name: /^Edit delivery RCV-/ })).toBeVisible();
+      await expect(edit).toHaveCount(0);
+      // A received PO can't be voided (cleanup would log a 400 and trip the
+      // console-error fixture), so only the product + supplier are archived.
+      poId = undefined;
     } finally {
       await cleanup(page, { ...ids, poId });
     }
