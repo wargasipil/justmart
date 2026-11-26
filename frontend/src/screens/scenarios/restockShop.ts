@@ -4,6 +4,7 @@ import { ExpirySource } from "../../gen/inventory_iface/v1/batch_pb";
 import { ManufacturerService } from "../../gen/inventory_iface/v1/manufacturer_connect";
 import { ProductService } from "../../gen/inventory_iface/v1/product_connect";
 import { SupplierService } from "../../gen/inventory_iface/v1/supplier_connect";
+import { UserService } from "../../gen/user_iface/v1/users_connect";
 import { POStatus, PurchaseOrder, PurchaseOrderItem } from "../../gen/purchasing_iface/v1/order_pb";
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
 import { PurchasePaymentService } from "../../gen/purchasing_iface/v1/payment_connect";
@@ -26,6 +27,7 @@ import {
   lineGross,
   lineNetSubtotal,
 } from "../../routes/dev/restockFixtures";
+import { STORY_USERS } from "../../routes/dev/storyDecorators";
 import { mockRpc } from "../../routes/dev/storyMocks";
 
 // The fake shop behind the restock-order stories — one writeable copy of the
@@ -366,6 +368,13 @@ function refHandlers(shop: Shop): HttpHandler[] {
     // retired must still print a name rather than blanking its own history.
     mockRpc(ManufacturerService, "resolveManufacturers", (req) => ({
       manufacturers: MANUFACTURERS.filter((m) => req.ids.includes(m.id)),
+    })),
+    // "Dibuat oleh" on the order header. Orders carry STORY_USERS ids
+    // (user-owner / user-admin), so the name is one of the shop's own staff.
+    mockRpc(UserService, "resolveUsers", (req) => ({
+      users: Object.values(STORY_USERS)
+        .filter((u) => req.ids.includes(u.id))
+        .map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role })),
     })),
     // The Receive dialog's pre-fill: each product's expiry setting, read off
     // the same catalog every other story renders, so a product's default is

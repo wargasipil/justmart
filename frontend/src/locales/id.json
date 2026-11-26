@@ -295,6 +295,7 @@
     "expectedAt": "Diharapkan",
     "invoiceDate": "Tanggal faktur",
     "dueAt": "Jatuh tempo bayar",
+    "createdBy": "Dibuat oleh",
     "cartDiscount": "Diskon",
     "ppn": "PPN",
     "ppnEnabled": "Termasuk PPN",

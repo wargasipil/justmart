@@ -295,6 +295,7 @@
     "expectedAt": "Expected",
     "invoiceDate": "Invoice date",
     "dueAt": "Due date",
+    "createdBy": "Created by",
     "cartDiscount": "Discount",
     "ppn": "PPN",
     "ppnEnabled": "Include PPN",

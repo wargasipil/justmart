@@ -89,8 +89,16 @@ export const stories = {
     "A restock order still being written: no PO has gone to the supplier yet, so the only " +
       "actions are Kirim (send it) and Batalkan (void it) — no receive, no payment. Press Kirim " +
       "and the order advances to Terkirim and the action row changes under you, because the " +
-      "mocks write rather than serving the same fixture back.",
-    { parameters: withOwnShop(at("po-draft")) },
+      "mocks write rather than serving the same fixture back. The header names who entered the " +
+      "order (Dibuat oleh), resolved from created_by through ResolveUsers.",
+    {
+      parameters: withOwnShop(at("po-draft")),
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await canvas.findByText(/^(created by|dibuat oleh)$/i);
+        await canvas.findByText("Sari Wulandari");
+      },
+    },
   ),
   Sent: story(
     "Placed and waiting. Terima barang is now the action; Bayar is not offered, because a shop " +

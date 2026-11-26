@@ -21,7 +21,7 @@ import { usePageState } from "../../lib/pagination";
 import { POStatus } from "../../gen/purchasing_iface/v1/order_pb";
 import { formatDate, formatMoney } from "../../lib/format";
 import { toast } from "../../lib/toaster";
-import { useManufacturerRefs, useProductRefs, useSupplierRefs } from "../../queries/refs";
+import { useManufacturerRefs, useProductRefs, useSupplierRefs, useUserRefs } from "../../queries/refs";
 import {
   usePurchaseOrderQuery,
   usePurchaseReturnsQuery,
@@ -92,6 +92,11 @@ export default function PurchaseOrderDetail() {
   const supplierRefs = useSupplierRefs(supplierIds);
   const productRefs = useProductRefs(productIds);
   const manufacturerRefs = useManufacturerRefs(manufacturerIds);
+  // Who entered the order (and its faktur). created_by is stamped by
+  // CreatePurchaseOrder from the caller; ResolveUsers is open to every role
+  // that can open this page.
+  const creatorIds = useMemo(() => (po?.createdBy ? [po.createdBy] : []), [po]);
+  const userRefs = useUserRefs(creatorIds);
 
   if (poQ.isLoading || !po) {
     return (
@@ -205,6 +210,10 @@ export default function PurchaseOrderDetail() {
           <Info label={t("purchasing.invoiceNo")} value={po.invoiceNo || "—"} />
           <Info label={t("purchasing.invoiceDate")} value={po.invoiceDate ? formatDate(po.invoiceDate) : "—"} />
           <Info label={t("purchasing.dueAt")} value={po.dueAt ? formatDate(po.dueAt) : "—"} />
+          <Info
+            label={t("purchasing.createdBy")}
+            value={userRefs.get(po.createdBy)?.name || userRefs.get(po.createdBy)?.email || "—"}
+          />
           <Info
             label={t("purchasing.totalOrdered")}
             value={formatMoney(Number(po.orderedTotal))}
