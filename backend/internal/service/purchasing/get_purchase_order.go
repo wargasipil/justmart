@@ -16,5 +16,9 @@ func (p *PurchaseOrders) GetPurchaseOrder(
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&purchasingifacev1.GetPurchaseOrderResponse{Order: poToProto(po)}), nil
+	order, err := p.orderToProto(ctx, po)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&purchasingifacev1.GetPurchaseOrderResponse{Order: order}), nil
 }

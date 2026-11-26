@@ -33,5 +33,9 @@ func (p *PurchaseOrders) VoidPurchaseOrder(
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&purchasingifacev1.VoidPurchaseOrderResponse{Order: poToProto(full)}), nil
+	order, err := p.orderToProto(ctx, full)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&purchasingifacev1.VoidPurchaseOrderResponse{Order: order}), nil
 }

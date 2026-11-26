@@ -43,6 +43,12 @@ message PurchaseOrder {
   int64 ppn_amount = 24;           // round((subtotal − cart_discount) × ppn_rate%) when enabled, else 0
   int32 ppn_rate = 25;             // PPN rate as a percent (default 11; ignored when ppn_enabled=false)
   int64 returned_amount = 26;      // accumulated purchase-return value (drops outstanding)
+  // True when UpdatePurchaseOrder would accept an edit right now: the order is
+  // DRAFT, or SENT and has never had a delivery (no purchase_receipts row at
+  // all, cancelled ones included, since their lines still reference the
+  // order's items). Computed by the same predicate the handler enforces, so
+  // the UI never offers an edit the server would refuse.
+  bool editable = 27;
 }
 
 message PurchaseOrderItem {

@@ -110,9 +110,10 @@ export default function PurchaseOrderDetail() {
   // net cost and drops the "+ PPN" from its header.
   const ppnRate = po.ppnEnabled ? po.ppnRate || 11 : 0;
 
-  // Editable only while DRAFT — UpdatePurchaseOrder refuses anything past it,
-  // because once the order is SENT the supplier is holding the document.
-  const canEdit = po.status === POStatus.PO_STATUS_DRAFT;
+  // The server's own answer (PurchaseOrder.editable, the same predicate
+  // UpdatePurchaseOrder enforces): DRAFT, or SENT with no receipt ever. A
+  // cancelled delivery still counts, so this cannot be derived from status.
+  const canEdit = po.editable;
   const canSend = po.status === POStatus.PO_STATUS_DRAFT && po.items.length > 0;
   const canVoid = po.status === POStatus.PO_STATUS_DRAFT || po.status === POStatus.PO_STATUS_SENT;
   const canReceive =

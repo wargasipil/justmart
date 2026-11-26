@@ -111,8 +111,14 @@ type PurchaseOrder struct {
 	PpnAmount      int64                  `protobuf:"varint,24,opt,name=ppn_amount,json=ppnAmount,proto3" json:"ppn_amount,omitempty"`                // round((subtotal − cart_discount) × ppn_rate%) when enabled, else 0
 	PpnRate        int32                  `protobuf:"varint,25,opt,name=ppn_rate,json=ppnRate,proto3" json:"ppn_rate,omitempty"`                      // PPN rate as a percent (default 11; ignored when ppn_enabled=false)
 	ReturnedAmount int64                  `protobuf:"varint,26,opt,name=returned_amount,json=returnedAmount,proto3" json:"returned_amount,omitempty"` // accumulated purchase-return value (drops outstanding)
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// True when UpdatePurchaseOrder would accept an edit right now: the order is
+	// DRAFT, or SENT and has never had a delivery (no purchase_receipts row at
+	// all, cancelled ones included, since their lines still reference the
+	// order's items). Computed by the same predicate the handler enforces, so
+	// the UI never offers an edit the server would refuse.
+	Editable      bool `protobuf:"varint,27,opt,name=editable,proto3" json:"editable,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PurchaseOrder) Reset() {
@@ -325,6 +331,13 @@ func (x *PurchaseOrder) GetReturnedAmount() int64 {
 		return x.ReturnedAmount
 	}
 	return 0
+}
+
+func (x *PurchaseOrder) GetEditable() bool {
+	if x != nil {
+		return x.Editable
+	}
+	return false
 }
 
 type PurchaseOrderItem struct {
@@ -1543,7 +1556,7 @@ var File_purchasing_iface_v1_order_proto protoreflect.FileDescriptor
 
 const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\n" +
-	"\x1fpurchasing_iface/v1/order.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xe0\x06\n" +
+	"\x1fpurchasing_iface/v1/order.proto\x12\x13purchasing_iface.v1\x1a\x1aauth_iface/v1/policy.proto\"\xfc\x06\n" +
 	"\rPurchaseOrder\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x13\n" +
 	"\x05po_no\x18\x02 \x01(\tR\x04poNo\x12\x1f\n" +
@@ -1579,7 +1592,8 @@ const file_purchasing_iface_v1_order_proto_rawDesc = "" +
 	"\n" +
 	"ppn_amount\x18\x18 \x01(\x03R\tppnAmount\x12\x19\n" +
 	"\bppn_rate\x18\x19 \x01(\x05R\appnRate\x12'\n" +
-	"\x0freturned_amount\x18\x1a \x01(\x03R\x0ereturnedAmount\"\xe9\x04\n" +
+	"\x0freturned_amount\x18\x1a \x01(\x03R\x0ereturnedAmount\x12\x1a\n" +
+	"\beditable\x18\x1b \x01(\bR\beditable\"\xe9\x04\n" +
 	"\x11PurchaseOrderItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
 	"\x11purchase_order_id\x18\x02 \x01(\tR\x0fpurchaseOrderId\x12\x1d\n" +

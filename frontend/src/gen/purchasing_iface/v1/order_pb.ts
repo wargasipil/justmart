@@ -218,6 +218,17 @@ export class PurchaseOrder extends Message<PurchaseOrder> {
    */
   returnedAmount = protoInt64.zero;
 
+  /**
+   * True when UpdatePurchaseOrder would accept an edit right now: the order is
+   * DRAFT, or SENT and has never had a delivery (no purchase_receipts row at
+   * all, cancelled ones included, since their lines still reference the
+   * order's items). Computed by the same predicate the handler enforces, so
+   * the UI never offers an edit the server would refuse.
+   *
+   * @generated from field: bool editable = 27;
+   */
+  editable = false;
+
   constructor(data?: PartialMessage<PurchaseOrder>) {
     super();
     proto3.util.initPartial(data, this);
@@ -252,6 +263,7 @@ export class PurchaseOrder extends Message<PurchaseOrder> {
     { no: 24, name: "ppn_amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
     { no: 25, name: "ppn_rate", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
     { no: 26, name: "returned_amount", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 27, name: "editable", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): PurchaseOrder {

@@ -574,6 +574,26 @@ const RECEIPT_SEEDS: ReceiptSeed[] = [
 
 export const PURCHASE_RECEIPTS: PurchaseReceipt[] = RECEIPT_SEEDS.map(makeReceipt);
 
+/**
+ * PurchaseOrder.editable, the server's rule (editableStatus in
+ * backend/internal/service/purchasing/editable.go): a DRAFT, or a SENT order
+ * that has never had a delivery. A cancelled receipt still counts, so this is
+ * a question about receipts existing, not about what was received.
+ */
+export function poEditable(status: POStatus, hasReceipts: boolean): boolean {
+  return (
+    status === POStatus.PO_STATUS_DRAFT || (status === POStatus.PO_STATUS_SENT && !hasReceipts)
+  );
+}
+
+// Every order the fixtures serve carries the flag, as every server response does.
+for (const po of PURCHASE_ORDERS) {
+  po.editable = poEditable(
+    po.status,
+    PURCHASE_RECEIPTS.some((r) => r.purchaseOrderId === po.id),
+  );
+}
+
 /** The deliveries recorded against one order, newest first (the server's order). */
 export function receiptsFor(poId: string): PurchaseReceipt[] {
   return PURCHASE_RECEIPTS.filter((r) => r.purchaseOrderId === poId).sort((a, b) =>

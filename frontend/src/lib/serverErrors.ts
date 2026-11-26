@@ -123,6 +123,10 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "purchasing.receipt_item_not_found": { i18nKey: "serverErrors.purchasing.receiptItemNotFound" },
   "purchasing.duplicate_line": { i18nKey: "serverErrors.purchasing.duplicateLine" },
   "purchasing.no_batch": { i18nKey: "serverErrors.purchasing.noBatch" },
+  // Editing an order (UpdatePurchaseOrder). PurchaseOrder.editable carries the
+  // same rule, so the UI only meets these on a race.
+  "purchasing.not_editable": { i18nKey: "serverErrors.purchasing.notEditable" },
+  "purchasing.edit_has_receipts": { i18nKey: "serverErrors.purchasing.editHasReceipts" },
   // Receiving a delivery (CreateReceipt).
   "purchasing.po_not_receivable": { i18nKey: "serverErrors.purchasing.poNotReceivable" },
   "purchasing.receive_exceeds_remaining": { i18nKey: "serverErrors.purchasing.receiveExceedsRemaining" },

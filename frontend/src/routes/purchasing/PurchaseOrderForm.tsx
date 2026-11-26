@@ -44,8 +44,8 @@ import { useManufacturerRefs } from "../../queries/refs";
 export type PurchaseOrderFormProps = {
   /**
    * Present => edit this existing order via UpdatePurchaseOrder; absent =>
-   * create a new one. The caller checks the order is still DRAFT for the UI's
-   * sake; the backend refuses anything else regardless.
+   * create a new one. The caller checks the order is still editable
+   * (PurchaseOrder.editable) for the UI's sake; the backend refuses otherwise.
    */
   poId?: string;
   /** Initial values. Read ONCE, at mount - see the seeding note below. */

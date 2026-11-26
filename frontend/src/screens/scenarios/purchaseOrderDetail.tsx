@@ -1,7 +1,7 @@
 import { Code } from "@connectrpc/connect";
 import type { StoryObj } from "@storybook/react";
 import { Route } from "react-router-dom";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import { PurchaseOrderService } from "../../gen/purchasing_iface/v1/order_connect";
 import { withPageContext } from "../../routes/dev/storyDecorators";
@@ -41,6 +41,9 @@ export const routes = (
 );
 
 const at = (id: string) => ({ router: { initialEntries: [`/purchasing/${id}`] } });
+
+/** The header's Ubah (Edit) action, which follows PurchaseOrder.editable. */
+const EDIT_BUTTON = { name: /^(edit|ubah)$/i };
 
 /** Everything the page reads and writes, over a fresh copy of the ledger. */
 export function detailHandlers() {
@@ -97,16 +100,26 @@ export const stories = {
         const canvas = within(canvasElement);
         await canvas.findByText(/^(created by|dibuat oleh)$/i);
         await canvas.findByText("Sari Wulandari");
+        await canvas.findByRole("button", EDIT_BUTTON);
       },
     },
   ),
   Sent: story(
     "Placed and waiting. Terima barang is now the action; Bayar is not offered, because a shop " +
       "does not pay for what has not arrived (canPay excludes DRAFT and anything with nothing " +
-      "outstanding). Open Terima barang and record a partial delivery — enter fewer packs than " +
-      "were ordered on one line — and watch the order land on Sebagian, which is the state the " +
-      "next story starts from.",
-    { parameters: withOwnShop(at("po-sent")) },
+      "outstanding). Ubah is still offered: an order that has never had a delivery can be " +
+      "corrected in place instead of being cancelled and typed in again (the edit page warns " +
+      "that the change is not re-sent to the supplier). Open Terima barang and record a partial " +
+      "delivery — enter fewer packs than were ordered on one line — and watch the order land on " +
+      "Sebagian with Ubah gone: from the first delivery on, the order is not editable, even if " +
+      "that delivery is later cancelled.",
+    {
+      parameters: withOwnShop(at("po-sent")),
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await canvas.findByRole("button", EDIT_BUTTON);
+      },
+    },
   ),
   ReceiveExpiryDefaults: story(
     "The same order with Terima barang already open, to show how expiry is filled in. Each " +
@@ -132,8 +145,16 @@ export const stories = {
       "becomes on receive — net of the line discount and inclusive of PPN — which is why it is " +
       "kept apart from the invoice arithmetic above it. The delivery below is cancellable: its " +
       "lots are untouched, so Batalkan is offered and the dialog spells out exactly which stock " +
-      "disappears.",
-    { parameters: withOwnShop(at("po-partial")) },
+      "disappears. There is no Ubah: an order that has had a delivery is not editable.",
+    {
+      parameters: withOwnShop(at("po-partial")),
+      play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        // Wait for the order's own action row before asserting what is absent.
+        await canvas.findByRole("button", { name: /^(receive|terima)$/i });
+        await expect(canvas.queryByRole("button", EDIT_BUTTON)).toBeNull();
+      },
+    },
   ),
   Received: story(
     "Everything delivered, half paid, and the payment overdue (jatuh tempo is two days past). " +

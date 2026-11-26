@@ -53,6 +53,10 @@ func (p *PurchaseOrders) ListPurchaseOrders(
 	for i := range rows {
 		out = append(out, poToProto(&rows[i]))
 	}
+	// One receipts query for the whole page, not one per row.
+	if err := markEditable(p.db.WithContext(ctx), out...); err != nil {
+		return nil, err
+	}
 	if err := p.enrichList(ctx, out); err != nil {
 		return nil, err
 	}

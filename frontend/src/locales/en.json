@@ -285,7 +285,8 @@
     "newPo": "New PO",
     "editPo": "Edit PO",
     "supplierLocked": "The supplier cannot be changed after the order exists.",
-    "editOnlyDraft": "Only draft orders can be edited. Once an order has been sent, void it and create a new one.",
+    "editOnlyDraft": "Only a draft, or a sent order that has never had a delivery, can be edited.",
+    "editSentWarning": "This order was already sent to the supplier. Changes here are not sent automatically, so tell the supplier if the order changes.",
     "editLoadFailed": "Could not load this order's products, so it cannot be edited safely. Try again.",
     "po": "Purchase order",
     "poNo": "PO #",
@@ -1356,7 +1357,9 @@
       "expiryInvalid": "Enter a valid expiry date",
       "receivedAtInvalid": "Enter a valid received date",
       "expiryPast": "That lot has already expired — a pharmacy can't receive expired stock",
-      "expiryRequired": "A prescription $t(glossary.product) always expires — enter the date from the pack"
+      "expiryRequired": "A prescription $t(glossary.product) always expires — enter the date from the pack",
+      "notEditable": "This order can no longer be edited.",
+      "editHasReceipts": "An order that has already had a delivery cannot be edited."
     },
     "transfer": {
       "sameWarehouse": "Source and destination warehouses must differ"

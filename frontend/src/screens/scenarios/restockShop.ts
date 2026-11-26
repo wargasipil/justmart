@@ -26,6 +26,7 @@ import {
   computePOTotals,
   lineGross,
   lineNetSubtotal,
+  poEditable,
 } from "../../routes/dev/restockFixtures";
 import { STORY_USERS } from "../../routes/dev/storyDecorators";
 import { mockRpc } from "../../routes/dev/storyMocks";
@@ -47,10 +48,11 @@ import { mockRpc } from "../../routes/dev/storyMocks";
 // settingsShop.ts next door.
 //
 // The server's own rules are mirrored rather than waved through
-// (recomputePOStatus, maybeCloseIfPaid, and the untouched-lot precondition on a
-// cancel), because the refusals are the interesting half of this page: a
-// delivery you cannot cancel is what sends an operator to a purchase return
-// instead.
+// (recomputePOStatus, maybeCloseIfPaid, the untouched-lot precondition on a
+// cancel, and the editable flag), because the refusals are the interesting half
+// of this page: a delivery you cannot cancel is what sends an operator to a
+// purchase return instead, and an order that once had a delivery loses its
+// Edit button even when a cancel has put it back to SENT.
 
 const DEFAULT_LIMIT = 25;
 
@@ -76,6 +78,21 @@ export function newShop(): Shop {
 }
 
 const find = (shop: Shop, id: string) => shop.orders.find((po) => po.id === id);
+
+/**
+ * An order as the server serves it: with PurchaseOrder.editable filled from the
+ * shop's CURRENT receipts (cancelled ones included), so Send turns it on for a
+ * never-delivered order and a delivery turns it off for good.
+ */
+function serve(shop: Shop, po: PurchaseOrder | undefined): PurchaseOrder | undefined {
+  if (po) {
+    po.editable = poEditable(
+      po.status,
+      shop.receipts.some((r) => r.purchaseOrderId === po.id),
+    );
+  }
+  return po;
+}
 
 /** recomputePOStatus: derived from received vs ordered, and never reopens CLOSED. */
 function recomputeStatus(po: PurchaseOrder) {
@@ -105,17 +122,17 @@ function settle(po: PurchaseOrder) {
 
 function orderHandlers(shop: Shop): HttpHandler[] {
   return [
-    mockRpc(PurchaseOrderService, "getPurchaseOrder", (req) => ({ order: find(shop, req.id) })),
+    mockRpc(PurchaseOrderService, "getPurchaseOrder", (req) => ({ order: serve(shop, find(shop, req.id)) })),
     mockRpc(PurchaseOrderService, "sendPurchaseOrder", (req) => {
       const po = find(shop, req.id)!;
       po.status = POStatus.PO_STATUS_SENT;
       po.sentAt = BigInt(Math.floor(Date.now() / 1000));
-      return { order: po };
+      return { order: serve(shop, po) };
     }),
     mockRpc(PurchaseOrderService, "voidPurchaseOrder", (req) => {
       const po = find(shop, req.id)!;
       po.status = POStatus.PO_STATUS_VOIDED;
-      return { order: po };
+      return { order: serve(shop, po) };
     }),
     mockRpc(PurchasePaymentService, "payPurchase", (req) => {
       const po = find(shop, req.purchaseOrderId)!;
@@ -208,7 +225,7 @@ function createOrderHandler(shop: Shop): HttpHandler {
     });
     // Newest first, which is the order ListPurchaseOrders returns.
     shop.orders.unshift(order);
-    return { order };
+    return { order: serve(shop, order) };
   });
 }
 

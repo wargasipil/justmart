@@ -2,7 +2,6 @@ package purchasing
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -22,9 +21,10 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 		if err != nil {
 			return err
 		}
-		if po.Status != poStatusDraft {
-			return connect.NewError(connect.CodeFailedPrecondition,
-				fmt.Errorf("only DRAFT POs are editable; this one is %s", po.Status))
+		// DRAFT, or SENT with no receipt ever (see editable.go). Status and
+		// sent_at are not touched below, so a SENT order stays SENT.
+		if err := checkOrderEditable(tx, po); err != nil {
+			return err
 		}
 		updates := map[string]any{
 			"note":        strings.TrimSpace(req.Msg.Note),
@@ -122,5 +122,9 @@ func (p *PurchaseOrders) UpdatePurchaseOrder(
 	if err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(&purchasingifacev1.UpdatePurchaseOrderResponse{Order: poToProto(full)}), nil
+	order, err := p.orderToProto(ctx, full)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(&purchasingifacev1.UpdatePurchaseOrderResponse{Order: order}), nil
 }

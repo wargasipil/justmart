@@ -14,9 +14,12 @@ import { useSupplierRefs } from "../../queries/refs";
 /**
  * Edit an existing restock order.
  *
- * Only DRAFT is editable — once the order is SENT the supplier has the
- * document, so the backend refuses (UpdatePurchaseOrder, FailedPrecondition)
- * and this page says so rather than presenting a form that cannot save.
+ * Gated on PurchaseOrder.editable, the server's own answer: a DRAFT, or a SENT
+ * order that has never had a delivery (a cancelled one still counts). Anything
+ * else the backend refuses (UpdatePurchaseOrder, FailedPrecondition), so this
+ * page says so rather than presenting a form that cannot save. A SENT order
+ * stays SENT after the edit and nothing is re-sent, so the page warns that the
+ * supplier has to be told.
  *
  * The page's whole job is to assemble a complete seed BEFORE mounting the form:
  * the saved lines carry base-unit quantities and per-base costs, and turning
@@ -31,18 +34,20 @@ export default function EditPurchaseOrder() {
 
   const poQ = usePurchaseOrderQuery(id);
   const po = poQ.data;
-  const isDraft = po?.status === POStatus.PO_STATUS_DRAFT;
+  const editable = po?.editable === true;
+  const isSent = po?.status === POStatus.PO_STATUS_SENT;
 
-  // Only a DRAFT is ever edited, so nothing else pays for the product hydration.
+  // Only an editable order is ever edited, so nothing else pays for the
+  // product hydration.
   const productIds = useMemo(
-    () => (isDraft ? (po?.items ?? []).map((i) => i.productId) : []),
-    [isDraft, po],
+    () => (editable ? (po?.items ?? []).map((i) => i.productId) : []),
+    [editable, po],
   );
-  const productsQ = useProductsWithUnitsQuery(productIds, isDraft);
+  const productsQ = useProductsWithUnitsQuery(productIds, editable);
   const supplierRefs = useSupplierRefs(po ? [po.supplierId] : []);
 
   const seed: PurchaseOrderSeed | undefined = useMemo(() => {
-    if (!po || !isDraft || !productsQ.isReady) return undefined;
+    if (!po || !editable || !productsQ.isReady) return undefined;
     return {
       supplierId: po.supplierId,
       invoiceNo: po.invoiceNo,
@@ -55,14 +60,14 @@ export default function EditPurchaseOrder() {
       ppnRate: po.ppnRate || 11,
       ppnEnabled: po.ppnEnabled,
     };
-  }, [po, isDraft, productsQ.isReady, productsQ.map]);
+  }, [po, editable, productsQ.isReady, productsQ.map]);
 
   if (poQ.isLoading) return <Spinner />;
   if (!po) return null;
 
   const back = `/purchasing/${id}`;
 
-  if (!isDraft) {
+  if (!editable) {
     return (
       <Stack gap={4}>
         <BackButton to={back} />
@@ -97,6 +102,14 @@ export default function EditPurchaseOrder() {
   return (
     <Stack gap={4}>
       <BackButton to={back} />
+      {isSent && (
+        <Alert.Root status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>{t("purchasing.editSentWarning")}</Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
+      )}
       <PurchaseOrderForm
         key={po.id}
         poId={po.id}
