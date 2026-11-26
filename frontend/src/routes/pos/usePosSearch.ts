@@ -8,22 +8,61 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 
 import type { Product, ProductUnit } from "../../gen/inventory_iface/v1/product_pb";
 import type { ProductPriceTier } from "../../gen/inventory_iface/v1/product_price_tier_pb";
+import type { StockLevel } from "../../gen/inventory_iface/v1/stock_pb";
+import { isExpiredOn, localTodayIso } from "../../lib/expiry";
 import { loadShowOutOfStock, saveShowOutOfStock } from "../../lib/posStorage";
 import { useAllProductsQuery } from "../../queries/products";
 import { tiersForUnit } from "../../queries/productPriceTiers";
+import { useBusinessMode } from "../../queries/settings";
 import { useStockLevelsQuery } from "../../queries/stock";
 
 // Each sellable unit of each matching product is its own search row, so one
 // click adds that exact unit. `available` = how many of that unit the current
-// base stock can make (base ÷ factor). `tiers` is precomputed (not per render)
-// so the list stays cheap; it drives the DISPLAY hint only — a cart line's
-// applied-grosir state always comes from the server (SaleItem.tierMinQty).
+// SELLABLE base stock can make (base ÷ factor); `expired` = the same for stock
+// held back because its lot expired (pharmacy only, else 0). `tiers` is
+// precomputed (not per render) so the list stays cheap; it drives the DISPLAY
+// hint only — a cart line's applied-grosir state always comes from the server
+// (SaleItem.tierMinQty).
 export type UnitRow = {
   med: Product;
   unit: ProductUnit;
   available: number;
+  expired: number;
   tiers: ProductPriceTier[];
 };
+
+/** One product's base-unit stock in the active warehouse. */
+export type ProductStock = {
+  /** What checkout can take from. */
+  sellable: bigint;
+  /** On hand in lots whose expiry date has passed — never sold in pharmacy mode. */
+  expired: bigint;
+};
+
+/**
+ * Sum GetStockLevels' per-lot rows into per-product stock. In pharmacy mode a
+ * lot whose expiry date is before `today` is not sellable — CompleteSale skips
+ * it and refuses the sale (sale.stock_expired) when nothing else covers the
+ * line — so its quantity counts as `expired` instead. Retail sells every lot,
+ * so `sellable` is the plain total there, exactly as before.
+ */
+export function sumStockByProduct(
+  levels: StockLevel[],
+  pharmacy: boolean,
+  today: string,
+): Map<string, ProductStock> {
+  const out = new Map<string, ProductStock>();
+  for (const l of levels) {
+    const cur = out.get(l.productId) ?? { sellable: 0n, expired: 0n };
+    if (pharmacy && isExpiredOn(l.expiryDate, today)) {
+      if (l.currentQuantity > 0n) cur.expired += l.currentQuantity;
+    } else {
+      cur.sellable += l.currentQuantity;
+    }
+    out.set(l.productId, cur);
+  }
+  return out;
+}
 
 const MAX_ROWS = 40;
 
@@ -32,15 +71,13 @@ export function usePosSearch({
 }: {
   onAdd: (product: Product, unitId: string, available?: number) => void | Promise<void>;
 }) {
+  const { isPharmacy } = useBusinessMode();
   const productsQ = useAllProductsQuery();
   const stockQ = useStockLevelsQuery();
-  const stockByProduct = useMemo(() => {
-    const out = new Map<string, bigint>();
-    for (const l of stockQ.data ?? []) {
-      out.set(l.productId, (out.get(l.productId) ?? 0n) + l.currentQuantity);
-    }
-    return out;
-  }, [stockQ.data]);
+  const stockByProduct = useMemo(
+    () => sumStockByProduct(stockQ.data ?? [], isPharmacy, localTodayIso()),
+    [stockQ.data, isPharmacy],
+  );
 
   const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
@@ -62,15 +99,18 @@ export function usePosSearch({
       : productsQ.rows;
     const out: UnitRow[] = [];
     for (const med of meds) {
-      const base = Number(stockByProduct.get(med.id) ?? 0n);
+      const stock = stockByProduct.get(med.id);
+      const base = Number(stock?.sellable ?? 0n);
+      const expiredBase = Number(stock?.expired ?? 0n);
       for (const unit of med.units.filter((u) => u.sellable && u.active)) {
         const factor = Number(unit.factor) || 1;
         const available = Math.floor(base / factor);
         // Filter BEFORE the cap: dropping unsellable rows after slicing to 40
         // would leave the list just as short, defeating the point of hiding them.
         if (!showOutOfStock && available < 1) continue;
+        const expired = Math.floor(expiredBase / factor);
         const tiers = tiersForUnit(med.priceTiers, unit.id).filter((t) => t.price < unit.sellPrice);
-        out.push({ med, unit, available, tiers });
+        out.push({ med, unit, available, expired, tiers });
         if (out.length >= MAX_ROWS) return out;
       }
     }
@@ -123,6 +163,7 @@ export function usePosSearch({
     showOutOfStock,
     onToggleOutOfStock,
     unitRows,
+    /** Per-product SELLABLE / expired base stock (see sumStockByProduct). */
     stockByProduct,
     onSearchKeyDown,
     /** Clear the box and return focus — used after a successful add. */

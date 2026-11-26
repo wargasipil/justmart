@@ -621,7 +621,8 @@
     "shortcutHints": "F2 search · F4 customer · F5 Rx · F8 complete · Esc clear",
     "selectWarehouse": "Select a warehouse",
     "selectWarehouseHint": "Choose which warehouse you are selling from.",
-    "needsRx": "needs prescription"
+    "needsRx": "needs prescription",
+    "expiredHint": "{{count}} expired"
   },
   "prescriptions": {
     "title": "Prescriptions",
@@ -1383,7 +1384,9 @@
     },
     "sale": {
       "cartEmpty": "The cart is empty",
-      "paidTooLow": "Amount paid is less than the total"
+      "paidTooLow": "Amount paid is less than the total",
+      "insufficientStock": "Not enough stock to complete the sale.",
+      "stockExpired": "The remaining stock has expired and cannot be sold. Remove it from the cart, then write it off or correct its expiry date."
     },
     "avatar": {
       "imageRequired": "Pick an image to upload.",

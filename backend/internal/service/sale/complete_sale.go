@@ -2,7 +2,6 @@ package sale
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
@@ -84,6 +83,16 @@ func (s *SaleService) CompleteSale(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 
+		// Pharmacy: a lot whose expiry date has passed is never sold. It is
+		// still sellable ON its expiry date (common.ExpiryPassed compares shop-
+		// local calendar days), and a "does not expire" lot carries
+		// common.NoExpiryDate, so it never trips this. Retail sells FEFO as it
+		// always has. The mode is read once for the whole cart.
+		pharmacy, err := common.IsPharmacyMode(ctx, tx)
+		if err != nil {
+			return connect.NewError(connect.CodeInternal, err)
+		}
+
 		// For each line: consume its BASE-unit quantity across FEFO batches in the
 		// sale's warehouse.
 		for i := range items {
@@ -100,6 +109,10 @@ func (s *SaleService) CompleteSale(
 				return connect.NewError(connect.CodeInternal, err)
 			}
 
+			// Stock of this line's product, in the sale's warehouse, that FEFO
+			// skipped because its lot had expired (pharmacy only). Expired lots
+			// sort first, so every one of them is seen before the line is covered.
+			var expired int64
 			for _, b := range batches {
 				if needed <= 0 {
 					break
@@ -112,6 +125,10 @@ func (s *SaleService) CompleteSale(
 					return connect.NewError(connect.CodeInternal, err)
 				}
 				if avail <= 0 {
+					continue
+				}
+				if pharmacy && common.ExpiryPassed(b.ExpiryDate, now) {
+					expired += avail
 					continue
 				}
 				take := int64(needed)
@@ -136,9 +153,14 @@ func (s *SaleService) CompleteSale(
 				needed -= int32(take)
 			}
 
+			// Short: refuse the whole sale (the tx rolls back every movement
+			// written so far). There is no override for expired stock: the fix
+			// is a write-off, or SetBatchExpiry when the date was typed wrong.
 			if needed > 0 {
-				return connect.NewError(connect.CodeFailedPrecondition,
-					fmt.Errorf("insufficient stock for product %s (%d base units short)", item.ProductID, needed))
+				if expired > 0 {
+					return common.TokenError(connect.CodeFailedPrecondition, "sale.stock_expired")
+				}
+				return common.TokenError(connect.CodeFailedPrecondition, "sale.insufficient_stock")
 			}
 		}
 

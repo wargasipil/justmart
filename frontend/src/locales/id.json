@@ -621,7 +621,8 @@
     "shortcutHints": "F2 cari · F4 pelanggan · F5 resep · F8 selesai · Esc bersihkan",
     "selectWarehouse": "Pilih gudang",
     "selectWarehouseHint": "Pilih gudang tempat Anda menjual.",
-    "needsRx": "perlu resep"
+    "needsRx": "perlu resep",
+    "expiredHint": "{{count}} kedaluwarsa"
   },
   "prescriptions": {
     "title": "Resep",
@@ -1383,7 +1384,9 @@
     },
     "sale": {
       "cartEmpty": "Keranjang kosong",
-      "paidTooLow": "Jumlah bayar kurang dari total"
+      "paidTooLow": "Jumlah bayar kurang dari total",
+      "insufficientStock": "Stok tidak cukup untuk menyelesaikan penjualan.",
+      "stockExpired": "Stok yang tersisa sudah kedaluwarsa dan tidak bisa dijual. Hapus dari keranjang, lalu catat penghapusan stok atau perbaiki tanggal kedaluwarsanya."
     },
     "avatar": {
       "imageRequired": "Pilih gambar untuk diunggah.",

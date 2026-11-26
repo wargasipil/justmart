@@ -171,6 +171,8 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "sale.fee_negative": { i18nKey: "serverErrors.common.amountNegative" },
   "sale.cart_empty": { i18nKey: "serverErrors.sale.cartEmpty" },
   "sale.paid_too_low": { i18nKey: "serverErrors.sale.paidTooLow" },
+  "sale.insufficient_stock": { i18nKey: "serverErrors.sale.insufficientStock" },
+  "sale.stock_expired": { i18nKey: "serverErrors.sale.stockExpired" },
   "sale.discount_negative": { i18nKey: "serverErrors.common.discountInvalid" },
   "sale.discount_percent_range": { i18nKey: "serverErrors.common.discountInvalid" },
   "sale.discount_type_invalid": { i18nKey: "serverErrors.common.discountInvalid" },

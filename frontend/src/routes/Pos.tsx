@@ -1,37 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Badge,
   Box,
   Button,
   Flex,
   HStack,
   IconButton,
-  Input,
-  RadioGroup,
-  Stack,
-  Switch,
   Text,
 } from "@chakra-ui/react";
-import { Lock, LogOut, Minus, Plus, Search, Trash2, Warehouse as WarehouseIcon } from "lucide-react";
+import { LogOut, Warehouse as WarehouseIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import DiscountField, { type DiscountType } from "../components/DiscountField";
-import EnumSelect from "../components/EnumSelect";
-import MoneyInput from "../components/MoneyInput";
-import NumberInput from "../components/NumberInput";
+import type { DiscountType } from "../components/DiscountField";
 import PrinterSelect from "../components/PrinterSelect";
-import ProductImage from "../components/ProductImage";
 import WarehouseSelect from "../components/WarehouseSelect";
 import type { Product } from "../gen/inventory_iface/v1/product_pb";
 import { PaymentSource, Sale, SaleStatus, type SaleItem } from "../gen/pos_iface/v1/sale_pb";
 import { saleClient } from "../lib/clients";
-import { formatMoney } from "../lib/format";
 import { releaseModalBodyLock } from "../lib/modalLock";
 import { toast } from "../lib/toaster";
 import { useAuth } from "../lib/auth";
 import { saveResepRoundTrip, takeResepRoundTrip } from "../lib/posStorage";
-import { nextTier } from "../queries/productPriceTiers";
 import { useBusinessMode } from "../queries/settings";
 import {
   CustomerPickerDialog,
@@ -40,11 +29,12 @@ import {
 } from "./pos/posDialogs";
 import {
   CustomerBar,
-  LineDiscountPopover,
   PrescriptionBar,
-  QuickAmountRow,
 } from "./pos/posControls";
 import { usePosPrinter } from "./pos/usePosPrinter";
+import PosCartLines from "./pos/PosCartLines";
+import PosPaymentPanel from "./pos/PosPaymentPanel";
+import PosSearchPanel from "./pos/PosSearchPanel";
 import { usePosSearch } from "./pos/usePosSearch";
 import { usePosWarehouseGate } from "./pos/usePosWarehouseGate";
 import {
@@ -292,7 +282,7 @@ export default function Pos() {
       const enough =
         available !== undefined
           ? available >= 1
-          : Number(stockByProduct.get(product.id) ?? 0n) > 0;
+          : Number(stockByProduct.get(product.id)?.sellable ?? 0n) > 0;
       if (!enough) {
         toast.error(t("pos.outOfStock"));
         return;
@@ -638,127 +628,20 @@ export default function Pos() {
       {/* Body */}
       <Flex flex="1" minH={0}>
         {/* Search panel */}
-        <Box flex="3" borderRightWidth="1px" overflowY="auto" p={4}>
-          <Box position="relative" mb={3}>
-            <Box position="absolute" left={3} top="50%" transform="translateY(-50%)" color="fg.muted">
-              <Search size={16} />
-            </Box>
-            <Input
-              ref={searchRef}
-              pl={10}
-              placeholder={t("pos.searchPlaceholder")}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={onSearchKeyDown}
-              autoFocus
-            />
-          </Box>
-          <Switch.Root
-            size="sm"
-            mb={3}
-            checked={showOutOfStock}
-            onCheckedChange={(d) => onToggleOutOfStock(d.checked)}
-          >
-            <Switch.HiddenInput />
-            <Switch.Control />
-            <Switch.Label fontSize="sm" color="fg.muted">
-              {t("pos.showOutOfStock")}
-            </Switch.Label>
-          </Switch.Root>
-          <Stack gap={1}>
-            {unitRows.map((row, i) => {
-              const { med: m, unit, available, tiers } = row;
-              const out = available < 1;
-              const active = i === highlight;
-              // Pharmacy cue: Rx-required product with no covering Rx yet — dimmed
-              // + lock, but still clickable (the click opens the Rx picker).
-              const needsRx = isPharmacy && m.prescriptionRequired && !sale?.prescriptionId;
-              return (
-                <Flex
-                  key={`${m.id}:${unit.id}`}
-                  px={3}
-                  py={2}
-                  borderRadius="md"
-                  bg={active ? "bg.muted" : "transparent"}
-                  borderWidth="1px"
-                  borderColor={active ? "border" : "transparent"}
-                  align="center"
-                  justify="space-between"
-                  cursor={out ? "not-allowed" : "pointer"}
-                  opacity={out ? 0.5 : needsRx ? 0.7 : 1}
-                  onMouseEnter={() => setHighlight(i)}
-                  onClick={() => !out && onAdd(m, unit.id, available)}
-                >
-                  {/* Thumbnail first: a cashier scans this list by sight, and
-                      the picture is the fastest thing to match against. THUMB
-                      rendition; products without one cost zero requests. */}
-                  <ProductImage
-                    productId={m.id}
-                    name={m.name}
-                    version={Number(m.imageUpdatedAt)}
-                    size={36}
-                  />
-                  <Stack gap={0} flex="1" ml={3}>
-                    <HStack gap={2}>
-                      {needsRx && <Lock size={12} />}
-                      <Text fontSize="sm" fontWeight="medium">
-                        {m.name}
-                      </Text>
-                      <Text fontSize="xs" color="fg.muted">
-                        · {unit.name}
-                      </Text>
-                      {needsRx && (
-                        <Text fontSize="xs" color="orange.fg">
-                          {t("pos.needsRx")}
-                        </Text>
-                      )}
-                    </HStack>
-                    <Text fontSize="xs" color="fg.muted">
-                      {m.sku} · {available} {unit.name}
-                    </Text>
-                  </Stack>
-                  <Stack gap={0} align="flex-end">
-                    <Text fontSize="sm" fontFamily="mono">
-                      {formatMoney(unit.sellPrice)}
-                    </Text>
-                    {/* Grosir hint: only the FIRST rung — the one crossed most
-                        often — plus a +N counter. The full ladder is back-office
-                        detail and would be noise in a 40-row scan list. */}
-                    {tiers.length > 0 && (
-                      <HStack gap={1}>
-                        <Badge size="xs" variant="subtle" colorPalette="purple">
-                          {t("pos.grosir")}
-                        </Badge>
-                        <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
-                          {tiers.length > 1
-                            ? t("pos.grosirTierHintMore", {
-                                qty: tiers[0].minQty,
-                                price: formatMoney(tiers[0].price),
-                                n: tiers.length - 1,
-                              })
-                            : t("pos.grosirTierHint", {
-                                qty: tiers[0].minQty,
-                                price: formatMoney(tiers[0].price),
-                              })}
-                        </Text>
-                      </HStack>
-                    )}
-                  </Stack>
-                </Flex>
-              );
-            })}
-            {unitRows.length === 0 && (
-              <Text color="fg.muted" fontSize="sm" textAlign="center" py={6}>
-                {/* With the filter on, an empty list means "nothing in stock
-                    matches", not "no such product" — say so, or the cashier
-                    concludes the product isn't in the catalog at all. */}
-                {showOutOfStock
-                  ? t("common.noResults")
-                  : t("pos.noResultsHiddenOutOfStock")}
-              </Text>
-            )}
-          </Stack>
-        </Box>
+        <PosSearchPanel
+          searchRef={searchRef}
+          query={query}
+          setQuery={setQuery}
+          onSearchKeyDown={onSearchKeyDown}
+          showOutOfStock={showOutOfStock}
+          onToggleOutOfStock={onToggleOutOfStock}
+          unitRows={unitRows}
+          highlight={highlight}
+          setHighlight={setHighlight}
+          isPharmacy={isPharmacy}
+          hasPrescription={!!sale?.prescriptionId}
+          onAdd={onAdd}
+        />
 
         {/* Cart panel */}
         <Flex flex="2" direction="column" minW="360px">
@@ -786,258 +669,36 @@ export default function Pos() {
             )}
           </Box>
 
-          <Box flex="1" overflowY="auto" px={4} py={2}>
-            {(sale?.items.length ?? 0) === 0 && (
-              <Text color="fg.muted" fontSize="sm" textAlign="center" py={8}>
-                {t("pos.empty")}
-              </Text>
-            )}
-            <Stack gap={2}>
-              {sale?.items.map((it) => {
-                const med = products.find((m) => m.id === it.productId);
-                return (
-                  <Flex key={it.id} align="center" gap={2}>
-                    <Stack gap={0} flex="1">
-                      <Text fontSize="sm" fontWeight="medium">
-                        {med?.name ?? it.productId.slice(0, 8)}
-                      </Text>
-                      {/* Grosir: struck-through normal price + the rung earned,
-                          right beside the qty input the cashier is looking at.
-                          All values are server fields — no client price math. */}
-                      <HStack gap={1.5}>
-                        {it.tierMinQty > 0 && it.listPriceSnapshot > it.unitPriceSnapshot && (
-                          <Text
-                            fontSize="2xs"
-                            color="fg.muted"
-                            fontFamily="mono"
-                            textDecoration="line-through"
-                          >
-                            {formatMoney(it.listPriceSnapshot)}
-                          </Text>
-                        )}
-                        <Text fontSize="xs" color="fg.muted" fontFamily="mono">
-                          {formatMoney(it.unitPriceSnapshot)}
-                        </Text>
-                        {it.tierMinQty > 0 && (
-                          <Text fontSize="2xs" color="purple.fg" fontFamily="mono">
-                            {t("pos.grosirThreshold", { qty: it.tierMinQty })}
-                          </Text>
-                        )}
-                      </HStack>
-                      {/* "Buy N more" nudge, deliberately narrow: only when the
-                          gap is a plausible ask, and never a click target — it's
-                          for the cashier to relay, not to bump the qty. */}
-                      {(() => {
-                        const unit = med?.units.find((u) => u.id === it.productUnitId);
-                        if (!unit) return null;
-                        const nt = nextTier(med?.priceTiers, it.productUnitId, it.qty, unit.sellPrice);
-                        if (!nt) return null;
-                        const remaining = nt.minQty - it.qty;
-                        if (remaining <= 0 || remaining > Math.max(2, Math.ceil(nt.minQty * 0.2))) {
-                          return null;
-                        }
-                        return (
-                          <Text fontSize="2xs" color="orange.fg">
-                            {t("pos.grosirNudge", { n: remaining, price: formatMoney(nt.price) })}
-                          </Text>
-                        );
-                      })()}
-                    </Stack>
-                    <IconButton
-                      aria-label="decrease quantity"
-                      size="xs"
-                      variant="outline"
-                      onClick={() => onChangeQty(it.id, it.qty - 1)}
-                    >
-                      <Minus size={14} />
-                    </IconButton>
-                    <NumberInput
-                      size="sm"
-                      width="48px"
-                      aria-label="line quantity"
-                      value={it.qty}
-                      onChange={(raw) => onChangeQty(it.id, Number(raw || 0))}
-                    />
-                    <IconButton
-                      aria-label="increase quantity"
-                      size="xs"
-                      variant="outline"
-                      onClick={() => onChangeQty(it.id, it.qty + 1)}
-                    >
-                      <Plus size={14} />
-                    </IconButton>
-                    {med && med.units.filter((u) => u.sellable && u.active).length > 1 ? (
-                      <EnumSelect
-                        size="sm"
-                        width="84px"
-                        value={it.productUnitId}
-                        onChange={(v) => onChangeUnit(it, v)}
-                        items={med.units.filter((u) => u.sellable && u.active)}
-                        itemToString={(u) => u.name}
-                        itemToValue={(u) => u.id}
-                      />
-                    ) : (
-                      <Text fontSize="xs" color="fg.muted" w="84px">
-                        {it.unitName || med?.unit}
-                      </Text>
-                    )}
-                    <LineDiscountPopover
-                      item={it}
-                      onApply={(type, human) => commitLineDiscount(it.id, type, human)}
-                      onClear={() => commitClearLineDiscount(it.id)}
-                    />
-                    <Stack gap={0} w="80px" align="flex-end">
-                      <Text fontSize="sm" fontFamily="mono">
-                        {formatMoney(it.lineTotal)}
-                      </Text>
-                      {it.tierMinQty > 0 && (
-                        <Badge size="xs" colorPalette="purple">
-                          {t("pos.grosir")}
-                        </Badge>
-                      )}
-                      {Number(it.lineDiscount) > 0 && (
-                        <HStack gap={1}>
-                          {/* Grosir and Promo are mutually exclusive: a tiered
-                              line suppresses the auto discount, so any discount
-                              shown here is the cashier's manual one. Guarded
-                              explicitly rather than trusting lineDiscount === 0. */}
-                          {!it.discountManual && it.tierMinQty === 0 && (
-                            <Badge size="xs" colorPalette="green">
-                              {t("pos.promo")}
-                            </Badge>
-                          )}
-                          <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
-                            -{formatMoney(Number(it.lineDiscount))}
-                            {it.discountType === "PERCENT"
-                              ? ` (${Number(it.discountValue) / 100}%)`
-                              : ""}
-                          </Text>
-                        </HStack>
-                      )}
-                    </Stack>
-                    <IconButton
-                      aria-label="remove"
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => onRemove(it.id)}
-                    >
-                      <Trash2 size={14} />
-                    </IconButton>
-                  </Flex>
-                );
-              })}
-            </Stack>
-          </Box>
+          <PosCartLines
+            items={sale?.items ?? []}
+            products={products}
+            onChangeQty={onChangeQty}
+            onChangeUnit={onChangeUnit}
+            commitLineDiscount={commitLineDiscount}
+            commitClearLineDiscount={commitClearLineDiscount}
+            onRemove={onRemove}
+          />
 
           {/* Totals + payment */}
-          <Box borderTopWidth="1px" px={4} py={3}>
-            <Stack gap={2}>
-              <Flex justify="space-between">
-                <Text fontSize="sm" color="fg.muted">{t("pos.subtotal")}</Text>
-                <Text fontSize="sm" fontFamily="mono">
-                  {formatMoney(Number(sale?.subtotal ?? 0n))}
-                </Text>
-              </Flex>
-              <Flex justify="space-between" align="center">
-                <Text fontSize="sm" color="fg.muted">{t("pos.discount")}</Text>
-                <DiscountField
-                  type={cartDisc.type}
-                  value={cartDisc.value}
-                  onChange={(type, value) => {
-                    const typeChanged = type !== cartDisc.type;
-                    setCartDisc({ type, value });
-                    if (typeChanged) void commitCartDiscount(type, value);
-                  }}
-                  onBlur={() => void commitCartDiscount(cartDisc.type, cartDisc.value)}
-                  valueWidth="120px"
-                />
-              </Flex>
-              {Number(sale?.cartDiscount ?? 0n) > 0 && (
-                <Flex justify="flex-end">
-                  <Text fontSize="2xs" color="fg.muted" fontFamily="mono">
-                    -{formatMoney(Number(sale?.cartDiscount ?? 0n))}
-                  </Text>
-                </Flex>
-              )}
-              {isPharmacy && (
-                <Flex justify="space-between" align="center">
-                  <Text fontSize="sm" color="fg.muted">{t("prescriptions.biayaJasa")}</Text>
-                  <MoneyInput
-                    size="sm"
-                    width="120px"
-                    value={feeInput}
-                    onChange={setFeeInput}
-                    onBlur={commitFee}
-                    aria-label={t("prescriptions.biayaJasa")}
-                  />
-                </Flex>
-              )}
-              <Flex justify="space-between">
-                <Text fontWeight="semibold">{t("pos.total")}</Text>
-                <Text fontWeight="semibold" fontFamily="mono">
-                  {formatMoney(total)}
-                </Text>
-              </Flex>
-
-              <Box pt={2}>
-                <Text fontSize="xs" color="fg.muted" mb={1}>
-                  {t("pos.payment")}
-                </Text>
-                <RadioGroup.Root
-                  value={String(paymentSource)}
-                  onValueChange={(d) => setPaymentSource(Number(d.value) as PaymentSource)}
-                >
-                  <HStack gap={3}>
-                    <RadioGroup.Item value={String(PaymentSource.CASH)}>
-                      <RadioGroup.ItemHiddenInput />
-                      <RadioGroup.ItemIndicator />
-                      <RadioGroup.ItemText>{t("pos.paymentCash")}</RadioGroup.ItemText>
-                    </RadioGroup.Item>
-                    <RadioGroup.Item value={String(PaymentSource.NON_CASH)}>
-                      <RadioGroup.ItemHiddenInput />
-                      <RadioGroup.ItemIndicator />
-                      <RadioGroup.ItemText>{t("pos.paymentNonCash")}</RadioGroup.ItemText>
-                    </RadioGroup.Item>
-                  </HStack>
-                </RadioGroup.Root>
-              </Box>
-
-              {paymentSource === PaymentSource.CASH && (
-                <Stack gap={1}>
-                  <HStack>
-                    <Text fontSize="xs" color="fg.muted" minW="56px">{t("pos.paid")}</Text>
-                    <MoneyInput
-                      size="sm"
-                      value={paidAmount}
-                      onChange={setPaidAmount}
-                    />
-                  </HStack>
-                  <QuickAmountRow
-                    total={total}
-                    onPick={(n) => setPaidAmount(String(n))}
-                  />
-                  <Flex justify="space-between">
-                    <Text fontSize="xs" color="fg.muted">{t("pos.change")}</Text>
-                    <Text fontSize="sm" fontFamily="mono" color={change < 0 ? "fg.error" : "fg"}>
-                      {formatMoney(Math.max(0, change))}
-                    </Text>
-                  </Flex>
-                </Stack>
-              )}
-
-              <HStack gap={2} pt={2}>
-                <Button
-                  colorPalette="blue"
-                  flex="1"
-                  onClick={doComplete}
-                  disabled={!canComplete}
-                  loading={completeSale.isPending}
-                >
-                  {t("pos.complete")}
-                </Button>
-              </HStack>
-            </Stack>
-          </Box>
+          <PosPaymentPanel
+            sale={sale}
+            isPharmacy={isPharmacy}
+            cartDisc={cartDisc}
+            setCartDisc={setCartDisc}
+            commitCartDiscount={commitCartDiscount}
+            feeInput={feeInput}
+            setFeeInput={setFeeInput}
+            commitFee={commitFee}
+            total={total}
+            paymentSource={paymentSource}
+            setPaymentSource={setPaymentSource}
+            paidAmount={paidAmount}
+            setPaidAmount={setPaidAmount}
+            change={change}
+            doComplete={doComplete}
+            canComplete={canComplete}
+            completing={completeSale.isPending}
+          />
 
           <Box bg="bg.muted" px={4} py={2} borderTopWidth="1px">
             <Text fontSize="xs" color="fg.muted">

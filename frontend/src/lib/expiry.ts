@@ -98,6 +98,22 @@ export function isoToLocalDate(iso: string): Date {
   return new Date(y, (m || 1) - 1, d || 1);
 }
 
+/** Today's LOCAL calendar date as "YYYY-MM-DD" — the shop's day, not UTC's. */
+export function localTodayIso(now: Date = new Date()): string {
+  return isoOf(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}
+
+/**
+ * Whether a lot that expires on `expiryDate` is expired on `today` (both
+ * "YYYY-MM-DD"): its date is strictly BEFORE today, so a lot is still sellable
+ * ON its expiry date. The same rule as the server's common.ExpiryPassed, which
+ * CompleteSale enforces in pharmacy mode. ISO dates order correctly as strings;
+ * a "does not expire" lot carries 2099-12-31 and never qualifies.
+ */
+export function isExpiredOn(expiryDate: string, today: string): boolean {
+  return expiryDate !== "" && expiryDate < today;
+}
+
 /** Whole calendar days from today to the expiry; negative once it has passed. */
 export function daysUntilExpiry(iso: string, now: Date = new Date()): number {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
