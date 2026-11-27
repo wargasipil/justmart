@@ -142,14 +142,15 @@ func (s *SaleService) draftForUpdate(tx *gorm.DB, id string) (*model.Sale, error
 	var sale model.Sale
 	err := common.RowLock(tx).Where("id = ?", id).First(&sale).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("sale not found"))
+		return nil, common.TokenError(connect.CodeNotFound, "sale.not_found")
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	// A COMPLETED / VOIDED sale is frozen. POS reads this token (and
+	// sale.not_found above) to replace a dead draft with a fresh one.
 	if sale.Status != saleStatusDraft {
-		return nil, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("sale is %s; only DRAFT sales accept mutations", sale.Status))
+		return nil, common.TokenError(connect.CodeFailedPrecondition, "sale.not_draft")
 	}
 	return &sale, nil
 }
@@ -161,7 +162,7 @@ func (s *SaleService) loadFull(ctx context.Context, id string) (*model.Sale, err
 	var sale model.Sale
 	err := s.db.WithContext(ctx).Preload("Items").Where("id = ?", id).First(&sale).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("sale not found"))
+		return nil, common.TokenError(connect.CodeNotFound, "sale.not_found")
 	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

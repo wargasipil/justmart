@@ -28,8 +28,7 @@ func TestVoidSale_NotFound(t *testing.T) {
 	_, err := svc.VoidSale(ctx, connect.NewRequest(&posifacev1.VoidSaleRequest{
 		SaleId: "00000000-0000-0000-0000-0000000000a9",
 	}))
-	require.Error(t, err)
-	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	requireToken(t, err, connect.CodeNotFound, "sale.not_found")
 }
 
 func TestVoidSale_NonDraft(t *testing.T) {

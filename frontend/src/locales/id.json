@@ -604,6 +604,7 @@
     "cancel": "Batalkan transaksi",
     "exit": "Keluar",
     "outOfStock": "Stok habis",
+    "cartExpired": "Keranjang sebelumnya sudah tidak berlaku. Silakan scan ulang barangnya.",
     "showOutOfStock": "Tampilkan stok habis",
     "noResultsHiddenOutOfStock": "Tidak ada $t(glossary.product) berstok yang cocok. Aktifkan \"Tampilkan stok habis\" untuk melihat sisanya.",
     "stock": "tersedia",
@@ -1386,7 +1387,9 @@
       "cartEmpty": "Keranjang kosong",
       "paidTooLow": "Jumlah bayar kurang dari total",
       "insufficientStock": "Stok tidak cukup untuk menyelesaikan penjualan.",
-      "stockExpired": "Stok yang tersisa sudah kedaluwarsa dan tidak bisa dijual. Hapus dari keranjang, lalu catat penghapusan stok atau perbaiki tanggal kedaluwarsanya."
+      "stockExpired": "Stok yang tersisa sudah kedaluwarsa dan tidak bisa dijual. Hapus dari keranjang, lalu catat penghapusan stok atau perbaiki tanggal kedaluwarsanya.",
+      "notFound": "Keranjang ini sudah tidak ada. Buka ulang halaman kasir.",
+      "notDraft": "Transaksi ini sudah selesai atau dibatalkan, jadi tidak bisa diubah lagi."
     },
     "avatar": {
       "imageRequired": "Pilih gambar untuk diunggah.",

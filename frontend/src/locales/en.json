@@ -604,6 +604,7 @@
     "cancel": "Cancel sale",
     "exit": "Exit",
     "outOfStock": "Out of stock",
+    "cartExpired": "The previous cart is no longer valid. Please scan the items again.",
     "showOutOfStock": "Show out of stock",
     "noResultsHiddenOutOfStock": "No $t(glossary.products) in stock match this. Turn on \"Show out of stock\" to see the rest.",
     "stock": "in stock",
@@ -1386,7 +1387,9 @@
       "cartEmpty": "The cart is empty",
       "paidTooLow": "Amount paid is less than the total",
       "insufficientStock": "Not enough stock to complete the sale.",
-      "stockExpired": "The remaining stock has expired and cannot be sold. Remove it from the cart, then write it off or correct its expiry date."
+      "stockExpired": "The remaining stock has expired and cannot be sold. Remove it from the cart, then write it off or correct its expiry date.",
+      "notFound": "This cart no longer exists. Reopen the cashier page.",
+      "notDraft": "This sale is already completed or cancelled and can't be changed."
     },
     "avatar": {
       "imageRequired": "Pick an image to upload.",

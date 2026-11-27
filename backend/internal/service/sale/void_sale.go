@@ -22,7 +22,7 @@ func (s *SaleService) VoidSale(
 		if err := common.RowLock(tx).
 			Where("id = ?", req.Msg.SaleId).First(&sale).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return connect.NewError(connect.CodeNotFound, errors.New("sale not found"))
+				return common.TokenError(connect.CodeNotFound, "sale.not_found")
 			}
 			return connect.NewError(connect.CodeInternal, err)
 		}

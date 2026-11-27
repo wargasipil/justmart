@@ -176,13 +176,21 @@ export const SERVER_ERRORS: Record<string, ServerErrorEntry> = {
   "sale.discount_negative": { i18nKey: "serverErrors.common.discountInvalid" },
   "sale.discount_percent_range": { i18nKey: "serverErrors.common.discountInvalid" },
   "sale.discount_type_invalid": { i18nKey: "serverErrors.common.discountInvalid" },
+  // The draft is gone (24h sweeper / discarded) or already completed/voided.
+  // POS recovers from both itself (routes/pos/usePosCart.ts) before a toast
+  // would show; any other screen still gets a translated message.
+  "sale.not_found": { i18nKey: "serverErrors.sale.notFound" },
+  "sale.not_draft": { i18nKey: "serverErrors.sale.notDraft" },
 };
 
 // A token-shaped message: all-lowercase dotted segments, no spaces. Real
 // free-text backend prose (sentence-case, spaces) never matches this.
 const TOKEN_SHAPE = /^[a-z_]+(\.[a-z_]+)+$/;
 
-function connectMessage(err: unknown): string | null {
+// connectMessage returns the bare server message of a Connect error — the
+// stable token when the backend used TokenError — or null for anything else.
+// Exported for callers that branch on a token (POS dead-draft recovery).
+export function connectMessage(err: unknown): string | null {
   if (!(err instanceof ConnectError)) return null;
   // ConnectError.message is prefixed with "[code] "; rawMessage is the bare text.
   return err.rawMessage ?? err.message;

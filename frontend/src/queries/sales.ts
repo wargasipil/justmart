@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import type { PartialMessage } from "@bufbuild/protobuf";
 
 import { saleClient } from "../lib/clients";
@@ -35,9 +35,13 @@ export function useStartSaleMutation() {
   });
 }
 
+// The POS cart mutations below (AddItem .. CompleteSale) are meta.silentError:
+// usePosCart (routes/pos/usePosCart.ts) recovers a dead draft itself and
+// toasts every other error with toast.fromError. POS is their only caller.
 export function useAddItemMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<AddItemRequest>) => saleClient.addItem(req),
     onSuccess: (res) => {
       if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
@@ -48,6 +52,7 @@ export function useAddItemMutation() {
 export function useSetItemQuantityMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<SetItemQuantityRequest>) =>
       saleClient.setItemQuantity(req),
     onSuccess: (res) => {
@@ -59,6 +64,7 @@ export function useSetItemQuantityMutation() {
 export function useRemoveItemMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<RemoveItemRequest>) => saleClient.removeItem(req),
     onSuccess: (res) => {
       if (res.sale?.id) qc.setQueryData(saleKeys.detail(res.sale.id), res.sale);
@@ -69,6 +75,7 @@ export function useRemoveItemMutation() {
 export function useSetSaleCustomerMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<SetSaleCustomerRequest>) =>
       saleClient.setSaleCustomer(req),
     onSuccess: (res) => {
@@ -80,6 +87,7 @@ export function useSetSaleCustomerMutation() {
 export function useAttachPrescriptionMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<AttachPrescriptionRequest>) =>
       saleClient.attachPrescription(req),
     onSuccess: (res) => {
@@ -91,6 +99,7 @@ export function useAttachPrescriptionMutation() {
 export function useDetachPrescriptionMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<DetachPrescriptionRequest>) =>
       saleClient.detachPrescription(req),
     onSuccess: (res) => {
@@ -102,6 +111,7 @@ export function useDetachPrescriptionMutation() {
 export function useSetServiceFeeMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<SetServiceFeeRequest>) =>
       saleClient.setServiceFee(req),
     onSuccess: (res) => {
@@ -113,6 +123,7 @@ export function useSetServiceFeeMutation() {
 export function useSetLineDiscountMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<SetLineDiscountRequest>) =>
       saleClient.setLineDiscount(req),
     onSuccess: (res) => {
@@ -124,6 +135,7 @@ export function useSetLineDiscountMutation() {
 export function useClearLineDiscountMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<ClearLineDiscountRequest>) =>
       saleClient.clearLineDiscount(req),
     onSuccess: (res) => {
@@ -135,6 +147,7 @@ export function useClearLineDiscountMutation() {
 export function useSetCartDiscountMutation() {
   const qc = useQueryClient();
   return useMutation({
+    meta: { silentError: true },
     mutationFn: (req: PartialMessage<SetCartDiscountRequest>) =>
       saleClient.setCartDiscount(req),
     onSuccess: (res) => {
@@ -143,15 +156,21 @@ export function useSetCartDiscountMutation() {
   });
 }
 
+// What a completed sale changes: order history / summaries + stock reads.
+// Shared with POS, which also lands here when a CompleteSale reply was lost but
+// the sale did complete (usePosCart reads it back with GetSale).
+export function invalidateAfterCompletedSale(qc: QueryClient) {
+  void qc.invalidateQueries({ queryKey: saleKeys.all });
+  void qc.invalidateQueries({ queryKey: ["stock"] });
+  void qc.invalidateQueries({ queryKey: ["batches"] });
+}
+
 export function useCompleteSaleMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (req: PartialMessage<CompleteSaleRequest>) => saleClient.completeSale(req),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: saleKeys.all });
-      void qc.invalidateQueries({ queryKey: ["stock"] });
-      void qc.invalidateQueries({ queryKey: ["batches"] });
-    },
+    meta: { silentError: true },
+    onSuccess: () => invalidateAfterCompletedSale(qc),
   });
 }
 

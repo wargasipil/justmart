@@ -37,8 +37,7 @@ func TestDiscardSale_NotFound(t *testing.T) {
 	_, err := svc.DiscardSale(ctx, connect.NewRequest(&posifacev1.DiscardSaleRequest{
 		SaleId: "00000000-0000-0000-0000-0000000000a8",
 	}))
-	require.Error(t, err)
-	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	requireToken(t, err, connect.CodeNotFound, "sale.not_found")
 }
 
 func TestDiscardSale_NonDraft(t *testing.T) {

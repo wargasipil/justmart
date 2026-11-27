@@ -35,8 +35,7 @@ func TestGetSale_NotFound(t *testing.T) {
 	_, err := svc.GetSale(ctx, connect.NewRequest(&posifacev1.GetSaleRequest{
 		Id: "00000000-0000-0000-0000-0000000000a7",
 	}))
-	require.Error(t, err)
-	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+	requireToken(t, err, connect.CodeNotFound, "sale.not_found")
 }
 
 func TestGetSale_EmptyID(t *testing.T) {

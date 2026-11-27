@@ -117,6 +117,16 @@ func TestRefundSale_RejectsNonCompleted(t *testing.T) {
 	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }
 
+func TestRefundSale_NotFound(t *testing.T) {
+	t.Parallel()
+	svc, ctx, _, _ := newSaleSvc(t)
+
+	_, err := svc.RefundSale(ctx, connect.NewRequest(&posifacev1.RefundSaleRequest{
+		SaleId: "00000000-0000-0000-0000-0000000000aa",
+	}))
+	requireToken(t, err, connect.CodeNotFound, "sale.not_found")
+}
+
 // completedSaleAged completes a one-item sale and backdates its completion by
 // age, so the refund window can be probed from either side.
 func completedSaleAged(t *testing.T, sku string, age time.Duration) (*salesvc.SaleService, context.Context, string) {
